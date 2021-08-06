@@ -37,7 +37,7 @@ func TestAccAlicloudHBRNasBackupPlan_basic0(t *testing.T) {
 					"create_time":          "1603163444",
 					"schedule":             "I|1602673264|PT2H",
 					"nas_backup_plan_name": "tf-testAcc测试",
-					"retention":			"1",
+					"retention":            "1",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -47,7 +47,7 @@ func TestAccAlicloudHBRNasBackupPlan_basic0(t *testing.T) {
 						"create_time":          "1603163444",
 						"schedule":             "I|1602673264|PT2H",
 						"nas_backup_plan_name": "tf-testAcc测试",
-						"retention":			"1",
+						"retention":            "1",
 					}),
 				),
 			},
@@ -63,21 +63,21 @@ func TestAccAlicloudHBRNasBackupPlan_basic0(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"schedule":  "I|1602673264|P1D",
+					"schedule": "I|1602673264|P1D",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"schedule":  "I|1602673264|P1D",
+						"schedule": "I|1602673264|P1D",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"path":      []string{"/home/test"},
+					"path": []string{"/home/test"},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"path.#":    "1",
+						"path.#": "1",
 					}),
 				),
 			},
