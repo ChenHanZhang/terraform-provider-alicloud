@@ -80,6 +80,7 @@ func (s *HbrService) HbrVaultStateRefreshFunc(id string, failStates []string) re
 		return object, fmt.Sprint(object["Status"]), nil
 	}
 }
+
 func (s *HbrService) DescribeHbrEcsBackupPlan(id string) (object map[string]interface{}, err error) {
 	var response map[string]interface{}
 	conn, err := s.client.NewHbrClient()
@@ -183,3 +184,4 @@ func (s *HbrService) DescribeHbrNasBackupPlan(id string) (object map[string]inte
 	object = v.([]interface{})[0].(map[string]interface{})
 	return object, nil
 }
+

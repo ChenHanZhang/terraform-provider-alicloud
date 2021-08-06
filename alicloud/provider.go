@@ -264,7 +264,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_nas_mount_targets":                           dataSourceAlicloudNasMountTargets(),
 			"alicloud_nas_file_systems":                            dataSourceAlicloudFileSystems(),
 			"alicloud_nas_protocols":                               dataSourceAlicloudNasProtocols(),
-			"alicloud_cas_certificates":                            dataSourceAlicloudCasCertificates(),
+			"alicloud_cas_certificates":                            dataSourceAlicloudSslCertificatesServiceCertificates(),
 			"alicloud_common_bandwidth_packages":                   dataSourceAlicloudCommonBandwidthPackages(),
 			"alicloud_route_tables":                                dataSourceAlicloudRouteTables(),
 			"alicloud_route_entries":                               dataSourceAlicloudRouteEntries(),
@@ -444,7 +444,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_log_stores":                                  dataSourceAlicloudLogStores(),
 			"alicloud_event_bridge_service":                        dataSourceAlicloudEventBridgeService(),
 			"alicloud_event_bridge_event_buses":                    dataSourceAlicloudEventBridgeEventBuses(),
-			"alicloud_event_bridge_schema_groups":                  dataSourceAlicloudEventBridgeSchemaGroups(),
 			"alicloud_amqp_virtual_hosts":                          dataSourceAlicloudAmqpVirtualHosts(),
 			"alicloud_amqp_queues":                                 dataSourceAlicloudAmqpQueues(),
 			"alicloud_amqp_exchanges":                              dataSourceAlicloudAmqpExchanges(),
@@ -454,6 +453,12 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_hbr_vaults":                                  dataSourceAlicloudHbrVaults(),
 			"alicloud_hbr_ecs_backup_plans":                        dataSourceAlicloudHbrEcsBackupPlans(),
 			"alicloud_hbr_nas_backup_plans":                        dataSourceAlicloudHbrNasBackupPlans(),
+			"alicloud_ssl_certificates_service_certificates":       dataSourceAlicloudSslCertificatesServiceCertificates(),
+			"alicloud_arms_alert_contacts":                         dataSourceAlicloudArmsAlertContacts(),
+			"alicloud_event_bridge_rules":                          dataSourceAlicloudEventBridgeRules(),
+			"alicloud_cloud_firewall_control_policies":             dataSourceAlicloudCloudFirewallControlPolicies(),
+			"alicloud_sae_namespaces":                              dataSourceAlicloudSaeNamespaces(),
+			"alicloud_sae_config_maps":                             dataSourceAlicloudSaeConfigMaps(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"alicloud_instance":                           resourceAliyunInstance(),
@@ -643,7 +648,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_common_bandwidth_package_attachment":        resourceAliyunCommonBandwidthPackageAttachment(),
 			"alicloud_drds_instance":                              resourceAlicloudDRDSInstance(),
 			"alicloud_elasticsearch_instance":                     resourceAlicloudElasticsearch(),
-			"alicloud_cas_certificate":                            resourceAlicloudCasCertificate(),
+			"alicloud_cas_certificate":                            resourceAlicloudSslCertificatesServiceCertificate(),
 			"alicloud_ddoscoo_instance":                           resourceAlicloudDdoscooInstance(),
 			"alicloud_ddosbgp_instance":                           resourceAlicloudDdosbgpInstance(),
 			"alicloud_network_acl":                                resourceAlicloudNetworkAcl(),
@@ -798,7 +803,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_direct_mail_receivers":                      resourceAlicloudDirectMailReceivers(),
 			"alicloud_eip_address":                                resourceAlicloudEipAddress(),
 			"alicloud_event_bridge_event_bus":                     resourceAlicloudEventBridgeEventBus(),
-			"alicloud_event_bridge_schema_group":                  resourceAlicloudEventBridgeSchemaGroup(),
 			"alicloud_amqp_virtual_host":                          resourceAlicloudAmqpVirtualHost(),
 			"alicloud_amqp_queue":                                 resourceAlicloudAmqpQueue(),
 			"alicloud_amqp_exchange":                              resourceAlicloudAmqpExchange(),
@@ -808,6 +812,13 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_hbr_vault":                                  resourceAlicloudHbrVault(),
 			"alicloud_hbr_ecs_backup_plan":                        resourceAlicloudHbrEcsBackupPlan(),
 			"alicloud_hbr_nas_backup_plan":                        resourceAlicloudHbrNasBackupPlan(),
+			"alicloud_ssl_certificates_service_certificate":       resourceAlicloudSslCertificatesServiceCertificate(),
+			"alicloud_arms_alert_contact":                         resourceAlicloudArmsAlertContact(),
+			"alicloud_event_bridge_slr":                           resourceAlicloudEventBridgeSlr(),
+			"alicloud_event_bridge_rule":                          resourceAlicloudEventBridgeRule(),
+			"alicloud_cloud_firewall_control_policy":              resourceAlicloudCloudFirewallControlPolicy(),
+			"alicloud_sae_namespace":                              resourceAlicloudSaeNamespace(),
+			"alicloud_sae_config_map":                             resourceAlicloudSaeConfigMap(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -966,8 +977,9 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.EventbridgeEndpoint = strings.TrimSpace(endpoints["eventbridge"].(string))
 		config.OnsproxyEndpoint = strings.TrimSpace(endpoints["onsproxy"].(string))
 		config.CdsEndpoint = strings.TrimSpace(endpoints["cds"].(string))
-
 		config.HbrEndpoint = strings.TrimSpace(endpoints["hbr"].(string))
+		config.ArmsEndpoint = strings.TrimSpace(endpoints["arms"].(string))
+		config.ServerlessEndpoint = strings.TrimSpace(endpoints["serverless"].(string))
 		if endpoint, ok := endpoints["alidns"]; ok {
 			config.AlidnsEndpoint = strings.TrimSpace(endpoint.(string))
 		} else {
@@ -1192,6 +1204,11 @@ func init() {
 		"cds_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom cds endpoints.",
 
 		"hbr_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom hbr endpoints.",
+
+		"arms_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom arms endpoints.",
+
+		"serverless_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom serverless endpoints.",
+
 	}
 }
 
@@ -1236,6 +1253,19 @@ func endpointsSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
+
+				"arms": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["arms_endpoint"],
+				},
+				"serverless": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["serverless_endpoint"],
+				},
 				"hbr": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -1753,6 +1783,8 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["onsproxy"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["cds"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["hbr"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["arms"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["serverless"].(string)))
 	return hashcode.String(buf.String())
 }
 

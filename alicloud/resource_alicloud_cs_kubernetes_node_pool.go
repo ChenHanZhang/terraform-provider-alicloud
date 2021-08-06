@@ -72,17 +72,15 @@ func resourceAlicloudCSKubernetesNodePool() *schema.Resource {
 				MaxItems: 10,
 			},
 			"password": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Sensitive:        true,
-				ConflictsWith:    []string{"key_name", "kms_encrypted_password"},
-				DiffSuppressFunc: csForceUpdateSuppressFunc,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"key_name", "kms_encrypted_password"},
 			},
 			"key_name": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				ConflictsWith:    []string{"password", "kms_encrypted_password"},
-				DiffSuppressFunc: csForceUpdateSuppressFunc,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"password", "kms_encrypted_password"},
 			},
 			"kms_encrypted_password": {
 				Type:          schema.TypeString,
@@ -268,6 +266,7 @@ func resourceAlicloudCSKubernetesNodePool() *schema.Resource {
 			"management": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -630,25 +629,28 @@ func resourceAlicloudCSNodePoolUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	if d.HasChange("scaling_config") {
+	if v, ok := d.GetOk("scaling_config"); ok {
 		update = true
-		sc := d.Get("scaling_config").([]interface{})
-		args.AutoScaling = setAutoScalingConfig(sc)
+		args.AutoScaling = setAutoScalingConfig(v.([]interface{}))
 	}
 
 	if v, ok := d.Get("management").([]interface{}); len(v) > 0 && ok {
+		update = true
 		args.Management = setManagedNodepoolConfig(v)
 	}
 
 	if v, ok := d.GetOk("internet_charge_type"); ok {
+		update = true
 		args.InternetChargeType = v.(string)
 	}
 
 	if v, ok := d.GetOk("internet_max_bandwidth_out"); ok {
+		update = true
 		args.InternetMaxBandwidthOut = v.(int)
 	}
 
 	if v, ok := d.GetOk("platform"); ok {
+		update = true
 		args.Platform = v.(string)
 	}
 
@@ -788,14 +790,16 @@ func resourceAlicloudCSNodePoolRead(d *schema.ResourceData, meta interface{}) er
 		return WrapError(err)
 	}
 
-	if m, ok := d.GetOk("management"); ok && m != nil {
+	if object.Management.Enable == true {
 		if err := d.Set("management", flattenManagementNodepoolConfig(&object.Management)); err != nil {
 			return WrapError(err)
 		}
 	}
 
-	if err := d.Set("scaling_config", flattenAutoScalingConfig(&object.AutoScaling)); err != nil {
-		return WrapError(err)
+	if object.AutoScaling.Enable == true {
+		if err := d.Set("scaling_config", flattenAutoScalingConfig(&object.AutoScaling)); err != nil {
+			return WrapError(err)
+		}
 	}
 
 	if err := d.Set("spot_price_limit", flattenSpotPriceLimit(object.SpotPriceLimit)); err != nil {
