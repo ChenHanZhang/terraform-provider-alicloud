@@ -452,6 +452,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cen_transit_router_peer_attachments":         dataSourceAlicloudCenTransitRouterPeerAttachments(),
 			"alicloud_amqp_instances":                              dataSourceAlicloudAmqpInstances(),
 			"alicloud_hbr_vaults":                                  dataSourceAlicloudHbrVaults(),
+			"alicloud_hbr_ecs_backup_plans":                        dataSourceAlicloudHbrEcsBackupPlans(),
+			"alicloud_hbr_nas_backup_plans":                        dataSourceAlicloudHbrNasBackupPlans(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"alicloud_instance":                           resourceAliyunInstance(),
@@ -804,6 +806,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cen_transit_router_peer_attachment":         resourceAlicloudCenTransitRouterPeerAttachment(),
 			"alicloud_amqp_instance":                              resourceAlicloudAmqpInstance(),
 			"alicloud_hbr_vault":                                  resourceAlicloudHbrVault(),
+			"alicloud_hbr_ecs_backup_plan":                        resourceAlicloudHbrEcsBackupPlan(),
+			"alicloud_hbr_nas_backup_plan":                        resourceAlicloudHbrNasBackupPlan(),
 		},
 
 		ConfigureFunc: providerConfigure,
