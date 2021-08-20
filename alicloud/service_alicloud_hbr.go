@@ -402,6 +402,28 @@ func (s *HbrService) HbrEcsBackupClientStateRefreshFunc(id string, failStates []
 	}
 }
 
+func (s *HbrService) NasRestoreJobStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeHbrNasRestoreJob(id)
+		fmt.Println("refresh:", object)
+		fmt.Println("refresh error:", err)
+		if err != nil {
+			if NotFoundError(err) {
+				// Set this to nil as if we didn't find anything.
+				return nil, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		for _, failState := range failStates {
+			if fmt.Sprint(object["Status"]) == failState {
+				return object, fmt.Sprint(object["Status"]), WrapError(Error(FailedToReachTargetStatus, fmt.Sprint(object["Status"])))
+			}
+		}
+		return object, fmt.Sprint(object["Status"]), nil
+	}
+}
+
 func (s *HbrService) DescribeHbrNasRestoreJob(id string) (object map[string]interface{}, err error) {
 	var response map[string]interface{}
 	conn, err := s.client.NewHbrClient()
@@ -445,7 +467,7 @@ func (s *HbrService) DescribeHbrNasRestoreJob(id string) (object map[string]inte
 			return object, WrapErrorf(Error(GetNotFoundMessage("HBR", id)), NotFoundWithResponse, response)
 		}
 		for _, v := range v.([]interface{}) {
-			if fmt.Sprint(v.(map[string]interface{})["TargetInstanceId"]) == id {
+			if fmt.Sprint(v.(map[string]interface{})["RestoreId"]) == id {
 				idExist = true
 				return v.(map[string]interface{}), nil
 			}

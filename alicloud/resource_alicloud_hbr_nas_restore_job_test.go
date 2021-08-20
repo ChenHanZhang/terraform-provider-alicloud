@@ -68,7 +68,7 @@ var AlicloudHBRNasRestoreJobMap0 = map[string]string{
 	"status":                      CHECKSET,
 	"target_container":            NOSET,
 	"exclude":                     NOSET,
-	"options":                     CHECKSET,
+	"options":                     "",
 	"udm_region_id":               NOSET,
 	"cluster_id":                  "",
 	"target_bucket":               NOSET,

@@ -210,7 +210,6 @@ func resourceAlicloudHbrNasRestoreJobCreate(d *schema.ResourceData, meta interfa
 		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
 	}
 
-	fmt.Println("create response:", response)
 	d.SetId(fmt.Sprint(response["RestoreId"]))
 
 	return resourceAlicloudHbrNasRestoreJobRead(d, meta)
@@ -246,38 +245,6 @@ func resourceAlicloudHbrNasRestoreJobUpdate(d *schema.ResourceData, meta interfa
 	return resourceAlicloudHbrNasRestoreJobRead(d, meta)
 }
 func resourceAlicloudHbrNasRestoreJobDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	action := "CancelRestoreJob"
-	var response map[string]interface{}
-	conn, err := client.NewHbrClient()
-	if err != nil {
-		return WrapError(err)
-	}
-	request := map[string]interface{}{
-		"RestoreId": d.Id(),
-	}
-
-	if v, ok := d.GetOk("vault_id"); ok {
-		request["VaultId"] = v
-	}
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2017-09-08"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
-	if fmt.Sprint(response["Success"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-	}
+	log.Println(fmt.Sprintf("[WARNING] The resouce has not delete operation."))
 	return nil
 }
