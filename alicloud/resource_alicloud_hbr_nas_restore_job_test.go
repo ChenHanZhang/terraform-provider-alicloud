@@ -38,6 +38,7 @@ func TestAccAlicloudHBRNasRestoreJob_basic0(t *testing.T) {
 					"snapshot_id":           "s-0006ulw1dfq2muo5g9ml",
 					"target_file_system_id": "02ddf4ad63",
 					"target_create_time":    "1628856766",
+					"target_path":           "/",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -48,6 +49,7 @@ func TestAccAlicloudHBRNasRestoreJob_basic0(t *testing.T) {
 						"snapshot_id":           "s-0006ulw1dfq2muo5g9ml",
 						"target_file_system_id": "02ddf4ad63",
 						"target_create_time":    "1628856766",
+						"target_path":           "/",
 					}),
 				),
 			},

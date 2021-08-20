@@ -103,7 +103,7 @@ func resourceAlicloudHbrNasRestoreJob() *schema.Resource {
 			},
 			"target_path": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"target_prefix": {
 				Type:     schema.TypeString,
