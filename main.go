@@ -26,7 +26,9 @@ func main() {
 		fmt.Println("error:", err)
 	}
 	fmt.Printf("%s\n", b)
-	postSpecSchema("alicloud_ehpc_cluster", "ehpc", "Cluster", string(b))
+	// postSpecSchema("alicloud_ehpc_cluster", "ehpc", "Cluster", string(b))
+
+	traversalProviderResources()
 
 }
 
@@ -48,12 +50,12 @@ func postSpecSchema(tfResource string, namespace string, resourceCode string, sp
 
 	req.Header.Add("Content-Type", "application/json")
 
-	response, err := http.DefaultClient.Do(req)
+	_, err := http.DefaultClient.Do(req)
 
 	if err != nil {
+		fmt.Println(fmt.Errorf("==== post error: %s, %s, %s", tfResource, namespace, resourceCode))
 		fmt.Println(err)
 	}
-	fmt.Println(response)
 }
 
 func traversalProviderResources() {
@@ -74,8 +76,35 @@ func traversalProviderResources() {
 		if err != nil {
 			fmt.Println("error:", err)
 		}
-		fmt.Printf("%s\n", b)
+		codes := strings.Split(resourceCode, "_")
+		namespace := codes[1]
+		resourceType := camelString(strings.Join(codes[2:], "_"))
+		postSpecSchema(resourceCode, namespace, resourceType, string(b))
 	}
+}
+
+func camelString(s string) string {
+	data := make([]byte, 0, len(s))
+	j := false
+	k := false
+	num := len(s) - 1
+	for i := 0; i <= num; i++ {
+		d := s[i]
+		if k == false && d >= 'A' && d <= 'Z' {
+			k = true
+		}
+		if d >= 'a' && d <= 'z' && (j || k == false) {
+			d = d - 32
+			j = false
+			k = true
+		}
+		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
+			j = true
+			continue
+		}
+		data = append(data, d)
+	}
+	return string(data[:])
 }
 
 func CoreSpecSchema(m map[string]*schema.Schema) Properties {
