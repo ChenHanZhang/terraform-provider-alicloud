@@ -34,11 +34,11 @@ func main() {
 
 func postSpecSchema(tfResource string, namespace string, resourceCode string, specSchema string) {
 
-	targetUrl := "http://localhost:7001/api/v1/terraform/resource/spec/create"
+	targetUrl := "https://pre-acube.aliyun-inc.com/api/v1/terraform/resource/spec/create"
 
 	postContent := map[string]string{}
 	postContent["tfResource"] = tfResource
-	postContent["tfVersion"] = "1.189.0"
+	postContent["tfVersion"] = "1.198.0"
 	postContent["namespace"] = namespace
 	postContent["resourceCode"] = resourceCode
 	postContent["meta"] = specSchema
