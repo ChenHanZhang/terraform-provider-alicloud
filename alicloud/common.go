@@ -1475,3 +1475,25 @@ func IsSubCollection(sub []string, full []string) bool {
 	}
 	return true
 }
+
+func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for _, m := range maps {
+		for key, value := range m {
+			item, existed := result[key]
+			if !existed {
+				result[key] = value
+				continue
+			}
+			newValue, ok := value.([]map[string]interface{})
+			if !ok || len(newValue) != 1 {
+				continue
+			}
+			if preValue, ok := item.([]map[string]interface{}); ok && len(preValue) == 1 {
+				result[key] = MergeMaps(preValue[0], newValue[0])
+			}
+		}
+	}
+	return result
+}
