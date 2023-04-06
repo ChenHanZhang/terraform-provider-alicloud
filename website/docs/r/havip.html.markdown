@@ -1,62 +1,78 @@
 ---
-subcategory: "VPC"
+subcategory: "Vpc"
 layout: "alicloud"
-page_title: "Alicloud: alicloud_havip"
-sidebar_current: "docs-alicloud-resource-havip"
+page_title: "Alicloud: alicloud_vpc_havip"
+sidebar_current: "docs-alicloud-resource-vpc-havip"
 description: |-
-  Provides a Alicloud HaVip resource.
+  Provides a Alicloud Vpc Havip resource.
 ---
 
-# alicloud\_havip
+# alicloud_vpc_havip
 
-Provides a HaVip resource.
+Provides a Vpc Havip resource.
 
--> **NOTE:** Terraform will auto build havip instance  while it uses `alicloud_havip` to build a havip resource.
+For information about Vpc Havip and how to use it, see [What is Havip](https://www.alibabacloud.com/help/en/).
+
+-> **NOTE:** Available in v1.203.0+.
 
 ## Example Usage
 
 Basic Usage
 
 ```terraform
-resource "alicloud_havip" "foo" {
-  vswitch_id  = "vsw-fakeid"
-  description = "test_havip"
+resource "alicloud_havip" "default" {
+  description = "test"
+  vswitch_id  = var.VSwitchId
+  ha_vip_name = "Rdk-test"
+  ip_address  = "192.168.1.10"
+  region_id   = var.RegionId
 }
 ```
+
 ## Argument Reference
 
 The following arguments are supported:
+* `description` - (Optional) Dependence of a HaVip instance.
+* `ha_vip_name` - (Optional) The name of the HaVip instance
+* `ip_address` - (ForceNew,Computed,Optional) IP address of private network
+* `resource_group_id` - (Computed,Optional) The ID of the resource group to which the VPC belongs.
+* `tags` - (Optional) The tags of PrefixList.See the following `Block Tags`.
+* `vswitch_id` - (Required,ForceNew) The switch ID to which the HaVip instance belongs
 
-* `vswitch_id` - (Required, ForceNew) The vswitch_id of the HaVip, the field can't be changed.
-* `ip_address` - (Optional, ForceNew) The ip address of the HaVip. If not filled, the default will be assigned one from the vswitch.
-* `description` - (Optional) The description of the HaVip instance.
-* `havip_name` - (Optional, Available in v1.120.0+) The name of the HaVip instance.
+#### Block Tags
+
+The Tags supports the following:
+* `tag_key` - (Optional) The key of tag.
+* `tag_value` - (Optional) The value of tag.
+
+
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The `key` of the resource supplied above.
+* `associated_eip_addresses` - EIP bound to HaVip
+* `associated_instance_type` - The type of the instance that is bound to the VIIP. Value:-**EcsInstance**: ECS instance.-**NetworkInterface**: ENI instance.
+* `associated_instances` - An ECS instance that is bound to HaVip
+* `create_time` - The creation time of the  resource
+* `ha_vip_id` - The  ID of the resource
+* `ip_address` - IP address of private network
+* `master_instance_id` - The primary instance ID bound to HaVip
+* `resource_group_id` - The ID of the resource group to which the VPC belongs.
+* `status` - The status
+* `vpc_id` - The VPC ID to which the HaVip instance belongs
 
-* `id` - The ID of the HaVip instance id.
-* `status` - (Available in v1.120.0+) The status of the HaVip instance.
-
-#### Timeouts
-
--> **NOTE:** Available in v1.120.0+.
+### Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration-0-11/resources.html#timeouts) for certain actions:
-
-* `create` - (Defaults to 5 mins) Used when creating the HaVip instance.
-* `update` - (Defaults to 5 mins) Used when updating the HaVip instance.
-* `delete` - (Defaults to 5 mins) Used when deleting the HaVip instance.
+* `create` - (Defaults to 5 mins) Used when create the Havip.
+* `delete` - (Defaults to 5 mins) Used when delete the Havip.
+* `update` - (Defaults to 5 mins) Used when update the Havip.
 
 ## Import
 
-The havip can be imported using the id, e.g.
+Vpc Havip can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_havip.foo havip-abc123456
+$ terraform import alicloud_vpc_havip.example 
 ```
-
-
-
-
