@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/PaesslerAG/jsonpath"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -94,7 +93,7 @@ func resourceAliCloudVpcHavip() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"ha_vip_name"},
-				Deprecated:    "Field 'havip_name' has been deprecated from provider version 1.201.3. New field 'ha_vip_name' instead.",
+				Deprecated:    "Field 'havip_name' has been deprecated from provider version 1.203.0. New field 'ha_vip_name' instead.",
 			},
 		},
 	}
@@ -140,7 +139,7 @@ func resourceAlicloudVpcHavipCreate(d *schema.ResourceData, meta interface{}) er
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Throttling", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "OperationFailed.Throttling", "ServiceUnavailable"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -171,7 +170,7 @@ func resourceAlicloudVpcHavipRead(d *schema.ResourceData, meta interface{}) erro
 
 	object, err := vpcServiceV2.DescribeVpcHavip(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
+		if !d.IsNewResource() && NotFoundError(err) {
 			log.Printf("[DEBUG] Resource alicloud_havip .DescribeVpcHavip Failed!!! %s", err)
 			d.SetId("")
 			return nil
@@ -239,7 +238,7 @@ func resourceAlicloudVpcHavipUpdate(d *schema.ResourceData, meta interface{}) er
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if IsExpectedErrors(err, []string{"Throttling", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "OperationFailed.Throttling", "ServiceUnavailable"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -249,9 +248,6 @@ func resourceAlicloudVpcHavipUpdate(d *schema.ResourceData, meta interface{}) er
 			return nil
 		})
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) {
-				return nil
-			}
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		d.SetPartial("description")
@@ -290,9 +286,6 @@ func resourceAlicloudVpcHavipUpdate(d *schema.ResourceData, meta interface{}) er
 			return nil
 		})
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) {
-				return nil
-			}
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		d.SetPartial("resource_group_id")
@@ -301,94 +294,10 @@ func resourceAlicloudVpcHavipUpdate(d *schema.ResourceData, meta interface{}) er
 	update = false
 	if d.HasChange("tags") {
 		update = true
-		added, removed := parsingTags(d)
-		removedTagKeys := make([]string, 0)
-		for _, v := range removed {
-			if !ignoredTags(v, "") {
-				removedTagKeys = append(removedTagKeys, v)
-			}
+		vpcServiceV2 := VpcServiceV2{client}
+		if err := vpcServiceV2.SetResourceTags(d, "HAVIP"); err != nil {
+			return WrapError(err)
 		}
-		if len(removedTagKeys) > 0 {
-			action = "UnTagResources"
-			conn, err = client.NewVpcClient()
-			if err != nil {
-				return WrapError(err)
-			}
-			request = make(map[string]interface{})
-
-			request["ResourceId.1"] = d.Id()
-			request["RegionId"] = client.RegionId
-
-			request["ResourceType"] = "HAVIP"
-			if v, ok := d.GetOk("tags"); ok {
-				jsonPathResult, err := jsonpath.Get("$.tag_key", v)
-				if err != nil {
-					return WrapError(err)
-				}
-				request["TagKey"] = jsonPathResult
-			}
-
-			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
-				if err != nil {
-					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				addDebug(action, response, request)
-				return nil
-			})
-			if err != nil {
-				if IsExpectedErrors(err, []string{}) {
-					return nil
-				}
-				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-			}
-		}
-
-		if len(added) > 0 {
-			action = "TagResources"
-			conn, err = client.NewVpcClient()
-			if err != nil {
-				return WrapError(err)
-			}
-			request = make(map[string]interface{})
-
-			request["ResourceId.1"] = d.Id()
-			request["RegionId"] = client.RegionId
-
-			count := 1
-			for key, value := range added {
-				request[fmt.Sprintf("Tag.%d.Key", count)] = key
-				request[fmt.Sprintf("Tag.%d.Value", count)] = value
-				count++
-			}
-
-			request["ResourceType"] = "HAVIP"
-			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
-				if err != nil {
-					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				addDebug(action, response, request)
-				return nil
-			})
-			if err != nil {
-				if IsExpectedErrors(err, []string{}) {
-					return nil
-				}
-				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-			}
-		}
-
 	}
 	d.Partial(false)
 	return resourceAlicloudVpcHavipRead(d, meta)
@@ -416,7 +325,7 @@ func resourceAlicloudVpcHavipDelete(d *schema.ResourceData, meta interface{}) er
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Throttling", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "OperationFailed.Throttling", "ServiceUnavailable", "IncorrectStatus"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable", "IncorrectStatus"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}

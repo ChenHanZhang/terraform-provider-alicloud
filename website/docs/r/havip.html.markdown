@@ -1,13 +1,13 @@
 ---
-subcategory: "Vpc"
+subcategory: "VPC"
 layout: "alicloud"
-page_title: "Alicloud: alicloud_vpc_havip"
-sidebar_current: "docs-alicloud-resource-vpc-havip"
+page_title: "Alicloud: alicloud_havip"
+sidebar_current: "docs-alicloud-resource-havip"
 description: |-
   Provides a Alicloud Vpc Havip resource.
 ---
 
-# alicloud_vpc_havip
+# alicloud_alicloud_havip
 
 Provides a Vpc Havip resource.
 
@@ -38,6 +38,9 @@ The following arguments are supported:
 * `resource_group_id` - (Computed,Optional) The ID of the resource group to which the VPC belongs.
 * `tags` - (Optional) The tags of PrefixList.See the following `Block Tags`.
 * `vswitch_id` - (Required,ForceNew) The switch ID to which the HaVip instance belongs
+
+The following arguments will be discarded. Please use new fields as soon as possible:
+* `havip_name` - Field 'havip_name' has been deprecated from provider version 1.203.0. New field 'ha_vip_name' instead.
 
 #### Block Tags
 

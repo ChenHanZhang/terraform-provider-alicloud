@@ -1,17 +1,17 @@
 ---
-subcategory: "Vpc"
+subcategory: "VPC"
 layout: "alicloud"
-page_title: "Alicloud: alicloud_vpc_havips"
-sidebar_current: "docs-alicloud-datasource-vpc-havips"
+page_title: "Alicloud: alicloud_havips"
+sidebar_current: "docs-alicloud-datasource-havips"
 description: |-
   Provides a list of Vpc Havip owned by an Alibaba Cloud account.
 ---
 
-# alicloud_vpc_havips
+# alicloud_havips
 
 This data source provides Vpc Havip available to the user.[What is Havip](https://www.alibabacloud.com/help/en/)
 
--> **NOTE:** Available in 1.203.0+
+-> **NOTE:** Available in 1.203.0+.
 
 ## Example Usage
 

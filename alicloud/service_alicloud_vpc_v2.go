@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
+	rpc "github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tidwall/sjson"
 )
 
@@ -97,22 +99,21 @@ func (s *VpcServiceV2) describeVpcHavipDescribeHaVipsApi(id string) (object map[
 	instanceMap["ha_vip_id"] = objectRaw["HaVipId"]
 	instanceMap["region_id"] = objectRaw["RegionId"]
 
-	associatedEipAddresseRaw, _ := jsonpath.Get("$.AssociatedEipAddresses.associatedEipAddresse", objectRaw)
-	instanceMap["associated_eip_addresses"] = associatedEipAddresseRaw
+	associatedEipAddresse1Raw, _ := jsonpath.Get("$.AssociatedEipAddresses.associatedEipAddresse", objectRaw)
+	instanceMap["associated_eip_addresses"] = associatedEipAddresse1Raw
 
-	associatedInstanceRaw, _ := jsonpath.Get("$.AssociatedInstances.associatedInstance", objectRaw)
-	instanceMap["associated_instances"] = associatedInstanceRaw
+	associatedInstance1Raw, _ := jsonpath.Get("$.AssociatedInstances.associatedInstance", objectRaw)
+	instanceMap["associated_instances"] = associatedInstance1Raw
 
 	{
-		tagRaw, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
+		tag1Raw, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 		tagsMaps := make([]map[string]interface{}, 0)
-		if tagRaw != nil {
-			for _, tagChildRaw := range tagRaw.([]interface{}) {
+		if tag1Raw != nil {
+			for _, tagChild1Raw := range tag1Raw.([]interface{}) {
 				tagsMap := make(map[string]interface{})
-				tagChildRaw := tagChildRaw.(map[string]interface{})
-				tagsMap["tag_key"] = tagChildRaw["Key"]
-				tagsMap["tag_value"] = tagChildRaw["Value"]
-
+				tagChild1Raw := tagChild1Raw.(map[string]interface{})
+				tagsMap["tag_key"] = tagChild1Raw["Key"]
+				tagsMap["tag_value"] = tagChild1Raw["Value"]
 				tagsMaps = append(tagsMaps, tagsMap)
 			}
 		}
@@ -147,3 +148,102 @@ func (s *VpcServiceV2) VpcHavipStateRefreshFunc(id string, failStates []string) 
 }
 
 // DescribeVpcHavip >>> Encapsulated.
+// SetResourceTags <<< Encapsulated tag function for Vpc Havip.
+func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
+	if d.HasChange("tags") {
+		var err error
+		var action string
+		var conn *rpc.Client
+		client := s.client
+		var request map[string]interface{}
+		var response map[string]interface{}
+
+		added, removed := parsingTags(d)
+		removedTagKeys := make([]string, 0)
+		for _, v := range removed {
+			if !ignoredTags(v, "") {
+				removedTagKeys = append(removedTagKeys, v)
+			}
+		}
+		if len(removedTagKeys) > 0 {
+			action = "UnTagResources"
+			conn, err = client.NewVpcClient()
+			if err != nil {
+				return WrapError(err)
+			}
+			request = make(map[string]interface{})
+
+			request["ResourceId.1"] = d.Id()
+			request["RegionId"] = client.RegionId
+
+			request["ResourceType"] = resourceType
+			if v, ok := d.GetOk("tags"); ok {
+				jsonPathResult, err := jsonpath.Get("$.tag_key", v)
+				if err != nil {
+					return WrapError(err)
+				}
+				request["TagKey"] = jsonPathResult
+			}
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				if err != nil {
+					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				addDebug(action, response, request)
+				return nil
+			})
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+
+		if len(added) > 0 {
+			action = "TagResources"
+			conn, err = client.NewVpcClient()
+			if err != nil {
+				return WrapError(err)
+			}
+			request = make(map[string]interface{})
+
+			request["ResourceId.1"] = d.Id()
+			request["RegionId"] = client.RegionId
+
+			count := 1
+			for key, value := range added {
+				request[fmt.Sprintf("Tag.%d.Key", count)] = key
+				request[fmt.Sprintf("Tag.%d.Value", count)] = value
+				count++
+			}
+
+			request["ResourceType"] = resourceType
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				if err != nil {
+					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				addDebug(action, response, request)
+				return nil
+			})
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+	}
+
+	return nil
+}
+
+// SetResourceTags >>> tag function encapsulated.
