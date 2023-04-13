@@ -365,7 +365,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudHavipCreate(d, rawClient)
+		err := resourceAlicloudVpcHavipCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -382,7 +382,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudHavipCreate(d, rawClient)
+		err := resourceAlicloudVpcHavipCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -399,7 +399,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudHavipCreate(dCreate, rawClient)
+		err := resourceAlicloudVpcHavipCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -417,7 +417,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudHavipCreate(dCreate, rawClient)
+		err := resourceAlicloudVpcHavipCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -435,7 +435,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 		})
 
-		err := resourceAlicloudHavipUpdate(d, rawClient)
+		err := resourceAlicloudVpcHavipUpdate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -467,7 +467,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudHavipUpdate(resourceData1, rawClient)
+		err := resourceAlicloudVpcHavipUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -499,7 +499,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudHavipUpdate(resourceData1, rawClient)
+		err := resourceAlicloudVpcHavipUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -514,7 +514,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudHavipDelete(d, rawClient)
+		err := resourceAlicloudVpcHavipDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -531,7 +531,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudHavipDelete(d, rawClient)
+		err := resourceAlicloudVpcHavipDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -548,7 +548,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudHavipDelete(d, rawClient)
+		err := resourceAlicloudVpcHavipDelete(d, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -565,7 +565,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudHavipRead(d, rawClient)
+		err := resourceAlicloudVpcHavipRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -581,7 +581,7 @@ func TestUnitAlicloudHavip(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudHavipRead(d, rawClient)
+		err := resourceAlicloudVpcHavipRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
