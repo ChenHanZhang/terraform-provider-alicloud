@@ -148,6 +148,7 @@ func (s *VpcServiceV2) VpcHavipStateRefreshFunc(id string, failStates []string) 
 }
 
 // DescribeVpcHavip >>> Encapsulated.
+
 // SetResourceTags <<< Encapsulated tag function for Vpc Havip.
 func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {

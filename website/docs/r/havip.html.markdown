@@ -7,7 +7,7 @@ description: |-
   Provides a Alicloud Vpc Havip resource.
 ---
 
-# alicloud_alicloud_havip
+# alicloud_havip
 
 Provides a Vpc Havip resource.
 
