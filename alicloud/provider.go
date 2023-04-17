@@ -1343,7 +1343,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_security_center_service_linked_role":                   resourceAlicloudSecurityCenterServiceLinkedRole(),
 			"alicloud_event_bridge_service_linked_role":                      resourceAlicloudEventBridgeServiceLinkedRole(),
 			"alicloud_vpc_ipv6_gateway":                                      resourceAlicloudVpcIpv6Gateway(),
-			"alicloud_vpc_ipv6_egress_rule":                                  resourceAlicloudVpcIpv6EgressRule(),
+			"alicloud_vpc_ipv6_egress_rule":                                  resourceAliCloudVpcIpv6EgressRule(),
 			"alicloud_hbr_server_backup_plan":                                resourceAlicloudHbrServerBackupPlan(),
 			"alicloud_cms_dynamic_tag_group":                                 resourceAlicloudCmsDynamicTagGroup(),
 			"alicloud_ecd_network_package":                                   resourceAlicloudEcdNetworkPackage(),

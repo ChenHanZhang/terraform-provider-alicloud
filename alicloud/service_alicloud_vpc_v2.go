@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -248,3 +249,104 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 }
 
 // SetResourceTags >>> tag function encapsulated.
+// DescribeVpcIpv6EgressRule <<< Encapsulated get interface for Vpc Ipv6EgressRule.
+func (s *VpcServiceV2) DescribeVpcIpv6EgressRule(id string) (object map[string]interface{}, err error) {
+	objectSearch := make(map[string]interface{}, 0)
+	object0, err := s.describeVpcIpv6EgressRuleDescribeIpv6EgressOnlyRulesApi(id)
+	if err != nil {
+		if NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vpc_ipv6_egress_rule VpcServiceV2.DescribeVpcIpv6EgressRule Failed!!! %s", err)
+			return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
+		}
+		return object, WrapError(err)
+	}
+	objectSearch = MergeMaps(objectSearch, object0)
+
+	return objectSearch, nil
+}
+
+func (s *VpcServiceV2) describeVpcIpv6EgressRuleDescribeIpv6EgressOnlyRulesApi(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	action := "DescribeIpv6EgressOnlyRules"
+	conn, err := client.NewVpcClient()
+	if err != nil {
+		return object, WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+	}
+
+	request["Ipv6GatewayId"] = parts[0]
+	request["RegionId"] = client.RegionId
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+		if err != nil {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		addDebug(action, response, request)
+		return nil
+	})
+	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return object, WrapErrorf(Error(GetNotFoundMessage("Ipv6EgressRule", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.Ipv6EgressOnlyRules.Ipv6EgressOnlyRule[*]", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Ipv6EgressOnlyRules.Ipv6EgressOnlyRule[*]", response)
+	}
+	if len(v.([]interface{})) == 0 {
+		return object, WrapErrorf(Error(GetNotFoundMessage("Ipv6EgressRule", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+	}
+	v = v.([]interface{})[0]
+
+	instanceMaps := make([]map[string]interface{}, 0)
+	instanceMap := make(map[string]interface{})
+	objectRaw := v.(map[string]interface{})
+	instanceMap["description"] = objectRaw["Description"]
+	instanceMap["instance_id"] = objectRaw["InstanceId"]
+	instanceMap["instance_type"] = objectRaw["InstanceType"]
+	instanceMap["ipv6_egress_rule_name"] = objectRaw["Name"]
+	instanceMap["status"] = objectRaw["Status"]
+	instanceMap["ipv6_egress_rule_id"] = objectRaw["Ipv6EgressOnlyRuleId"]
+
+	instanceMaps = append(instanceMaps, instanceMap)
+	return instanceMaps[0], nil
+}
+
+func (s *VpcServiceV2) VpcIpv6EgressRuleStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeVpcIpv6EgressRule(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return nil, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		currentStatus := object["status"]
+		if _, ok := currentStatus.(string); !ok {
+			return nil, "", nil
+		}
+		for _, failState := range failStates {
+			if currentStatus.(string) == failState {
+				return object, currentStatus.(string), WrapError(Error(FailedToReachTargetStatus, currentStatus.(string)))
+			}
+		}
+		return object, currentStatus.(string), nil
+	}
+}
+
+// DescribeVpcIpv6EgressRule >>> Encapsulated.
