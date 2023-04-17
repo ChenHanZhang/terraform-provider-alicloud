@@ -150,7 +150,7 @@ func (s *VpcServiceV2) VpcHavipStateRefreshFunc(id string, failStates []string) 
 
 // DescribeVpcHavip >>> Encapsulated.
 
-// SetResourceTags <<< Encapsulated tag function for Vpc Havip.
+// SetResourceTags <<< Encapsulated tag function for Vpc.
 func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
 		var err error
@@ -179,12 +179,12 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["RegionId"] = client.RegionId
 
 			request["ResourceType"] = resourceType
-			if v, ok := d.GetOk("tags"); ok {
-				jsonPathResult, err := jsonpath.Get("$.tag_key", v)
-				if err != nil {
-					return WrapError(err)
-				}
-				request["TagKey"] = jsonPathResult
+			for i, key := range removedTagKeys {
+				request[fmt.Sprintf("TagKey.%d", i+1)] = key
+			}
+
+			if v, ok := d.GetOkExists("all"); ok {
+				request["All"] = v
 			}
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -350,3 +350,210 @@ func (s *VpcServiceV2) VpcIpv6EgressRuleStateRefreshFunc(id string, failStates [
 }
 
 // DescribeVpcIpv6EgressRule >>> Encapsulated.
+// DescribeVpcVswitch <<< Encapsulated get interface for Vpc Vswitch.
+func (s *VpcServiceV2) DescribeVpcVswitch(id string) (object map[string]interface{}, err error) {
+	objectSearch := make(map[string]interface{}, 0)
+	object0, err := s.describeVpcVswitchDescribeVSwitchAttributesApi(id)
+	if err != nil {
+		if NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vswitch VpcServiceV2.DescribeVpcVswitch Failed!!! %s", err)
+			return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
+		}
+		return object, WrapError(err)
+	}
+	if object0["status"] == "" {
+		return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
+	}
+	objectSearch = MergeMaps(objectSearch, object0)
+	object1, err := s.describeVpcVswitchListTagResourcesApi(id)
+	if err != nil {
+		if NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vswitch VpcServiceV2.DescribeVpcVswitch Failed!!! %s", err)
+			return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
+		}
+		return object, WrapError(err)
+	}
+	objectSearch = MergeMaps(objectSearch, object1)
+
+	return objectSearch, nil
+}
+
+func (s *VpcServiceV2) DescribeVpcVswitchPrimary(id string) (object map[string]interface{}, err error) {
+	object, err = s.describeVpcVswitchDescribeVSwitchAttributesApi(id)
+	if err != nil {
+		if NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vswitch VpcServiceV2.DescribeVpcVswitchPrimary Failed!!! %s", err)
+			return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
+		}
+		return object, WrapError(err)
+	}
+	return object, nil
+}
+
+func (s *VpcServiceV2) describeVpcVswitchDescribeVSwitchAttributesApi(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	action := "DescribeVSwitchAttributes"
+	conn, err := client.NewVpcClient()
+	if err != nil {
+		return object, WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	request["VSwitchId"] = id
+	request["RegionId"] = client.RegionId
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+		if err != nil {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		addDebug(action, response, request)
+		return nil
+	})
+	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return object, WrapErrorf(Error(GetNotFoundMessage("Vswitch", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$", response)
+	}
+
+	instanceMaps := make([]map[string]interface{}, 0)
+	instanceMap := make(map[string]interface{})
+	objectRaw := v.(map[string]interface{})
+	instanceMap["available_ip_address_count"] = objectRaw["AvailableIpAddressCount"]
+	instanceMap["cidr_block"] = objectRaw["CidrBlock"]
+	instanceMap["create_time"] = objectRaw["CreationTime"]
+	instanceMap["description"] = objectRaw["Description"]
+	instanceMap["ipv6_cidr_block"] = objectRaw["Ipv6CidrBlock"]
+	instanceMap["ipv6_cidr_block_mask"] = objectRaw["Ipv6CidrBlock"]
+	instanceMap["is_default"] = objectRaw["IsDefault"]
+	instanceMap["network_acl_id"] = objectRaw["NetworkAclId"]
+	instanceMap["resource_group_id"] = objectRaw["ResourceGroupId"]
+	instanceMap["status"] = objectRaw["Status"]
+	instanceMap["vswitch_name"] = objectRaw["VSwitchName"]
+	instanceMap["vpc_id"] = objectRaw["VpcId"]
+	instanceMap["zone_id"] = objectRaw["ZoneId"]
+	instanceMap["vswitch_id"] = objectRaw["VSwitchId"]
+	routeTable1RawObj, _ := jsonpath.Get("$.RouteTable", objectRaw)
+	routeTable1Raw := make(map[string]interface{})
+	if routeTable1RawObj != nil {
+		routeTable1Raw = routeTable1RawObj.(map[string]interface{})
+	}
+	instanceMap["route_table_id"] = routeTable1Raw["RouteTableId"]
+
+	{
+		tag1Raw, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
+		tagsMaps := make([]map[string]interface{}, 0)
+		if tag1Raw != nil {
+			for _, tagChild1Raw := range tag1Raw.([]interface{}) {
+				tagsMap := make(map[string]interface{})
+				tagChild1Raw := tagChild1Raw.(map[string]interface{})
+				tagsMap["tag_key"] = tagChild1Raw["Key"]
+				tagsMap["tag_value"] = tagChild1Raw["Value"]
+				tagsMaps = append(tagsMaps, tagsMap)
+			}
+		}
+		instanceMap["tags"] = tagsMaps
+	}
+
+	instanceMaps = append(instanceMaps, instanceMap)
+	return instanceMaps[0], nil
+}
+
+func (s *VpcServiceV2) describeVpcVswitchListTagResourcesApi(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	action := "ListTagResources"
+	conn, err := client.NewVpcClient()
+	if err != nil {
+		return object, WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	request["ResourceId.1"] = id
+	request["RegionId"] = client.RegionId
+	request["ResourceType"] = "VSWITCH"
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+		if err != nil {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		addDebug(action, response, request)
+		return nil
+	})
+	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return object, WrapErrorf(Error(GetNotFoundMessage("Vswitch", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$", response)
+	}
+
+	instanceMaps := make([]map[string]interface{}, 0)
+	instanceMap := make(map[string]interface{})
+	objectRaw := v.(map[string]interface{})
+
+	{
+		tagResource1Raw, _ := jsonpath.Get("$.TagResources.TagResource", objectRaw)
+		tagsMaps := make([]map[string]interface{}, 0)
+		if tagResource1Raw != nil {
+			for _, tagResourceChild1Raw := range tagResource1Raw.([]interface{}) {
+				tagsMap := make(map[string]interface{})
+				tagResourceChild1Raw := tagResourceChild1Raw.(map[string]interface{})
+				tagsMap["tag_key"] = tagResourceChild1Raw["TagKey"]
+				tagsMap["tag_value"] = tagResourceChild1Raw["TagValue"]
+				tagsMaps = append(tagsMaps, tagsMap)
+			}
+		}
+		instanceMap["tags"] = tagsMaps
+	}
+
+	instanceMaps = append(instanceMaps, instanceMap)
+	return instanceMaps[0], nil
+}
+
+func (s *VpcServiceV2) VpcVswitchStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeVpcVswitchPrimary(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return nil, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		currentStatus := object["status"]
+		if _, ok := currentStatus.(string); !ok {
+			return nil, "", nil
+		}
+		for _, failState := range failStates {
+			if currentStatus.(string) == failState {
+				return object, currentStatus.(string), WrapError(Error(FailedToReachTargetStatus, currentStatus.(string)))
+			}
+		}
+		return object, currentStatus.(string), nil
+	}
+}
+
+// DescribeVpcVswitch >>> Encapsulated.
