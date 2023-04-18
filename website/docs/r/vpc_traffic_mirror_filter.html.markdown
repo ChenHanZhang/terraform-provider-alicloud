@@ -4,55 +4,94 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_vpc_traffic_mirror_filter"
 sidebar_current: "docs-alicloud-resource-vpc-traffic-mirror-filter"
 description: |-
-  Provides a Alicloud VPC Traffic Mirror Filter resource.
+  Provides a Alicloud Vpc Traffic Mirror Filter resource.
 ---
 
-# alicloud\_vpc\_traffic\_mirror\_filter
+# alicloud_vpc_traffic_mirror_filter
 
-Provides a VPC Traffic Mirror Filter resource.
+Provides a Vpc Traffic Mirror Filter resource.
 
-For information about VPC Traffic Mirror Filter and how to use it, see [What is Traffic Mirror Filter](https://www.alibabacloud.com/help/doc-detail/207513.htm).
+For information about Vpc Traffic Mirror Filter and how to use it, see [What is Traffic Mirror Filter](https://www.alibabacloud.com/help/en/).
 
--> **NOTE:** Available in v1.140.0+.
+-> **NOTE:** Available in v1.204.0+.
 
 ## Example Usage
 
 Basic Usage
 
 ```terraform
-resource "alicloud_vpc_traffic_mirror_filter" "example" {
-  traffic_mirror_filter_name = "example_value"
+resource "alicloud_vpc_traffic_mirror_filter" "default" {
+  traffic_mirror_filter_description = "流量镜像描述信息1"
+  region_id                         = "cn-hangzhou"
+  traffic_mirror_filter_name        = "TrafficMirrorFilterNameTest"
 }
-
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
+* `egress_rules` - (ForceNew,Computed,Optional) EgressRulesSee the following `Block EgressRules`.
+* `ingress_rules` - (ForceNew,Computed,Optional) IngressRulesSee the following `Block IngressRules`.
+* `resource_group_id` - (Computed,Optional) The ID of the resource group to which the VPC belongs.
+* `tags` - (Optional) The tags of PrefixList.See the following `Block Tags`.
+* `traffic_mirror_filter_description` - (Optional) The description of the TrafficMirrorFilter.
+* `traffic_mirror_filter_name` - (Optional) The name of the TrafficMirrorFilter.
 
-* `dry_run` - (Optional) The dry run.
-* `traffic_mirror_filter_description` - (Optional) The description of the filter. The description must be 1 to 256 characters in length and cannot start with `http://` or `https://`.
-* `traffic_mirror_filter_name` - (Optional) The name of the filter. The name must be 1 to 128 characters in length and cannot start with `http://` or `https://`.
+The following arguments will be discarded. Please use new fields as soon as possible:
+
+#### Block EgressRules
+
+The EgressRules supports the following:
+* `action` - (Required,ForceNew) Action.
+* `destination_cidr_block` - (ForceNew,Optional) DestinationCidrBlock.
+* `destination_port_range` - (ForceNew,Optional) DestinationPortRange.
+* `priority` - (ForceNew,Optional) Priority.
+* `protocol` - (Required,ForceNew) Protocol.
+* `source_cidr_block` - (ForceNew,Optional) SourceCidrBlock.
+* `source_port_range` - (ForceNew,Optional) SourcePortRange.
+
+#### Block IngressRules
+
+The IngressRules supports the following:
+* `action` - (Required,ForceNew) Action.
+* `destination_cidr_block` - (ForceNew,Optional) DestinationCidrBlock.
+* `destination_port_range` - (ForceNew,Optional) DestinationPortRange.
+* `priority` - (ForceNew,Optional) Priority.
+* `protocol` - (Required,ForceNew) Protocol.
+* `source_cidr_block` - (ForceNew,Optional) SourceCidrBlock.
+* `source_port_range` - (ForceNew,Optional) SourcePortRange.
+
+#### Block Tags
+
+The Tags supports the following:
+* `tag_key` - (Optional) The key of tag.
+* `tag_value` - (Optional) The value of tag.
+
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Traffic Mirror Filter.
-* `status` - The state of the filter. Valid values:`Creating`, `Created`, `Modifying` and `Deleting`. `Creating`: The filter is being created. `Created`: The filter is created. `Modifying`: The filter is being modified. `Deleting`: The filter is being deleted.
+* `id` - The `key` of the resource supplied above.
+* `egress_rules` - EgressRules
+  * `traffic_mirror_filter_rule_status` - TrafficMirrorFilterRuleStatus.
+* `ingress_rules` - IngressRules
+  * `traffic_mirror_filter_rule_status` - TrafficMirrorFilterRuleStatus.
+* `resource_group_id` - The ID of the resource group to which the VPC belongs.
+* `status` - The statusID of the resource
+* `traffic_mirror_filter_id` - The first ID of the resource
 
 ### Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration-0-11/resources.html#timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Traffic Mirror Filter.
-* `update` - (Defaults to 5 mins) Used when update the Traffic Mirror Filter.
 * `delete` - (Defaults to 5 mins) Used when delete the Traffic Mirror Filter.
+* `update` - (Defaults to 5 mins) Used when update the Traffic Mirror Filter.
 
 ## Import
 
-VPC Traffic Mirror Filter can be imported using the id, e.g.
+Vpc Traffic Mirror Filter can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_vpc_traffic_mirror_filter.example <id>
+$ terraform import alicloud_vpc_traffic_mirror_filter.example 
 ```

@@ -1,19 +1,18 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudVpcIpv6Gateway() *schema.Resource {
+func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAlicloudVpcIpv6GatewayCreate,
 		Read:   resourceAlicloudVpcIpv6GatewayRead,
@@ -23,31 +22,53 @@ func resourceAlicloudVpcIpv6Gateway() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(1 * time.Minute),
-			Update: schema.DefaultTimeout(1 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"all": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"business_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringLenBetween(2, 256),
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"expired_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"instance_charge_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"ipv6_gateway_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"ipv6_gateway_name": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[a-zA-Z\u4E00-\u9FA5][\u4E00-\u9FA5A-Za-z0-9_-]{2,128}$"), "The name must be `2` to `128` characters in length, and can contain letters, digits, underscores (_), and hyphens (-). The name must start with a letter but cannot start with `http://` or `https://`."),
+				Type:     schema.TypeString,
+				Optional: true,
 			},
-			"spec": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Large", "Medium", "Small"}, false),
+			"resource_group_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -59,196 +80,236 @@ func resourceAlicloudVpcIpv6Gateway() *schema.Resource {
 
 func resourceAlicloudVpcIpv6GatewayCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "CreateIpv6Gateway"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if v, ok := d.GetOk("vpc_id"); ok {
+		request["VpcId"] = v
+	}
+
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
+
 	if v, ok := d.GetOk("ipv6_gateway_name"); ok {
 		request["Name"] = v
 	}
-	request["RegionId"] = client.RegionId
-	if v, ok := d.GetOk("spec"); ok {
-		request["Spec"] = v
+
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
 	}
-	request["VpcId"] = d.Get("vpc_id")
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		request["ClientToken"] = buildClientToken("CreateIpv6Gateway")
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"IncorrectStatus.Vpc", "OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "LastTokenProcessing", "SystemBusy"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_vpc_ipv6_gateway", action, AlibabaCloudSdkGoERROR)
 	}
 
 	d.SetId(fmt.Sprint(response["Ipv6GatewayId"]))
-	vpcService := VpcService{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcService.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
+
+	vpcServiceV2 := VpcServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudVpcIpv6GatewayRead(d, meta)
+	return resourceAlicloudVpcIpv6GatewayUpdate(d, meta)
 }
+
 func resourceAlicloudVpcIpv6GatewayRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	object, err := vpcService.DescribeVpcIpv6Gateway(d.Id())
+	vpcServiceV2 := VpcServiceV2{client}
+
+	object, err := vpcServiceV2.DescribeVpcIpv6Gateway(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_vpc_ipv6_gateway vpcService.DescribeVpcIpv6Gateway Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vpc_ipv6_gateway .DescribeVpcIpv6Gateway Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("description", object["Description"])
-	d.Set("ipv6_gateway_name", object["Name"])
-	d.Set("spec", object["Spec"])
-	d.Set("status", object["Status"])
-	d.Set("vpc_id", object["VpcId"])
+
+	d.Set("business_status", object["business_status"])
+	d.Set("create_time", object["create_time"])
+	d.Set("description", object["description"])
+	d.Set("expired_time", object["expired_time"])
+	d.Set("instance_charge_type", object["instance_charge_type"])
+	d.Set("ipv6_gateway_id", object["ipv6_gateway_id"])
+	d.Set("ipv6_gateway_name", object["ipv6_gateway_name"])
+	d.Set("resource_group_id", object["resource_group_id"])
+	d.Set("status", object["status"])
+	d.Set("tags", tagsToMap(object["tags"]))
+	d.Set("vpc_id", object["vpc_id"])
+
 	return nil
 }
+
 func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+	var request map[string]interface{}
+	var response map[string]interface{}
+	update := false
+	d.Partial(true)
+	update = false
+	action := "ModifyIpv6GatewayAttribute"
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	var response map[string]interface{}
-	d.Partial(true)
+	request = make(map[string]interface{})
 
-	update := false
-	request := map[string]interface{}{
-		"Ipv6GatewayId": d.Id(),
-	}
+	request["Ipv6GatewayId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if d.HasChange("spec") {
-		update = true
-	}
-	if v, ok := d.GetOk("spec"); ok {
-		request["Spec"] = v
-	}
-	if update {
-		action := "ModifyIpv6GatewaySpec"
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			request["ClientToken"] = buildClientToken("ModifyIpv6GatewaySpec")
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-		d.SetPartial("spec")
-	}
-	update = false
-	modifyIpv6GatewayAttributeReq := map[string]interface{}{
-		"Ipv6GatewayId": d.Id(),
-	}
-	modifyIpv6GatewayAttributeReq["RegionId"] = client.RegionId
-	if d.HasChange("description") {
+
+	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
 		if v, ok := d.GetOk("description"); ok {
-			modifyIpv6GatewayAttributeReq["Description"] = v
+			request["Description"] = v
 		}
 	}
-	if d.HasChange("ipv6_gateway_name") {
+	if !d.IsNewResource() && d.HasChange("ipv6_gateway_name") {
 		update = true
 		if v, ok := d.GetOk("ipv6_gateway_name"); ok {
-			modifyIpv6GatewayAttributeReq["Name"] = v
+			request["Name"] = v
 		}
 	}
 	if update {
-		action := "ModifyIpv6GatewayAttribute"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, modifyIpv6GatewayAttributeReq, &util.RuntimeOptions{})
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"IncorrectStatus.Vpc", "OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "LastTokenProcessing", "SystemBusy"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, modifyIpv6GatewayAttributeReq)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		{
+			vpcServiceV2 := VpcServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
 		d.SetPartial("description")
 		d.SetPartial("ipv6_gateway_name")
 	}
+	update = false
+	action = "MoveResourceGroup"
+	conn, err = client.NewVpcClient()
+	if err != nil {
+		return WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	request["ResourceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	if !d.IsNewResource() && d.HasChange("resource_group_id") {
+		update = true
+		if v, ok := d.GetOk("resource_group_id"); ok {
+			request["NewResourceGroupId"] = v
+		}
+	}
+	request["ResourceType"] = "IPV6GATEWAY"
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+			if err != nil {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(action, response, request)
+			return nil
+		})
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		d.SetPartial("resource_group_id")
+	}
+
+	update = false
+	if d.HasChange("tags") {
+		update = true
+		vpcServiceV2 := VpcServiceV2{client}
+		if err := vpcServiceV2.SetResourceTags(d, "IPV6GATEWAY"); err != nil {
+			return WrapError(err)
+		}
+	}
 	d.Partial(false)
 	return resourceAlicloudVpcIpv6GatewayRead(d, meta)
 }
+
 func resourceAlicloudVpcIpv6GatewayDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+
 	action := "DeleteIpv6Gateway"
+	var request map[string]interface{}
 	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	request := map[string]interface{}{
-		"Ipv6GatewayId": d.Id(),
-	}
+	request = make(map[string]interface{})
 
+	request["Ipv6GatewayId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcService.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
+
+	vpcServiceV2 := VpcServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

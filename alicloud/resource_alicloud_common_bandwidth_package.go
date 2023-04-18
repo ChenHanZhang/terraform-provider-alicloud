@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -12,84 +13,127 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudCommonBandwidthPackage() *schema.Resource {
+func resourceAliCloudCbwpCommonBandwidthPackage() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudCommonBandwidthPackageCreate,
-		Read:   resourceAlicloudCommonBandwidthPackageRead,
-		Update: resourceAlicloudCommonBandwidthPackageUpdate,
-		Delete: resourceAlicloudCommonBandwidthPackageDelete,
+		Create: resourceAlicloudCbwpCommonBandwidthPackageCreate,
+		Read:   resourceAlicloudCbwpCommonBandwidthPackageRead,
+		Update: resourceAlicloudCbwpCommonBandwidthPackageUpdate,
+		Delete: resourceAlicloudCbwpCommonBandwidthPackageDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(10 * time.Minute),
-			Update: schema.DefaultTimeout(10 * time.Minute),
-			Delete: schema.DefaultTimeout(10 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"bandwidth": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"bandwidth_package_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
+			"business_status": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
-			"name": {
+			"common_bandwidth_package_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"common_bandwidth_package_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				Deprecated:    "Field 'name' has been deprecated from provider version 1.120.0. New field 'bandwidth_package_name' instead.",
-				ConflictsWith: []string{"bandwidth_package_name"},
+				ConflictsWith: []string{"bandwidth_package_name", "name"},
+			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"deletion_protection": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringLenBetween(2, 256),
-			},
-			"force": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"isp": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"BGP", "BGP_PRO", "ChinaTelecom", "ChinaUnicom", "ChinaMobile", "ChinaTelecom_L2", "ChinaUnicom_L2", "ChinaMobile_L2", "BGP_FinanceCloud"}, false),
-				Default:      "BGP",
+			"expired_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"force_delete": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"has_reservation_data": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"internet_charge_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice([]string{"PayBy95", "PayByBandwidth", "PayByTraffic", "PayByDominantTraffic"}, false),
-				Default:      "PayByTraffic",
+			},
+			"isp": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"BGP", "BGP_PRO", "ChinaTelecom", "ChinaUnicom", "ChinaMobile", "ChinaTelecom_L2", "ChinaUnicom_L2", "ChinaMobile_L2"}, false),
+			},
+			"payment_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"public_ip_addresses": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"allocation_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"bandwidth_package_ip_relation_status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"ip_address": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"ratio": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.IntBetween(10, 100),
-				Default:      100,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"reservation_active_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_bandwidth": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_internet_charge_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_order_type": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"zone": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"deletion_protection": {
-				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
@@ -99,29 +143,75 @@ func resourceAlicloudCommonBandwidthPackage() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"service_managed": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"tags": tagsSchema(),
+			"un_tag_all_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"zone": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"bandwidth_package_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"common_bandwidth_package_name"},
+				Deprecated:    "Field 'bandwidth_package_name' has been deprecated from provider version 1.201.3. New field 'common_bandwidth_package_name' instead.",
+			},
+			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"common_bandwidth_package_name"},
+				Deprecated:    "Field 'name' has been deprecated from provider version 1.120.0. New field 'common_bandwidth_package_name' instead.",
+			},
 		},
 	}
 }
 
-func resourceAlicloudCommonBandwidthPackageCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudCbwpCommonBandwidthPackageCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	var response map[string]interface{}
+
 	action := "CreateCommonBandwidthPackage"
-	request := make(map[string]interface{})
-	conn, err := client.NewVpcClient()
+	var request map[string]interface{}
+	var response map[string]interface{}
+	conn, err := client.NewCbwpClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	request["Bandwidth"] = d.Get("bandwidth")
-	if v, ok := d.GetOk("bandwidth_package_name"); ok {
-		request["Name"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["Name"] = v
-	}
-
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
+	}
+
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
+	}
+
+	if v, ok := d.GetOk("bandwidth"); ok {
+		request["Bandwidth"] = v
+	}
+
+	if v, ok := d.GetOk("ratio"); ok {
+		request["Ratio"] = v
+	}
+
+	if v, ok := d.GetOk("security_protection_types"); ok {
+		localData := v
+		securityProtectionTypesMaps := localData.([]interface{})
+		request["SecurityProtectionTypes"] = securityProtectionTypesMaps
 	}
 
 	if v, ok := d.GetOk("isp"); ok {
@@ -132,31 +222,25 @@ func resourceAlicloudCommonBandwidthPackageCreate(d *schema.ResourceData, meta i
 		request["InternetChargeType"] = v
 	}
 
-	if v, ok := d.GetOk("ratio"); ok {
-		request["Ratio"] = v
+	if v, ok := d.GetOk("common_bandwidth_package_name"); ok {
+		request["Name"] = v
 	}
-
-	request["RegionId"] = client.RegionId
-	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["ResourceGroupId"] = v
+	if v, ok := d.GetOk("bandwidth_package_name"); ok {
+		request["Name"] = v
+	}
+	if v, ok := d.GetOk("name"); ok {
+		request["Name"] = v
 	}
 
 	if v, ok := d.GetOk("zone"); ok {
 		request["Zone"] = v
 	}
 
-	if v, ok := d.GetOk("security_protection_types"); ok {
-		request["SecurityProtectionTypes"] = v
-	}
-
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		request["ClientToken"] = buildClientToken("CreateCommonBandwidthPackage")
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "BandwidthPackageOperation.conflict"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"BandwidthPackageOperation.conflict", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -165,111 +249,113 @@ func resourceAlicloudCommonBandwidthPackageCreate(d *schema.ResourceData, meta i
 		addDebug(action, response, request)
 		return nil
 	})
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_common_bandwidth_package", action, AlibabaCloudSdkGoERROR)
 	}
 
 	d.SetId(fmt.Sprint(response["BandwidthPackageId"]))
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcService.CommonBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
+
+	cbwpServiceV2 := CbwpServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, cbwpServiceV2.CbwpCommonBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudCommonBandwidthPackageRead(d, meta)
+	return resourceAlicloudCbwpCommonBandwidthPackageUpdate(d, meta)
 }
 
-func resourceAlicloudCommonBandwidthPackageRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudCbwpCommonBandwidthPackageRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	object, err := vpcService.DescribeCommonBandwidthPackage(d.Id())
+	cbwpServiceV2 := CbwpServiceV2{client}
+
+	object, err := cbwpServiceV2.DescribeCbwpCommonBandwidthPackage(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_common_bandwidth_package vpcService.DescribeCommonBandwidthPackage Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_common_bandwidth_package .DescribeCbwpCommonBandwidthPackage Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("bandwidth", object["Bandwidth"])
-	d.Set("bandwidth_package_name", object["Name"])
-	d.Set("name", object["Name"])
-	d.Set("description", object["Description"])
-	d.Set("isp", object["ISP"])
-	d.Set("internet_charge_type", object["InternetChargeType"])
-	d.Set("ratio", formatInt(object["Ratio"]))
-	d.Set("resource_group_id", object["ResourceGroupId"])
-	d.Set("status", object["Status"])
-	d.Set("deletion_protection", object["DeletionProtection"])
-	if securityProtectionTypes, ok := object["SecurityProtectionTypes"]; ok {
-		securityProtectionTypeList := securityProtectionTypes.(map[string]interface{})["SecurityProtectionType"].([]interface{})
-		d.Set("security_protection_types", securityProtectionTypeList)
-	}
 
+	d.Set("bandwidth", object["bandwidth"])
+	d.Set("business_status", object["business_status"])
+	d.Set("common_bandwidth_package_id", object["common_bandwidth_package_id"])
+	d.Set("common_bandwidth_package_name", object["common_bandwidth_package_name"])
+	d.Set("create_time", object["create_time"])
+	d.Set("deletion_protection", object["deletion_protection"])
+	d.Set("description", object["description"])
+	d.Set("expired_time", object["expired_time"])
+	d.Set("has_reservation_data", object["has_reservation_data"])
+	d.Set("internet_charge_type", object["internet_charge_type"])
+	d.Set("isp", object["isp"])
+	d.Set("payment_type", convertCbwpCommonBandwidthPackagePaymentTypeResponse(object["payment_type"].(string)))
+	d.Set("public_ip_addresses", object["public_ip_addresses"])
+	d.Set("ratio", object["ratio"])
+	d.Set("reservation_active_time", object["reservation_active_time"])
+	d.Set("reservation_bandwidth", object["reservation_bandwidth"])
+	d.Set("reservation_internet_charge_type", object["reservation_internet_charge_type"])
+	d.Set("reservation_order_type", object["reservation_order_type"])
+	d.Set("resource_group_id", object["resource_group_id"])
+	d.Set("security_protection_types", object["security_protection_types"])
+	d.Set("service_managed", object["service_managed"])
+	d.Set("status", object["status"])
+	d.Set("tags", tagsToMap(object["tags"]))
+
+	d.Set("bandwidth_package_name", d.Get("common_bandwidth_package_name"))
+	d.Set("name", d.Get("common_bandwidth_package_name"))
 	return nil
 }
 
-func resourceAlicloudCommonBandwidthPackageUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudCbwpCommonBandwidthPackageUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
+	var request map[string]interface{}
 	var response map[string]interface{}
-	d.Partial(true)
-
-	if d.HasChange("deletion_protection") {
-		var response map[string]interface{}
-		action := "DeletionProtection"
-		request := map[string]interface{}{
-			"RegionId":         client.RegionId,
-			"InstanceId":       d.Id(),
-			"ProtectionEnable": d.Get("deletion_protection"),
-			"Type":             "CBWP",
-		}
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
-		}
-
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			request["ClientToken"] = buildClientToken(action)
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			addDebug(action, response, request)
-			return nil
-		})
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetPartial("deletion_protection")
-	}
-
 	update := false
-	request := map[string]interface{}{
-		"BandwidthPackageId": d.Id(),
+	d.Partial(true)
+	update = false
+	action := "ModifyCommonBandwidthPackageAttribute"
+	conn, err := client.NewCbwpClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	if d.HasChange("bandwidth") {
-		update = true
-	}
-	request["Bandwidth"] = d.Get("bandwidth")
+	request = make(map[string]interface{})
+
+	request["BandwidthPackageId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if update {
-		action := "ModifyCommonBandwidthPackageSpec"
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
+
+	if !d.IsNewResource() && d.HasChange("description") {
+		update = true
+		if v, ok := d.GetOk("description"); ok {
+			request["Description"] = v
 		}
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+	}
+	if !d.IsNewResource() && (d.HasChange("common_bandwidth_package_name") || d.HasChange("bandwidth_package_name") || d.HasChange("name")) {
+		update = true
+		if d.HasChange("common_bandwidth_package_name") {
+			if v, ok := d.GetOk("common_bandwidth_package_name"); ok {
+				request["Name"] = v
+			}
+		}
+		if d.HasChange("bandwidth_package_name") {
+			if v, ok := d.GetOk("bandwidth_package_name"); ok {
+				request["Name"] = v
+			}
+		}
+		if d.HasChange("name") {
+			if v, ok := d.GetOk("name"); ok {
+				request["Name"] = v
+			}
+		}
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "BandwidthPackageOperation.conflict"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -280,79 +366,85 @@ func resourceAlicloudCommonBandwidthPackageUpdate(d *schema.ResourceData, meta i
 		})
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		d.SetPartial("description")
+		d.SetPartial("common_bandwidth_package_name")
+	}
+	update = false
+	action = "ModifyCommonBandwidthPackageSpec"
+	conn, err = client.NewCbwpClient()
+	if err != nil {
+		return WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	request["BandwidthPackageId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	if !d.IsNewResource() && d.HasChange("bandwidth") {
+		update = true
+		if v, ok := d.GetOk("bandwidth"); ok {
+			request["Bandwidth"] = v
+		}
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+			if err != nil {
+				if IsExpectedErrors(err, []string{"BandwidthPackageOperation.conflict", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(action, response, request)
+			return nil
+		})
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		{
+			cbwpServiceV2 := CbwpServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cbwpServiceV2.CbwpCommonBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
 		d.SetPartial("bandwidth")
 	}
 	update = false
-	modifyCommonBandwidthPackageAttributeReq := map[string]interface{}{
-		"BandwidthPackageId": d.Id(),
+	action = "MoveResourceGroup"
+	conn, err = client.NewCbwpClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	modifyCommonBandwidthPackageAttributeReq["RegionId"] = client.RegionId
-	if d.HasChange("bandwidth_package_name") {
+	request = make(map[string]interface{})
+
+	request["ResourceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	if !d.IsNewResource() && d.HasChange("resource_group_id") {
 		update = true
-		modifyCommonBandwidthPackageAttributeReq["Name"] = d.Get("bandwidth_package_name")
-	}
-	if d.HasChange("name") {
-		update = true
-		modifyCommonBandwidthPackageAttributeReq["Name"] = d.Get("name")
-	}
-	if d.HasChange("description") {
-		update = true
-		modifyCommonBandwidthPackageAttributeReq["Description"] = d.Get("description")
-	}
-	if update {
-		action := "ModifyCommonBandwidthPackageAttribute"
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
+		if v, ok := d.GetOk("resource_group_id"); ok {
+			request["NewResourceGroupId"] = v
 		}
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, modifyCommonBandwidthPackageAttributeReq, &util.RuntimeOptions{})
+	}
+	request["ResourceType"] = "bandwidthpackage"
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "BandwidthPackageOperation.conflict"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, modifyCommonBandwidthPackageAttributeReq)
-			return nil
-		})
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		d.SetPartial("name")
-		d.SetPartial("bandwidth_package_name")
-		d.SetPartial("description")
-	}
-	update = false
-	moveResourceGroupReq := map[string]interface{}{
-		"ResourceId": d.Id(),
-	}
-	moveResourceGroupReq["RegionId"] = client.RegionId
-	if d.HasChange("resource_group_id") {
-		update = true
-	}
-	moveResourceGroupReq["NewResourceGroupId"] = d.Get("resource_group_id")
-	moveResourceGroupReq["ResourceType"] = "bandwidthpackage"
-	if update {
-		action := "MoveResourceGroup"
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
-		}
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, moveResourceGroupReq, &util.RuntimeOptions{})
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			addDebug(action, response, moveResourceGroupReq)
+			addDebug(action, response, request)
 			return nil
 		})
 		if err != nil {
@@ -360,39 +452,90 @@ func resourceAlicloudCommonBandwidthPackageUpdate(d *schema.ResourceData, meta i
 		}
 		d.SetPartial("resource_group_id")
 	}
-	d.Partial(false)
-	return resourceAlicloudCommonBandwidthPackageRead(d, meta)
-}
-
-func resourceAlicloudCommonBandwidthPackageDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	action := "DeleteCommonBandwidthPackage"
-	var response map[string]interface{}
-	conn, err := client.NewVpcClient()
+	update = false
+	action = "DeletionProtection"
+	conn, err = client.NewCbwpClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	request := map[string]interface{}{
-		"BandwidthPackageId": d.Id(),
-	}
+	request = make(map[string]interface{})
 
-	if v, ok := d.GetOk("force"); ok {
-		request["Force"] = v
-	}
+	request["InstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("deletion_protection") {
+		update = true
+		if v, ok := d.GetOkExists("deletion_protection"); ok {
+			request["ProtectionEnable"] = v
+		}
+	}
+	request["Type"] = "CBWP"
+	if d.HasChange("deletion_protection") {
+		update = true
+		request["ProtectionEnable"] = d.Get("deletion_protection")
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+			if err != nil {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(action, response, request)
+			return nil
+		})
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		d.SetPartial("deletion_protection")
+	}
 
+	update = false
+	if d.HasChange("tags") {
+		update = true
+		cbwpServiceV2 := CbwpServiceV2{client}
+		if err := cbwpServiceV2.SetResourceTags(d, "bandwidthpackage"); err != nil {
+			return WrapError(err)
+		}
+	}
+	d.Partial(false)
+	return resourceAlicloudCbwpCommonBandwidthPackageRead(d, meta)
+}
+
+func resourceAlicloudCbwpCommonBandwidthPackageDelete(d *schema.ResourceData, meta interface{}) error {
 	// Pre paid instance can not be release.
 	if d.Get("internet_charge_type").(string) == string(PayBy95) {
-		log.Printf("[WARN] Cannot destroy CommonBandwidthPackage. Because internet_charge_type = 'PayBy95'. Terraform will remove this resource from the state file, however resources may remain.")
+		log.Printf("[WARN] Cannot destroy CommonBandwidthPackage. Because internet_charge_type = PayBy95. Terraform will remove this resource from the state file, however resources may remain.")
 		return nil
 	}
 
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	client := meta.(*connectivity.AliyunClient)
+
+	action := "DeleteCommonBandwidthPackage"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	conn, err := client.NewCbwpClient()
+	if err != nil {
+		return WrapError(err)
+	}
+	request = make(map[string]interface{})
+
+	request["BandwidthPackageId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	if v, ok := d.GetOk("force_delete"); ok {
+		request["Force"] = v
+	}
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "BandwidthPackageOperation.conflict"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"BandwidthPackageOperation.conflict", "OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -401,15 +544,38 @@ func resourceAlicloudCommonBandwidthPackageDelete(d *schema.ResourceData, meta i
 		addDebug(action, response, request)
 		return nil
 	})
+
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidBandwidthPackageId.NotFound", "InvalidRegionId.NotFound"}) {
+		if IsExpectedErrors(err, []string{}) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcService.CommonBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
+
+	cbwpServiceV2 := CbwpServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cbwpServiceV2.CbwpCommonBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 	return nil
+}
+
+func convertCbwpCommonBandwidthPackagePaymentTypeRequest(source interface{}) interface{} {
+	switch source {
+	case "PayAsYouGo":
+		return "PostPaid"
+	case "Subscription":
+		return "PrePaid"
+	}
+	return source
+}
+
+func convertCbwpCommonBandwidthPackagePaymentTypeResponse(source interface{}) interface{} {
+	switch source {
+	case "PostPaid":
+		return "PayAsYouGo"
+	case "PrePaid":
+		return "Subscription"
+	}
+	return source
 }

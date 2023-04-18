@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -5,32 +6,39 @@ import (
 	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudNetworkAcl() *schema.Resource {
+func resourceAliCloudVpcNetworkAcl() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudNetworkAclCreate,
-		Read:   resourceAlicloudNetworkAclRead,
-		Update: resourceAlicloudNetworkAclUpdate,
-		Delete: resourceAlicloudNetworkAclDelete,
+		Create: resourceAlicloudVpcNetworkAclCreate,
+		Read:   resourceAlicloudVpcNetworkAclRead,
+		Update: resourceAlicloudVpcNetworkAclUpdate,
+		Delete: resourceAlicloudVpcNetworkAclDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(10 * time.Minute),
-			Update: schema.DefaultTimeout(10 * time.Minute),
-			Delete: schema.DefaultTimeout(10 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"all": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringLenBetween(2, 256),
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"egress_acl_entries": {
 				Type:     schema.TypeList,
@@ -38,7 +46,7 @@ func resourceAlicloudNetworkAcl() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"description": {
+						"policy": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -46,23 +54,21 @@ func resourceAlicloudNetworkAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"network_acl_entry_name": {
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
-						},
-						"policy": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"accept", "drop"}, false),
 						},
 						"port": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"protocol": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"icmp", "gre", "tcp", "udp", "all"}, false),
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"network_acl_entry_name": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -73,7 +79,23 @@ func resourceAlicloudNetworkAcl() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"policy": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"description": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"source_cidr_ip": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"port": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"protocol": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -81,318 +103,272 @@ func resourceAlicloudNetworkAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"policy": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"accept", "drop"}, false),
-						},
-						"port": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"protocol": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"icmp", "gre", "tcp", "udp", "all"}, false),
-						},
-						"source_cidr_ip": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
 					},
 				},
+			},
+			"network_acl_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"network_acl_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"name"},
-				ValidateFunc:  validation.StringLenBetween(2, 128),
-			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				Deprecated:    "Field 'name' has been deprecated from provider version 1.122.0. New field 'network_acl_name' instead",
-				ConflictsWith: []string{"network_acl_name"},
-				ValidateFunc:  validation.StringLenBetween(2, 128),
 			},
 			"resources": {
-				Type:       schema.TypeSet,
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Field 'resources' has been deprecated from provider version 1.193.0 and it will be removed in the future version. Please use the new resource 'alicloud_vpc_network_acl_attachment'.",
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"resource_id": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Required: true,
 						},
 						"resource_type": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Required: true,
 						},
 					},
 				},
+			},
+			"source_network_acl_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"network_acl_name"},
+				Deprecated:    "Field 'name' has been deprecated from provider version 1.122.0. New field 'network_acl_name' instead.",
+			},
 		},
 	}
 }
 
-func resourceAlicloudNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudVpcNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	var response map[string]interface{}
+
 	action := "CreateNetworkAcl"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if v, ok := d.GetOk("vpc_id"); ok {
+		request["VpcId"] = v
+	}
+
+	if v, ok := d.GetOk("network_acl_name"); ok {
+		request["NetworkAclName"] = v
+	}
+	if v, ok := d.GetOk("name"); ok {
+		request["NetworkAclName"] = v
+	}
+
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
-	if v, ok := d.GetOk("network_acl_name"); ok {
-		request["NetworkAclName"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["NetworkAclName"] = v
-	}
-	request["RegionId"] = client.RegionId
-	request["VpcId"] = d.Get("vpc_id")
-	request["ClientToken"] = buildClientToken("CreateNetworkAcl")
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_network_acl", action, AlibabaCloudSdkGoERROR)
 	}
-	responseNetworkAclAttribute := response["NetworkAclAttribute"].(map[string]interface{})
-	d.SetId(fmt.Sprint(responseNetworkAclAttribute["NetworkAclId"]))
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
+
+	id, err := jsonpath.Get("$.NetworkAclAttribute.NetworkAclId", response)
+	d.SetId(fmt.Sprint(id))
+
+	vpcServiceV2 := VpcServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudNetworkAclUpdate(d, meta)
+	return resourceAlicloudVpcNetworkAclUpdate(d, meta)
 }
 
-func resourceAlicloudNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudVpcNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	object, err := vpcService.DescribeNetworkAcl(d.Id())
+	vpcServiceV2 := VpcServiceV2{client}
+
+	object, err := vpcServiceV2.DescribeVpcNetworkAcl(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_network_acl vpcService.DescribeNetworkAcl Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_network_acl .DescribeVpcNetworkAcl Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("description", object["Description"])
 
-	egressAclEntry := make([]map[string]interface{}, 0)
-	if egressAclEntryList, ok := object["EgressAclEntries"].(map[string]interface{})["EgressAclEntry"].([]interface{}); ok {
-		for _, v := range egressAclEntryList {
-			if m1, ok := v.(map[string]interface{}); ok {
-				temp1 := map[string]interface{}{
-					"description":            m1["Description"],
-					"destination_cidr_ip":    m1["DestinationCidrIp"],
-					"network_acl_entry_name": m1["NetworkAclEntryName"],
-					"policy":                 m1["Policy"],
-					"port":                   m1["Port"],
-					"protocol":               m1["Protocol"],
-				}
-				egressAclEntry = append(egressAclEntry, temp1)
+	d.Set("create_time", object["create_time"])
+	d.Set("description", object["description"])
+	d.Set("egress_acl_entries", object["egress_acl_entries"])
+	d.Set("ingress_acl_entries", object["ingress_acl_entries"])
+	d.Set("network_acl_id", object["network_acl_id"])
+	d.Set("network_acl_name", object["network_acl_name"])
+	d.Set("resources", object["resources"])
+	d.Set("status", object["status"])
+	d.Set("tags", tagsToMap(object["tags"]))
+	d.Set("vpc_id", object["vpc_id"])
 
-			}
-		}
-	}
-	if err := d.Set("egress_acl_entries", egressAclEntry); err != nil {
-		return WrapError(err)
-	}
-
-	ingressAclEntry := make([]map[string]interface{}, 0)
-	if ingressAclEntryList, ok := object["IngressAclEntries"].(map[string]interface{})["IngressAclEntry"].([]interface{}); ok {
-		for _, v := range ingressAclEntryList {
-			if m1, ok := v.(map[string]interface{}); ok {
-				temp1 := map[string]interface{}{
-					"description":            m1["Description"],
-					"network_acl_entry_name": m1["NetworkAclEntryName"],
-					"policy":                 m1["Policy"],
-					"port":                   m1["Port"],
-					"protocol":               m1["Protocol"],
-					"source_cidr_ip":         m1["SourceCidrIp"],
-				}
-				ingressAclEntry = append(ingressAclEntry, temp1)
-
-			}
-		}
-	}
-	if err := d.Set("ingress_acl_entries", ingressAclEntry); err != nil {
-		return WrapError(err)
-	}
-	d.Set("network_acl_name", object["NetworkAclName"])
-	d.Set("name", object["NetworkAclName"])
-
-	resourceMap := make([]map[string]interface{}, 0)
-	if resourceMapList, ok := object["Resources"].(map[string]interface{})["Resource"].([]interface{}); ok {
-		for _, v := range resourceMapList {
-			if m1, ok := v.(map[string]interface{}); ok {
-				temp1 := map[string]interface{}{
-					"resource_id":   m1["ResourceId"],
-					"resource_type": m1["ResourceType"],
-				}
-				resourceMap = append(resourceMap, temp1)
-
-			}
-		}
-	}
-	if err := d.Set("resources", resourceMap); err != nil {
-		return WrapError(err)
-	}
-	d.Set("status", object["Status"])
-	d.Set("vpc_id", object["VpcId"])
+	d.Set("name", d.Get("network_acl_name"))
 	return nil
 }
 
-func resourceAlicloudNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudVpcNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+	var request map[string]interface{}
 	var response map[string]interface{}
-	d.Partial(true)
-
 	update := false
-	request := map[string]interface{}{
-		"NetworkAclId": d.Id(),
+	d.Partial(true)
+	update = false
+	action := "ModifyNetworkAclAttributes"
+	conn, err := client.NewVpcClient()
+	if err != nil {
+		return WrapError(err)
 	}
+	request = make(map[string]interface{})
+
+	request["NetworkAclId"] = d.Id()
 	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if !d.IsNewResource() && (d.HasChange("network_acl_name") || d.HasChange("name")) {
+		update = true
+		if d.HasChange("network_acl_name") {
+			if v, ok := d.GetOk("network_acl_name"); ok {
+				request["NetworkAclName"] = v
+			}
+		}
+		if d.HasChange("name") {
+			if v, ok := d.GetOk("name"); ok {
+				request["NetworkAclName"] = v
+			}
+		}
+	}
 	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
-		request["Description"] = d.Get("description")
-	}
-	if !d.IsNewResource() && d.HasChange("network_acl_name") {
-		update = true
-		request["NetworkAclName"] = d.Get("network_acl_name")
-	}
-	if !d.IsNewResource() && d.HasChange("name") {
-		update = true
-		request["NetworkAclName"] = d.Get("name")
+		if v, ok := d.GetOk("description"); ok {
+			request["Description"] = v
+		}
 	}
 	if update {
-		action := "ModifyNetworkAclAttributes"
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
-		}
-		request["ClientToken"] = buildClientToken("ModifyNetworkAclAttributes")
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if NeedRetry(err) {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		{
+			vpcServiceV2 := VpcServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
-		d.SetPartial("description")
-		d.SetPartial("name")
 		d.SetPartial("network_acl_name")
+		d.SetPartial("description")
 	}
 	update = false
-	updateNetworkAclEntriesReq := map[string]interface{}{
-		"NetworkAclId": d.Id(),
+	action = "UpdateNetworkAclEntries"
+	conn, err = client.NewVpcClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	updateNetworkAclEntriesReq["RegionId"] = client.RegionId
-	if d.HasChange("egress_acl_entries") {
-		updateNetworkAclEntriesReq["UpdateEgressAclEntries"] = true
-		update = true
-		EgressAclEntries := make([]map[string]interface{}, len(d.Get("egress_acl_entries").([]interface{})))
-		for i, EgressAclEntriesValue := range d.Get("egress_acl_entries").([]interface{}) {
-			EgressAclEntriesMap := EgressAclEntriesValue.(map[string]interface{})
-			EgressAclEntries[i] = make(map[string]interface{})
-			if EgressAclEntriesMap["description"] != "" {
-				EgressAclEntries[i]["Description"] = EgressAclEntriesMap["description"]
-			}
-			EgressAclEntries[i]["DestinationCidrIp"] = EgressAclEntriesMap["destination_cidr_ip"]
-			if EgressAclEntriesMap["network_acl_entry_name"] != "" {
-				EgressAclEntries[i]["NetworkAclEntryName"] = EgressAclEntriesMap["network_acl_entry_name"]
-			}
-			EgressAclEntries[i]["Policy"] = EgressAclEntriesMap["policy"]
-			EgressAclEntries[i]["Port"] = EgressAclEntriesMap["port"]
-			EgressAclEntries[i]["Protocol"] = EgressAclEntriesMap["protocol"]
-		}
-		updateNetworkAclEntriesReq["EgressAclEntries"] = EgressAclEntries
+	request = make(map[string]interface{})
 
-	}
+	request["NetworkAclId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 	if d.HasChange("ingress_acl_entries") {
-		updateNetworkAclEntriesReq["UpdateIngressAclEntries"] = true
+		request["UpdateIngressAclEntries"] = "true"
 		update = true
-		IngressAclEntries := make([]map[string]interface{}, len(d.Get("ingress_acl_entries").([]interface{})))
-		for i, IngressAclEntriesValue := range d.Get("ingress_acl_entries").([]interface{}) {
-			IngressAclEntriesMap := IngressAclEntriesValue.(map[string]interface{})
-			IngressAclEntries[i] = make(map[string]interface{})
-			if IngressAclEntriesMap["description"] != "" {
-				IngressAclEntries[i]["Description"] = IngressAclEntriesMap["description"]
+		if v, ok := d.GetOk("ingress_acl_entries"); ok {
+			localData := v
+			ingressAclEntriesMaps := make([]map[string]interface{}, 0)
+			for _, dataLoop := range localData.([]interface{}) {
+				dataLoopTmp := dataLoop.(map[string]interface{})
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["Policy"] = dataLoopTmp["policy"]
+				dataLoopMap["NetworkAclEntryName"] = dataLoopTmp["network_acl_entry_name"]
+				dataLoopMap["SourceCidrIp"] = dataLoopTmp["source_cidr_ip"]
+				dataLoopMap["Protocol"] = dataLoopTmp["protocol"]
+				dataLoopMap["Port"] = dataLoopTmp["port"]
+				dataLoopMap["Description"] = dataLoopTmp["description"]
+				ingressAclEntriesMaps = append(ingressAclEntriesMaps, dataLoopMap)
 			}
-			if IngressAclEntriesMap["network_acl_entry_name"] != "" {
-				IngressAclEntries[i]["NetworkAclEntryName"] = IngressAclEntriesMap["network_acl_entry_name"]
-			}
-			IngressAclEntries[i]["Policy"] = IngressAclEntriesMap["policy"]
-			IngressAclEntries[i]["Port"] = IngressAclEntriesMap["port"]
-			IngressAclEntries[i]["Protocol"] = IngressAclEntriesMap["protocol"]
-			IngressAclEntries[i]["SourceCidrIp"] = IngressAclEntriesMap["source_cidr_ip"]
+			request["IngressAclEntries"] = ingressAclEntriesMaps
 		}
-		updateNetworkAclEntriesReq["IngressAclEntries"] = IngressAclEntries
-
 	}
-	if update {
-		action := "UpdateNetworkAclEntries"
-		conn, err := client.NewVpcClient()
-		if err != nil {
-			return WrapError(err)
+
+	if d.HasChange("egress_acl_entries") {
+		request["UpdateEgressAclEntries"] = "true"
+		update = true
+		if v, ok := d.GetOk("egress_acl_entries"); ok {
+			localData1 := v
+			egressAclEntriesMaps := make([]map[string]interface{}, 0)
+			for _, dataLoop1 := range localData1.([]interface{}) {
+				dataLoop1Tmp := dataLoop1.(map[string]interface{})
+				dataLoop1Map := make(map[string]interface{})
+				dataLoop1Map["Policy"] = dataLoop1Tmp["policy"]
+				dataLoop1Map["NetworkAclEntryName"] = dataLoop1Tmp["network_acl_entry_name"]
+				dataLoop1Map["Description"] = dataLoop1Tmp["description"]
+				dataLoop1Map["Protocol"] = dataLoop1Tmp["protocol"]
+				dataLoop1Map["DestinationCidrIp"] = dataLoop1Tmp["destination_cidr_ip"]
+				dataLoop1Map["Port"] = dataLoop1Tmp["port"]
+				egressAclEntriesMaps = append(egressAclEntriesMaps, dataLoop1Map)
+			}
+			request["EgressAclEntries"] = egressAclEntriesMaps
 		}
-		request["ClientToken"] = buildClientToken("UpdateNetworkAclEntries")
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
+	}
+
+	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, updateNetworkAclEntriesReq, &runtime)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
 				if IsExpectedErrors(err, []string{"TaskConflict"}) || NeedRetry(err) {
 					wait()
@@ -400,148 +376,214 @@ func resourceAlicloudNetworkAclUpdate(d *schema.ResourceData, meta interface{}) 
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, updateNetworkAclEntriesReq)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-		d.SetPartial("egress_acl_entries")
-		d.SetPartial("ingress_acl_entries")
-	}
-	d.Partial(false)
-	if d.HasChange("resources") {
-		oldResources, newResources := d.GetChange("resources")
-		oldResourcesSet := oldResources.(*schema.Set)
-		newResourcesSet := newResources.(*schema.Set)
-
-		removed := oldResourcesSet.Difference(newResourcesSet)
-		added := newResourcesSet.Difference(oldResourcesSet)
-		if added.Len() > 0 {
-			associatenetworkaclrequest := map[string]interface{}{
-				"NetworkAclId": d.Id(),
-			}
-			resourcesMaps := make([]map[string]interface{}, 0)
-			for _, resources := range added.List() {
-				resourcesArg := resources.(map[string]interface{})
-				resourcesMap := map[string]interface{}{
-					"ResourceId":   resourcesArg["resource_id"],
-					"ResourceType": resourcesArg["resource_type"],
-				}
-				resourcesMaps = append(resourcesMaps, resourcesMap)
-			}
-			associatenetworkaclrequest["Resource"] = resourcesMaps
-			associatenetworkaclrequest["RegionId"] = client.RegionId
-			action := "AssociateNetworkAcl"
-			conn, err := client.NewVpcClient()
-			if err != nil {
-				return WrapError(err)
-			}
-			request["ClientToken"] = buildClientToken("AssociateNetworkAcl")
-			runtime := util.RuntimeOptions{}
-			runtime.SetAutoretry(true)
-			wait := incrementalWait(3*time.Second, 3*time.Second)
-			err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, associatenetworkaclrequest, &runtime)
-				if err != nil {
-					if NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
-			})
-			addDebug(action, response, associatenetworkaclrequest)
-			if err != nil {
-				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-			}
-			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
+		{
+			vpcServiceV2 := VpcServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
 			if _, err := stateConf.WaitForState(); err != nil {
 				return WrapErrorf(err, IdMsg, d.Id())
 			}
-			d.SetPartial("resources")
-		}
-		if removed.Len() > 0 {
-			unassociatenetworkaclrequest := map[string]interface{}{
-				"NetworkAclId": d.Id(),
-			}
-			resourcesMaps := make([]map[string]interface{}, 0)
-			for _, resources := range removed.List() {
-				resourcesArg := resources.(map[string]interface{})
-				resourcesMap := map[string]interface{}{
-					"ResourceId":   resourcesArg["resource_id"],
-					"ResourceType": resourcesArg["resource_type"],
-				}
-				resourcesMaps = append(resourcesMaps, resourcesMap)
-			}
-			unassociatenetworkaclrequest["Resource"] = resourcesMaps
-			unassociatenetworkaclrequest["RegionId"] = client.RegionId
-			action := "UnassociateNetworkAcl"
-			conn, err := client.NewVpcClient()
-			if err != nil {
-				return WrapError(err)
-			}
-			request["ClientToken"] = buildClientToken("UnassociateNetworkAcl")
-			runtime := util.RuntimeOptions{}
-			runtime.SetAutoretry(true)
-			wait := incrementalWait(3*time.Second, 3*time.Second)
-			err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, unassociatenetworkaclrequest, &runtime)
-				if err != nil {
-					if NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
-			})
-			addDebug(action, response, unassociatenetworkaclrequest)
-			if err != nil {
-				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-			}
-			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
-			if _, err := stateConf.WaitForState(); err != nil {
-				return WrapErrorf(err, IdMsg, d.Id())
-			}
-			d.SetPartial("resources")
 		}
 	}
-	return resourceAlicloudNetworkAclRead(d, meta)
-}
-
-func resourceAlicloudNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-
-	// Delete binging resources before delete the ACL
-	_, err := vpcService.DeleteAclResources(d.Id())
+	update = false
+	action = "CopyNetworkAclEntries"
+	conn, err = client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
+	request = make(map[string]interface{})
+
+	request["NetworkAclId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("source_network_acl_id") {
+		update = true
+		if v, ok := d.GetOk("source_network_acl_id"); ok {
+			request["SourceNetworkAclId"] = v
+		}
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+			if err != nil {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(action, response, request)
+			return nil
+		})
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		{
+			vpcServiceV2 := VpcServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+		}
+		d.SetPartial("source_network_acl_id")
+	}
+
+	update = false
+	if d.HasChange("resources") {
+		update = true
+		oldEntry, newEntry := d.GetChange("resources")
+		oldEntrySet := oldEntry.(*schema.Set)
+		newEntrySet := newEntry.(*schema.Set)
+		removed := oldEntrySet.Difference(newEntrySet)
+		added := newEntrySet.Difference(oldEntrySet)
+
+		if removed.Len() > 0 {
+			action = "UnassociateNetworkAcl"
+			conn, err = client.NewVpcClient()
+			if err != nil {
+				return WrapError(err)
+			}
+			request = make(map[string]interface{})
+
+			request["NetworkAclId"] = d.Id()
+			request["RegionId"] = client.RegionId
+			request["ClientToken"] = buildClientToken(action)
+			localData := removed.List()
+
+			resourceMaps := make([]map[string]interface{}, 0)
+			for _, dataLoop := range localData {
+				dataLoopTmp := dataLoop.(map[string]interface{})
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["ResourceType"] = dataLoopTmp["resource_type"]
+				dataLoopMap["ResourceId"] = dataLoopTmp["resource_id"]
+				resourceMaps = append(resourceMaps, dataLoopMap)
+			}
+			request["Resource"] = resourceMaps
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				if err != nil {
+					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				addDebug(action, response, request)
+				return nil
+			})
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+			{
+				vpcServiceV2 := VpcServiceV2{client}
+				stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
+				if _, err := stateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id())
+				}
+			}
+
+		}
+
+		if added.Len() > 0 {
+			action = "AssociateNetworkAcl"
+			conn, err = client.NewVpcClient()
+			if err != nil {
+				return WrapError(err)
+			}
+			request = make(map[string]interface{})
+
+			request["NetworkAclId"] = d.Id()
+			request["RegionId"] = client.RegionId
+			request["ClientToken"] = buildClientToken(action)
+			localData := added.List()
+
+			resourceMaps := make([]map[string]interface{}, 0)
+			for _, dataLoop := range localData {
+				dataLoopTmp := dataLoop.(map[string]interface{})
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["ResourceType"] = dataLoopTmp["resource_type"]
+				dataLoopMap["ResourceId"] = dataLoopTmp["resource_id"]
+				resourceMaps = append(resourceMaps, dataLoopMap)
+			}
+			request["Resource"] = resourceMaps
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				if err != nil {
+					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				addDebug(action, response, request)
+				return nil
+			})
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+			{
+				vpcServiceV2 := VpcServiceV2{client}
+				stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
+				if _, err := stateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id())
+				}
+			}
+
+		}
+
+	}
+	update = false
+	if d.HasChange("tags") {
+		update = true
+		vpcServiceV2 := VpcServiceV2{client}
+		if err := vpcServiceV2.SetResourceTags(d, "NETWORKACL"); err != nil {
+			return WrapError(err)
+		}
+	}
+	d.Partial(false)
+	return resourceAlicloudVpcNetworkAclRead(d, meta)
+}
+
+func resourceAlicloudVpcNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
+	// Delete binging resources before delete the ACL
+	{
+		client := meta.(*connectivity.AliyunClient)
+		vpcService := VpcService{client}
+		_, err := vpcService.DeleteAclResources(d.Id())
+		if err != nil {
+			return WrapError(err)
+		}
+	}
+
+	client := meta.(*connectivity.AliyunClient)
 
 	action := "DeleteNetworkAcl"
+	var request map[string]interface{}
 	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	request := map[string]interface{}{
-		"NetworkAclId": d.Id(),
-	}
+	request = make(map[string]interface{})
 
+	request["NetworkAclId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	request["ClientToken"] = buildClientToken("DeleteNetworkAcl")
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
 			if IsExpectedErrors(err, []string{"NetworkAclExistBinding"}) || NeedRetry(err) {
 				wait()
@@ -549,13 +591,19 @@ func resourceAlicloudNetworkAclDelete(d *schema.ResourceData, meta interface{}) 
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcService.NetworkAclStateRefreshFunc(d.Id(), []string{}))
+
+	vpcServiceV2 := VpcServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcNetworkAclStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

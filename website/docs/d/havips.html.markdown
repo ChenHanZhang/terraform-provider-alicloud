@@ -11,7 +11,7 @@ description: |-
 
 This data source provides Vpc Havip available to the user.[What is Havip](https://www.alibabacloud.com/help/en/)
 
--> **NOTE:** Available in 1.203.0+.
+-> **NOTE:** Available in 1.204.0+.
 
 ## Example Usage
 

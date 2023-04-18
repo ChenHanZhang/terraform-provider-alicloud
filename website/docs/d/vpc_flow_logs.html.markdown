@@ -4,59 +4,66 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_vpc_flow_logs"
 sidebar_current: "docs-alicloud-datasource-vpc-flow-logs"
 description: |-
-  Provides a list of Vpc Flow Logs to the user.
+  Provides a list of Vpc Flow Log owned by an Alibaba Cloud account.
 ---
 
-# alicloud\_vpc\_flow\_logs
+# alicloud_vpc_flow_logs
 
-This data source provides the Vpc Flow Logs of the current Alibaba Cloud user.
+This data source provides Vpc Flow Log available to the user.[What is Flow Log](https://www.alibabacloud.com/help/en/)
 
--> **NOTE:** Available in v1.122.0+.
+-> **NOTE:** Available in 1.204.0+.
 
 ## Example Usage
 
-Basic Usage
-
-```terraform
-data "alicloud_vpc_flow_logs" "example" {
-  ids        = ["example_value"]
-  name_regex = "the_resource_name"
-}
-
-output "first_vpc_flow_log_id" {
-  value = data.alicloud_vpc_flow_logs.example.logs.0.id
-}
+```
+没有资源测试用例，请先通过资源测试用例后再生成示例代码。
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
-
-* `description` - (Optional, ForceNew) The Description of flow log.
-* `flow_log_name` - (Optional, ForceNew) The flow log name.
-* `ids` - (Optional, ForceNew, Computed)  A list of Flow Log IDs.
-* `log_store_name` - (Optional, ForceNew) The log store name.
-* `name_regex` - (Optional, ForceNew) A regex string to filter results by Flow Log name.
+* `description` - (ForceNew,Optional) The Description of flow log.
+* `flow_log_id` - (ForceNew,Optional) The flow log ID.
+* `flow_log_name` - (ForceNew,Optional) The flow log name.
+* `log_store_name` - (ForceNew,Optional) The log store name.
+* `project_name` - (ForceNew,Optional) The project name.
+* `resource_group_id` - (ForceNew,Optional) The ID of the resource group to which the VPC belongs.
+* `resource_id` - (ForceNew,Optional) The resource id.
+* `resource_type` - (ForceNew,Optional) The resource type of the traffic captured by the flow log:-**NetworkInterface**: ENI.-**VSwitch**: All ENIs in the VSwitch.-**VPC**: All ENIs in the VPC.
+* `status` - (ForceNew,Optional) The status of  flow log.
+* `tags` - (ForceNew,Optional) The tags of PrefixList.See the following `Block Tags`.
+* `traffic_type` - (ForceNew,Optional) The traffic type.
+* `ids` - (Optional, ForceNew, Computed) A list of Flow Log IDs.
+* `flow_log_names` - (Optional, ForceNew) The name of the Flow Log. You can specify at most 10 names.
+* `name_regex` - (Optional, ForceNew) A regex string to filter results by Group Metric Rule name.
 * `output_file` - (Optional) File name where to save data source results (after running `terraform plan`).
-* `project_name` - (Optional, ForceNew) The project name.
-* `resource_id` - (Optional, ForceNew) The resource id.
-* `resource_type` - (Optional, ForceNew) The resource type. Valid values: `NetworkInterface`, `VPC`, `VSwitch`.
-* `status` - (Optional, ForceNew) The status of  flow log. Valid values: `Active`, `Inactive`.
-* `traffic_type` - (Optional, ForceNew) The traffic type. Valid values: `All`, `Allow`, `Drop`.
 
-## Argument Reference
+#### Block Tags
+
+The Tags supports the following:
+* `tag_key` - (ForceNew,Optional) The key of tag.
+* `tag_value` - (ForceNew,Optional) The value of tag.
+
+## Attributes Reference
 
 The following attributes are exported in addition to the arguments listed above:
-
-* `names` - A list of Flow Log names.
-* `logs` - A list of Vpc Flow Logs. Each element contains the following attributes:
-	* `description` - The Description of flow log.
-	* `flow_log_id` - The flow log ID.
-	* `flow_log_name` - The flow log name.
-	* `id` - The ID of the Flow Log.
-	* `log_store_name` - The log store name.
-	* `project_name` - The project name.
-	* `resource_id` - The resource id.
-	* `resource_type` - The resource type.
-	* `status` - The status of flow log.
-	* `traffic_type` - The traffic type.
+* `ids` - A list of Flow Log IDs.
+* `names` - A list of name of Flow Logs.
+* `logs` - A list of Flow Log Entries. Each element contains the following attributes:
+  * `aggregation_interval` - Data aggregation interval
+  * `business_status` - Business status
+  * `create_time` - the time of creation.
+  * `description` - The Description of flow log.
+  * `flow_log_id` - The flow log ID.
+  * `flow_log_name` - The flow log name.
+  * `log_store_name` - The log store name.
+  * `project_name` - The project name.
+  * `resource_group_id` - The ID of the resource group to which the VPC belongs.
+  * `resource_id` - The resource id.
+  * `resource_type` - The resource type of the traffic captured by the flow log:-**NetworkInterface**: ENI.-**VSwitch**: All ENIs in the VSwitch.-**VPC**: All ENIs in the VPC.
+  * `status` - The status of  flow log.
+  * `tags` - The tags of PrefixList.
+    * `tag_key` - The key of tag.
+    * `tag_value` - The value of tag.
+  * `traffic_path` - 采集的流量路径。取值：    all（默认值）：表示全量采集。     internetGateway：表示公网流量采集。
+  * `traffic_type` - The traffic type.

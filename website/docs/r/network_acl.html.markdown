@@ -4,119 +4,103 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_network_acl"
 sidebar_current: "docs-alicloud-resource-network-acl"
 description: |-
-  Provides a Alicloud Network Acl resource.
+  Provides a Alicloud Vpc Network Acl resource.
 ---
 
-# alicloud\_network_acl
+# alicloud_network_acl
 
-Provides a network acl resource to add network acls.
+Provides a Vpc Network Acl resource.
 
--> **NOTE:** Available in 1.43.0+. Currently, the resource are only available in Hongkong(cn-hongkong), India(ap-south-1), and Indonesia(ap-southeast-1) regions.
+For information about Vpc Network Acl and how to use it, see [What is Network Acl](https://www.alibabacloud.com/help/en/).
+
+-> **NOTE:** Available in v1.204.0+.
 
 ## Example Usage
 
 Basic Usage
 
 ```terraform
-data "alicloud_zones" "default" {
-  available_resource_creation = "VSwitch"
-}
-
-resource "alicloud_vpc" "default" {
-  cidr_block = "172.16.0.0/12"
-  vpc_name   = "VpcConfig"
-}
-
-resource "alicloud_vswitch" "default" {
-  vpc_id       = alicloud_vpc.default.id
-  vswitch_name = "vswitch"
-  cidr_block   = cidrsubnet(alicloud_vpc.default.cidr_block, 4, 4)
-  zone_id      = data.alicloud_zones.default.ids.0
-}
-
 resource "alicloud_network_acl" "default" {
-  vpc_id           = alicloud_vpc.default.id
-  network_acl_name = "network_acl"
-  description      = "network_acl"
-  ingress_acl_entries {
-    description            = "tf-testacc"
-    network_acl_entry_name = "tcp23"
-    source_cidr_ip         = "196.168.2.0/21"
-    policy                 = "accept"
-    port                   = "22/80"
-    protocol               = "tcp"
-  }
-  egress_acl_entries {
-    description            = "tf-testacc"
-    network_acl_entry_name = "tcp23"
-    destination_cidr_ip    = "0.0.0.0/0"
-    policy                 = "accept"
-    port                   = "-1/-1"
-    protocol               = "all"
-  }
-  resources {
-    resource_id   = alicloud_vswitch.default.id
-    resource_type = "VSwitch"
-  }
+  description      = "test"
+  vpc_id           = "vpc-bp11lfjeaa57jxr6ovybf"
+  network_acl_name = "rdk-test"
+  region_id        = "cn-hangzhou"
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
+* `all` - (Optional) Whether to unbind all tags of the resource. Value:-**true**: untags all resources.-**false** (default): does not remove all tags of the resource.
+* `description` - (Optional) Description of network ACL information.
+* `egress_acl_entries` - (Computed,Optional) Output direction rule information.See the following `Block EgressAclEntries`.
+* `ingress_acl_entries` - (Computed,Optional) Entry direction rule information.See the following `Block IngressAclEntries`.
+* `network_acl_name` - (Optional) The name of the network ACL.
+* `resources` - (Computed,Optional) The associated resource.See the following `Block Resources`.
+* `source_network_acl_id` - (Optional) The ID of the copied network ACL.
+* `tags` - (Optional) The tags of VSwitch.See the following `Block Tags`.
+* `vpc_id` - (Required,ForceNew) The ID of the associated VPC.
 
-* `vpc_id` - (Required, ForceNew) The vpc_id of the network acl, the field can't be changed.
-* `name` - (Optional, Deprecated from v1.122.0) Field `name` has been deprecated from provider version 1.122.0. New field `network_acl_name` instead.
-* `network_acl_name` - (Optional, Available in 1.122.0+) The name of the network acl.
-* `description` - (Optional) The description of the network acl instance.
-* `ingress_acl_entries` - (Optional, Computed, Available in 1.122.0+) List of the ingress entries of the network acl. The order of the ingress entries determines the priority. The details see Block `ingress_acl_entries`.
-* `egress_acl_entries` - (Optional, Computed, Available in 1.122.0+) List of the egress entries of the network acl. The order of the egress entries determines the priority. The details see Block `egress_acl_entries`.
-* `resources` - (Optional, Computed, Available in 1.124.0+) The associated resources. See the following `Block resources`. **NOTE:** "Field `resources` has been deprecated from provider version 1.193.0 and it will be removed in the future version. Please use the new resource `alicloud_vpc_network_acl_attachment`."
+The following arguments will be discarded. Please use new fields as soon as possible:
+* `name` - Field 'name' has been deprecated from provider version 1.122.0. New field 'network_acl_name' instead.
 
-### Block ingress_acl_entries
+#### Block EgressAclEntries
 
-* `description` - (Optional) The description of ingress entries.
-* `network_acl_entry_name` - (Optional) The entry name of ingress entries. 
-* `policy` - (Optional) The policy of ingress entries. Valid values `accept` and `drop`.
-* `port` - (Optional) The port of ingress entries.
-* `protocol` - (Optional) The protocol of ingress entries. Valid values `icmp`,`gre`,`tcp`,`udp`, and `all`.
-* `source_cidr_ip` - (Optional) The source cidr ip of ingress entries.
+The EgressAclEntries supports the following:
+* `description` - (Optional) Give the description information of the direction rule.
+* `destination_cidr_ip` - (Optional) The destination address segment.
+* `network_acl_entry_name` - (Optional) The name of the entry for the direction rule.
+* `policy` - (Optional) The  authorization policy.
+* `port` - (Optional) Destination port range.
+* `protocol` - (Optional) Transport  layer protocol.
 
-### Block egress_acl_entries
+#### Block IngressAclEntries
 
-* `description` - (Optional) The description of egress entries.
-* `network_acl_entry_name` - (Optional) The entry name of egress entries. 
-* `policy` - (Optional) The policy of egress entries. Valid values `accept` and `drop`.
-* `port` - (Optional) The port of egress entries.
-* `protocol` - (Optional) The protocol of egress entries. Valid values `icmp`,`gre`,`tcp`,`udp`, and `all`.
-* `destination_cidr_ip` - (Optional) The destination cidr ip of egress entries.
+The IngressAclEntries supports the following:
+* `description` - (Optional) Description of the entry direction rule.
+* `network_acl_entry_name` - (Optional) The name of the entry direction rule entry.
+* `policy` - (Optional) The authorization policy.
+* `port` - (Optional) Source port range.
+* `protocol` - (Optional) Transport layer protocol.
+* `source_cidr_ip` - (Optional) The source address field.
 
-### Block resources 
+#### Block Resources
 
-* `resource_id` - (Optional, Computed, Available in 1.124.0+) The ID of the associated resource.
-* `resource_type` - (Optional, Computed, Available in 1.124.0+) The type of the associated resource. Valid values `VSwitch`.
+The Resources supports the following:
+* `resource_id` - (Required) The ID of the associated resource.
+* `resource_type` - (Required) The type of the associated resource.
+
+#### Block Tags
+
+The Tags supports the following:
+* `tag_key` - (Optional) The tag key of VSwitch.
+* `tag_value` - (Optional) The tag value of VSwitch.
+
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The ID of the network acl instance id.
-* `status` - (Available in 1.122.0+) The status of the network acl.
+* `id` - The `key` of the resource supplied above.
+* `create_time` - The creation time of the resource
+* `egress_acl_entries` - Output direction rule information.
+* `ingress_acl_entries` - Entry direction rule information.
+* `network_acl_id` - The first ID of the resource
+* `resources` - The associated resource.
+  * `status` - The state of the associated resource.
+* `status` - The state of the network ACL.
 
 ### Timeouts
 
--> **NOTE:** Available in 1.122.0+.
-
 The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration-0-11/resources.html#timeouts) for certain actions:
-
-* `create` - (Defaults to 10 mins) Used when creating the Network ACL. (until it reaches the initial `Available` status). 
-* `update` - (Defaults to 10 mins) Used when updating the Network ACL. (until it reaches the initial `Available` status). 
-* `delete` - (Defaults to 10 mins) Used when terminating the Network ACL.
+* `create` - (Defaults to 5 mins) Used when create the Network Acl.
+* `delete` - (Defaults to 5 mins) Used when delete the Network Acl.
+* `update` - (Defaults to 5 mins) Used when update the Network Acl.
 
 ## Import
 
-The network acl can be imported using the id, e.g.
+Vpc Network Acl can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_network_acl.default nacl-abc123456
+$ terraform import alicloud_vpc_network_acl.example 
 ```

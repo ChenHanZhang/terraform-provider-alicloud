@@ -4,69 +4,69 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_vpc_traffic_mirror_filters"
 sidebar_current: "docs-alicloud-datasource-vpc-traffic-mirror-filters"
 description: |-
-  Provides a list of Vpc Traffic Mirror Filters to the user.
+  Provides a list of Vpc Traffic Mirror Filter owned by an Alibaba Cloud account.
 ---
 
-# alicloud\_vpc\_traffic\_mirror\_filters
+# alicloud_vpc_traffic_mirror_filters
 
-This data source provides the Vpc Traffic Mirror Filters of the current Alibaba Cloud user.
+This data source provides Vpc Traffic Mirror Filter available to the user.[What is Traffic Mirror Filter](https://www.alibabacloud.com/help/en/)
 
--> **NOTE:** Available in v1.140.0+.
+-> **NOTE:** Available in 1.204.0+.
 
 ## Example Usage
 
-Basic Usage
-
-```terraform
-data "alicloud_vpc_traffic_mirror_filters" "ids" {
-  ids = ["example_id"]
-}
-output "vpc_traffic_mirror_filter_id_1" {
-  value = data.alicloud_vpc_traffic_mirror_filters.ids.filters.0.id
+```
+data "alicloud_vpc_traffic_mirror_filters" "default" {
+  ids                        = ["${alicloud_vpc_traffic_mirror_filter.default.id}"]
+  name_regex                 = alicloud_vpc_traffic_mirror_filter.default.name
+  traffic_mirror_filter_name = "TrafficMirrorFilterNameTest"
 }
 
-data "alicloud_vpc_traffic_mirror_filters" "nameRegex" {
-  name_regex = "^my-TrafficMirrorFilter"
+output "alicloud_vpc_traffic_mirror_filter_example_id" {
+  value = data.alicloud_vpc_traffic_mirror_filters.default.filters.0.id
 }
-output "vpc_traffic_mirror_filter_id_2" {
-  value = data.alicloud_vpc_traffic_mirror_filters.nameRegex.filters.0.id
-}
-
-data "alicloud_vpc_traffic_mirror_filters" "filterName" {
-  traffic_mirror_filter_name = "example_traffic_mirror_filter_name"
-}
-output "vpc_traffic_mirror_filter_id_3" {
-  value = data.alicloud_vpc_traffic_mirror_filters.filterName.filters.0.id
-}
-
-data "alicloud_vpc_traffic_mirror_filters" "status" {
-  status = "^my-TrafficMirrorFilter"
-}
-output "vpc_traffic_mirror_filter_id_4" {
-  value = data.alicloud_vpc_traffic_mirror_filters.status.filters.0.id
-}
-
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
-
-* `ids` - (Optional, ForceNew, Computed)  A list of Traffic Mirror Filter IDs.
-* `name_regex` - (Optional, ForceNew) A regex string to filter results by Traffic Mirror Filter name.
+* `resource_group_id` - (ForceNew,Optional) The ID of the resource group to which the VPC belongs.
+* `traffic_mirror_filter_name` - (ForceNew,Optional) The name of the TrafficMirrorFilter.
+* `ids` - (Optional, ForceNew, Computed) A list of Traffic Mirror Filter IDs.
+* `traffic_mirror_filter_names` - (Optional, ForceNew) The name of the Traffic Mirror Filter. You can specify at most 10 names.
+* `name_regex` - (Optional, ForceNew) A regex string to filter results by Group Metric Rule name.
 * `output_file` - (Optional) File name where to save data source results (after running `terraform plan`).
-* `status` - (Optional, ForceNew) The state of the filter. Valid values:`Creating`, `Created`, `Modifying` and `Deleting`. `Creating`: The filter is being created. `Created`: The filter is created. `Modifying`: The filter is being modified. `Deleting`: The filter is being deleted.
-* `traffic_mirror_filter_ids` - (Optional, ForceNew) The traffic mirror filter ids.
-* `traffic_mirror_filter_name` - (Optional, ForceNew) The name of the filter. The name must be `2` to `128` characters in length, and can contain digits, periods (.), underscores (_), and hyphens (-). It must start with a letter and cannot start with `http://` or `https://`.
 
-## Argument Reference
+
+## Attributes Reference
 
 The following attributes are exported in addition to the arguments listed above:
-
-* `names` - A list of Traffic Mirror Filter names.
-* `filters` - A list of Vpc Traffic Mirror Filters. Each element contains the following attributes:
-	* `id` - The ID of the Traffic Mirror Filter.
-	* `status` - The state of the filter. Valid values:`Creating`, `Created`, `Modifying` and `Deleting`. `Creating`: The filter is being created. `Created`: The filter is created. `Modifying`: The filter is being modified. `Deleting`: The filter is being deleted.
-	* `traffic_mirror_filter_description` - The description of the filter.
-	* `traffic_mirror_filter_id` - The ID of the filter.
-	* `traffic_mirror_filter_name` - The name of the filter.
+* `ids` - A list of Traffic Mirror Filter IDs.
+* `names` - A list of name of Traffic Mirror Filters.
+* `filters` - A list of Traffic Mirror Filter Entries. Each element contains the following attributes:
+  * `egress_rules` - EgressRules
+    * `action` - Action.
+    * `destination_cidr_block` - DestinationCidrBlock.
+    * `destination_port_range` - DestinationPortRange.
+    * `priority` - Priority.
+    * `protocol` - Protocol.
+    * `source_cidr_block` - SourceCidrBlock.
+    * `source_port_range` - SourcePortRange.
+    * `traffic_mirror_filter_rule_status` - TrafficMirrorFilterRuleStatus.
+  * `ingress_rules` - IngressRules
+    * `action` - Action.
+    * `destination_cidr_block` - DestinationCidrBlock.
+    * `destination_port_range` - DestinationPortRange.
+    * `priority` - Priority.
+    * `protocol` - Protocol.
+    * `source_cidr_block` - SourceCidrBlock.
+    * `source_port_range` - SourcePortRange.
+    * `traffic_mirror_filter_rule_status` - TrafficMirrorFilterRuleStatus.
+  * `resource_group_id` - The ID of the resource group to which the VPC belongs.
+  * `status` - The statusID of the resource
+  * `tags` - The tags of PrefixList.
+    * `tag_key` - The key of tag.
+    * `tag_value` - The value of tag.
+  * `traffic_mirror_filter_description` - The description of the TrafficMirrorFilter.
+  * `traffic_mirror_filter_id` - The first ID of the resource
+  * `traffic_mirror_filter_name` - The name of the TrafficMirrorFilter.

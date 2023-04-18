@@ -13,7 +13,7 @@ Provides a Vpc Havip resource.
 
 For information about Vpc Havip and how to use it, see [What is Havip](https://www.alibabacloud.com/help/en/).
 
--> **NOTE:** Available in v1.203.0+.
+-> **NOTE:** Available in v1.204.0+.
 
 ## Example Usage
 
@@ -22,10 +22,10 @@ Basic Usage
 ```terraform
 resource "alicloud_havip" "default" {
   description = "test"
-  vswitch_id  = var.VSwitchId
-  ha_vip_name = "Rdk-test"
-  ip_address  = "192.168.1.10"
-  region_id   = var.RegionId
+  vswitch_id  = alicloud_vswitch.defaultVswitch.vswitch_id
+  ha_vip_name = "tf-testacc-chenyi"
+  ip_address  = "192.168.1.101"
+  region_id   = "cn-shanghai"
 }
 ```
 
@@ -40,7 +40,7 @@ The following arguments are supported:
 * `vswitch_id` - (Required,ForceNew) The switch ID to which the HaVip instance belongs
 
 The following arguments will be discarded. Please use new fields as soon as possible:
-* `havip_name` - Field 'havip_name' has been deprecated from provider version 1.203.0. New field 'ha_vip_name' instead.
+* `havip_name` - Field 'havip_name' has been deprecated from provider version 1.204.0. New field 'ha_vip_name' instead.
 
 #### Block Tags
 

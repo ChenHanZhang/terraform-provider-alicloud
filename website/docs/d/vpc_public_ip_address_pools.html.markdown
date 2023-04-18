@@ -4,64 +4,65 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_vpc_public_ip_address_pools"
 sidebar_current: "docs-alicloud-datasource-vpc-public-ip-address-pools"
 description: |-
-  Provides a list of Vpc Public Ip Address Pools to the user.
+  Provides a list of Vpc Public Ip Address Pool owned by an Alibaba Cloud account.
 ---
 
-# alicloud\_vpc\_public\_ip\_address\_pools
+# alicloud_vpc_public_ip_address_pools
 
-This data source provides the Vpc Public Ip Address Pools of the current Alibaba Cloud user.
+This data source provides Vpc Public Ip Address Pool available to the user.[What is Public Ip Address Pool](https://www.alibabacloud.com/help/en/)
 
--> **NOTE:** Available in v1.186.0+.
+-> **NOTE:** Available in 1.204.0+.
 
 ## Example Usage
 
-Basic Usage
-
-```terraform
-data "alicloud_vpc_public_ip_address_pools" "ids" {
-  ids = ["example_id"]
+```
+data "alicloud_vpc_public_ip_address_pools" "default" {
+  ids                         = ["${alicloud_vpc_public_ip_address_pool.default.id}"]
+  name_regex                  = alicloud_vpc_public_ip_address_pool.default.name
+  isp                         = "BGP"
+  public_ip_address_pool_name = "rdk-test"
 }
 
-output "vpc_public_ip_address_pool_id_1" {
-  value = data.alicloud_vpc_public_ip_address_pools.ids.pools.0.id
-}
-
-data "alicloud_vpc_public_ip_address_pools" "nameRegex" {
-  name_regex = "example_name"
-}
-
-output "vpc_public_ip_address_pool_id_2" {
-  value = data.alicloud_vpc_public_ip_address_pools.nameRegex.pools.0.id
+output "alicloud_vpc_public_ip_address_pool_example_id" {
+  value = data.alicloud_vpc_public_ip_address_pools.default.pools.0.id
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
-
-* `ids` - (Optional, ForceNew, Computed) A list of Vpc Public Ip Address Pool IDs.
-* `name_regex` - (Optional, ForceNew) A regex string to filter results by Vpc Public Ip Address Pool name.
-* `public_ip_address_pool_ids` - (Optional, ForceNew) The IDs of the Vpc Public IP address pools.
-* `public_ip_address_pool_name` - (Optional, ForceNew) The name of the VPC Public IP address pool.
-* `isp` - (Optional, ForceNew) The Internet service provider. Valid values: `BGP`, `BGP_PRO`, `ChinaTelecom`, `ChinaUnicom`, `ChinaMobile`, `ChinaTelecom_L2`, `ChinaUnicom_L2`, `ChinaMobile_L2`, `BGP_FinanceCloud`.
-* `status` - (Optional, ForceNew) The status of the Vpc Public Ip Address Pool. Valid values: `Created`, `Deleting`, `Modifying`.
+* `isp` - (ForceNew,Optional) Service providers.
+* `public_ip_address_pool_name` - (ForceNew,Optional) The name of the resource
+* `resource_group_id` - (ForceNew,Optional) The ID of the resource group to which the VPC belongs.
+* `status` - (ForceNew,Optional) The status of the resource
+* `tags` - (ForceNew,Optional) The tags of PrefixList.See the following `Block Tags`.
+* `ids` - (Optional, ForceNew, Computed) A list of Public Ip Address Pool IDs.
+* `public_ip_address_pool_names` - (Optional, ForceNew) The name of the Public Ip Address Pool. You can specify at most 10 names.
+* `name_regex` - (Optional, ForceNew) A regex string to filter results by Group Metric Rule name.
 * `output_file` - (Optional) File name where to save data source results (after running `terraform plan`).
 
-## Argument Reference
+#### Block Tags
+
+The Tags supports the following:
+* `tag_key` - (ForceNew,Optional) The key of tag.
+* `tag_value` - (ForceNew,Optional) The value of tag.
+
+## Attributes Reference
 
 The following attributes are exported in addition to the arguments listed above:
-
-* `names` - A list of Public Ip Address Pool names.
-* `pools` - A list of Vpc Public Ip Address Pools. Each element contains the following attributes:
-	* `id` - The ID of the Vpc Public Ip Address Pool.
-	* `public_ip_address_pool_id` - The ID of the Vpc Public Ip Address Pool.
-	* `public_ip_address_pool_name` - The name of the Vpc Public Ip Address Pool.
-	* `isp` - The Internet service provider.
-	* `description` - The description of the Vpc Public Ip Address Pool.
-	* `status` - The status of the Vpc Public Ip Address Pool.
-	* `region_id` - The region ID of the Vpc Public Ip Address Pool.
-	* `user_type` - The user type.
-	* `total_ip_num` - The total number of IP addresses in the Vpc Public Ip Address Pool.
-	* `used_ip_num` - The number of occupied IP addresses in the Vpc Public Ip Address Pool.
-	* `create_time` - The time when the Vpc Public Ip Address Pool was created. The time is displayed in YYYY-MM-DDThh:mm:ssZ format.
-	* `ip_address_remaining` - Indicates whether the Vpc Public Ip Address Pool has idle IP addresses.
+* `ids` - A list of Public Ip Address Pool IDs.
+* `names` - A list of name of Public Ip Address Pools.
+* `pools` - A list of Public Ip Address Pool Entries. Each element contains the following attributes:
+  * `create_time` - The creation time of the resource
+  * `description` - Description.
+  * `ip_address_remaining` - 是否还有空闲的IP地址。
+  * `isp` - Service providers.
+  * `public_ip_address_pool_id` - The first ID of the resource
+  * `public_ip_address_pool_name` - The name of the resource
+  * `resource_group_id` - The ID of the resource group to which the VPC belongs.
+  * `status` - The status of the resource
+  * `tags` - The tags of PrefixList.
+    * `tag_key` - The key of tag.
+    * `tag_value` - The value of tag.
+  * `total_ip_num` - Total ip number of PublicIpAddressPool.
+  * `used_ip_num` - Used ip number of PublicIpAddressPool.

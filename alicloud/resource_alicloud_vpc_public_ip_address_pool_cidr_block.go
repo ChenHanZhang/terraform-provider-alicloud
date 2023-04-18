@@ -1,16 +1,20 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudVpcPublicIpAddressPoolCidrBlock() *schema.Resource {
+func resourceAliCloudVpcPublicIpAddressPoolCidrBlock() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAlicloudVpcPublicIpAddressPoolCidrBlockCreate,
 		Read:   resourceAlicloudVpcPublicIpAddressPoolCidrBlockRead,
@@ -19,16 +23,27 @@ func resourceAlicloudVpcPublicIpAddressPoolCidrBlock() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(3 * time.Minute),
-			Delete: schema.DefaultTimeout(3 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"public_ip_address_pool_id": {
+			"cidr_block": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
-			"cidr_block": {
+			"cidr_mask": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.IntBetween(24, 28),
+			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"public_ip_address_pool_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -37,41 +52,50 @@ func resourceAlicloudVpcPublicIpAddressPoolCidrBlock() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"total_ip_num": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"used_ip_num": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceAlicloudVpcPublicIpAddressPoolCidrBlockCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	var response map[string]interface{}
+
 	action := "AddPublicIpAddressPoolCidrBlock"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
-
-	request["RegionId"] = client.RegionId
-	request["ClientToken"] = buildClientToken("AddPublicIpAddressPoolCidrBlock")
+	request = make(map[string]interface{})
 	request["PublicIpAddressPoolId"] = d.Get("public_ip_address_pool_id")
 	request["CidrBlock"] = d.Get("cidr_block")
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if v, ok := d.GetOk("cidr_mask"); ok {
+		request["CidrMask"] = v
+	}
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_vpc_public_ip_address_pool_cidr_block", action, AlibabaCloudSdkGoERROR)
@@ -79,7 +103,8 @@ func resourceAlicloudVpcPublicIpAddressPoolCidrBlockCreate(d *schema.ResourceDat
 
 	d.SetId(fmt.Sprintf("%v:%v", request["PublicIpAddressPoolId"], request["CidrBlock"]))
 
-	stateConf := BuildStateConf([]string{}, []string{"Created"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcService.VpcPublicIpAddressPoolCidrBlockStateRefreshFunc(d.Id(), []string{}))
+	vpcServiceV2 := VpcServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Created"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcPublicIpAddressPoolCidrBlockStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -89,68 +114,71 @@ func resourceAlicloudVpcPublicIpAddressPoolCidrBlockCreate(d *schema.ResourceDat
 
 func resourceAlicloudVpcPublicIpAddressPoolCidrBlockRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+	vpcServiceV2 := VpcServiceV2{client}
 
-	object, err := vpcService.DescribeVpcPublicIpAddressPoolCidrBlock(d.Id())
+	object, err := vpcServiceV2.DescribeVpcPublicIpAddressPoolCidrBlock(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_vpc_public_ip_address_pool_cidr_block .DescribeVpcPublicIpAddressPoolCidrBlock Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("public_ip_address_pool_id", object["PublicIpAddressPoolId"])
-	d.Set("cidr_block", object["CidrBlock"])
-	d.Set("status", object["Status"])
+	d.Set("cidr_block", object["cidr_block"])
+	d.Set("create_time", object["create_time"])
+	d.Set("public_ip_address_pool_id", object["public_ip_address_pool_id"])
+	d.Set("status", object["status"])
+	d.Set("total_ip_num", object["total_ip_num"])
+	d.Set("used_ip_num", object["used_ip_num"])
 
 	return nil
 }
 
 func resourceAlicloudVpcPublicIpAddressPoolCidrBlockDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+
 	action := "DeletePublicIpAddressPoolCidrBlock"
+	var request map[string]interface{}
 	var response map[string]interface{}
 	conn, err := client.NewVpcClient()
 	if err != nil {
 		return WrapError(err)
 	}
+	request = make(map[string]interface{})
 
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", d.Id(), 2, len(parts)))
 	}
-	request := map[string]interface{}{
-		"RegionId":              client.RegionId,
-		"PublicIpAddressPoolId": parts[0],
-		"CidrBlock":             parts[1],
-	}
-	request["ClientToken"] = buildClientToken("DeletePublicIpAddressPoolCidrBlock")
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+	request["PublicIpAddressPoolId"] = parts[0]
+	request["CidrBlock"] = parts[1]
+	request["RegionId"] = client.RegionId
+
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
 
 	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
-
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcService.VpcPublicIpAddressPoolCidrBlockStateRefreshFunc(d.Id(), []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
 	return nil

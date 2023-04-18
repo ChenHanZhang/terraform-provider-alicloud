@@ -1,13 +1,11 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
-
-	"github.com/PaesslerAG/jsonpath"
-
-	"github.com/denverdino/aliyungo/common"
 
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
@@ -16,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudEipAddress() *schema.Resource {
+func resourceAliCloudEipAddress() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAlicloudEipAddressCreate,
 		Read:   resourceAlicloudEipAddressRead,
@@ -26,37 +24,56 @@ func resourceAlicloudEipAddress() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(9 * time.Minute),
-			Update: schema.DefaultTimeout(9 * time.Minute),
-			Delete: schema.DefaultTimeout(9 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"auto_pay": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
 			"activity_id": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 			"address_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ValidateFunc:  validation.StringLenBetween(2, 128),
 				ConflictsWith: []string{"name"},
 			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ValidateFunc:  validation.StringLenBetween(2, 128),
-				ConflictsWith: []string{"address_name"},
-				Deprecated:    "Field 'name' has been deprecated from provider version 1.126.0 and it will be remove in the future version. Please use the new attribute 'address_name' instead.",
+			"allocation_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"auto_pay": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
 			},
 			"bandwidth": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+			},
+			"bandwidth_package_bandwidth": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"bandwidth_package_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"bandwidth_package_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"business_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"create_time": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"deletion_protection": {
@@ -65,9 +82,52 @@ func resourceAlicloudEipAddress() *schema.Resource {
 				Computed: true,
 			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringLenBetween(2, 256),
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"eip_bandwidth": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"expired_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"has_reservation_data": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"hd_monitor_log_project": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"log_project"},
+			},
+			"hd_monitor_log_store": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"log_store"},
+			},
+			"hd_monitor_status": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"high_definition_monitor_log_status"},
+				ForceNew:      true,
+				ValidateFunc:  validation.StringInSlice([]string{"false", "true"}, false),
+			},
+			"instance_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"instance_region_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"instance_type": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"internet_charge_type": {
 				Type:         schema.TypeString,
@@ -76,47 +136,82 @@ func resourceAlicloudEipAddress() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice([]string{"PayByBandwidth", "PayByTraffic", "PayByDominantTraffic"}, false),
 			},
+			"ip_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"isp": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"BGP", "BGP_PRO", "ChinaTelecom", "ChinaUnicom", "ChinaMobile", "ChinaTelecom_L2", "ChinaUnicom_L2", "ChinaMobile_L2", "BGP_FinanceCloud"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"BGP", "BGP_PRO", "ChinaTelecom", "ChinaUnicom", "ChinaMobile", "ChinaTelecom_L2", "ChinaUnicom_L2", "ChinaMobile_L2"}, false),
 			},
 			"netmode": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"public"}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
-			"period": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				DiffSuppressFunc: PostPaidDiffSuppressFunc,
-				ValidateFunc:     validation.Any(validation.IntBetween(1, 9), validation.IntInSlice([]int{12, 24, 36})),
+			"operation_locks": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"lock_reason": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"payment_type": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ForceNew:      true,
-				ValidateFunc:  validation.StringInSlice([]string{"PayAsYouGo", "Subscription"}, false),
 				ConflictsWith: []string{"instance_charge_type"},
-			},
-			"instance_charge_type": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ValidateFunc:  validation.StringInSlice([]string{string(common.PrePaid), string(common.PostPaid)}, false),
-				Computed:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"payment_type"},
-				Deprecated:    "Field 'instance_charge_type' has been deprecated from provider version 1.126.0 and it will be remove in the future version. Please use the new attribute 'payment_type' instead.",
+				ValidateFunc:  validation.StringInSlice([]string{"Subscription", "PayAsYouGo"}, false),
 			},
-			"ip_address": {
+			"period": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+			"pricing_cycle": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"public_ip_address_pool_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"reservation_active_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_bandwidth": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_internet_charge_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"reservation_order_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"resource_group_id": {
-				Type:     schema.TypeString,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("(.*)"), "The ID of the resource group."),
+			},
+			"second_limited": {
+				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
@@ -126,29 +221,61 @@ func resourceAlicloudEipAddress() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"public_ip_address_pool_id": {
+			"segment_instance_id": {
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
+			},
+			"service_managed": {
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"high_definition_monitor_log_status": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"ON", "OFF"}, false),
-			},
 			"tags": tagsSchema(),
-			"log_project": {
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"zone": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"address_name"},
+				Deprecated:    "Field 'name' has been deprecated from provider version 1.126.0. New field 'address_name' instead.",
+			},
+			"instance_charge_type": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"payment_type"},
+				Deprecated:    "Field 'instance_charge_type' has been deprecated from provider version 1.126.0. New field 'payment_type' instead.",
+			},
+			"high_definition_monitor_log_status": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hd_monitor_status"},
+				Deprecated:    "Field 'high_definition_monitor_log_status' has been deprecated from provider version 1.204.0. New field 'hd_monitor_status' instead.",
+			},
+			"log_project": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hd_monitor_log_project"},
+				Deprecated:    "Field 'log_project' has been deprecated from provider version 1.204.0. New field 'hd_monitor_log_project' instead.",
 			},
 			"log_store": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hd_monitor_log_store"},
+				Deprecated:    "Field 'log_store' has been deprecated from provider version 1.204.0. New field 'hd_monitor_log_store' instead.",
 			},
 		},
 	}
@@ -156,359 +283,491 @@ func resourceAlicloudEipAddress() *schema.Resource {
 
 func resourceAlicloudEipAddressCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "AllocateEipAddress"
-	request := make(map[string]interface{})
-	conn, err := client.NewVpcClient()
+	var request map[string]interface{}
+	var response map[string]interface{}
+	conn, err := client.NewEipClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	if v, ok := d.GetOk("activity_id"); ok {
-		request["ActivityId"] = v
-	}
-	if v, ok := d.GetOk("address_name"); ok {
-		request["Name"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["Name"] = v
-	}
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 	if v, ok := d.GetOk("bandwidth"); ok {
 		request["Bandwidth"] = v
 	}
-	if v, ok := d.GetOk("description"); ok {
-		request["Description"] = v
-	}
-	if v, ok := d.GetOk("internet_charge_type"); ok {
-		request["InternetChargeType"] = v
-	}
-	if v, ok := d.GetOk("isp"); ok {
-		request["ISP"] = v
-	}
-	if v, ok := d.GetOk("netmode"); ok {
-		request["Netmode"] = v
-	}
-	if v, ok := d.GetOk("payment_type"); ok {
-		request["InstanceChargeType"] = convertEipAddressPaymentTypeRequest(v)
-	} else if v, ok := d.GetOk("instance_charge_type"); ok {
-		request["InstanceChargeType"] = v
-	}
-	if v, ok := request["InstanceChargeType"]; ok && v.(string) == "PrePaid" {
-		period := 1
-		if v, ok := d.GetOk("period"); ok {
-			period = v.(int)
-		}
-		request["Period"] = period
-		request["PricingCycle"] = string(Month)
-		if period > 9 {
-			request["Period"] = period / 12
-			request["PricingCycle"] = string(Year)
-		}
-		autoPay := true
-		if v, ok := d.GetOkExists("auto_pay"); ok {
-			autoPay = v.(bool)
-		}
-		request["AutoPay"] = autoPay
-	}
-	request["RegionId"] = client.RegionId
+
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
-	if v, ok := d.GetOk("security_protection_types"); ok {
-		request["SecurityProtectionTypes"] = v
+
+	if v, ok := d.GetOk("description"); ok {
+		request["Description"] = v
 	}
+
+	if v, ok := d.GetOk("address_name"); ok {
+		request["Name"] = v
+	}
+	if v, ok := d.GetOk("name"); ok {
+		request["Name"] = v
+	}
+
+	if v, ok := d.GetOk("netmode"); ok {
+		request["Netmode"] = v
+	}
+
+	if v, ok := d.GetOk("security_protection_types"); ok {
+		localData := v
+		securityProtectionTypesMaps := localData.([]interface{})
+		request["SecurityProtectionTypes"] = securityProtectionTypesMaps
+	}
+
+	if v, ok := d.GetOk("isp"); ok {
+		request["ISP"] = v
+	}
+
+	if v, ok := d.GetOk("period"); ok {
+		request["Period"] = v
+	}
+
+	if v, ok := d.GetOk("activity_id"); ok {
+		request["ActivityId"] = v
+	}
+
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["AutoPay"] = v
+	}
+
+	if v, ok := d.GetOk("pricing_cycle"); ok {
+		request["PricingCycle"] = v
+	}
+
 	if v, ok := d.GetOk("public_ip_address_pool_id"); ok {
 		request["PublicIpAddressPoolId"] = v
 	}
-	request["ClientToken"] = buildClientToken("AllocateEipAddress")
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+
+	if v, ok := d.GetOk("payment_type"); ok {
+		request["InstanceChargeType"] = convertEipAddressPaymentTypeRequest(v.(string))
+	}
+	if v, ok := d.GetOk("instance_charge_type"); ok {
+		request["InstanceChargeType"] = convertEipAddressPaymentTypeRequest(v.(string))
+	}
+
+	if v, ok := d.GetOk("internet_charge_type"); ok {
+		request["InternetChargeType"] = v
+	}
+
+	if v, ok := d.GetOk("instance_charge_type"); ok {
+		request["InstanceChargeType"] = v
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "FrequentPurchase.EIP"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable", "FrequentPurchase.EIP"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
-		if IsExpectedErrors(err, []string{"COMMODITY.INVALID_COMPONENT"}) && request["InternetChargeType"] == string(PayByBandwidth) {
-			return WrapErrorf(err, "Your account is international and it can only create '%s' elastic IP. Please change it and try again. %s", PayByTraffic, AlibabaCloudSdkGoERROR)
-		}
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_eip_address", action, AlibabaCloudSdkGoERROR)
 	}
 
 	d.SetId(fmt.Sprint(response["AllocationId"]))
+
+	eipServiceV2 := EipServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, eipServiceV2.EipAddressStateRefreshFunc(d.Id(), []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
+	}
 
 	return resourceAlicloudEipAddressUpdate(d, meta)
 }
 
 func resourceAlicloudEipAddressRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	object, err := vpcService.DescribeEipAddress(d.Id())
+	eipServiceV2 := EipServiceV2{client}
+
+	object, err := eipServiceV2.DescribeEipAddress(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_eip_address vpcService.DescribeEipAddress Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_eip_address .DescribeEipAddress Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("address_name", object["Name"])
-	d.Set("name", object["Name"])
 
-	if eipBandwidth, ok := object["EipBandwidth"]; ok {
-		d.Set("bandwidth", eipBandwidth)
-	} else {
-		d.Set("bandwidth", object["Bandwidth"])
-	}
+	d.Set("address_name", object["address_name"])
+	d.Set("allocation_id", object["allocation_id"])
+	d.Set("bandwidth", object["bandwidth"])
+	d.Set("bandwidth_package_bandwidth", object["bandwidth_package_bandwidth"])
+	d.Set("bandwidth_package_id", object["bandwidth_package_id"])
+	d.Set("bandwidth_package_type", object["bandwidth_package_type"])
+	d.Set("business_status", object["business_status"])
+	d.Set("create_time", object["create_time"])
+	d.Set("deletion_protection", object["deletion_protection"])
+	d.Set("description", object["description"])
+	d.Set("eip_bandwidth", object["eip_bandwidth"])
+	d.Set("expired_time", object["expired_time"])
+	d.Set("has_reservation_data", object["has_reservation_data"])
+	d.Set("hd_monitor_log_project", object["hd_monitor_log_project"])
+	d.Set("hd_monitor_log_store", object["hd_monitor_log_store"])
+	d.Set("hd_monitor_status", object["hd_monitor_status"])
+	d.Set("instance_id", object["instance_id"])
+	d.Set("instance_region_id", object["instance_region_id"])
+	d.Set("internet_charge_type", object["internet_charge_type"])
+	d.Set("ip_address", object["ip_address"])
+	d.Set("isp", object["isp"])
+	d.Set("netmode", object["netmode"])
+	d.Set("operation_locks", object["operation_locks"])
+	d.Set("payment_type", convertEipAddressPaymentTypeResponse(object["payment_type"].(string)))
+	d.Set("public_ip_address_pool_id", object["public_ip_address_pool_id"])
+	d.Set("reservation_active_time", object["reservation_active_time"])
+	d.Set("reservation_bandwidth", object["reservation_bandwidth"])
+	d.Set("reservation_internet_charge_type", object["reservation_internet_charge_type"])
+	d.Set("reservation_order_type", object["reservation_order_type"])
+	d.Set("resource_group_id", object["resource_group_id"])
+	d.Set("second_limited", object["second_limited"])
+	d.Set("security_protection_types", object["security_protection_types"])
+	d.Set("segment_instance_id", object["segment_instance_id"])
+	d.Set("service_managed", object["service_managed"])
+	d.Set("status", object["status"])
+	d.Set("tags", tagsToMap(object["tags"]))
+	d.Set("vpc_id", object["vpc_id"])
+	d.Set("zone", object["zone"])
 
-	d.Set("deletion_protection", object["DeletionProtection"])
-	d.Set("description", object["Descritpion"])
-	d.Set("internet_charge_type", object["InternetChargeType"])
-	d.Set("isp", object["ISP"])
-	d.Set("payment_type", convertEipAddressPaymentTypeResponse(object["ChargeType"]))
-	d.Set("instance_charge_type", object["ChargeType"])
-	d.Set("ip_address", object["IpAddress"])
-	d.Set("resource_group_id", object["ResourceGroupId"])
-	if securityProtectionTypes, ok := object["SecurityProtectionTypes"]; ok {
-		securityProtectionTypeList := securityProtectionTypes.(map[string]interface{})["SecurityProtectionType"].([]interface{})
-		d.Set("security_protection_types", securityProtectionTypeList)
-	}
-	d.Set("public_ip_address_pool_id", object["PublicIpAddressPoolId"])
-	d.Set("status", object["Status"])
-	tagsMap := make(map[string]interface{})
-	tagsRaw, _ := jsonpath.Get("$.Tags.Tag", object)
-	if tagsRaw != nil {
-		for _, value0 := range tagsRaw.([]interface{}) {
-			tags := value0.(map[string]interface{})
-			key := tags["Key"].(string)
-			value := tags["Value"]
-			if !ignoredTags(key, value) {
-				tagsMap[key] = value
-			}
-		}
-	}
-	if len(tagsMap) > 0 {
-		d.Set("tags", tagsMap)
-	}
-
-	d.Set("high_definition_monitor_log_status", object["HDMonitorStatus"])
-
-	if object["HDMonitorStatus"] == "ON" {
-		res, err := vpcService.DescribeHighDefinitionMonitorLogAttribute(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
-		d.Set("log_project", res["LogProject"])
-		d.Set("log_store", res["LogStore"])
-
-	}
+	d.Set("name", d.Get("address_name"))
+	d.Set("instance_charge_type", d.Get("payment_type"))
+	d.Set("high_definition_monitor_log_status", d.Get("hd_monitor_status"))
+	d.Set("log_project", d.Get("hd_monitor_log_project"))
+	d.Set("log_store", d.Get("hd_monitor_log_store"))
+	d.Set("instance_charge_type", object["payment_type"])
 	return nil
 }
 
 func resourceAlicloudEipAddressUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
-	conn, err := client.NewVpcClient()
+	var request map[string]interface{}
+	var response map[string]interface{}
+	update := false
+	d.Partial(true)
+	update = false
+	action := "ModifyEipAddressAttribute"
+	conn, err := client.NewEipClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	var response map[string]interface{}
-	d.Partial(true)
+	request = make(map[string]interface{})
 
-	if d.HasChange("tags") {
-		if err := vpcService.SetResourceTags(d, "eip"); err != nil {
-			return WrapError(err)
-		}
-		d.SetPartial("tags")
-	}
-	update := false
-	request := map[string]interface{}{
-		"InstanceId": d.Id(),
-	}
-	if d.HasChange("deletion_protection") {
-		update = true
-	}
-	request["ProtectionEnable"] = d.Get("deletion_protection")
+	request["AllocationId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	request["Type"] = "EIP"
+
+	if !d.IsNewResource() && d.HasChange("bandwidth") {
+		update = true
+		if v, ok := d.GetOk("bandwidth"); ok {
+			request["Bandwidth"] = v
+		}
+	}
+	if !d.IsNewResource() && d.HasChange("description") {
+		update = true
+		if v, ok := d.GetOk("description"); ok {
+			request["Description"] = v
+		}
+	}
+	if !d.IsNewResource() && (d.HasChange("address_name") || d.HasChange("name")) {
+		update = true
+		if d.HasChange("address_name") {
+			if v, ok := d.GetOk("address_name"); ok {
+				request["Name"] = v
+			}
+		}
+		if d.HasChange("name") {
+			if v, ok := d.GetOk("name"); ok {
+				request["Name"] = v
+			}
+		}
+	}
+
 	if update {
-		action := "DeletionProtection"
-		request["ClientToken"] = buildClientToken("DeletionProtection")
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &runtime)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable", "IncorrectEipStatus", "IncorrectStatus.ResourceStatus"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("deletion_protection")
+		d.SetPartial("bandwidth")
+		d.SetPartial("description")
+		d.SetPartial("address_name")
 	}
 	update = false
-	moveResourceGroupReq := map[string]interface{}{
-		"ResourceId": d.Id(),
+	action = "MoveResourceGroup"
+	conn, err = client.NewEipClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	moveResourceGroupReq["RegionId"] = client.RegionId
+	request = make(map[string]interface{})
+
+	request["ResourceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
 		update = true
+		if v, ok := d.GetOk("resource_group_id"); ok {
+			request["NewResourceGroupId"] = v
+		}
 	}
-	moveResourceGroupReq["NewResourceGroupId"] = d.Get("resource_group_id")
-	moveResourceGroupReq["ResourceType"] = "eip"
+	request["ResourceType"] = "EIP"
+
 	if update {
-		action := "MoveResourceGroup"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, moveResourceGroupReq, &util.RuntimeOptions{})
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if NeedRetry(err) {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, moveResourceGroupReq)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		d.SetPartial("resource_group_id")
 	}
 	update = false
-	modifyEipAddressAttributeReq := map[string]interface{}{
-		"AllocationId": d.Id(),
+	action = "SetHighDefinitionMonitorLogStatus"
+	conn, err = client.NewEipClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	if !d.IsNewResource() && (d.HasChange("address_name") || d.HasChange("name")) {
+	request = make(map[string]interface{})
+
+	request["InstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	if d.HasChange("hd_monitor_log_project") || d.HasChange("log_project") {
 		update = true
-		if _, ok := d.GetOk("address_name"); ok {
-			modifyEipAddressAttributeReq["Name"] = d.Get("address_name")
-		} else {
-			modifyEipAddressAttributeReq["Name"] = d.Get("name")
+		if d.HasChange("hd_monitor_log_project") {
+			if v, ok := d.GetOk("hd_monitor_log_project"); ok {
+				request["LogProject"] = v
+			}
+		}
+		if d.HasChange("log_project") {
+			if v, ok := d.GetOk("log_project"); ok {
+				request["LogProject"] = v
+			}
 		}
 	}
-	if !d.IsNewResource() && d.HasChange("bandwidth") {
+	if d.HasChange("hd_monitor_log_store") || d.HasChange("log_store") {
 		update = true
-		modifyEipAddressAttributeReq["Bandwidth"] = d.Get("bandwidth")
+		if d.HasChange("hd_monitor_log_store") {
+			if v, ok := d.GetOk("hd_monitor_log_store"); ok {
+				request["LogStore"] = v
+			}
+		}
+		if d.HasChange("log_store") {
+			if v, ok := d.GetOk("log_store"); ok {
+				request["LogStore"] = v
+			}
+		}
 	}
-	if !d.IsNewResource() && d.HasChange("description") {
+	if d.HasChange("hd_monitor_status") || d.HasChange("high_definition_monitor_log_status") {
 		update = true
-		modifyEipAddressAttributeReq["Description"] = d.Get("description")
+		if d.HasChange("hd_monitor_status") {
+			if v, ok := d.GetOk("hd_monitor_status"); ok {
+				request["Status"] = v
+			}
+		}
+		if d.HasChange("high_definition_monitor_log_status") {
+			if v, ok := d.GetOk("high_definition_monitor_log_status"); ok {
+				request["Status"] = v
+			}
+		}
 	}
-	modifyEipAddressAttributeReq["RegionId"] = client.RegionId
+	if d.HasChange("instance_type") {
+		update = true
+		if v, ok := d.GetOk("instance_type"); ok {
+			request["InstanceType"] = v
+		}
+	}
+
 	if update {
-		action := "ModifyEipAddressAttribute"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, modifyEipAddressAttributeReq, &util.RuntimeOptions{})
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "IncorrectEipStatus", "IncorrectStatus.ResourceStatus", "FrequentPurchase.EIP"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable", "IncorrectEipStatus", "IncorrectInstanceStatus", "InvalidBindingStatus", "IncorrectStatus.NatGateway", "InvalidStatus.EcsStatusNotSupport", "InvalidStatus.InstanceHasBandWidth", "InvalidStatus.EniStatusNotSupport", "TaskConflict"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, modifyEipAddressAttributeReq)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("name")
-		d.SetPartial("address_name")
-		d.SetPartial("bandwidth")
-		d.SetPartial("description")
+		d.SetPartial("hd_monitor_log_project")
+		d.SetPartial("hd_monitor_log_store")
+		d.SetPartial("instance_type")
 	}
 	update = false
-	setHighDefinitionReq := map[string]interface{}{
-		"InstanceId": d.Id(),
+	action = "DeletionProtection"
+	conn, err = client.NewEipClient()
+	if err != nil {
+		return WrapError(err)
 	}
-	setHighDefinitionReq["RegionId"] = client.RegionId
-	if !d.IsNewResource() && d.HasChange("high_definition_monitor_log_status") {
+	request = make(map[string]interface{})
+
+	request["InstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("deletion_protection") {
 		update = true
-		setHighDefinitionReq["Status"] = d.Get("high_definition_monitor_log_status")
+		if v, ok := d.GetOkExists("deletion_protection"); ok {
+			request["ProtectionEnable"] = v
+		}
 	}
-	setHighDefinitionReq["LogProject"] = d.Get("log_project")
-	setHighDefinitionReq["LogStore"] = d.Get("log_store")
-	setHighDefinitionReq["InstanceType"] = "EIP"
+	request["Type"] = "EIP"
+
 	if update {
-		action := "SetHighDefinitionMonitorLogStatus"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, setHighDefinitionReq, &util.RuntimeOptions{})
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
-				if NeedRetry(err) {
+				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, setHighDefinitionReq)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("status")
-		d.SetPartial("log_project")
-		d.SetPartial("log_store")
+		d.SetPartial("deletion_protection")
+	}
+
+	if d.HasChange("second_limited") {
+		client := meta.(*connectivity.AliyunClient)
+		eipServiceV2 := EipServiceV2{client}
+		object, err := eipServiceV2.DescribeEipAddress(d.Id())
+		if err != nil {
+			return WrapError(err)
+		}
+
+		target := d.Get("second_limited").(bool)
+		if object["second_limited"].(bool) != target {
+			if target == true {
+				action = "CancelCommonBandwidthPackageIpBandwidth"
+				conn, err = client.NewEipClient()
+				if err != nil {
+					return WrapError(err)
+				}
+				request = make(map[string]interface{})
+
+				request["EipId"] = d.Id()
+				request["RegionId"] = client.RegionId
+
+				if v, ok := d.GetOk("bandwidth_package_id"); ok {
+					request["BandwidthPackageId"] = v
+				}
+
+				wait := incrementalWait(3*time.Second, 5*time.Second)
+				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+					if err != nil {
+						if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable"}) || NeedRetry(err) {
+							wait()
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					addDebug(action, response, request)
+					return nil
+				})
+				if err != nil {
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+				}
+
+			}
+		}
+	}
+
+	update = false
+	if d.HasChange("tags") {
+		update = true
+		eipServiceV2 := EipServiceV2{client}
+		if err := eipServiceV2.SetResourceTags(d, "EIP"); err != nil {
+			return WrapError(err)
+		}
 	}
 	d.Partial(false)
 	return resourceAlicloudEipAddressRead(d, meta)
 }
 
 func resourceAlicloudEipAddressDelete(d *schema.ResourceData, meta interface{}) error {
-	if d.Get("payment_type").(string) == "Subscription" || d.Get("instance_charge_type").(string) == "Prepaid" {
-		log.Printf("[WARN] Cannot destroy Subscription resource: alicloud_eip_address. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
-	}
+
 	client := meta.(*connectivity.AliyunClient)
-	vpcService := VpcService{client}
+
 	action := "ReleaseEipAddress"
+	var request map[string]interface{}
 	var response map[string]interface{}
-	conn, err := client.NewVpcClient()
+	conn, err := client.NewEipClient()
 	if err != nil {
 		return WrapError(err)
 	}
-	request := map[string]interface{}{
-		"AllocationId": d.Id(),
-	}
+	request = make(map[string]interface{})
 
+	request["AllocationId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "IncorrectStatus.%s", "ServiceUnavailable", "SystemBusy", "LastTokenProcessing", "IncorrectEipStatus", "TaskConflict.AssociateGlobalAccelerationInstance"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict", "LastTokenProcessing", "IncorrectStatus.%s", "SystemBusy", "ServiceUnavailable", "IncorrectEipStatus", "TaskConflict.AssociateGlobalAccelerationInstance"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"InvalidAllocationId.NotFound"}) {
-				return nil
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
+
 	if err != nil {
+		if IsExpectedErrors(err, []string{}) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcService.EipAddressStateRefreshFunc(d.Id(), []string{}))
+
+	eipServiceV2 := EipServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, eipServiceV2.EipAddressStateRefreshFunc(d.Id(), []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

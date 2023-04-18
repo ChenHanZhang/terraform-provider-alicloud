@@ -264,7 +264,7 @@ var AlicloudEIPAddressMap0 = map[string]string{
 	"status":               CHECKSET,
 	"activity_id":          NOSET,
 	"auto_pay":             NOSET,
-	"netmode":              NOSET,
+	"netmode":              CHECKSET,
 	"period":               NOSET,
 	"pricing_cycle":        NOSET,
 	"bandwidth":            CHECKSET,
