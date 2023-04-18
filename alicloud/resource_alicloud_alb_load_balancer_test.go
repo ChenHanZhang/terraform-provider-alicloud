@@ -171,16 +171,6 @@ func TestAccAlicloudALBLoadBalancer_basic0(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_edition": "StandardWithWaf",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"load_balancer_edition": "StandardWithWaf",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"load_balancer_name": name + "Update",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -201,6 +191,16 @@ func TestAccAlicloudALBLoadBalancer_basic0(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"access_log_config.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"access_log_config": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"access_log_config.#": "0",
 					}),
 				),
 			},

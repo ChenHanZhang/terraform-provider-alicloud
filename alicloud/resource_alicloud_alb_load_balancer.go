@@ -407,7 +407,7 @@ func resourceAlicloudAlbLoadBalancerUpdate(d *schema.ResourceData, meta interfac
 	if d.HasChange("access_log_config") {
 		oraw, _ := d.GetChange("access_log_config")
 
-		if oraw != nil && oraw.(*schema.Set).Len() > 1 {
+		if oraw != nil && oraw.(*schema.Set).Len() > 0 {
 			disableLoadBalancerAccessLogReq := map[string]interface{}{
 				"LoadBalancerId": d.Id(),
 			}
