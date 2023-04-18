@@ -262,12 +262,12 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["RegionId"] = client.RegionId
 
 			request["ResourceType"] = resourceType
-			if v, ok := d.GetOk("tags"); ok {
-				jsonPathResult, err := jsonpath.Get("$.tag_key", v)
-				if err != nil {
-					return WrapError(err)
-				}
-				request["TagKey"] = jsonPathResult
+			for i, key := range removedTagKeys {
+				request[fmt.Sprintf("TagKey.%d", i+1)] = key
+			}
+
+			if v, ok := d.GetOkExists("all"); ok {
+				request["All"] = v
 			}
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -434,6 +434,7 @@ func (s *VpcServiceV2) VpcIpv6EgressRuleStateRefreshFunc(id string, failStates [
 }
 
 // DescribeVpcIpv6EgressRule >>> Encapsulated.
+
 // DescribeVpcVswitch <<< Encapsulated get interface for Vpc Vswitch.
 func (s *VpcServiceV2) DescribeVpcVswitch(id string) (object map[string]interface{}, err error) {
 	objectSearch := make(map[string]interface{}, 0)
@@ -444,9 +445,6 @@ func (s *VpcServiceV2) DescribeVpcVswitch(id string) (object map[string]interfac
 			return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
 		}
 		return object, WrapError(err)
-	}
-	if object0["status"] == "" {
-		return object, WrapErrorf(err, NotFoundMsg, AlibabaCloudSdkGoERROR)
 	}
 	objectSearch = MergeMaps(objectSearch, object0)
 	object1, err := s.describeVpcVswitchListTagResourcesApi(id)

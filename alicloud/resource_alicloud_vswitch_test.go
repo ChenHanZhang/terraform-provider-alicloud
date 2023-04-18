@@ -406,3 +406,72 @@ data "alicloud_zones" "default" {
 }
 `, name)
 }
+
+// Test Vpc Vswitch. >>> Resource test cases, automatically generated.
+// Case 2964
+func TestAccAlicloudVpcVswitch_basic2964(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_vswitch.default"
+	ra := resourceAttrInit(resourceId, AlicloudVpcVswitchMap2964)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVpcVswitch")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sVpcVswitch%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcVswitchBasicDependence2964)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"zone_id":    "cn-hangzhou-i",
+					"vpc_id":     "${alicloud_vpc.default.vpc_id}",
+					"cidr_block": "${cidrsubnet(alicloud_vpc.default.cidr_block,4,2)}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"zone_id":    "cn-hangzhou-i",
+						"vpc_id":     CHECKSET,
+						"cidr_block": CHECKSET,
+					}),
+				),
+			}, {
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			}, {
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"all", "enable_ipv6", "resource_type"},
+			},
+		},
+	})
+}
+
+var AlicloudVpcVswitchMap2964 = map[string]string{}
+
+func AlicloudVpcVswitchBasicDependence2964(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "default" {
+  description = "tf-test-acc-vpc"
+  vpc_name    = "tf-test-acc-vpc"
+}
+
+
+`, name)
+}
+
+// Test Vpc Vswitch. <<< Resource test cases, automatically generated.
