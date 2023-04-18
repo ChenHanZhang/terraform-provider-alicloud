@@ -586,3 +586,89 @@ func TestUnitAlicloudHavip(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
+
+// Test Vpc Havip. >>> Resource test cases, automatically generated.
+// Case 2535
+func TestAccAlicloudVpcHavip_basic2535(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_havip.default"
+	ra := resourceAttrInit(resourceId, AlicloudVpcHavipMap2535)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVpcHavip")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sVpcHavip%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcHavipBasicDependence2535)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test",
+					"vswitch_id":  "${alicloud_vswitch.defaultVswitch.vswitch_id}",
+					"ha_vip_name": "tf-testacc-chenyi",
+					"ip_address":  "192.168.1.101",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test",
+						"vswitch_id":  CHECKSET,
+						"ha_vip_name": "tf-testacc-chenyi",
+						"ip_address":  "192.168.1.101",
+					}),
+				),
+			}, {
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test-update",
+					"ha_vip_name": "tf-testacc-chenyi-update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test-update",
+						"ha_vip_name": "tf-testacc-chenyi-update",
+					}),
+				),
+			}, {
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"client_token", "resource_type"},
+			},
+		},
+	})
+}
+
+var AlicloudVpcHavipMap2535 = map[string]string{}
+
+func AlicloudVpcHavipBasicDependence2535(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "defaultVpc" {
+  description = "tf-test-acc-chenyi"
+  vpc_name    = "tf-test-acc-chenyi"
+  cidr_block  = "192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "defaultVswitch" {
+  vpc_id       = alicloud_vpc.defaultVpc.vpc_id
+  cidr_block   = "192.168.0.0/21"
+  vswitch_name = "tf-testacc-chenyi"
+  zone_id      = "cn-shanghai-a"
+  description  = "tf-testacc-chenyi"
+}
+
+
+`, name)
+}
+
+// Test Vpc Havip. <<< Resource test cases, automatically generated.

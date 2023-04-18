@@ -252,7 +252,7 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 		}
 		if len(removedTagKeys) > 0 {
 			action = "UnTagResources"
-			conn, err = client.NewVpcpeerClient()
+			conn, err = client.NewVpcClient()
 			if err != nil {
 				return WrapError(err)
 			}
@@ -260,19 +260,19 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
-			request["ClientToken"] = buildClientToken(action)
-			for i, key := range removedTagKeys {
-				request[fmt.Sprintf("TagKey.%d", i+1)] = key
-			}
-
-			if v, ok := d.GetOkExists("delete_all"); ok {
-				request["All"] = v
-			}
 
 			request["ResourceType"] = resourceType
+			if v, ok := d.GetOk("tags"); ok {
+				jsonPathResult, err := jsonpath.Get("$.tag_key", v)
+				if err != nil {
+					return WrapError(err)
+				}
+				request["TagKey"] = jsonPathResult
+			}
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2022-01-01"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 				if err != nil {
 					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 						wait()
@@ -291,7 +291,7 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 
 		if len(added) > 0 {
 			action = "TagResources"
-			conn, err = client.NewVpcpeerClient()
+			conn, err = client.NewVpcClient()
 			if err != nil {
 				return WrapError(err)
 			}
@@ -299,7 +299,7 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
-			request["ClientToken"] = buildClientToken(action)
+
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -310,7 +310,7 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2022-01-01"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 				if err != nil {
 					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
 						wait()
