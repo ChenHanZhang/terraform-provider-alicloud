@@ -42,7 +42,11 @@ The following arguments are supported:
 * `name_regex` - (Optional, ForceNew) A regex string to filter results by rule name.
 * `message_type` - (Optional, ForceNew,  Available in v1.104.0+, Remove) Field `message_type` has been removed from provider version 1.124.1.
 * `output_file` - (Optional) File name where to save data source results (after running `terraform plan`).
-* `config_rule_state` - (Optional, ForceNew, Deprecated) Field `config_rule_state` has been deprecated from provider version 1.124.1. New field `status` instead.
+
+#### Block Compliance
+
+The Compliance supports the following:
+* `compliance_type` - (ForceNew,Optional) The type of compliance.
 
 ## Attributes Reference
 
