@@ -266,15 +266,12 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
-			if v, ok := d.GetOkExists("all"); ok {
-				request["All"] = v
-			}
-
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 				if err != nil {
-					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -300,6 +297,7 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 
+			request["ResourceType"] = resourceType
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -307,12 +305,12 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				count++
 			}
 
-			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 				if err != nil {
-					if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -2990,6 +2988,7 @@ func (s *VpcServiceV2) VpcDhcpOptionsSetStateRefreshFunc(id string, failStates [
 }
 
 // DescribeVpcDhcpOptionsSet >>> Encapsulated.
+
 // DescribeVpcVpc <<< Encapsulated get interface for Vpc Vpc.
 func (s *VpcServiceV2) DescribeVpcVpc(id string) (object map[string]interface{}, err error) {
 	objectSearch := make(map[string]interface{}, 0)
@@ -3037,6 +3036,7 @@ func (s *VpcServiceV2) DescribeVpcVpcPrimary(id string) (object map[string]inter
 }
 
 func (s *VpcServiceV2) describeVpcVpcDescribeVpcAttributeApi(id string) (object map[string]interface{}, err error) {
+
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -3049,11 +3049,13 @@ func (s *VpcServiceV2) describeVpcVpcDescribeVpcAttributeApi(id string) (object 
 
 	request["VpcId"] = id
 	request["RegionId"] = client.RegionId
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -3118,8 +3120,8 @@ func (s *VpcServiceV2) describeVpcVpcDescribeVpcAttributeApi(id string) (object 
 	instanceMaps = append(instanceMaps, instanceMap)
 	return instanceMaps[0], nil
 }
-
 func (s *VpcServiceV2) describeVpcVpcDescribeRouteTableListApi(id string) (object map[string]interface{}, err error) {
+
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -3132,11 +3134,13 @@ func (s *VpcServiceV2) describeVpcVpcDescribeRouteTableListApi(id string) (objec
 
 	request["VpcId"] = id
 	request["RegionId"] = client.RegionId
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -3152,30 +3156,34 @@ func (s *VpcServiceV2) describeVpcVpcDescribeRouteTableListApi(id string) (objec
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	v, err := jsonpath.Get("$.RouterTableList.RouterTableListType[*]", response)
+	v, err := jsonpath.Get("$.RouterTableList.RouterTableListType", response)
 	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.RouterTableList.RouterTableListType[*]", response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.RouterTableList.RouterTableListType", response)
 	}
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(Error(GetNotFoundMessage("Vpc", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
 	}
-	v = v.([]interface{})[0]
 
 	instanceMaps := make([]map[string]interface{}, 0)
-	instanceMap := make(map[string]interface{})
-	objectRaw := v.(map[string]interface{})
-	instanceMap["resource_group_id"] = objectRaw["ResourceGroupId"]
-	instanceMap["route_table_id"] = objectRaw["RouteTableId"]
-	instanceMap["router_id"] = objectRaw["RouterId"]
-	instanceMap["status"] = objectRaw["Status"]
-	instanceMap["route_table_type"] = objectRaw["RouteTableType"]
-	instanceMap["vpc_id"] = objectRaw["VpcId"]
+	result, _ := v.([]interface{})
+	for _, v := range result {
+		instanceMap := make(map[string]interface{})
+		objectRaw := v.(map[string]interface{})
+		instanceMap["resource_group_id"] = objectRaw["ResourceGroupId"]
+		instanceMap["route_table_id"] = objectRaw["RouteTableId"]
+		instanceMap["router_id"] = objectRaw["RouterId"]
+		instanceMap["status"] = objectRaw["Status"]
+		instanceMap["route_table_type"] = objectRaw["RouteTableType"]
+		instanceMap["vpc_id"] = objectRaw["VpcId"]
 
-	instanceMaps = append(instanceMaps, instanceMap)
+		if instanceMap["route_table_type"] == "System" {
+			instanceMaps = append(instanceMaps, instanceMap)
+		}
+	}
 	return instanceMaps[0], nil
 }
-
 func (s *VpcServiceV2) describeVpcVpcListTagResourcesApi(id string) (object map[string]interface{}, err error) {
+
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -3188,12 +3196,14 @@ func (s *VpcServiceV2) describeVpcVpcListTagResourcesApi(id string) (object map[
 
 	request["ResourceId.1"] = id
 	request["RegionId"] = client.RegionId
+
 	request["ResourceType"] = "VPC"
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}

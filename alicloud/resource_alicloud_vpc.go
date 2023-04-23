@@ -166,6 +166,7 @@ func resourceAlicloudVpcVpcCreate(d *schema.ResourceData, meta interface{}) erro
 	request = make(map[string]interface{})
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
+
 	if v, ok := d.GetOk("cidr_block"); ok {
 		request["CidrBlock"] = v
 	}
@@ -212,6 +213,8 @@ func resourceAlicloudVpcVpcCreate(d *schema.ResourceData, meta interface{}) erro
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+		request["ClientToken"] = buildClientToken(action)
+
 		if err != nil {
 			if IsExpectedErrors(err, []string{"TaskConflict", "UnknownError"}) || NeedRetry(err) {
 				wait()
@@ -340,6 +343,7 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationFailed.LastTokenProcessing", "LastTokenProcessing", "OperationFailed.QueryCenIpv6Status", "IncorrectStatus.%s", "OperationConflict", "SystemBusy", "ServiceUnavailable", "IncorrectVpcStatus"}) || NeedRetry(err) {
 					wait()
@@ -387,8 +391,9 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 			if err != nil {
-				if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -424,9 +429,12 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
+
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+					request["ClientToken"] = buildClientToken(action)
+
 					if err != nil {
 						if IsExpectedErrors(err, []string{"IncorrectVpcStatus"}) || NeedRetry(err) {
 							wait()
@@ -453,9 +461,12 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
+
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+					request["ClientToken"] = buildClientToken(action)
+
 					if err != nil {
 						if IsExpectedErrors(err, []string{"InternalError", "IncorrectVpcStatus"}) || NeedRetry(err) {
 							wait()
@@ -505,8 +516,9 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 					if err != nil {
-						if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						if NeedRetry(err) {
 							wait()
 							return resource.RetryableError(err)
 						}
@@ -555,8 +567,9 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 					if err != nil {
-						if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						if NeedRetry(err) {
 							wait()
 							return resource.RetryableError(err)
 						}
@@ -619,8 +632,9 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 					if err != nil {
-						if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						if NeedRetry(err) {
 							wait()
 							return resource.RetryableError(err)
 						}
@@ -676,8 +690,9 @@ func resourceAlicloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 					if err != nil {
-						if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+						if NeedRetry(err) {
 							wait()
 							return resource.RetryableError(err)
 						}
@@ -724,8 +739,9 @@ func resourceAlicloudVpcVpcDelete(d *schema.ResourceData, meta interface{}) erro
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+
 		if err != nil {
-			if IsExpectedErrors(err, []string{}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -736,9 +752,6 @@ func resourceAlicloudVpcVpcDelete(d *schema.ResourceData, meta interface{}) erro
 	})
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{}) {
-			return nil
-		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
