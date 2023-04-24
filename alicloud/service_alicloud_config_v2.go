@@ -143,3 +143,85 @@ func (s *ConfigServiceV2) ConfigRuleStateRefreshFunc(id string, failStates []str
 }
 
 // DescribeConfigRule >>> Encapsulated.
+// DescribeConfigRemediation <<< Encapsulated get interface for Config Remediation.
+func (s *ConfigServiceV2) DescribeConfigRemediation(id string) (object map[string]interface{}, err error) {
+
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	action := "DescribeRemediation"
+	conn, err := client.NewConfigClient()
+	if err != nil {
+		return object, WrapError(err)
+	}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+
+	query["RemediationId"] = id
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("GET"), StringPointer("2020-09-07"), StringPointer("AK"), query, request, &util.RuntimeOptions{})
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		addDebug(action, response, request)
+		return nil
+	})
+	if err != nil {
+		if IsExpectedErrors(err, []string{"RemediationConfigNotExist", "RemediationNotExist"}) {
+			return object, WrapErrorf(Error(GetNotFoundMessage("Remediation", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.Remediation", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Remediation", response)
+	}
+
+	instanceMaps := make([]map[string]interface{}, 0)
+	instanceMap := make(map[string]interface{})
+	objectRaw := v.(map[string]interface{})
+	instanceMap["config_rule_id"] = objectRaw["ConfigRuleId"]
+	instanceMap["invoke_type"] = objectRaw["InvokeType"]
+	instanceMap["params"] = objectRaw["RemediationOriginParams"]
+	instanceMap["remediation_source_type"] = objectRaw["RemediationSourceType"]
+	instanceMap["remediation_template_id"] = objectRaw["RemediationTemplateId"]
+	instanceMap["remediation_type"] = objectRaw["RemediationType"]
+	instanceMap["remediation_id"] = objectRaw["RemediationId"]
+
+	instanceMaps = append(instanceMaps, instanceMap)
+	return instanceMaps[0], nil
+}
+
+func (s *ConfigServiceV2) ConfigRemediationStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeConfigRemediation(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return nil, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		currentStatus := object["status"]
+		if _, ok := currentStatus.(string); !ok {
+			return nil, "", nil
+		}
+		for _, failState := range failStates {
+			if currentStatus.(string) == failState {
+				return object, currentStatus.(string), WrapError(Error(FailedToReachTargetStatus, currentStatus.(string)))
+			}
+		}
+		return object, currentStatus.(string), nil
+	}
+}
+
+// DescribeConfigRemediation >>> Encapsulated.
