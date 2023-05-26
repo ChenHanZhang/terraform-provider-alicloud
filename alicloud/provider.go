@@ -1192,7 +1192,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ram_saml_provider":                                     resourceAlicloudRamSamlProvider(),
 			"alicloud_quotas_application_info":                               resourceAlicloudQuotasQuotaApplication(),
 			"alicloud_cms_monitor_group_instances":                           resourceAlicloudCmsMonitorGroupInstances(),
-			"alicloud_quotas_quota_alarm":                                    resourceAlicloudQuotasQuotaAlarm(),
+			"alicloud_quotas_quota_alarm":                                    resourceAliCloudQuotasQuotaAlarm(),
 			"alicloud_ecs_command":                                           resourceAlicloudEcsCommand(),
 			"alicloud_cloud_storage_gateway_storage_bundle":                  resourceAlicloudCloudStorageGatewayStorageBundle(),
 			"alicloud_ecs_hpc_cluster":                                       resourceAlicloudEcsHpcCluster(),

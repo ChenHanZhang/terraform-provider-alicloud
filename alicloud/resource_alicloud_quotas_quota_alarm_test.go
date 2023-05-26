@@ -374,3 +374,361 @@ func TestUnitAlicloudQuotasQuotaAlarm(t *testing.T) {
 	}
 
 }
+
+// Test Quotas QuotaAlarm. >>> Resource test cases, automatically generated.
+// Case 2901
+func TestAccAlicloudQuotasQuotaAlarm_basic2901(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_quotas_quota_alarm.default"
+	ra := resourceAttrInit(resourceId, AlicloudQuotasQuotaAlarmMap2901)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &QuotasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeQuotasQuotaAlarm")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%squotasquotaalarm%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudQuotasQuotaAlarmBasicDependence2901)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_desktop-count",
+					"quota_dimensions": []map[string]interface{}{
+						{
+							"key":   "regionId",
+							"value": "cn-hangzhou",
+						},
+					},
+					"threshold_percent": "80",
+					"product_code":      "gws",
+					"quota_alarm_name":  name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code":  "q_desktop-count",
+						"quota_dimensions.#": "1",
+						"threshold_percent":  "80",
+						"product_code":       "gws",
+						"quota_alarm_name":   name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"web_hook": "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"web_hook": "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"threshold_type": "used",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"threshold_type": "used",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"threshold_percent": "80",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"threshold_percent": "80",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_alarm_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_alarm_name": name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"threshold_percent": "20",
+					"threshold_type":    "usable",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"threshold_percent": "20",
+						"threshold_type":    "usable",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_desktop-count",
+					"quota_dimensions": []map[string]interface{}{
+						{
+							"key":   "regionId",
+							"value": "cn-hangzhou",
+						},
+					},
+					"threshold_percent": "80",
+					"product_code":      "gws",
+					"quota_alarm_name":  name + "_update",
+					"web_hook":          "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+					"threshold_type":    "used",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code":  "q_desktop-count",
+						"quota_dimensions.#": "1",
+						"threshold_percent":  "80",
+						"product_code":       "gws",
+						"quota_alarm_name":   name + "_update",
+						"web_hook":           "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+						"threshold_type":     "used",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudQuotasQuotaAlarmMap2901 = map[string]string{}
+
+func AlicloudQuotasQuotaAlarmBasicDependence2901(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 2936
+func TestAccAlicloudQuotasQuotaAlarm_basic2936(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_quotas_quota_alarm.default"
+	ra := resourceAttrInit(resourceId, AlicloudQuotasQuotaAlarmMap2936)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &QuotasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeQuotasQuotaAlarm")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%squotasquotaalarm%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudQuotasQuotaAlarmBasicDependence2936)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_user_poc_money_consumption",
+					"product_code":      "computenest",
+					"quota_alarm_name":  name,
+					"threshold":         "1000",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code": "q_user_poc_money_consumption",
+						"product_code":      "computenest",
+						"quota_alarm_name":  name,
+						"threshold":         "1000",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_alarm_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_alarm_name": name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"threshold": "1000",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"threshold": "1000",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"threshold": "1001",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"threshold": "1001",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_user_poc_money_consumption",
+					"product_code":      "computenest",
+					"quota_alarm_name":  name + "_update",
+					"threshold":         "1000",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code": "q_user_poc_money_consumption",
+						"product_code":      "computenest",
+						"quota_alarm_name":  name + "_update",
+						"threshold":         "1000",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudQuotasQuotaAlarmMap2936 = map[string]string{}
+
+func AlicloudQuotasQuotaAlarmBasicDependence2936(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 2901  twin
+func TestAccAlicloudQuotasQuotaAlarm_basic2901_twin(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_quotas_quota_alarm.default"
+	ra := resourceAttrInit(resourceId, AlicloudQuotasQuotaAlarmMap2901)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &QuotasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeQuotasQuotaAlarm")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%squotasquotaalarm%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudQuotasQuotaAlarmBasicDependence2901)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_desktop-count",
+					"quota_dimensions": []map[string]interface{}{
+						{
+							"key":   "regionId",
+							"value": "cn-hangzhou",
+						},
+					},
+					"threshold_percent": "20",
+					"product_code":      "gws",
+					"quota_alarm_name":  name,
+					"web_hook":          "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+					"threshold_type":    "usable",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code":  "q_desktop-count",
+						"quota_dimensions.#": "1",
+						"threshold_percent":  "20",
+						"product_code":       "gws",
+						"quota_alarm_name":   name,
+						"web_hook":           "https://oapi.dingtalk.com/robot/send?access_token=0a09bd617f43d07e8607b258c6cdffbacf0e023f1bbe46cfeb0265127802bf43",
+						"threshold_type":     "usable",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+// Case 2936  twin
+func TestAccAlicloudQuotasQuotaAlarm_basic2936_twin(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_quotas_quota_alarm.default"
+	ra := resourceAttrInit(resourceId, AlicloudQuotasQuotaAlarmMap2936)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &QuotasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeQuotasQuotaAlarm")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%squotasquotaalarm%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudQuotasQuotaAlarmBasicDependence2936)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"quota_action_code": "q_user_poc_money_consumption",
+					"product_code":      "computenest",
+					"quota_alarm_name":  name,
+					"threshold":         "1001",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"quota_action_code": "q_user_poc_money_consumption",
+						"product_code":      "computenest",
+						"quota_alarm_name":  name,
+						"threshold":         "1001",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+// Test Quotas QuotaAlarm. <<< Resource test cases, automatically generated.
