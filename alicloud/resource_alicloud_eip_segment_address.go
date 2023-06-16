@@ -148,7 +148,6 @@ func resourceAliCloudEipSegmentAddressUpdate(d *schema.ResourceData, meta interf
 func resourceAliCloudEipSegmentAddressDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "ReleaseEipSegmentAddress"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -157,7 +156,6 @@ func resourceAliCloudEipSegmentAddressDelete(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["SegmentInstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
