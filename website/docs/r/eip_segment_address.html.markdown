@@ -12,7 +12,7 @@ Provides a EIP Segment Address resource.
 
 For information about EIP Segment Address and how to use it, see [What is Segment Address](https://www.alibabacloud.com/help/en/virtual-private-cloud/latest/allocateeipsegmentaddress).
 
--> **NOTE:** Available since v1.207.0.
+-> **NOTE:** Available since v1.208.0.
 
 ## Example Usage
 
@@ -60,6 +60,7 @@ If you are a user of Hangzhou Financial Cloud, this field is required. The value
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.
 * `create_time` - The time when the contiguous Elastic IP address group was created. The time follows the ISO 8601 standard in the yyyy-MM-ddTHH:mm:ssZ format. The time is displayed in UTC.
+* `segment_address_name` - The name of the contiguous Elastic IP address group.
 * `status` - The status of the resource.
 
 ## Timeouts
