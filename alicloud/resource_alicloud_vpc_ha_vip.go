@@ -16,10 +16,10 @@ import (
 
 func resourceAliCloudVpcHaVip() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudVpcHaVipCreate,
-		Read:   resourceAlicloudVpcHaVipRead,
-		Update: resourceAlicloudVpcHaVipUpdate,
-		Delete: resourceAlicloudVpcHaVipDelete,
+		Create: resourceAliCloudVpcHaVipCreate,
+		Read:   resourceAliCloudVpcHaVipRead,
+		Update: resourceAliCloudVpcHaVipUpdate,
+		Delete: resourceAliCloudVpcHaVipDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -29,20 +29,6 @@ func resourceAliCloudVpcHaVip() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"associated_eip_addresses": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"associated_instance_type": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"associated_instances": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -51,10 +37,6 @@ func resourceAliCloudVpcHaVip() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: StringMatch(regexp.MustCompile("^.{2,256}$"), "The description of the HaVip instance. The length is 2 to 256 characters."),
-			},
-			"ha_vip_id": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"ha_vip_name": {
 				Type:          schema.TypeString,
@@ -67,10 +49,6 @@ func resourceAliCloudVpcHaVip() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-			},
-			"master_instance_id": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -87,21 +65,17 @@ func resourceAliCloudVpcHaVip() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"vpc_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"havip_name": {
 				Type:       schema.TypeString,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'havip_name' has been deprecated from provider version 1.205.0. New field 'ha_vip_name' instead.",
+				Deprecated: "Field 'havip_name' has been deprecated since provider version 1.208.0. New field 'ha_vip_name' instead.",
 			},
 		},
 	}
 }
 
-func resourceAlicloudVpcHaVipCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcHaVipCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 
 	action := "CreateHaVip"
@@ -115,29 +89,22 @@ func resourceAlicloudVpcHaVipCreate(d *schema.ResourceData, meta interface{}) er
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	if v, ok := d.GetOk("vswitch_id"); ok {
-		request["VSwitchId"] = v
-	}
-
+	request["VSwitchId"] = d.Get("vswitch_id")
 	if v, ok := d.GetOk("ip_address"); ok {
 		request["IpAddress"] = v
 	}
-
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
-
 	if v, ok := d.GetOk("havip_name"); ok {
 		request["Name"] = v
 	}
 	if v, ok := d.GetOk("ha_vip_name"); ok {
 		request["Name"] = v
 	}
-
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
-
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -161,15 +128,15 @@ func resourceAlicloudVpcHaVipCreate(d *schema.ResourceData, meta interface{}) er
 	d.SetId(fmt.Sprint(response["HaVipId"]))
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 0, vpcServiceV2.VpcHaVipStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcHaVipStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudVpcHaVipUpdate(d, meta)
+	return resourceAliCloudVpcHaVipUpdate(d, meta)
 }
 
-func resourceAlicloudVpcHaVipRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcHaVipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	vpcServiceV2 := VpcServiceV2{client}
 
@@ -183,22 +150,14 @@ func resourceAlicloudVpcHaVipRead(d *schema.ResourceData, meta interface{}) erro
 		return WrapError(err)
 	}
 
-	d.Set("associated_instance_type", objectRaw["AssociatedInstanceType"])
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("description", objectRaw["Description"])
 	d.Set("ha_vip_name", objectRaw["Name"])
 	d.Set("ip_address", objectRaw["IpAddress"])
-	d.Set("master_instance_id", objectRaw["MasterInstanceId"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("vswitch_id", objectRaw["VSwitchId"])
-	d.Set("vpc_id", objectRaw["VpcId"])
-	d.Set("ha_vip_id", objectRaw["HaVipId"])
 
-	associatedEipAddresse1Raw, _ := jsonpath.Get("$.AssociatedEipAddresses.associatedEipAddresse", objectRaw)
-	d.Set("associated_eip_addresses", associatedEipAddresse1Raw)
-	associatedInstance1Raw, _ := jsonpath.Get("$.AssociatedInstances.associatedInstance", objectRaw)
-	d.Set("associated_instances", associatedInstance1Raw)
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
 
@@ -206,7 +165,7 @@ func resourceAlicloudVpcHaVipRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAlicloudVpcHaVipUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcHaVipUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -218,29 +177,21 @@ func resourceAlicloudVpcHaVipUpdate(d *schema.ResourceData, meta interface{}) er
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["HaVipId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
-
 	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
-		if v, ok := d.GetOk("description"); ok {
-			request["Description"] = v
-		}
+		request["Description"] = d.Get("description")
 	}
 
 	if !d.IsNewResource() && d.HasChange("havip_name") {
 		update = true
-		if v, ok := d.GetOk("havip_name"); ok {
-			request["Name"] = v
-		}
+		request["Name"] = d.Get("havip_name")
 	}
 	if !d.IsNewResource() && d.HasChange("ha_vip_name") {
 		update = true
-		if v, ok := d.GetOk("ha_vip_name"); ok {
-			request["Name"] = v
-		}
+		request["Name"] = d.Get("ha_vip_name")
 	}
 
 	if update {
@@ -272,15 +223,11 @@ func resourceAlicloudVpcHaVipUpdate(d *schema.ResourceData, meta interface{}) er
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
 		update = true
-		if v, ok := d.GetOk("resource_group_id"); ok {
-			request["NewResourceGroupId"] = v
-		}
+		request["NewResourceGroupId"] = d.Get("resource_group_id")
 	}
 
 	request["ResourceType"] = "HAVIP"
@@ -315,13 +262,12 @@ func resourceAlicloudVpcHaVipUpdate(d *schema.ResourceData, meta interface{}) er
 		d.SetPartial("tags")
 	}
 	d.Partial(false)
-	return resourceAlicloudVpcHaVipRead(d, meta)
+	return resourceAliCloudVpcHaVipRead(d, meta)
 }
 
-func resourceAlicloudVpcHaVipDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcHaVipDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteHaVip"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -330,7 +276,6 @@ func resourceAlicloudVpcHaVipDelete(d *schema.ResourceData, meta interface{}) er
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["HaVipId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
@@ -360,7 +305,7 @@ func resourceAlicloudVpcHaVipDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 0, vpcServiceV2.VpcHaVipStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcHaVipStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
