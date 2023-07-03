@@ -16,10 +16,10 @@ import (
 
 func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudVpcIpv6GatewayCreate,
-		Read:   resourceAlicloudVpcIpv6GatewayRead,
-		Update: resourceAlicloudVpcIpv6GatewayUpdate,
-		Delete: resourceAlicloudVpcIpv6GatewayDelete,
+		Create: resourceAliCloudVpcIpv6GatewayCreate,
+		Read:   resourceAliCloudVpcIpv6GatewayRead,
+		Update: resourceAliCloudVpcIpv6GatewayUpdate,
+		Delete: resourceAliCloudVpcIpv6GatewayDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -29,10 +29,6 @@ func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"business_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -41,18 +37,6 @@ func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: StringMatch(regexp.MustCompile("^[a-zA-Z\u4E00-\u9FA5][\u4E00-\u9FA5A-Za-z0-9_-]{2,256}$"), "The description of the IPv6 gateway. The description must be 2 to 256 characters in length. It cannot start with http:// or https://."),
-			},
-			"expired_time": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"instance_charge_type": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"ipv6_gateway_id": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"ipv6_gateway_name": {
 				Type:         schema.TypeString,
@@ -67,8 +51,7 @@ func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 			"spec": {
 				Type:       schema.TypeString,
 				Optional:   true,
-				Computed:   true,
-				Deprecated: "Field 'Spec' has been deprecated from provider version 1.205.0. IPv6 gateways do not distinguish between specifications. This parameter is no longer used.",
+				Deprecated: "Field 'spec' has been deprecated from provider version 1.208.0. IPv6 gateways do not distinguish between specifications. This parameter is no longer used.",
 			},
 			"status": {
 				Type:     schema.TypeString,
@@ -84,7 +67,7 @@ func resourceAliCloudVpcIpv6Gateway() *schema.Resource {
 	}
 }
 
-func resourceAlicloudVpcIpv6GatewayCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcIpv6GatewayCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 
 	action := "CreateIpv6Gateway"
@@ -131,15 +114,15 @@ func resourceAlicloudVpcIpv6GatewayCreate(d *schema.ResourceData, meta interface
 	d.SetId(fmt.Sprint(response["Ipv6GatewayId"]))
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 0, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudVpcIpv6GatewayUpdate(d, meta)
+	return resourceAliCloudVpcIpv6GatewayUpdate(d, meta)
 }
 
-func resourceAlicloudVpcIpv6GatewayRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcIpv6GatewayRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	vpcServiceV2 := VpcServiceV2{client}
 
@@ -153,24 +136,19 @@ func resourceAlicloudVpcIpv6GatewayRead(d *schema.ResourceData, meta interface{}
 		return WrapError(err)
 	}
 
-	d.Set("business_status", objectRaw["BusinessStatus"])
 	d.Set("create_time", objectRaw["CreationTime"])
 	d.Set("description", objectRaw["Description"])
-	d.Set("expired_time", objectRaw["ExpiredTime"])
-	d.Set("instance_charge_type", convertVpcInstanceChargeTypeResponse(objectRaw["InstanceChargeType"]))
 	d.Set("ipv6_gateway_name", objectRaw["Name"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("vpc_id", objectRaw["VpcId"])
-	d.Set("ipv6_gateway_id", objectRaw["Ipv6GatewayId"])
-
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
 
-func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -182,7 +160,6 @@ func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["Ipv6GatewayId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("description") {
@@ -214,7 +191,7 @@ func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		vpcServiceV2 := VpcServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 0, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
@@ -228,7 +205,6 @@ func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
@@ -268,13 +244,12 @@ func resourceAlicloudVpcIpv6GatewayUpdate(d *schema.ResourceData, meta interface
 		d.SetPartial("tags")
 	}
 	d.Partial(false)
-	return resourceAlicloudVpcIpv6GatewayRead(d, meta)
+	return resourceAliCloudVpcIpv6GatewayRead(d, meta)
 }
 
-func resourceAlicloudVpcIpv6GatewayDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcIpv6GatewayDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteIpv6Gateway"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -283,7 +258,6 @@ func resourceAlicloudVpcIpv6GatewayDelete(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["Ipv6GatewayId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
@@ -307,7 +281,7 @@ func resourceAlicloudVpcIpv6GatewayDelete(d *schema.ResourceData, meta interface
 	}
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 0, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcIpv6GatewayStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

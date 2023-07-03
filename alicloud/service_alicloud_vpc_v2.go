@@ -116,7 +116,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			for i, key := range removedTagKeys {
@@ -151,7 +150,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			count := 1
@@ -645,6 +643,7 @@ func (s *VpcServiceV2) VpcIpv4GatewayStateRefreshFunc(id string, field string, f
 }
 
 // DescribeVpcIpv4Gateway >>> Encapsulated.
+
 // DescribeVpcIpv6Gateway <<< Encapsulated get interface for Vpc Ipv6Gateway.
 
 func (s *VpcServiceV2) DescribeVpcIpv6Gateway(id string) (object map[string]interface{}, err error) {
@@ -660,7 +659,6 @@ func (s *VpcServiceV2) DescribeVpcIpv6Gateway(id string) (object map[string]inte
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["Ipv6GatewayId"] = id
 	request["RegionId"] = client.RegionId
 
