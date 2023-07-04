@@ -58,7 +58,7 @@ func resourceAliCloudCbwpCommonBandwidthPackage() *schema.Resource {
 			"internet_charge_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "PayByTraffic",
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"PayBy95", "PayByBandwidth", "PayByTraffic", "PayByDominantTraffic"}, false),
 			},
@@ -238,7 +238,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageUpdate(d *schema.ResourceData, me
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["BandwidthPackageId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("description") {
@@ -283,7 +282,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageUpdate(d *schema.ResourceData, me
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["BandwidthPackageId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("bandwidth") {
@@ -322,7 +320,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageUpdate(d *schema.ResourceData, me
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
@@ -358,7 +355,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageUpdate(d *schema.ResourceData, me
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["InstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
@@ -413,7 +409,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageDelete(d *schema.ResourceData, me
 	}
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteCommonBandwidthPackage"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -422,7 +417,6 @@ func resourceAliCloudCbwpCommonBandwidthPackageDelete(d *schema.ResourceData, me
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["BandwidthPackageId"] = d.Id()
 	request["RegionId"] = client.RegionId
 

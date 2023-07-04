@@ -31,7 +31,6 @@ func (s *CbwpServiceV2) DescribeCbwpCommonBandwidthPackage(id string) (object ma
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["BandwidthPackageId"] = id
 	request["RegionId"] = client.RegionId
 
@@ -80,7 +79,6 @@ func (s *CbwpServiceV2) DescribeListTagResources(id string) (object map[string]i
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	request["ResourceId.1"] = id
 	request["RegionId"] = client.RegionId
 
@@ -155,7 +153,6 @@ func (s *CbwpServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			for i, key := range removedTagKeys {
@@ -190,7 +187,6 @@ func (s *CbwpServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			count := 1
