@@ -116,7 +116,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			for i, key := range removedTagKeys {
@@ -151,7 +150,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			count := 1
@@ -523,7 +521,6 @@ func (s *VpcServiceV2) DescribeVpcFlowLog(id string) (object map[string]interfac
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["FlowLogId"] = id
 	request["RegionId"] = client.RegionId
 
@@ -552,6 +549,7 @@ func (s *VpcServiceV2) DescribeVpcFlowLog(id string) (object map[string]interfac
 	if err != nil {
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.FlowLogs.FlowLog[*]", response)
 	}
+
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(Error(GetNotFoundMessage("FlowLog", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
 	}
