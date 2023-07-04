@@ -34,7 +34,6 @@ func (s *VpcServiceV2) DescribeVpcPublicIpAddressPool(id string) (object map[str
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	request["PublicIpAddressPoolIds.1"] = id
 	request["RegionId"] = client.RegionId
 
@@ -63,6 +62,7 @@ func (s *VpcServiceV2) DescribeVpcPublicIpAddressPool(id string) (object map[str
 	if err != nil {
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.PublicIpAddressPoolList[*]", response)
 	}
+
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(Error(GetNotFoundMessage("PublicIpAddressPool", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
 	}
@@ -116,7 +116,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			for i, key := range removedTagKeys {
@@ -151,7 +150,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			count := 1
