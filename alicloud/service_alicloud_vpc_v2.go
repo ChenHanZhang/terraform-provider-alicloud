@@ -116,14 +116,13 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
+			request["ResourceType"] = resourceType
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
-			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -151,7 +150,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
 			count := 1
@@ -351,6 +349,7 @@ func (s *VpcServiceV2) VpcPrefixListStateRefreshFunc(id string, field string, fa
 }
 
 // DescribeVpcPrefixList >>> Encapsulated.
+
 // DescribeVpcHaVip <<< Encapsulated get interface for Vpc HaVip.
 
 func (s *VpcServiceV2) DescribeVpcHaVip(id string) (object map[string]interface{}, err error) {
@@ -366,7 +365,6 @@ func (s *VpcServiceV2) DescribeVpcHaVip(id string) (object map[string]interface{
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	jsonString := "{}"
 	jsonString, _ = sjson.Set(jsonString, "Filter[0].Value[0]", id)
 	jsonString, _ = sjson.Set(jsonString, "Filter[0].Key", "HaVipId")
@@ -401,6 +399,7 @@ func (s *VpcServiceV2) DescribeVpcHaVip(id string) (object map[string]interface{
 	if err != nil {
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.HaVips.HaVip[*]", response)
 	}
+
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(Error(GetNotFoundMessage("HaVip", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
 	}
@@ -523,7 +522,6 @@ func (s *VpcServiceV2) DescribeVpcFlowLog(id string) (object map[string]interfac
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["FlowLogId"] = id
 	request["RegionId"] = client.RegionId
 
@@ -552,6 +550,7 @@ func (s *VpcServiceV2) DescribeVpcFlowLog(id string) (object map[string]interfac
 	if err != nil {
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.FlowLogs.FlowLog[*]", response)
 	}
+
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(Error(GetNotFoundMessage("FlowLog", id)), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
 	}
@@ -1572,7 +1571,6 @@ func (s *VpcServiceV2) DescribeVpcDhcpOptionsSet(id string) (object map[string]i
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["DhcpOptionsSetId"] = id
 	request["RegionId"] = client.RegionId
 

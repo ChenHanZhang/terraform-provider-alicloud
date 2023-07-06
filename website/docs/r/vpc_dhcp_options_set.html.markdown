@@ -23,15 +23,16 @@ variable "name" {
   default = "terraform-example"
 }
 
-variable "domain" {
-  default = "terraform-example.com"
+variable "RegionId" {
+  default = "cn-shanghai"
 }
 
-resource "alicloud_vpc_dhcp_options_set" "example" {
+
+resource "alicloud_vpc_dhcp_options_set" "default" {
+  domain_name                  = "test.com"
   dhcp_options_set_name        = var.name
-  dhcp_options_set_description = var.name
-  domain_name                  = var.domain
-  domain_name_servers          = "100.100.2.136"
+  dhcp_options_set_description = "test"
+  domain_name_servers          = "100.100.2.132"
 }
 ```
 
@@ -46,10 +47,10 @@ The following arguments are supported:
 * `dry_run` - (Optional) Whether to PreCheck only this request, value:
   - **true**: sends a check request and does not delete the DHCP option set. Check items include whether required parameters are filled in, request format, and restrictions. If the check fails, the corresponding error is returned. If the check passes, the error code 'DryRunOperation' is returned '.
   - **false** (default): Sends a normal request and directly deletes the DHCP option set after checking.
-* `ipv6_lease_time` - (Optional, Computed, Available since v1.207.0) The lease time of the IPv6 DHCP option set.When the lease time is set to hours: Unit: h. Value range: 24h ~ 1176h,87600h ~ 175200h. Default value: 87600h.When the lease time is set to day: Unit: d. Value range: 1d ~ 49d,3650d ~ 7300d. Default value: 3650d.
-* `lease_time` - (Optional, Computed, Available since v1.207.0) The lease time of the IPv4 DHCP option set.When the lease time is set to hours: Unit: h. Value range: 24h ~ 1176h,87600h ~ 175200h. Default value: 87600h.When the lease time is set to day: Unit: d. Value range: 1d ~ 49d,3650d ~ 7300d. Default value: 3650d.
-* `resource_group_id` - (Optional, Computed, Available since v1.207.0) The ID of the resource group.
-* `tags` - (Optional, Map, Available since v1.207.0) Tags of the current resource.
+* `ipv6_lease_time` - (Optional, Computed) The lease time of the IPv6 DHCP option set.When the lease time is set to hours: Unit: h. Value range: 24h ~ 1176h,87600h ~ 175200h. Default value: 87600h.When the lease time is set to day: Unit: d. Value range: 1d ~ 49d,3650d ~ 7300d. Default value: 3650d.
+* `lease_time` - (Optional, Computed) The lease time of the IPv4 DHCP option set.When the lease time is set to hours: Unit: h. Value range: 24h ~ 1176h,87600h ~ 175200h. Default value: 87600h.When the lease time is set to day: Unit: d. Value range: 1d ~ 49d,3650d ~ 7300d. Default value: 3650d.
+* `resource_group_id` - (Optional, Computed) The ID of the resource group.
+* `tags` - (Optional, Map) Tags of the current resource.
 
 ### `associate_vpcs`
 

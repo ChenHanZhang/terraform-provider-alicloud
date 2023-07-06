@@ -33,7 +33,7 @@ func resourceAliCloudVpcDhcpOptionsSet() *schema.Resource {
 				Type:       schema.TypeSet,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'associate_vpcs' has been deprecated from provider version 1.207.0. Field 'associate_vpcs' has been deprecated from provider version 1.153.0 and it will be removed in the future version. Please use the new resource 'alicloud_vpc_dhcp_options_set_attachment' to attach DhcpOptionsSet and Vpc.",
+				Deprecated: "Field 'associate_vpcs' has been deprecated from provider version 1.208.0. Field 'associate_vpcs' has been deprecated from provider version 1.153.0 and it will be removed in the future version. Please use the new resource 'alicloud_vpc_dhcp_options_set_attachment' to attach DhcpOptionsSet and Vpc.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"vpc_id": {
@@ -223,7 +223,6 @@ func resourceAliCloudVpcDhcpOptionsSetUpdate(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["DhcpOptionsSetId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
@@ -298,7 +297,6 @@ func resourceAliCloudVpcDhcpOptionsSetUpdate(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
@@ -347,7 +345,6 @@ func resourceAliCloudVpcDhcpOptionsSetUpdate(d *schema.ResourceData, meta interf
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["DhcpOptionsSetId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
@@ -400,7 +397,6 @@ func resourceAliCloudVpcDhcpOptionsSetUpdate(d *schema.ResourceData, meta interf
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["DhcpOptionsSetId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
@@ -460,7 +456,6 @@ func resourceAliCloudVpcDhcpOptionsSetUpdate(d *schema.ResourceData, meta interf
 func resourceAliCloudVpcDhcpOptionsSetDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteDhcpOptionsSet"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -469,7 +464,6 @@ func resourceAliCloudVpcDhcpOptionsSetDelete(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["DhcpOptionsSetId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
