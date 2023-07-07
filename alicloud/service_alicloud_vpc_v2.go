@@ -116,14 +116,13 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
+			request["ResourceType"] = resourceType
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
-			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -151,9 +150,9 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				return WrapError(err)
 			}
 			request = make(map[string]interface{})
-
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
+			request["ResourceType"] = resourceType
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -161,7 +160,6 @@ func (s *VpcServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 				count++
 			}
 
-			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -880,7 +878,6 @@ func (s *VpcServiceV2) DescribeVpcVpc(id string) (object map[string]interface{},
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["VpcId"] = id
 	request["RegionId"] = client.RegionId
 
@@ -925,7 +922,6 @@ func (s *VpcServiceV2) DescribeDescribeRouteTableList(id string) (object map[str
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	query["VpcId"] = id
 	request["RegionId"] = client.RegionId
 
@@ -983,7 +979,6 @@ func (s *VpcServiceV2) DescribeListTagResources(id string) (object map[string]in
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
 	request["ResourceId.1"] = id
 	request["RegionId"] = client.RegionId
 

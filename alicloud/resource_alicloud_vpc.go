@@ -53,6 +53,10 @@ func resourceAliCloudVpcVpc() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"ipv4_ipam_pool_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -96,7 +100,7 @@ func resourceAliCloudVpcVpc() *schema.Resource {
 				Type:       schema.TypeList,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'SecondaryCidrBlocks' has been deprecated from provider version 1.206.0. Field 'secondary_cidr_blocks' has been deprecated from provider version 1.185.0 and it will be removed in the future version. Please use the new resource 'alicloud_vpc_ipv4_cidr_block'. `secondary_cidr_blocks` attributes and `alicloud_vpc_ipv4_cidr_block` resource cannot be used at the same time.",
+				Deprecated: "Field 'secondary_cidr_blocks' has been deprecated from provider version 1.208.0. Field 'secondary_cidr_blocks' has been deprecated from provider version 1.185.0 and it will be removed in the future version. Please use the new resource 'alicloud_vpc_ipv4_cidr_block'. `secondary_cidr_blocks` attributes and `alicloud_vpc_ipv4_cidr_block` resource cannot be used at the same time.",
 				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"status": {
@@ -121,13 +125,13 @@ func resourceAliCloudVpcVpc() *schema.Resource {
 				Type:       schema.TypeString,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'name' has been deprecated from provider version 1.119.0. New field 'vpc_name' instead.",
+				Deprecated: "Field 'name' has been deprecated since provider version 1.119.0. New field 'vpc_name' instead.",
 			},
 			"router_table_id": {
 				Type:       schema.TypeString,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'router_table_id' has been deprecated from provider version 1.206.0. New field 'route_table_id' instead.",
+				Deprecated: "Field 'router_table_id' has been deprecated since provider version 1.208.0. New field 'route_table_id' instead.",
 			},
 		},
 	}
@@ -178,6 +182,9 @@ func resourceAliCloudVpcVpcCreate(d *schema.ResourceData, meta interface{}) erro
 	if v, ok := d.GetOkExists("enable_ipv6"); ok {
 		request["EnableIpv6"] = v
 	}
+	if v, ok := d.GetOk("ipv4_ipam_pool_id"); ok {
+		request["Ipv4IpamPoolId"] = v
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -201,7 +208,7 @@ func resourceAliCloudVpcVpcCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetId(fmt.Sprint(response["VpcId"]))
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 0, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -284,7 +291,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["VpcId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("description") {
@@ -331,7 +337,7 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		vpcServiceV2 := VpcServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 0, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
@@ -346,7 +352,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
@@ -393,7 +398,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
@@ -424,7 +428,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
@@ -468,7 +471,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				if v, ok := item.(string); ok {
@@ -496,7 +498,7 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 				}
 				vpcServiceV2 := VpcServiceV2{client}
-				stateConf := BuildStateConf([]string{}, []string{"Created", "Available"}, d.Timeout(schema.TimeoutUpdate), 0, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
+				stateConf := BuildStateConf([]string{}, []string{"Created", "Available"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
 				if _, err := stateConf.WaitForState(); err != nil {
 					return WrapErrorf(err, IdMsg, d.Id())
 				}
@@ -516,7 +518,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapError(err)
 				}
 				request = make(map[string]interface{})
-
 				request["VpcId"] = d.Id()
 				request["RegionId"] = client.RegionId
 				if v, ok := item.(string); ok {
@@ -527,6 +528,9 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					request["SecondaryCidrBlock"] = jsonPathResult
 				}
 				request["IpVersion"] = "IPV4"
+				if v, ok := item.(string); ok {
+					request["IpamPoolId"] = v
+				}
 				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2016-04-28"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
@@ -545,7 +549,7 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 				}
 				vpcServiceV2 := VpcServiceV2{client}
-				stateConf := BuildStateConf([]string{}, []string{"Created", "Available"}, d.Timeout(schema.TimeoutUpdate), 0, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
+				stateConf := BuildStateConf([]string{}, []string{"Created", "Available"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
 				if _, err := stateConf.WaitForState(); err != nil {
 					return WrapErrorf(err, IdMsg, d.Id())
 				}
@@ -571,7 +575,6 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceAliCloudVpcVpcDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteVpc"
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -580,7 +583,6 @@ func resourceAliCloudVpcVpcDelete(d *schema.ResourceData, meta interface{}) erro
 		return WrapError(err)
 	}
 	request = make(map[string]interface{})
-
 	request["VpcId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
@@ -604,7 +606,7 @@ func resourceAliCloudVpcVpcDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 0, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcVpcStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
