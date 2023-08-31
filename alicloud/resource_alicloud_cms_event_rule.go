@@ -53,7 +53,7 @@ func resourceAliCloudCloudMonitorServiceEventRule() *schema.Resource {
 				Optional: true,
 			},
 			"event_pattern": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -291,6 +291,9 @@ func resourceAliCloudCloudMonitorServiceEventRuleCreate(d *schema.ResourceData, 
 		if v, ok := eventPatternArg["name_list"]; ok {
 			eventPatternMap["NameList"] = v
 		}
+		if v, ok := eventPatternArg["status_list"]; ok {
+			eventPatternMap["StatusList"] = v
+		}
 		if v, ok := eventPatternArg["sql_filter"].(string); ok && v != "" {
 			eventPatternMap["SQLFilter"] = v
 		}
@@ -525,6 +528,9 @@ func resourceAliCloudCloudMonitorServiceEventRuleUpdate(d *schema.ResourceData, 
 		}
 		if v, ok := eventPatternArg["name_list"]; ok {
 			eventPatternMap["NameList"] = v
+		}
+		if v, ok := eventPatternArg["status_list"]; ok {
+			eventPatternMap["StatusList"] = v
 		}
 		if v, ok := eventPatternArg["sql_filter"].(string); ok && v != "" {
 			eventPatternMap["SQLFilter"] = v
