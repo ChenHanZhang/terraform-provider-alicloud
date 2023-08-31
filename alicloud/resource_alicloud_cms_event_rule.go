@@ -274,6 +274,31 @@ func resourceAliCloudCloudMonitorServiceEventRuleCreate(d *schema.ResourceData, 
 	request = make(map[string]interface{})
 	request["RuleName"] = d.Get("event_rule_name")
 
+	eventPatternMaps := make([]map[string]interface{}, 0)
+	for _, eventPattern := range d.Get("event_pattern").(*schema.Set).List() {
+		eventPatternMap := make(map[string]interface{})
+		eventPatternArg := eventPattern.(map[string]interface{})
+
+		if v, ok := eventPatternArg["product"].(string); ok {
+			eventPatternMap["Product"] = v
+		}
+		if v, ok := eventPatternArg["event_type_list"]; ok {
+			eventPatternMap["EventTypeList"] = v
+		}
+		if v, ok := eventPatternArg["level_list"]; ok {
+			eventPatternMap["LevelList"] = v
+		}
+		if v, ok := eventPatternArg["name_list"]; ok {
+			eventPatternMap["NameList"] = v
+		}
+		if v, ok := eventPatternArg["sql_filter"].(string); ok && v != "" {
+			eventPatternMap["SQLFilter"] = v
+		}
+
+		eventPatternMaps = append(eventPatternMaps, eventPatternMap)
+	}
+	request["EventPattern"] = eventPatternMaps
+
 	if v, ok := d.GetOk("group_id"); ok {
 		request["GroupId"] = convertCloudMonitorServiceGroupIdRequest(v.(string))
 	}
@@ -480,6 +505,35 @@ func resourceAliCloudCloudMonitorServiceEventRuleUpdate(d *schema.ResourceData, 
 	if v, ok := d.GetOk("silence_time"); ok {
 		request["SilenceTime"] = v
 	}
+
+	if !d.IsNewResource() && d.HasChange("event_pattern") {
+		update = true
+	}
+	eventPatternMaps := make([]map[string]interface{}, 0)
+	for _, eventPattern := range d.Get("event_pattern").(*schema.Set).List() {
+		eventPatternMap := make(map[string]interface{}, 0)
+		eventPatternArg := eventPattern.(map[string]interface{})
+
+		if v, ok := eventPatternArg["product"].(string); ok {
+			eventPatternMap["Product"] = v
+		}
+		if v, ok := eventPatternArg["event_type_list"]; ok {
+			eventPatternMap["EventTypeList"] = v
+		}
+		if v, ok := eventPatternArg["level_list"]; ok {
+			eventPatternMap["LevelList"] = v
+		}
+		if v, ok := eventPatternArg["name_list"]; ok {
+			eventPatternMap["NameList"] = v
+		}
+		if v, ok := eventPatternArg["sql_filter"].(string); ok && v != "" {
+			eventPatternMap["SQLFilter"] = v
+		}
+
+		eventPatternMaps = append(eventPatternMaps, eventPatternMap)
+	}
+	request["EventPattern"] = eventPatternMaps
+
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
