@@ -359,7 +359,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudCmsEventRuleCreate(dInit, rawClient)
+	err = resourceAliCloudCloudMonitorServiceEventRuleCreate(dInit, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	ReadMockResponseDiff := map[string]interface{}{}
@@ -382,7 +382,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudCmsEventRuleCreate(dInit, rawClient)
+		err := resourceAliCloudCloudMonitorServiceEventRuleCreate(dInit, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -409,7 +409,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudCmsEventRuleUpdate(dExisted, rawClient)
+	err = resourceAliCloudCloudMonitorServiceEventRuleUpdate(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	attributesDiff := map[string]interface{}{
@@ -478,7 +478,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudCmsEventRuleUpdate(dExisted, rawClient)
+		err := resourceAliCloudCloudMonitorServiceEventRuleUpdate(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -522,7 +522,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudCmsEventRuleRead(dExisted, rawClient)
+		err := resourceAliCloudCloudMonitorServiceEventRuleRead(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -541,7 +541,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudCmsEventRuleDelete(dExisted, rawClient)
+	err = resourceAliCloudCloudMonitorServiceEventRuleDelete(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	attributesDiff = map[string]interface{}{}
@@ -569,7 +569,7 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudCmsEventRuleDelete(dExisted, rawClient)
+		err := resourceAliCloudCloudMonitorServiceEventRuleDelete(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -579,3 +579,896 @@ func TestUnitAlicloudCmsEventRule(t *testing.T) {
 		}
 	}
 }
+
+// Test CloudMonitorService EventRule. >>> Resource test cases, automatically generated.
+// Case 4285
+func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_event_rule.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceEventRuleMap4285)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceEventRule")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%scloudmonitorserviceeventrule%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceEventRuleBasicDependence4285)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"event_rule_name": name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"event_rule_name": name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "ENABLED",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "ENABLED",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "Description1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "Description1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_id": "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "ContactGroupName111",
+							"level":                 "3",
+							"contact_parameters_id": "111",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs1",
+							"arn":                    "acs:openapi:cn-hangzhou:null:log1/PutLogs1/2019-01-01/MyRole1",
+							"product":                "log1",
+							"region":                 "cn-hangzhou",
+							"role":                   "MyRole1",
+							"version":                "2019-01-01",
+							"open_api_parameters_id": "22",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"open_api_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject3",
+							"log_store":         "testlogstore3",
+							"arn":               "acs:log:cn-hangzhou::project/testproject3/logstore/testlogstore3",
+							"region":            "cn-hangzhou",
+							"sls_parameters_id": "33",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"sls_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com1",
+							"method":                "POST",
+							"protocol":              "http",
+							"webhook_parameters_id": "44",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"webhook_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName15",
+							"function_name":    "FunctionNamee5",
+							"arn":              "acs:log:cn-hangzhou::services/ServiceName15/functions/FunctionNamee5",
+							"region":           "cn-hangzhou",
+							"fc_parameters_id": "55",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fc_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue16",
+							"arn":               "acs:mns:cn-hangzhou::/queues/queue16/messages",
+							"region":            "cn-hangzhou",
+							"mns_parameters_id": "66",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"mns_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "DISABLED",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "DISABLED",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "Description2312",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "Description2312",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_id": "${alicloud_cms_monitor_group.defaultGp1.group_id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "云账号报警联系人1",
+							"level":                 "2",
+							"contact_parameters_id": "1",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs",
+							"arn":                    "acs:openapi:cn-beijing:null:log/PutLogs/2018-03-08/MyRole",
+							"product":                "log",
+							"region":                 "cn-beijing",
+							"role":                   "MyRole",
+							"version":                "2018-03-08",
+							"open_api_parameters_id": "2",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"open_api_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject",
+							"log_store":         "testlogstore",
+							"arn":               "acs:log:cn-beijing::project/testproject/logstore/testlogstore",
+							"region":            "cn-beijing",
+							"sls_parameters_id": "3",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"sls_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com",
+							"method":                "get",
+							"protocol":              "telnet",
+							"webhook_parameters_id": "4",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"webhook_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName1",
+							"function_name":    "FunctionNamee",
+							"arn":              "acs:log:cn-beijing::services/ServiceName1/functions/FunctionNamee",
+							"region":           "cn-beijing",
+							"fc_parameters_id": "5",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fc_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue1",
+							"arn":               "acs:mns:cn-beijing::/queues/queue1/messages",
+							"region":            "cn-beijing",
+							"mns_parameters_id": "6",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"mns_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "ENABLED",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "ENABLED",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "Description1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "Description1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_id": "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "ContactGroupName111",
+							"level":                 "3",
+							"contact_parameters_id": "111",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs1",
+							"arn":                    "acs:openapi:cn-hangzhou:null:log1/PutLogs1/2019-01-01/MyRole1",
+							"product":                "log1",
+							"region":                 "cn-hangzhou",
+							"role":                   "MyRole1",
+							"version":                "2019-01-01",
+							"open_api_parameters_id": "22",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"open_api_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject3",
+							"log_store":         "testlogstore3",
+							"arn":               "acs:log:cn-hangzhou::project/testproject3/logstore/testlogstore3",
+							"region":            "cn-hangzhou",
+							"sls_parameters_id": "33",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"sls_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com1",
+							"method":                "POST",
+							"protocol":              "http",
+							"webhook_parameters_id": "44",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"webhook_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName15",
+							"function_name":    "FunctionNamee5",
+							"arn":              "acs:log:cn-hangzhou::services/ServiceName15/functions/FunctionNamee5",
+							"region":           "cn-hangzhou",
+							"fc_parameters_id": "55",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fc_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue16",
+							"arn":               "acs:mns:cn-hangzhou::/queues/queue16/messages",
+							"region":            "cn-hangzhou",
+							"mns_parameters_id": "66",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"mns_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "DISABLED",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "DISABLED",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "Description2312",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "Description2312",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_id": "${alicloud_cms_monitor_group.defaultGp1.group_id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "云账号报警联系人1",
+							"level":                 "2",
+							"contact_parameters_id": "1",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs",
+							"arn":                    "acs:openapi:cn-beijing:null:log/PutLogs/2018-03-08/MyRole",
+							"product":                "log",
+							"region":                 "cn-beijing",
+							"role":                   "MyRole",
+							"version":                "2018-03-08",
+							"open_api_parameters_id": "2",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"open_api_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject",
+							"log_store":         "testlogstore",
+							"arn":               "acs:log:cn-beijing::project/testproject/logstore/testlogstore",
+							"region":            "cn-beijing",
+							"sls_parameters_id": "3",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"sls_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com",
+							"method":                "get",
+							"protocol":              "telnet",
+							"webhook_parameters_id": "4",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"webhook_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName1",
+							"function_name":    "FunctionNamee",
+							"arn":              "acs:log:cn-beijing::services/ServiceName1/functions/FunctionNamee",
+							"region":           "cn-beijing",
+							"fc_parameters_id": "5",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fc_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue1",
+							"arn":               "acs:mns:cn-beijing::/queues/queue1/messages",
+							"region":            "cn-beijing",
+							"mns_parameters_id": "6",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"mns_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"open_api_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"open_api_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"sls_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"sls_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"webhook_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"webhook_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fc_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fc_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"mns_parameters": []map[string]interface{}{
+						{},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"mns_parameters.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status":       "ENABLED",
+					"silence_time": "86400",
+					"event_pattern": []map[string]interface{}{
+						{
+							"sql_filter": "11223ANDxx",
+							"product":    "ECS",
+							"level_list": []string{
+								"CRITICAL"},
+							"event_type_list": []string{
+								"Exception"},
+							"name_list": []string{
+								"Disk:ErrorDetected:Executing"},
+							"status_list": []string{
+								"Normal"},
+						},
+					},
+					"description":     "Description1",
+					"event_rule_name": name + "_update",
+					"group_id":        "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "ContactGroupName111",
+							"level":                 "3",
+							"contact_parameters_id": "111",
+						},
+					},
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs1",
+							"arn":                    "acs:openapi:cn-hangzhou:null:log1/PutLogs1/2019-01-01/MyRole1",
+							"product":                "log1",
+							"region":                 "cn-hangzhou",
+							"role":                   "MyRole1",
+							"version":                "2019-01-01",
+							"open_api_parameters_id": "22",
+						},
+					},
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject3",
+							"log_store":         "testlogstore3",
+							"arn":               "acs:log:cn-hangzhou::project/testproject3/logstore/testlogstore3",
+							"region":            "cn-hangzhou",
+							"sls_parameters_id": "33",
+						},
+					},
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com1",
+							"method":                "POST",
+							"protocol":              "http",
+							"webhook_parameters_id": "44",
+						},
+					},
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName15",
+							"function_name":    "FunctionNamee5",
+							"arn":              "acs:log:cn-hangzhou::services/ServiceName15/functions/FunctionNamee5",
+							"region":           "cn-hangzhou",
+							"fc_parameters_id": "55",
+						},
+					},
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue16",
+							"arn":               "acs:mns:cn-hangzhou::/queues/queue16/messages",
+							"region":            "cn-hangzhou",
+							"mns_parameters_id": "66",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status":                "ENABLED",
+						"silence_time":          "86400",
+						"description":           "Description1",
+						"event_rule_name":       name + "_update",
+						"group_id":              CHECKSET,
+						"contact_parameters.#":  "1",
+						"open_api_parameters.#": "1",
+						"sls_parameters.#":      "1",
+						"webhook_parameters.#":  "1",
+						"fc_parameters.#":       "1",
+						"mns_parameters.#":      "1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"silence_time"},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceEventRuleMap4285 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceEventRuleBasicDependence4285(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_cms_monitor_group" "defaultMs3hsi" {
+  monitor_group_name = var.name
+}
+
+resource "alicloud_cms_monitor_group" "defaultGp1" {
+  monitor_group_name = "${var.name}1"
+}
+
+
+`, name)
+}
+
+// Case 4285  twin
+func TestAccAliCloudCloudMonitorServiceEventRule_basic4285_twin(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_event_rule.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceEventRuleMap4285)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceEventRule")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%scloudmonitorserviceeventrule%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceEventRuleBasicDependence4285)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status":       "DISABLED",
+					"silence_time": "900",
+					"event_pattern": []map[string]interface{}{
+						{
+							"sql_filter": "Warn and i-123xxx222",
+							"product":    "CloudMonitor",
+							"level_list": []string{
+								"INFO", "CRITICAL"},
+							"event_type_list": []string{
+								"Exception", "Alert"},
+							"name_list": []string{
+								"Agent_Status_Running"},
+							"status_list": []string{
+								"running"},
+						},
+					},
+					"description":     "Description2312",
+					"event_rule_name": name,
+					"group_id":        "${alicloud_cms_monitor_group.defaultGp1.id}",
+					"contact_parameters": []map[string]interface{}{
+						{
+							"contact_group_name":    "云账号报警联系人1",
+							"level":                 "2",
+							"contact_parameters_id": "1",
+						},
+					},
+					"open_api_parameters": []map[string]interface{}{
+						{
+							"action":                 "PutLogs",
+							"arn":                    "acs:openapi:cn-beijing:null:log/PutLogs/2018-03-08/MyRole",
+							"product":                "log",
+							"region":                 "cn-beijing",
+							"role":                   "MyRole",
+							"version":                "2018-03-08",
+							"open_api_parameters_id": "2",
+						},
+					},
+					"sls_parameters": []map[string]interface{}{
+						{
+							"project":           "testproject",
+							"log_store":         "testlogstore",
+							"arn":               "acs:log:cn-beijing::project/testproject/logstore/testlogstore",
+							"region":            "cn-beijing",
+							"sls_parameters_id": "3",
+						},
+					},
+					"webhook_parameters": []map[string]interface{}{
+						{
+							"url":                   "http://www.aliyun.com",
+							"method":                "get",
+							"protocol":              "telnet",
+							"webhook_parameters_id": "4",
+						},
+					},
+					"fc_parameters": []map[string]interface{}{
+						{
+							"service_name":     "ServiceName1",
+							"function_name":    "FunctionNamee",
+							"arn":              "acs:log:cn-beijing::services/ServiceName1/functions/FunctionNamee",
+							"region":           "cn-beijing",
+							"fc_parameters_id": "5",
+						},
+					},
+					"mns_parameters": []map[string]interface{}{
+						{
+							"queue":             "queue1",
+							"arn":               "acs:mns:cn-beijing::/queues/queue1/messages",
+							"region":            "cn-beijing",
+							"mns_parameters_id": "6",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status":                "DISABLED",
+						"silence_time":          "900",
+						"description":           "Description2312",
+						"event_rule_name":       name,
+						"group_id":              CHECKSET,
+						"contact_parameters.#":  "1",
+						"open_api_parameters.#": "1",
+						"sls_parameters.#":      "1",
+						"webhook_parameters.#":  "1",
+						"fc_parameters.#":       "1",
+						"mns_parameters.#":      "1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"silence_time"},
+			},
+		},
+	})
+}
+
+// Test CloudMonitorService EventRule. <<< Resource test cases, automatically generated.
