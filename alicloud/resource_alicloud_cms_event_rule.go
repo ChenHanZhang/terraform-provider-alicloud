@@ -491,19 +491,19 @@ func resourceAliCloudCloudMonitorServiceEventRuleUpdate(d *schema.ResourceData, 
 	request["RuleName"] = d.Id()
 	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
-		request["Description"] = d.Get("description")
 	}
+	request["Description"] = d.Get("description")
 
 	request["EventType"] = "SYSTEM"
 	if !d.IsNewResource() && d.HasChange("group_id") {
 		update = true
-		request["GroupId"] = d.Get("group_id")
 	}
+	request["GroupId"] = d.Get("group_id")
 
 	if !d.IsNewResource() && d.HasChange("status") {
 		update = true
-		request["State"] = d.Get("status")
 	}
+	request["State"] = d.Get("status")
 
 	if v, ok := d.GetOk("silence_time"); ok {
 		request["SilenceTime"] = v

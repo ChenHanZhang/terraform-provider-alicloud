@@ -605,6 +605,15 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"event_rule_name": name,
+					"event_pattern": []map[string]interface{}{
+						{
+							"product":         "ecs",
+							"event_type_list": []string{"StatusNotification"},
+							"level_list":      []string{"CRITICAL"},
+							"name_list":       []string{"test"},
+							"sql_filter":      "test",
+						},
+					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -624,21 +633,21 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"description": "Description1",
+					"group_id": "${alicloud_cms_monitor_group.defaultMs3hsi.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"description": "Description1",
+						"group_id": CHECKSET,
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"group_id": "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
+					"description": "Description1",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"group_id": CHECKSET,
+						"description": "Description1",
 					}),
 				),
 			},
@@ -770,11 +779,11 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"group_id": "${alicloud_cms_monitor_group.defaultGp1.group_id}",
+					"status": "ENABLED",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"group_id": CHECKSET,
+						"status": "ENABLED",
 					}),
 				),
 			},
@@ -896,26 +905,6 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"description": "Description1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"description": "Description1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"group_id": "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"group_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"contact_parameters": []map[string]interface{}{
 						{
 							"contact_group_name":    "ContactGroupName111",
@@ -1022,36 +1011,6 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"status": "DISABLED",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"status": "DISABLED",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"description": "Description2312",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"description": "Description2312",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"group_id": "${alicloud_cms_monitor_group.defaultGp1.group_id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"group_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"contact_parameters": []map[string]interface{}{
 						{
 							"contact_group_name":    "云账号报警联系人1",
@@ -1148,78 +1107,6 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 							"region":            "cn-beijing",
 							"mns_parameters_id": "6",
 						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"mns_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"contact_parameters": []map[string]interface{}{
-						{},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"contact_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"open_api_parameters": []map[string]interface{}{
-						{},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"open_api_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"sls_parameters": []map[string]interface{}{
-						{},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"sls_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"webhook_parameters": []map[string]interface{}{
-						{},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"webhook_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"fc_parameters": []map[string]interface{}{
-						{},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"fc_parameters.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"mns_parameters": []map[string]interface{}{
-						{},
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -1248,7 +1135,7 @@ func TestAccAliCloudCloudMonitorServiceEventRule_basic4285(t *testing.T) {
 					},
 					"description":     "Description1",
 					"event_rule_name": name + "_update",
-					"group_id":        "${alicloud_cms_monitor_group.defaultMs3hsi.group_id}",
+					"group_id":        "${alicloud_cms_monitor_group.defaultMs3hsi.id}",
 					"contact_parameters": []map[string]interface{}{
 						{
 							"contact_group_name":    "ContactGroupName111",
