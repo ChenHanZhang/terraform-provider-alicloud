@@ -1084,7 +1084,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_api_gateway_app_attachment":                            resourceAliyunApigatewayAppAttachment(),
 			"alicloud_api_gateway_vpc_access":                                resourceAliyunApigatewayVpc(),
 			"alicloud_common_bandwidth_package":                              resourceAliCloudCbwpCommonBandwidthPackage(),
-			"alicloud_common_bandwidth_package_attachment":                   resourceAliCloudCommonBandwidthPackageAttachment(),
+			"alicloud_common_bandwidth_package_attachment":                   resourceAliCloudCbwpCommonBandwidthPackageAttachment(),
 			"alicloud_drds_instance":                                         resourceAlicloudDRDSInstance(),
 			"alicloud_elasticsearch_instance":                                resourceAlicloudElasticsearch(),
 			"alicloud_cas_certificate":                                       resourceAliCloudSslCertificatesServiceCertificate(),
