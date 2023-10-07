@@ -525,7 +525,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentCreate(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -542,7 +542,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentCreate(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -559,7 +559,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentCreate(dCreate, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -577,7 +577,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 		})
 
-		err := resourceAlicloudCenTransitRouterVpcAttachmentUpdate(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentUpdate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -612,7 +612,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentUpdate(resourceData1, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -647,7 +647,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentUpdate(resourceData1, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -662,7 +662,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -679,7 +679,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -699,7 +699,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 		patcheDescribeCenTransitRouterVpcAttachment := gomonkey.ApplyMethod(reflect.TypeOf(&CbnService{}), "DescribeCenTransitRouterVpcAttachment", func(*CbnService, string) (map[string]interface{}, error) {
 			return responseMock["NotFoundError"]("ResourceNotfound")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentDelete(d, rawClient)
 		patches.Reset()
 		patcheDescribeCenTransitRouterVpcAttachment.Reset()
 		assert.Nil(t, err)
@@ -717,7 +717,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentRead(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -733,7 +733,7 @@ func TestUnitAlicloudCenTransitRouterVpcAttachment(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudCenTransitRouterVpcAttachmentRead(d, rawClient)
+		err := resourceAliCloudCenTransitRouterVpcAttachmentRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
