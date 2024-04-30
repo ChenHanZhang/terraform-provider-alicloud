@@ -971,18 +971,6 @@ func ParseSlbListenerId(id string) (parts []string, err error) {
 	return parts, err
 }
 
-func GetCenChildInstanceType(id string) (c string, e error) {
-	if strings.HasPrefix(id, "vpc") {
-		return ChildInstanceTypeVpc, nil
-	} else if strings.HasPrefix(id, "vbr") {
-		return ChildInstanceTypeVbr, nil
-	} else if strings.HasPrefix(id, "ccn") {
-		return ChildInstanceTypeCcn, nil
-	} else {
-		return c, fmt.Errorf("CEN child instance ID invalid. Now, it only supports VPC or VBR or CCN instance.")
-	}
-}
-
 func BuildStateConf(pending, target []string, timeout, delay time.Duration, f resource.StateRefreshFunc) *resource.StateChangeConf {
 	return &resource.StateChangeConf{
 		Pending:    pending,

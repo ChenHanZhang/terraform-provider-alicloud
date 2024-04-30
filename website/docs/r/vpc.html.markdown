@@ -10,11 +10,9 @@ description: |-
 
 Provides a Vpc Vpc resource. A VPC instance creates a VPC. You can fully control your own VPC, such as selecting IP address ranges, configuring routing tables, and gateways. You can use Alibaba cloud resources such as cloud servers, apsaradb for RDS, and load balancer in your own VPC. 
 
--> **NOTE:** Available since v1.0.0.
-
 -> **NOTE:** This resource will auto build a router and a route table while it uses `alicloud_vpc` to build a vpc resource. 
 
--> **NOTE:** Currently, the IPv4 / IPv6 dual-stack VPC function is under public testing. Only the following regions support IPv4 / IPv6 dual-stack VPC: `cn-hangzhou`, `cn-shanghai`, `cn-shenzhen`, `cn-beijing`, `cn-huhehaote`, `cn-hongkong` and `ap-southeast-1`, and need to apply for public beta qualification. To use, please [submit an application](https://www.alibabacloud.com/help/en/vpc/getting-started/create-a-vpc-with-an-ipv6-cidr-block).
+-> **NOTE:** Currently, the IPv4 / IPv6 dual-stack VPC function is under public testing. Only the following regions support IPv4 / IPv6 dual-stack VPC: `cn-hangzhou`, `cn-shanghai`, `cn-shenzhen`, `cn-beijing`, `cn-huhehaote`, `cn-hongkong` and `ap-southeast-1`, and need to apply for public beta qualification. To use, please [submit an application](https://help.aliyun.com/document_detail/100334.html).
 
 ## Module Support
 
@@ -32,16 +30,18 @@ variable "name" {
   default = "terraform-example"
 }
 
+provider "alicloud" {
+  region = "cn-hangzhou"
+}
+
 
 resource "alicloud_vpc" "default" {
   ipv6_isp    = "BGP"
   description = "test"
   cidr_block  = "10.0.0.0/8"
   vpc_name    = var.name
-  enable_ipv6 = true
 }
 ```
-
 
 ## Argument Reference
 
@@ -55,6 +55,7 @@ The following arguments are supported:
 * `enable_ipv6` - (Optional, Available since v1.119.0) Whether to enable the IPv6 network segment. Value:
   - **false** (default): not enabled.
   - **true**: on.
+* `ipv4_ipam_pool_id` - (Optional) IPv4 IPAM address pool instance ID.
 * `ipv6_isp` - (Optional) The IPv6 address segment type of the VPC. Value:
   - **BGP** (default): Alibaba Cloud BGP IPv6.
   - **ChinaMobile**: China Mobile (single line).
@@ -69,7 +70,7 @@ The following arguments are supported:
 
 The following arguments will be discarded. Please use new fields as soon as possible:
 * `name` - (Deprecated since v1.119.0). Field 'name' has been deprecated from provider version 1.119.0. New field 'vpc_name' instead.
-* `router_table_id` - (Deprecated since v1.206.0+) Field 'router_table_id' has been deprecated from provider version 1.206.0. New field 'route_table_id' instead.
+* `router_table_id` - (Deprecated since v1.224.0). Field 'router_table_id' has been deprecated from provider version 1.224.0. New field 'route_table_id' instead.
 
 ## Attributes Reference
 
@@ -80,9 +81,9 @@ The following attributes are exported:
 * `ipv6_cidr_blocks` - The IPv6 CIDR block information of the VPC.
   * `ipv6_cidr_block` - The IPv6 CIDR block of the VPC.
   * `ipv6_isp` - Valid values: **BGP** (default): Alibaba Cloud BGP IPv6.
-    - **ChinaMobile**: China Mobile (single line).
-    - **ChinaUnicom**: China Unicom (single line).
-    - **ChinaTelecom**: China Telecom (single line).
+  - **ChinaMobile**: China Mobile (single line).
+  - **ChinaUnicom**: China Unicom (single line).
+  - **ChinaTelecom**: China Telecom (single line).
 * `route_table_id` - The route table ID of the router created by default on VPC creation.
 * `router_id` - The ID of the router created by default on VPC creation.
 * `status` - The status of the VPC.   **Pending**: The VPC is being configured. **Available**: The VPC is available.

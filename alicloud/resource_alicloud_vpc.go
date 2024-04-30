@@ -87,8 +87,10 @@ func resourceAliCloudVpcVpc() *schema.Resource {
 				Computed: true,
 			},
 			"route_table_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"router_table_id"},
 			},
 			"router_id": {
 				Type:     schema.TypeString,
@@ -127,8 +129,9 @@ func resourceAliCloudVpcVpc() *schema.Resource {
 			},
 			"router_table_id": {
 				Type:       schema.TypeString,
+				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'router_table_id' has been deprecated since provider version 1.221.0. New field 'route_table_id' instead.",
+				Deprecated: "Field 'router_table_id' has been deprecated since provider version 1.224.0. New field 'route_table_id' instead.",
 			},
 		},
 	}
@@ -542,6 +545,9 @@ func resourceAliCloudVpcVpcUpdate(d *schema.ResourceData, meta interface{}) erro
 					request["SecondaryCidrBlock"] = jsonPathResult
 				}
 				request["IpVersion"] = "IPV4"
+				if v, ok := item.(string); ok {
+					request["IpamPoolId"] = v
+				}
 				runtime := util.RuntimeOptions{}
 				runtime.SetAutoretry(true)
 				wait := incrementalWait(3*time.Second, 5*time.Second)
