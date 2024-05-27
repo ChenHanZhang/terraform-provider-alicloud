@@ -66,9 +66,7 @@ func resourceAliCloudOssBucketDataRedundancyTransitionCreate(d *schema.ResourceD
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	if v, ok := d.GetOk("target_redundancy_type"); ok {
-		query["x-oss-target-redundancy-type"] = StringPointer(v.(string))
-	}
+	query["x-oss-target-redundancy-type"] = StringPointer("ZRS")
 	body = request
 	runtime := util.RuntimeOptions{}
 	runtime.SetAutoretry(true)
