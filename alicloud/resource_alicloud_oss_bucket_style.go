@@ -164,6 +164,9 @@ func resourceAliCloudOssBucketStyleUpdate(d *schema.ResourceData, meta interface
 		request["Style"] = objectDataLocalMap
 	}
 
+	if d.HasChange("category") {
+		update = true
+	}
 	if v, ok := d.GetOk("category"); ok {
 		query["category"] = StringPointer(v.(string))
 	}
