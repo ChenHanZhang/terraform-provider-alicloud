@@ -82,6 +82,12 @@ func resourceAliCloudOssAccountPublicAccessBlockCreate(d *schema.ResourceData, m
 	accountId, err := client.AccountId()
 	d.SetId(fmt.Sprintf(accountId))
 
+	ossServiceV2 := OssServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("block_public_access"))}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ossServiceV2.OssAccountPublicAccessBlockStateRefreshFunc(d.Id(), "BlockPublicAccess", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
+	}
+
 	return resourceAliCloudOssAccountPublicAccessBlockRead(d, meta)
 }
 
@@ -148,6 +154,11 @@ func resourceAliCloudOssAccountPublicAccessBlockUpdate(d *schema.ResourceData, m
 		})
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		ossServiceV2 := OssServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("block_public_access"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ossServiceV2.OssAccountPublicAccessBlockStateRefreshFunc(d.Id(), "BlockPublicAccess", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 

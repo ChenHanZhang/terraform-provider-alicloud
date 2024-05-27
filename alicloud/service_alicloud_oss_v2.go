@@ -1037,6 +1037,7 @@ func (s *OssServiceV2) OssBucketDataRedundancyTransitionStateRefreshFunc(id stri
 }
 
 // DescribeOssBucketDataRedundancyTransition >>> Encapsulated.
+
 // DescribeOssAccountPublicAccessBlock <<< Encapsulated get interface for Oss AccountPublicAccessBlock.
 
 func (s *OssServiceV2) DescribeOssAccountPublicAccessBlock(id string) (object map[string]interface{}, err error) {
