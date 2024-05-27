@@ -105,7 +105,7 @@ func resourceAliCloudOssBucketStyleCreate(d *schema.ResourceData, meta interface
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_style", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprintf("%v:%v", *hostMap["bucket"], request["styleName"]))
+	d.SetId(fmt.Sprintf("%v:%v", *hostMap["bucket"], *query["styleName"]))
 
 	return resourceAliCloudOssBucketStyleRead(d, meta)
 }
