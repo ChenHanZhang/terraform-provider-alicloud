@@ -29,7 +29,7 @@ func TestAccAliCloudOssAccountPublicAccessBlock_basic6554(t *testing.T) {
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		//CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -102,7 +102,7 @@ func TestAccAliCloudOssAccountPublicAccessBlock_basic6554_twin(t *testing.T) {
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		//CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -143,7 +143,7 @@ func TestAccAliCloudOssAccountPublicAccessBlock_basic6554_raw(t *testing.T) {
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		//CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

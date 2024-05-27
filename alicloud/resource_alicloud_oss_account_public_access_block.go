@@ -79,7 +79,8 @@ func resourceAliCloudOssAccountPublicAccessBlockCreate(d *schema.ResourceData, m
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_account_public_access_block", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprintf(""))
+	accountId, err := client.AccountId()
+	d.SetId(fmt.Sprintf(accountId))
 
 	return resourceAliCloudOssAccountPublicAccessBlockRead(d, meta)
 }
@@ -98,7 +99,7 @@ func resourceAliCloudOssAccountPublicAccessBlockRead(d *schema.ResourceData, met
 		return WrapError(err)
 	}
 
-	d.Set("block_public_access", objectRaw["BlockPublicAccess"])
+	d.Set("block_public_access", formatBool(objectRaw["BlockPublicAccess"]))
 
 	return nil
 }
