@@ -58,6 +58,9 @@ func testSweepVpcs(region string) error {
 		"tf_test_",
 		"tf-test-",
 		"testAcc",
+		"tf-example",
+		"tf-test",
+		"",
 	}
 
 	vpcIds := make([]string, 0)

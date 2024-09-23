@@ -37,7 +37,7 @@ func init() {
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"alicloud": testAccProvider,
 	}
-	setStsCredential()
+	// setStsCredential()
 }
 
 func TestProvider(t *testing.T) {
