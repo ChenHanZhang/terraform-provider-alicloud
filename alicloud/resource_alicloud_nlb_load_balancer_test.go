@@ -95,7 +95,23 @@ func testSweepNlbLoadBalancer(region string) error {
 					continue
 				}
 			}
-			action := "DeleteLoadBalancer"
+
+			action = "UpdateLoadBalancerProtection"
+			if err != nil {
+				return WrapError(err)
+			}
+			request = make(map[string]interface{})
+			request["LoadBalancerId"] = item["LoadBalancerId"]
+			request["RegionId"] = aliyunClient.RegionId
+			request["ClientToken"] = buildClientToken(action)
+			request["DeletionProtectionEnabled"] = "false"
+			_, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2022-04-30"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+			if err != nil {
+				log.Printf("[ERROR] Failed to UpdateLoadBalancerProtection Nlb Load Balancer (%s): %s", item["LoadBalancerName"].(string), err)
+			}
+			log.Printf("[INFO] UpdateLoadBalancerProtection Nlb Load Balancer success: %s ", item["LoadBalancerName"].(string))
+
+			action = "DeleteLoadBalancer"
 			request := map[string]interface{}{
 				"LoadBalancerId": item["LoadBalancerId"],
 				"RegionId":       aliyunClient.RegionId,
