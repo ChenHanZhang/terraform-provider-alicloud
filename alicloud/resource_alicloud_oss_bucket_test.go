@@ -35,6 +35,9 @@ func testSweepOSSBuckets(region string) error {
 		"tf-oss-test-",
 		"tf-object-test-",
 		"test-acc-alicloud-",
+		"tftest",
+		"cri",
+		"",
 	}
 
 	var options []oss.Option

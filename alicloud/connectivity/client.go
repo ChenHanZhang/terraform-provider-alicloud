@@ -707,18 +707,16 @@ func (client *AliyunClient) WithOssClient(do func(*oss.Client) (interface{}, err
 		clientOptions = append(clientOptions, oss.Region(client.config.RegionId))
 
 		// SignVersion
-		if ossV, ok := client.config.SignVersion.Load("oss"); ok {
-			clientOptions = append(clientOptions, oss.AuthVersion(func(v any) oss.AuthVersionType {
-				switch fmt.Sprintf("%v", v) {
-				case "v4":
-					return oss.AuthV4
-				case "v2":
-					return oss.AuthV2
-				}
-				//default is v1
-				return oss.AuthV1
-			}(ossV)))
-		}
+		clientOptions = append(clientOptions, oss.AuthVersion(func(v any) oss.AuthVersionType {
+			switch fmt.Sprintf("%v", v) {
+			case "v4":
+				return oss.AuthV4
+			case "v2":
+				return oss.AuthV2
+			}
+			//default is v1
+			return oss.AuthV1
+		}(oss.AuthV1)))
 
 		ossconn, err := oss.New(endpoint, "", "", clientOptions...)
 		if err != nil {

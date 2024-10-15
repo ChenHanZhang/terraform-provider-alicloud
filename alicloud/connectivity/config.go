@@ -223,10 +223,10 @@ func (c *Config) validateRegion() error {
 }
 
 func (c *Config) getAuthCredential(stsSupported bool) auth.Credential {
-	credential, err := c.Credential.GetCredential()
-	if err == nil && credential != nil {
-		c.AccessKey, c.SecretKey, c.SecurityToken = *credential.AccessKeyId, *credential.AccessKeySecret, *credential.SecurityToken
-	}
+	//credential, err := c.Credential.GetCredential()
+	//if err == nil && credential != nil {
+	//	c.AccessKey, c.SecretKey, c.SecurityToken = *credential.AccessKeyId, *credential.AccessKeySecret, *credential.SecurityToken
+	//}
 	if c.AccessKey != "" && c.SecretKey != "" {
 		if stsSupported && c.SecurityToken != "" {
 			return credentials.NewStsTokenCredential(c.AccessKey, c.SecretKey, c.SecurityToken)
