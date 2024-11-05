@@ -45,6 +45,13 @@ func init() {
 	})
 }
 
+func TestAccAliCloudVPC_sweep(t *testing.T) {
+	testSweepInstances("cn-wulanchabu")
+	testSweepSecurityGroups("cn-wulanchabu")
+	testSweepVSwitches("cn-wulanchabu")
+	testSweepVpcs("cn-wulanchabu")
+}
+
 func testSweepVpcs(region string) error {
 	rawClient, err := sharedClientForRegion(region)
 	if err != nil {
