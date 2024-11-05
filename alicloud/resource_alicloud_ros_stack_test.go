@@ -32,6 +32,11 @@ func init() {
 		})
 }
 
+func TestAccAlicloudROSStack_sweep(t *testing.T) {
+	testSweepRosStack("cn-hangzhou")
+	testSweepRosStack("eu-central-1")
+}
+
 func testSweepRosStack(region string) error {
 	rawClient, err := sharedClientForRegion(region)
 	if err != nil {
@@ -42,6 +47,8 @@ func testSweepRosStack(region string) error {
 	prefixes := []string{
 		"tf-testAcc",
 		"tf-testacc",
+		"tf-",
+		"",
 	}
 	request := map[string]interface{}{
 		"PageSize":   PageSizeLarge,
