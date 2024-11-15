@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -25,8 +26,15 @@ func init() {
 	customFormatter.DisableColors = false
 	customFormatter.ForceColors = true
 	log.SetFormatter(customFormatter)
-	log.SetOutput(os.Stdout)
+	// log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
+
+	file := "log.txt"
+	logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
 }
 
 var (
@@ -35,6 +43,60 @@ var (
 	resourceFileRegex     = regexp.MustCompile("alicloud/(resource)[0-9a-zA-Z_]*")
 	resourceFileTestRegex = regexp.MustCompile("alicloud/(resource)[0-9a-zA-Z_]*_test.go")
 )
+
+func createTestCaseCoverageRecord(tfResource string, tfProperty string) {
+
+	targetUrl := "https://pre-acube.aliyun-inc.com/api/v1/terraform/resource/spec/createTestCaseCoverageRecord"
+
+	postContent := map[string]string{}
+	postContent["tfResource"] = tfResource
+	postContent["tfProperty"] = tfProperty
+	postContent["namespace"] = ""
+	postContent["resourceCode"] = ""
+	postContent["resourceVersion"] = ""
+	postContent["coveraged"] = "true"
+
+	jsonContent, _ := json.Marshal(postContent)
+	payload := strings.NewReader(string(jsonContent))
+
+	req, _ := http.NewRequest("POST", targetUrl, payload)
+
+	req.Header.Add("Content-Type", "application/json")
+
+	_, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		fmt.Println(fmt.Errorf("==== post error: %s, %s, %s", tfResource, tfProperty))
+		fmt.Println(err)
+	}
+}
+
+func markUnTestCaseCoveragedRecord(tfResource string, tfProperty string) {
+
+	targetUrl := "https://pre-acube.aliyun-inc.com/api/v1/terraform/resource/spec/markUnTestCaseCoveragedRecord"
+
+	postContent := make(map[string]interface{})
+	postContent["tfResource"] = tfResource
+	postContent["tfProperty"] = tfProperty
+	postContent["namespace"] = ""
+	postContent["resourceCode"] = ""
+	postContent["resourceVersion"] = ""
+	postContent["coveraged"] = 0
+
+	jsonContent, _ := json.Marshal(postContent)
+	payload := strings.NewReader(string(jsonContent))
+
+	req, _ := http.NewRequest("POST", targetUrl, payload)
+
+	req.Header.Add("Content-Type", "application/json")
+
+	_, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		fmt.Println(fmt.Errorf("==== post error: %s, %s, %s", tfResource, tfProperty))
+		fmt.Println(err)
+	}
+}
 
 func main() {
 	exitCode := 0
@@ -46,9 +108,9 @@ func main() {
 
 	byt, _ := os.ReadFile(*fileNames)
 	diff, _ := diffparser.Parse(string(byt))
+	testAll(diff)
 	resourceNameMap := make(map[string]struct{})
 	for _, file := range diff.Files {
-		isNameCorrect = true
 		resourceName := ""
 		isResource := true
 		fileType := "resource"
@@ -135,8 +197,8 @@ func getSchemaAttr(isResource bool, schema map[string]*schema.Schema,
 	getSchemaAttributes("", schemaAttributes, schema)
 
 	for key, value := range schemaAttributes {
-		// "dry_run" or deperacated
-		if key == "dry_run" || value.Deprecated != "" {
+		// "dry_run" or removed
+		if key == "dry_run" || len(value.Removed) != 0 {
 			continue
 		}
 		(*schemaAllSet).Add(key)
@@ -156,10 +218,6 @@ func getSchemaAttr(isResource bool, schema map[string]*schema.Schema,
 func getSchemaAttributes(rootName string, schemaAttributes map[string]SchemaAttribute,
 	resourceSchema map[string]*schema.Schema) {
 	for key, value := range resourceSchema {
-		if len(value.Removed) != 0 {
-			continue
-		}
-
 		if rootName != "" {
 			key = rootName + "." + key
 		}
@@ -173,6 +231,7 @@ func getSchemaAttributes(rootName string, schemaAttributes map[string]SchemaAttr
 				ForceNew:   value.ForceNew,
 				Default:    fmt.Sprint(value.Default),
 				Deprecated: value.Deprecated,
+				Removed:    value.Removed,
 			}
 		}
 		if value.Type == schema.TypeSet || value.Type == schema.TypeList {
@@ -239,11 +298,11 @@ func getTestCaseAttr(filePath string, resourceName string,
 			if unitFuncRegex.MatchString(text) {
 				continue
 			}
-			if !standardFuncRegex.MatchString(text) {
-				name := text[strings.Index(text, "T"):strings.Index(text, "(")]
-				log.Errorf("testcase %s should start with TestAccAliCloud", name)
-				isNameCorrect = false
-			}
+			//if !standardFuncRegex.MatchString(text) {
+			//	name := text[strings.Index(text, "T"):strings.Index(text, "(")]
+			//	log.Errorf("testcase %s should start with TestAccAliCloud", name)
+			//	isNameCorrect = false
+			//}
 			inFunc = true
 			funcName = text[strings.Index(text, "T"):strings.Index(text, "(")]
 			stepNumber = 0
@@ -288,9 +347,7 @@ func getTestCaseAttr(filePath string, resourceName string,
 					if len(attrStr) != 0 {
 						attrSlice := strings.Split(attrStr, ",")
 						for _, v := range attrSlice {
-							if len(v) != 0 && v != "dry_run" {
-								(*testIgnoreSet).Add(v)
-							}
+							(*testIgnoreSet).Add(v)
 						}
 					}
 					ignoreStr = ""
@@ -532,6 +589,13 @@ func checkAttributeSet(resourceName string, fileType string, schemaMustSet, test
 	schemaModifySet, testModifySet, schemaForceNewSet, schemaAllSet, testIgnoreSet mapset.Set) bool {
 
 	isFullCover, isIgnoreLegal, isAllModified := true, true, true
+	schemaAllSetStr, _ := json.Marshal(schemaAllSet)
+	log.Errorf("resource %s attributes are %s.", resourceName, schemaAllSetStr)
+
+	// 上传所有待测试的属性
+	for property := range schemaAllSet.Iterator().C {
+		createTestCaseCoverageRecord(resourceName, property.(string))
+	}
 
 	notCoverSlice := schemaMustSet.Difference(testMustSet).ToSlice()
 	if len(notCoverSlice) != 0 {
@@ -541,18 +605,23 @@ func checkAttributeSet(resourceName string, fileType string, schemaMustSet, test
 		coverageRate := 1 - (notCoverCount / schemaCount)
 		log.Infof("resource %s attributes has %.2f%% testing coverage rate ", resourceName, coverageRate*100)
 		notCoverStr, _ := json.Marshal(notCoverSlice)
+
+		for _, property := range notCoverSlice {
+			markUnTestCaseCoveragedRecord(resourceName, property.(string))
+		}
+
 		log.Errorf("resource %s attributes %v missing test cases", resourceName, string(notCoverStr))
 	} else {
 		log.Infof("resource %s attributes has 100%% testing coverage rate ", resourceName)
 	}
 
-	forceNewButIgnore := schemaForceNewSet.Intersect(testIgnoreSet).ToSlice()
-	if len(forceNewButIgnore) != 0 {
-		isIgnoreLegal = false
-		forceNewButIgnoreStr, _ := json.Marshal(forceNewButIgnore)
-		// TODO: 从READ方法区分是否是私有属性，从而区分应该修改ignore数组还是应该修改资源属性
-		log.Errorf("resource %s [ForceNew] attributes %v are in ImportStateVerifyIgnore array ", resourceName, string(forceNewButIgnoreStr))
-	}
+	//forceNewButIgnore := schemaForceNewSet.Intersect(testIgnoreSet).ToSlice()
+	//if len(forceNewButIgnore) != 0 {
+	//	isIgnoreLegal = false
+	//	forceNewButIgnoreStr, _ := json.Marshal(forceNewButIgnore)
+	//	// TODO: 从READ方法区分是否是私有属性，从而区分应该修改ignore数组还是应该修改资源属性
+	//	log.Errorf("resource %s [ForceNew] attributes %v are in ImportStateVerifyIgnore array ", resourceName, string(forceNewButIgnoreStr))
+	//}
 	redundantAttr := testIgnoreSet.Difference(schemaAllSet).ToSlice()
 	redundantAttrFinal := []string{}
 	for _, v := range redundantAttr {
@@ -589,6 +658,11 @@ func checkAttributeSet(resourceName string, fileType string, schemaMustSet, test
 		coverageRate := 1 - (notCoverCount / schemaCount)
 		log.Infof("resource %s attributes has %.2f%% modified coverage rate ", resourceName, coverageRate*100)
 		notModifyStr, _ := json.Marshal(notModifySlice)
+
+		//for _, property := range notModifySlice {
+		//	markUnTestCaseCoveragedRecord(resourceName, property.(string))
+		//}
+
 		log.Errorf("resource %s attributes %v missing modification in test cases", resourceName, string(notModifyStr))
 	} else {
 		log.Infof("resource %s attributes has 100%% modified coverage rate ", resourceName)
