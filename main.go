@@ -129,6 +129,7 @@ func CoreSpecSchema(m map[string]*schema.Schema) Properties {
 			specAttribute.Default = attribute.Default
 			specAttribute.Deprecated = attribute.Deprecated
 			specAttribute.Sensitive = attribute.Sensitive
+			specAttribute.RequiredWith = attribute.RequiredWith
 			specAttribute.ConflictsWith = attribute.ConflictsWith
 			specAttribute.ExactlyOneOf = attribute.ExactlyOneOf
 			specAttribute.AtLeastOneOf = attribute.AtLeastOneOf
@@ -148,6 +149,7 @@ func CoreSpecSchema(m map[string]*schema.Schema) Properties {
 			specAttribute.Default = attribute.Default
 			specAttribute.Deprecated = attribute.Deprecated
 			specAttribute.Sensitive = attribute.Sensitive
+			specAttribute.RequiredWith = attribute.RequiredWith
 			specAttribute.ConflictsWith = attribute.ConflictsWith
 			specAttribute.ExactlyOneOf = attribute.ExactlyOneOf
 			specAttribute.AtLeastOneOf = attribute.AtLeastOneOf
@@ -230,29 +232,29 @@ func coreSpecAttributeStruct(v *schema.Schema) *Property {
 }
 
 type ResourceType struct {
-	ResourceTypeCode string                      `json:"resourceTypeCode"` // 资源名
-	Properties       `json:"resourceProperties"` // 资源属性定义
+	ResourceTypeCode string `json:"resourceTypeCode"` // 资源名
+	Properties       `json:"resourceProperties"`      // 资源属性定义
 }
 
 type Property struct {
-	Name                 string                        `json:"name"`                           // 属性code
-	Type                 primitiveTypeKind             `json:"type"`                           // 属性类型(int,string..)
-	Items                *Property                     `json:"items,omitempty"`                // 属性为array类型时，子项类型定义
-	AdditionalProperties *Property                     `json:"additionalProperties,omitempty"` // 属性为 map(object的特例) 类型时，项类型定义
-	Required             bool                          `json:"isRequired"`
-	Optional             bool                          `json:"isOptional"`
-	Computed             bool                          `json:"isComputed"`
-	ForceNew             bool                          `json:"isForceNew"`
-	DescriptionEn        string                        `json:"descriptionEn"`
-	Description          string                        `json:"description"`
-	Default              interface{}                   `json:"default"`
-	Deprecated           string                        `json:"deprecated"`
-	Sensitive            bool                          `json:"sensitive"`
-	Removed              string                        `json:"removed"`
-	RequiredWith         bool                          `json:"requiredWith"`
-	ConflictsWith        []string                      `json:"conflictsWith"`
-	AtLeastOneOf         []string                      `json:"atLeastOneOf"`
-	ExactlyOneOf         []string                      `json:"exactlyOneOf"`
+	Name                 string            `json:"name"`                           // 属性code
+	Type                 primitiveTypeKind `json:"type"`                           // 属性类型(int,string..)
+	Items                *Property         `json:"items,omitempty"`                // 属性为array类型时，子项类型定义
+	AdditionalProperties *Property         `json:"additionalProperties,omitempty"` // 属性为 map(object的特例) 类型时，项类型定义
+	Required             bool              `json:"isRequired"`
+	Optional             bool              `json:"isOptional"`
+	Computed             bool              `json:"isComputed"`
+	ForceNew             bool              `json:"isForceNew"`
+	DescriptionEn        string            `json:"descriptionEn"`
+	Description          string            `json:"description"`
+	Default              interface{}       `json:"default"`
+	Deprecated           string            `json:"deprecated"`
+	Sensitive            bool              `json:"sensitive"`
+	Removed              string            `json:"removed"`
+	RequiredWith         []string          `json:"requiredWith"`
+	ConflictsWith        []string          `json:"conflictsWith"`
+	AtLeastOneOf         []string          `json:"atLeastOneOf"`
+	ExactlyOneOf         []string          `json:"exactlyOneOf"`
 	*Properties          `json:"properties,omitempty"` // 属性为object类型时，子属性结构定义
 }
 
