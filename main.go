@@ -80,7 +80,7 @@ func traversalProviderResources() {
 		namespace := codes[1]
 		resourceType := camelString(strings.Join(codes[2:], "_"))
 		fmt.Println(namespace, resourceType, string(b))
-		// postSpecSchema(resourceCode, namespace, resourceType, string(b))
+		postSpecSchema(resourceCode, namespace, resourceType, string(b))
 	}
 }
 
@@ -120,16 +120,38 @@ func CoreSpecSchema(m map[string]*schema.Schema) Properties {
 
 	for name, attribute := range m {
 		if attribute.Elem == nil {
-			specAttribute := coreSpecSchemaAttribute(attribute)
+			specAttribute := coreSpecAttributeStruct(attribute)
 			specAttribute.Name = name
+			specAttribute.Optional = attribute.Optional
+			specAttribute.Required = attribute.Required
+			specAttribute.ForceNew = attribute.ForceNew
+			specAttribute.Computed = attribute.Computed
+			specAttribute.Default = attribute.Default
+			specAttribute.Deprecated = attribute.Deprecated
+			specAttribute.Sensitive = attribute.Sensitive
+			specAttribute.ConflictsWith = attribute.ConflictsWith
+			specAttribute.ExactlyOneOf = attribute.ExactlyOneOf
+			specAttribute.AtLeastOneOf = attribute.AtLeastOneOf
+			specAttribute.Removed = attribute.Removed
 			ret[name] = specAttribute
 			continue
 		}
 
 		switch attribute.Elem.(type) {
 		case *schema.Schema, schema.ValueType, *schema.Resource:
-			specAttribute := coreSpecSchemaAttribute(attribute)
+			specAttribute := coreSpecAttributeStruct(attribute)
 			specAttribute.Name = name
+			specAttribute.Optional = attribute.Optional
+			specAttribute.Required = attribute.Required
+			specAttribute.ForceNew = attribute.ForceNew
+			specAttribute.Computed = attribute.Computed
+			specAttribute.Default = attribute.Default
+			specAttribute.Deprecated = attribute.Deprecated
+			specAttribute.Sensitive = attribute.Sensitive
+			specAttribute.ConflictsWith = attribute.ConflictsWith
+			specAttribute.ExactlyOneOf = attribute.ExactlyOneOf
+			specAttribute.AtLeastOneOf = attribute.AtLeastOneOf
+			specAttribute.Removed = attribute.Removed
 			ret[name] = specAttribute
 		default:
 			// Should never happen for a valid schema
@@ -140,7 +162,7 @@ func CoreSpecSchema(m map[string]*schema.Schema) Properties {
 	return ret
 }
 
-func coreSpecSchemaAttribute(v *schema.Schema) *Property {
+func coreSpecAttributeStruct(v *schema.Schema) *Property {
 	switch v.Type {
 	case schema.TypeBool:
 		return &Property{
@@ -174,7 +196,7 @@ func coreSpecSchemaAttribute(v *schema.Schema) *Property {
 			}
 		case *schema.Schema:
 			// 当Elem使用Schema，即一个基本数据类型节点
-			property = coreSpecSchemaAttribute(set)
+			property = coreSpecAttributeStruct(set)
 			basicType = true
 		case *schema.Resource:
 			// 当Elem使用Resource，即一个复合数据类型节点
@@ -223,9 +245,14 @@ type Property struct {
 	ForceNew             bool              `json:"isForceNew"`
 	DescriptionEn        string            `json:"descriptionEn"`
 	Description          string            `json:"description"`
-	Default              string            `json:"default"`
-	Deprecated           bool              `json:"deprecated"`
+	Default              interface{}       `json:"default"`
+	Deprecated           string            `json:"deprecated"`
 	Sensitive            bool              `json:"sensitive"`
+	Removed              string            `json:"removed"`
+	RequiredWith         bool              `json:"requiredWith"`
+	ConflictsWith        []string          `json:"conflictsWith"`
+	AtLeastOneOf         []string          `json:"atLeastOneOf"`
+	ExactlyOneOf         []string          `json:"exactlyOneOf"`
 	*Properties          `json:"properties,omitempty"` // 属性为object类型时，子属性结构定义
 }
 
