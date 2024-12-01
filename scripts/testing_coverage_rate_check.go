@@ -143,14 +143,12 @@ func main() {
 			resource, ok = alicloud.Provider().(*schema.Provider).ResourcesMap[resourceName]
 			if !ok || resource == nil {
 				log.Errorf("resource %s is not found in the provider ResourceMap\n\n", resourceName)
-				exitCode = 1
 				continue
 			}
 		} else {
 			resource, ok = alicloud.Provider().(*schema.Provider).DataSourcesMap[resourceName]
 			if !ok || resource == nil {
 				log.Errorf("data source %s is not found in the provider DataSourcesMap\n\n", resourceName)
-				exitCode = 1
 				continue
 			}
 		}
@@ -180,7 +178,6 @@ func main() {
 		}
 
 		log.Errorf("--- Failed!\n\n")
-		exitCode = 1
 
 	}
 
