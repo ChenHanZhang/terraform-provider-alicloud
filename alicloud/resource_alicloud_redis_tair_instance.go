@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -111,6 +112,11 @@ func resourceAliCloudRedisTairInstance() *schema.Resource {
 				ValidateFunc: StringInSlice([]string{"MASTER_SLAVE", "STAND_ALONE", "double", "single"}, false),
 			},
 			"param_no_loose_sentinel_enabled": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"param_no_loose_sentinel_password_free_access": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -438,7 +444,7 @@ func resourceAliCloudRedisTairInstanceRead(d *schema.ResourceData, meta interfac
 	if objectRaw["SecondaryZoneId"] != nil {
 		d.Set("secondary_zone_id", objectRaw["SecondaryZoneId"])
 	}
-	if objectRaw["ShardCount"] != nil && objectRaw["ShardCount"] != 0 {
+	if objectRaw["ShardCount"] != nil {
 		d.Set("shard_count", objectRaw["ShardCount"])
 	}
 	if objectRaw["InstanceStatus"] != nil {
@@ -472,13 +478,16 @@ func resourceAliCloudRedisTairInstanceRead(d *schema.ResourceData, meta interfac
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
 
-	objectRaw, err = redisServiceV2.DescribeDescribeInstanceConfig(d.Id())
+	objectRaw, err = redisServiceV2.DescribeTairInstanceDescribeInstanceConfig(d.Id())
 	if err != nil {
 		return WrapError(err)
 	}
 
 	if objectRaw["ParamNoLooseSentinelEnabled"] != nil {
 		d.Set("param_no_loose_sentinel_enabled", objectRaw["ParamNoLooseSentinelEnabled"])
+	}
+	if objectRaw["ParamNoLooseSentinelPasswordFreeAccess"] != nil {
+		d.Set("param_no_loose_sentinel_password_free_access", objectRaw["ParamNoLooseSentinelPasswordFreeAccess"])
 	}
 	if objectRaw["ParamReplMode"] != nil {
 		d.Set("param_repl_mode", objectRaw["ParamReplMode"])
@@ -506,7 +515,7 @@ func resourceAliCloudRedisTairInstanceRead(d *schema.ResourceData, meta interfac
 		d.Set("security_ips", objectRaw["SecurityIpList"])
 	}
 
-	objectRaw, err = redisServiceV2.DescribeDescribeSecurityGroupConfiguration(d.Id())
+	objectRaw, err = redisServiceV2.DescribeTairInstanceDescribeSecurityGroupConfiguration(d.Id())
 	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
@@ -518,7 +527,7 @@ func resourceAliCloudRedisTairInstanceRead(d *schema.ResourceData, meta interfac
 		d.Set("security_group_id", objectRaw["SecurityGroupId"])
 	}
 
-	objectRaw, err = redisServiceV2.DescribeDescribeInstanceSSL(d.Id())
+	objectRaw, err = redisServiceV2.DescribeTairInstanceDescribeInstanceSSL(d.Id())
 	if err != nil {
 		return WrapError(err)
 	}
@@ -530,7 +539,7 @@ func resourceAliCloudRedisTairInstanceRead(d *schema.ResourceData, meta interfac
 		d.Set("tair_instance_id", objectRaw["InstanceId"])
 	}
 
-	objectRaw, err = redisServiceV2.DescribeDescribeIntranetAttribute(d.Id())
+	objectRaw, err = redisServiceV2.DescribeTairInstanceDescribeIntranetAttribute(d.Id())
 	if err != nil {
 		return WrapError(err)
 	}
@@ -822,7 +831,7 @@ func resourceAliCloudRedisTairInstanceUpdate(d *schema.ResourceData, meta interf
 	}
 	request["SSLEnabled"] = d.Get("ssl_enabled")
 	redisServiceV2 := RedisServiceV2{client}
-	objectRaw, _ := redisServiceV2.DescribeDescribeInstanceSSL(d.Id())
+	objectRaw, _ := redisServiceV2.DescribeTairInstanceDescribeInstanceSSL(d.Id())
 	if objectRaw["SSLEnabled"] != nil && objectRaw["SSLEnabled"] == d.Get("ssl_enabled") {
 		update = false
 	}
@@ -942,10 +951,7 @@ func resourceAliCloudRedisTairInstanceUpdate(d *schema.ResourceData, meta interf
 	if d.HasChange("security_ip_group_name") {
 		update = true
 	}
-	if v, ok := d.GetOk("security_ip_group_name"); ok {
-		request["SecurityIpGroupName"] = v
-	}
-
+	request["SecurityIpGroupName"] = d.Get("security_ip_group_name")
 	if v, ok := d.GetOk("modify_mode"); ok {
 		request["ModifyMode"] = v
 	}
@@ -1008,6 +1014,11 @@ func resourceAliCloudRedisTairInstanceUpdate(d *schema.ResourceData, meta interf
 		request["ParamSentinelCompatEnable"] = d.Get("param_sentinel_compat_enable")
 	}
 
+	if d.HasChange("param_no_loose_sentinel_password_free_access") {
+		update = true
+		request["ParamNoLooseSentinelPasswordFreeAccess"] = d.Get("param_no_loose_sentinel_password_free_access")
+	}
+
 	if update {
 		runtime := util.RuntimeOptions{}
 		runtime.SetAutoretry(true)
@@ -1027,6 +1038,7 @@ func resourceAliCloudRedisTairInstanceUpdate(d *schema.ResourceData, meta interf
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
+		redisServiceV2 := RedisServiceV2{client}
 		stateConf := BuildStateConf([]string{}, []string{"Normal"}, d.Timeout(schema.TimeoutUpdate), 180*time.Second, redisServiceV2.RedisTairInstanceStateRefreshFunc(d.Id(), "InstanceStatus", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
