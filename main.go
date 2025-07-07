@@ -39,8 +39,8 @@ func postSpecSchema(tfResource string, namespace string, resourceCode string, sp
 	postContent := map[string]string{}
 	postContent["tfResource"] = tfResource
 	postContent["tfVersion"] = ""
-	postContent["namespace"] = namespace
-	postContent["resourceCode"] = resourceCode
+	postContent["namespace"] = ""
+	postContent["resourceCode"] = ""
 	postContent["meta"] = specSchema
 
 	jsonContent, _ := json.Marshal(postContent)
@@ -241,10 +241,10 @@ type Property struct {
 	Type                 primitiveTypeKind `json:"type"`                           // 属性类型(int,string..)
 	Items                *Property         `json:"items,omitempty"`                // 属性为array类型时，子项类型定义
 	AdditionalProperties *Property         `json:"additionalProperties,omitempty"` // 属性为 map(object的特例) 类型时，项类型定义
-	Required             bool              `json:"isRequired"`
-	Optional             bool              `json:"isOptional"`
-	Computed             bool              `json:"isComputed"`
-	ForceNew             bool              `json:"isForceNew"`
+	Required             bool              `json:"required"`
+	Optional             bool              `json:"optional"`
+	Computed             bool              `json:"computed"`
+	ForceNew             bool              `json:"forceNew"`
 	DescriptionEn        string            `json:"descriptionEn"`
 	Description          string            `json:"description"`
 	Default              interface{}       `json:"default"`
