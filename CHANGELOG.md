@@ -9,7 +9,7 @@ ENHANCEMENTS:
 - resource/alicloud_cloud_sso_user_attachment: Refactored the resource alicloud_cloud_sso_user_attachment. ([#8819](https://github.com/aliyun/terraform-provider-alicloud/issues/8819))
 - resource/alicloud_cen_transit_router: Added retry strategy for error code; Improved alicloud_cen_transit_router testcase and document. ([#8824](https://github.com/aliyun/terraform-provider-alicloud/issues/8824))
 - resource/alicloud_cloud_sso_access_assignment: Refactored the resource alicloud_cloud_sso_access_assignment; Added the field create_time. ([#8826](https://github.com/aliyun/terraform-provider-alicloud/issues/8826))
-- https://github.com/aliyun/terraform-provider-alicloud/pull/8827. ([#8827](https://github.com/aliyun/terraform-provider-alicloud/issues/8827))
+- resource/alicloud_db_instance: support cold_data_enabled. ([#8827](https://github.com/aliyun/terraform-provider-alicloud/issues/8827))
 - resource/alicloud_security_group_rule: Added retry strategy. ([#8830](https://github.com/aliyun/terraform-provider-alicloud/issues/8830))
 - resource/alicloud_nas_access_point: Refactored the resource alicloud_nas_access_point; Added the field region_id. ([#8833](https://github.com/aliyun/terraform-provider-alicloud/issues/8833))
 - resource/alicloud_ecs_launch_template: Added the field image_options. ([#8834](https://github.com/aliyun/terraform-provider-alicloud/issues/8834))
