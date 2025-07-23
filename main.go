@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aliyun/terraform-provider-alicloud/alicloud"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"net/http"
 	"strings"
+
+	"github.com/aliyun/terraform-provider-alicloud/alicloud"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func main() {
@@ -183,8 +184,14 @@ func coreSpecAttributeStruct(v *schema.Schema) *Property {
 			Type: TypeNumber,
 		}
 
+	case schema.TypeMap:
+		// 当不存在Elem时，即Map类型（不定向key）
+		return &Property{
+			Type: TypeMap,
+		}
+
 	// 复合数据结构，需要进一步解析
-	case schema.TypeList, schema.TypeSet, schema.TypeMap:
+	case schema.TypeList, schema.TypeSet:
 		var basicType bool
 		var property *Property
 		var properties = Properties{}
@@ -205,10 +212,8 @@ func coreSpecAttributeStruct(v *schema.Schema) *Property {
 			properties = CoreSpecSchema(set.Schema)
 			basicType = false
 		default:
-			// 当不存在Elem时，即Map类型（不定向key）
-			return &Property{
-				Type: TypeMap,
-			}
+			// 预期之外的类型
+			panic(fmt.Errorf("invalid Elem.Type %s", set))
 		}
 
 		if basicType {
@@ -232,29 +237,29 @@ func coreSpecAttributeStruct(v *schema.Schema) *Property {
 }
 
 type ResourceType struct {
-	ResourceTypeCode string `json:"resourceTypeCode"` // 资源名
-	Properties       `json:"resourceProperties"`      // 资源属性定义
+	ResourceTypeCode string                      `json:"resourceTypeCode"` // 资源名
+	Properties       `json:"resourceProperties"` // 资源属性定义
 }
 
 type Property struct {
-	Name                 string            `json:"name"`                           // 属性code
-	Type                 primitiveTypeKind `json:"type"`                           // 属性类型(int,string..)
-	Items                *Property         `json:"items,omitempty"`                // 属性为array类型时，子项类型定义
-	AdditionalProperties *Property         `json:"additionalProperties,omitempty"` // 属性为 map(object的特例) 类型时，项类型定义
-	Required             bool              `json:"required"`
-	Optional             bool              `json:"optional"`
-	Computed             bool              `json:"computed"`
-	ForceNew             bool              `json:"forceNew"`
-	DescriptionEn        string            `json:"descriptionEn"`
-	Description          string            `json:"description"`
-	Default              interface{}       `json:"default"`
-	Deprecated           string            `json:"deprecated"`
-	Sensitive            bool              `json:"sensitive"`
-	Removed              string            `json:"removed"`
-	RequiredWith         []string          `json:"requiredWith"`
-	ConflictsWith        []string          `json:"conflictsWith"`
-	AtLeastOneOf         []string          `json:"atLeastOneOf"`
-	ExactlyOneOf         []string          `json:"exactlyOneOf"`
+	Name                 string                        `json:"name"`                           // 属性code
+	Type                 primitiveTypeKind             `json:"type"`                           // 属性类型(int,string..)
+	Items                *Property                     `json:"items,omitempty"`                // 属性为array类型时，子项类型定义
+	AdditionalProperties *Property                     `json:"additionalProperties,omitempty"` // 属性为 map(object的特例) 类型时，项类型定义
+	Required             bool                          `json:"required"`
+	Optional             bool                          `json:"optional"`
+	Computed             bool                          `json:"computed"`
+	ForceNew             bool                          `json:"forceNew"`
+	DescriptionEn        string                        `json:"descriptionEn"`
+	Description          string                        `json:"description"`
+	Default              interface{}                   `json:"default"`
+	Deprecated           string                        `json:"deprecated"`
+	Sensitive            bool                          `json:"sensitive"`
+	Removed              string                        `json:"removed"`
+	RequiredWith         []string                      `json:"requiredWith"`
+	ConflictsWith        []string                      `json:"conflictsWith"`
+	AtLeastOneOf         []string                      `json:"atLeastOneOf"`
+	ExactlyOneOf         []string                      `json:"exactlyOneOf"`
 	*Properties          `json:"properties,omitempty"` // 属性为object类型时，子属性结构定义
 }
 
