@@ -239,7 +239,6 @@ func TestAccAliCloudWafv3DefenseRule_basic11017(t *testing.T) {
 										{
 											"code":  "414",
 											"count": "333",
-											"ratio": "39",
 										},
 									},
 									"sub_key": "testky1",
@@ -290,7 +289,6 @@ func TestAccAliCloudWafv3DefenseRule_basic11017(t *testing.T) {
 										{
 											"code":  "404",
 											"count": "2",
-											"ratio": "34",
 										},
 									},
 									"sub_key": "abc",
