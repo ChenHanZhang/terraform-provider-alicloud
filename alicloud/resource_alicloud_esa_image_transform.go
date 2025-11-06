@@ -52,7 +52,6 @@ func resourceAliCloudEsaImageTransform() *schema.Resource {
 			"sequence": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
 			},
 			"site_id": {
 				Type:     schema.TypeInt,
