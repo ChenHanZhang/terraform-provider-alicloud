@@ -317,10 +317,16 @@ The following arguments are supported:
 * `data_disks` - (Optional, List) Configure the data disk of the node in the node pool. See [`data_disks`](#data_disks) below.
 * `deployment_set_id` - (Optional, ForceNew) The deployment set of node pool. Specify the deploymentSet to ensure that the nodes in the node pool can be distributed on different physical machines.
 * `desired_size` - (Optional) Number of expected nodes in the node pool.
-* `eflo_node_group` - (Optional, List) Lingjun node pool configuration. See [`eflo_node_group`](#eflo_node_group) below.
+* `eflo_node_group` - (Optional, List, Available since v1.252.0) Lingjun node pool configuration. See [`eflo_node_group`](#eflo_node_group) below.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `force_delete` - (Optional) Whether to force deletion.
+
+-> **NOTE:** This parameter only takes effect when deletion is triggered.
+
 * `image_id` - (Optional, Computed) The custom image ID. The system-provided image is used by default.
-* `image_type` - (Optional, Computed) The operating system image type and the `platform` parameter can be selected from the following values:
+* `image_type` - (Optional, Computed, Available since v1.236.0) The operating system image type and the `platform` parameter can be selected from the following values:
   - `AliyunLinux` : Alinux2 image.
   - `AliyunLinux3` : Alinux3 image.
   - `AliyunLinux3Arm64` : Alinux3 mirror ARM version.
@@ -331,12 +337,11 @@ The following arguments are supported:
   - `ContainerOS` : container-optimized image.
   - `Ubuntu`: Ubuntu image.
   - `AliyunLinux3ContainerOptimized`: Alinux3 container-optimized image.
-  - `Custom`: Custom image.
 * `install_cloud_monitor` - (Optional) Whether to install cloud monitoring on the ECS node. After installation, you can view the monitoring information of the created ECS instance in the cloud monitoring console and recommend enable it. Default value: `false`. Valid values:
   - `true` : install cloud monitoring on the ECS node.
   - `false` : does not install cloud monitoring on the ECS node.
 * `instance_charge_type` - (Optional, Computed) Node payment type. Valid values: `PostPaid`, `PrePaid`, default is `PostPaid`. If value is `PrePaid`, the arguments `period`, `period_unit`, `auto_renew` and `auto_renew_period` are required.
-* `instance_patterns` - (Optional, List, Available since v1.255.0) Instance property configuration. See [`instance_patterns`](#instance_patterns) below.
+* `instance_metadata_options` - (Optional, ForceNew, Computed, List, Available since v1.263.0) ECS instance metadata access configuration. See [`instance_metadata_options`](#instance_metadata_options) below.
 * `instance_types` - (Required, List) In the node instance specification list, you can select multiple instance specifications as alternatives. When each node is created, it will try to purchase from the first specification until it is created successfully. The final purchased instance specifications may vary with inventory changes.
 * `internet_charge_type` - (Optional) The billing method for network usage. Valid values `PayByBandwidth` and `PayByTraffic`. Conflict with `eip_internet_charge_type`, EIP and public network IP can only choose one. 
 * `internet_max_bandwidth_out` - (Optional, Int) The maximum bandwidth of the public IP address of the node. The unit is Mbps(Mega bit per second). The value range is:\[1,100\]
@@ -357,9 +362,9 @@ The following arguments are supported:
 * `period` - (Optional, Int) Node payment period. Its valid value is one of {1, 2, 3, 6, 12}.
 * `period_unit` - (Optional) Node payment period unit, valid value: `Month`. Default is `Month`.
 * `platform` - (Optional, Computed, Deprecated since v1.145.0) Operating system release, using `image_type` instead.
-* `pre_user_data` - (Optional) Node pre custom data, base64-encoded, the script executed before the node is initialized. 
+* `pre_user_data` - (Optional, Available since v1.232.0) Node pre custom data, base64-encoded, the script executed before the node is initialized. 
 * `private_pool_options` - (Optional, List) Private node pool configuration. See [`private_pool_options`](#private_pool_options) below.
-* `ram_role_name` - (Optional, ForceNew, Computed) The name of the Worker RAM role.
+* `ram_role_name` - (Optional, ForceNew, Computed, Available since v1.242.0) The name of the Worker RAM role.
 * If it is empty, the default Worker RAM role created in the cluster will be used.
 * If the specified RAM role is not empty, the specified RAM role must be a **Common Service role**, and its **trusted service** configuration must be **cloud server**. For more information, see [Create a common service role](https://help.aliyun.com/document_detail/116800.html). If the specified RAM role is not the default Worker RAM role created in the cluster, the role name cannot start with 'KubernetesMasterRole-'or 'KubernetesWorkerRole.
 
@@ -368,6 +373,9 @@ The following arguments are supported:
 * `rds_instances` - (Optional, List) The list of RDS instances.
 * `resource_group_id` - (Optional, Computed) The ID of the resource group
 * `rolling_policy` - (Optional, List) Rotary configuration. See [`rolling_policy`](#rolling_policy) below.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `runtime_name` - (Optional, Computed) The runtime name of containers. If not set, the cluster runtime will be used as the node pool runtime. If you select another container runtime, see [Comparison of Docker, containerd, and Sandboxed-Container](https://www.alibabacloud.com/help/doc-detail/160313.htm).
 * `runtime_version` - (Optional, Computed) The runtime version of containers. If not set, the cluster runtime will be used as the node pool runtime.
 * `scaling_config` - (Optional, Computed, List) Automatic scaling configuration. See [`scaling_config`](#scaling_config) below.
@@ -417,14 +425,16 @@ The following arguments are supported:
 * `tags` - (Optional, Map) Add tags only for ECS instances. The maximum length of the tag key is 128 characters. The tag key and value cannot start with aliyun or acs:, or contain https:// or http://.
 * `taints` - (Optional, List) A List of Kubernetes taints to assign to the nodes. Detailed below. More information in [Taints and Toleration](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/). See [`taints`](#taints) below.
 * `tee_config` - (Optional, ForceNew, Computed, List) The configuration about confidential computing for the cluster. See [`tee_config`](#tee_config) below.
-* `type` - (Optional, ForceNew, Computed) Node pool type, value range:
+* `type` - (Optional, ForceNew, Computed, Available since v1.252.0) Node pool type, value range:
   -'ess': common node pool (including hosting function and auto scaling function).
   -'lingjun': Lingjun node pool.
 * `unschedulable` - (Optional) Whether the node after expansion can be scheduled.
 * `update_nodes` - (Optional) Synchronously update node labels and taints.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `user_data` - (Optional) Node custom data, base64-encoded.
 * `vswitch_ids` - (Required, List) The vswitches used by node pool workers.
-* `auto_mode` - (Optional, ForceNew, List, Available since v1.255.0) Smart Managed Configuration. See [`auto_mode`](#auto_mode) below.
 
 * `kms_encrypted_password` - (Optional, Available since v1.177.0) An KMS encrypts password used to a cs kubernetes. You have to specify one of `password` `key_name` `kms_encrypted_password` fields.
 * `kms_encryption_context` - (Optional, Available since v1.177.0) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating a cs kubernetes with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set.
@@ -440,7 +450,7 @@ The following arguments will be discarded. Please use new fields as soon as poss
 ### `data_disks`
 
 The data_disks supports the following:
-* `auto_format` - (Optional) Whether to automatically mount the data disk. Valid values: true and false.
+* `auto_format` - (Optional, Available since v1.229.0) Whether to automatically mount the data disk. Valid values: true and false.
 * `auto_snapshot_policy_id` - (Optional) The ID of the automatic snapshot policy that you want to apply to the system disk.
 * `bursting_enabled` - (Optional) Whether the data disk is enabled with Burst (performance Burst). This is configured when the disk type is cloud_auto.
 * `category` - (Optional) The type of data disk. Default value: `cloud_efficiency`. Valid values:
@@ -454,9 +464,9 @@ The data_disks supports the following:
   - `elastic_ephemeral_disk_standard`: standard elastic ephemeral disk.
 * `device` - (Optional) The mount target of data disk N. Valid values of N: 1 to 16. If you do not specify this parameter, the system automatically assigns a mount target when Auto Scaling creates ECS instances. The name of the mount target ranges from /dev/xvdb to /dev/xvdz.
 * `encrypted` - (Optional) Specifies whether to encrypt data disks. Valid values: true and false. Default to `false`.
-* `file_system` - (Optional) The type of the mounted file system. Works when auto_format is true. Optional value: `ext4`, `xfs`.
+* `file_system` - (Optional, Available since v1.229.0) The type of the mounted file system. Works when auto_format is true. Optional value: `ext4`, `xfs`.
 * `kms_key_id` - (Optional) The kms key id used to encrypt the data disk. It takes effect when `encrypted` is true.
-* `mount_target` - (Optional) The Mount path. Works when auto_format is true.
+* `mount_target` - (Optional, Available since v1.229.0) The Mount path. Works when auto_format is true.
 * `name` - (Optional, Computed) The length is 2~128 English or Chinese characters. It must start with an uppercase or lowr letter or a Chinese character and cannot start with http:// or https. Can contain numbers, colons (:), underscores (_), or dashes (-). It will be overwritten if auto_format is set.
 * `performance_level` - (Optional) Worker node data disk performance level, when `category` values `cloud_essd`, the optional values are `PL0`, `PL1`, `PL2` or `PL3`, but the specific performance level is related to the disk capacity. For more information, see [Enhanced SSDs](https://www.alibabacloud.com/help/doc-detail/122389.htm). Default is `PL1`.
 * `provisioned_iops` - (Optional, Int) The read/write IOPS preconfigured for the data disk, which is configured when the disk type is cloud_auto.
@@ -466,35 +476,32 @@ The data_disks supports the following:
 ### `eflo_node_group`
 
 The eflo_node_group supports the following:
-* `cluster_id` - (Optional) The ID of the associated Lingjun cluster is required when creating a Lingjun node pool.
+* `cluster_id` - (Optional, Available since v1.252.0) The ID of the associated Lingjun cluster is required when creating a Lingjun node pool.
 * `group_id` - (Optional) When creating a Lingjun node pool, you need the Lingjun group ID of the associated Lingjun cluster.
 
-### `instance_patterns`
+### `instance_metadata_options`
 
-The instance_patterns supports the following:
-* `cores` - (Optional, Int, Available since v1.255.0) Number of vCPU Cores in the instance specification
-* `cpu_architectures` - (Optional, List, Available since v1.255.0) CPU architecture of the instance
-* `excluded_instance_types` - (Optional, List, Available since v1.255.0) Instance specifications to be excluded
-* `instance_categories` - (Optional, List, Available since v1.255.0) Instance Category
-* `instance_family_level` - (Optional, Available since v1.255.0) Instance Specification Family Level
-* `instance_type_families` - (Optional, List, Available since v1.255.0) Specify instance type family
-* `max_cpu_cores` - (Optional, Int, Available since v1.255.0) Maximum number of vCPU cores in the instance specification
-* `max_memory_size` - (Optional, Float, Available since v1.255.0) Maximum memory size of the instance specification, in GiB
-* `memory` - (Optional, Float, Available since v1.255.0) Memory size of the instance specification, in GiB
-* `min_cpu_cores` - (Optional, Int, Available since v1.255.0) Minimum number of vCPU cores in the instance specification
-* `min_memory_size` - (Optional, Float, Available since v1.255.0) Minimum memory size of the instance specification, in GiB
+The instance_metadata_options supports the following:
+* `http_tokens` - (Optional, ForceNew, Available since v1.263.0) ECS instance metadata access mode configuration. Value range:
+
+  - 'optional': Compatible with both normal mode and reinforced mode.
+  - 'required': Enables only hardening mode (IMDSv2). When enabled, applications in the node cannot access the ECS instance metadata in normal mode. Ensure that the component and operating system versions in the cluster meet the minimum version requirements. For more information, see [accessing ECS instance metadata in hardened mode only](https://www.alibabacloud.com/help/ack/ack-managed-and-ack-dedicated/security-and-compliance/secure-access-to-ecs-instance-metadata).
+
+Default value: 'optional '.
+
+ This parameter is only supported for ACK-managed clusters of 1.28 or later versions. 
 
 ### `kubelet_configuration`
 
 The kubelet_configuration supports the following:
 * `allowed_unsafe_sysctls` - (Optional, List) Allowed sysctl mode whitelist.
-* `cluster_dns` - (Optional, List) The list of IP addresses of the cluster DNS servers.
+* `cluster_dns` - (Optional, List, Available since v1.242.0) The list of IP addresses of the cluster DNS servers.
 * `container_log_max_files` - (Optional) The maximum number of log files that can exist in each container.
 * `container_log_max_size` - (Optional) The maximum size that can be reached before a log file is rotated.
-* `container_log_max_workers` - (Optional) Specifies the maximum number of concurrent workers required to perform log rotation operations.
-* `container_log_monitor_interval` - (Optional) Specifies the duration for which container logs are monitored for log rotation.
-* `cpu_cfs_quota` - (Optional) CPU CFS quota constraint switch.
-* `cpu_cfs_quota_period` - (Optional) CPU CFS quota period value.
+* `container_log_max_workers` - (Optional, Available since v1.242.0) Specifies the maximum number of concurrent workers required to perform log rotation operations.
+* `container_log_monitor_interval` - (Optional, Available since v1.242.0) Specifies the duration for which container logs are monitored for log rotation.
+* `cpu_cfs_quota` - (Optional, Available since v1.242.0) CPU CFS quota constraint switch.
+* `cpu_cfs_quota_period` - (Optional, Available since v1.242.0) CPU CFS quota period value.
 * `cpu_manager_policy` - (Optional) Same as cpuManagerPolicy. The name of the policy to use. Requires the CPUManager feature gate to be enabled. Valid value is `none` or `static`.
 * `event_burst` - (Optional) Same as eventBurst. The maximum size of a burst of event creations, temporarily allows event creations to burst to this number, while still not exceeding `event_record_qps`. It is only used when `event_record_qps` is greater than 0. Valid value is `[0-100]`.
 * `event_record_qps` - (Optional) Same as eventRecordQPS. The maximum event creations per second. If 0, there is no limit enforced. Valid value is `[0-50]`.
@@ -502,33 +509,34 @@ The kubelet_configuration supports the following:
 * `eviction_soft` - (Optional, Map) Same as evictionSoft. The map of signal names to quantities that defines soft eviction thresholds. For example: `{"memory.available" = "300Mi"}`.
 * `eviction_soft_grace_period` - (Optional, Map) Same as evictionSoftGracePeriod. The map of signal names to quantities that defines grace periods for each soft eviction signal. For example: `{"memory.available" = "30s"}`.
 * `feature_gates` - (Optional, Map) Feature switch to enable configuration of experimental features.
-* `image_gc_high_threshold_percent` - (Optional) If the image usage exceeds this threshold, image garbage collection will continue.
-* `image_gc_low_threshold_percent` - (Optional) Image garbage collection is not performed when the image usage is below this threshold.
+* `image_gc_high_threshold_percent` - (Optional, Available since v1.242.0) If the image usage exceeds this threshold, image garbage collection will continue.
+* `image_gc_low_threshold_percent` - (Optional, Available since v1.242.0) Image garbage collection is not performed when the image usage is below this threshold.
 * `kube_api_burst` - (Optional) Same as kubeAPIBurst. The burst to allow while talking with kubernetes api-server. Valid value is `[0-100]`.
 * `kube_api_qps` - (Optional) Same as kubeAPIQPS. The QPS to use while talking with kubernetes api-server. Valid value is `[0-50]`.
 * `kube_reserved` - (Optional, Map) Same as kubeReserved. The set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs that describe resources reserved for kubernetes system components. Currently, cpu, memory and local storage for root file system are supported. See [compute resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for more details.
 * `max_pods` - (Optional) The maximum number of running pods.
-* `memory_manager_policy` - (Optional) The policy to be used by the memory manager.
-* `pod_pids_limit` - (Optional) The maximum number of PIDs that can be used in a Pod.
+* `memory_manager_policy` - (Optional, Available since v1.242.0) The policy to be used by the memory manager.
+* `pod_pids_limit` - (Optional, Available since v1.242.0) The maximum number of PIDs that can be used in a Pod.
 * `read_only_port` - (Optional) Read-only port number.
 * `registry_burst` - (Optional) Same as registryBurst. The maximum size of burst pulls, temporarily allows pulls to burst to this number, while still not exceeding `registry_pull_qps`. Only used if `registry_pull_qps` is greater than 0. Valid value is `[0-100]`.
 * `registry_pull_qps` - (Optional) Same as registryPullQPS. The limit of registry pulls per second. Setting it to `0` means no limit. Valid value is `[0-50]`.
-* `reserved_memory` - (Optional, List) Reserve memory for NUMA nodes. See [`reserved_memory`](#kubelet_configuration-reserved_memory) below.
+* `reserved_memory` - (Optional, List, Available since v1.242.0) Reserve memory for NUMA nodes. See [`reserved_memory`](#kubelet_configuration-reserved_memory) below.
 * `serialize_image_pulls` - (Optional) Same as serializeImagePulls. When enabled, it tells the Kubelet to pull images one at a time. We recommend not changing the default value on nodes that run docker daemon with version < 1.9 or an Aufs storage backend. Valid value is `true` or `false`.
+* `server_tls_bootstrap` - (Optional, Available since v1.263.0) Used to enable the kubelet server certificate signing and rotation via CSR.
 * `system_reserved` - (Optional, Map) Same as systemReserved. The set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs that describe resources reserved for non-kubernetes components. Currently, only cpu and memory are supported. See [compute resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for more details.
-* `topology_manager_policy` - (Optional) Name of the Topology Manager policy used.
+* `topology_manager_policy` - (Optional, Available since v1.242.0) Name of the Topology Manager policy used.
 * `tracing` - (Optional, List) OpenTelemetry tracks the configuration information for client settings versioning. See [`tracing`](#kubelet_configuration-tracing) below.
 
 ### `kubelet_configuration-reserved_memory`
 
 The kubelet_configuration-reserved_memory supports the following:
-* `limits` - (Optional, Map) Memory resource limit.
+* `limits` - (Optional, Map, Available since v1.242.0) Memory resource limit.
 * `numa_node` - (Optional, Int) The NUMA node.
 
 ### `kubelet_configuration-tracing`
 
 The kubelet_configuration-tracing supports the following:
-* `endpoint` - (Optional) The endpoint of the collector.
+* `endpoint` - (Optional, Available since v1.242.0) The endpoint of the collector.
 * `sampling_rate_per_million` - (Optional) Number of samples to be collected per million span.
 
 ### `labels`
@@ -608,11 +616,6 @@ The taints supports the following:
 
 The tee_config supports the following:
 * `tee_enable` - (Optional, ForceNew) Specifies whether to enable confidential computing for the cluster.
-
-### `auto_mode`
-
-The auto_mode supports the following:
-* `enable` - (Optional, ForceNew, Available since v1.255.0) Open
 
 ### `rollout_policy`
 
