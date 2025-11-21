@@ -739,15 +739,15 @@ func (s *EsaServiceV2) DescribeEsaRecord(id string) (object map[string]interface
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
+	action := "GetRecord"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["RecordId"] = id
-
-	action := "GetRecord"
+	query["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
+		response, err = client.RpcGet("ESA", "2024-09-10", action, query, nil)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
@@ -772,18 +772,15 @@ func (s *EsaServiceV2) DescribeEsaRecord(id string) (object map[string]interface
 }
 
 func (s *EsaServiceV2) EsaRecordStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.EsaRecordStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaRecord)
-}
-
-func (s *EsaServiceV2) EsaRecordStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := call(id)
+		object, err := s.DescribeEsaRecord(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
+
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -1031,6 +1028,7 @@ func (s *EsaServiceV2) DescribeEsaRewriteUrlRule(id string) (object map[string]i
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -1053,15 +1051,8 @@ func (s *EsaServiceV2) DescribeEsaRewriteUrlRule(id string) (object map[string]i
 		return nil
 	})
 	addDebug(action, response, request)
-	if IsExpectedErrors(err, []string{"SiteNotFound.NotFound"}) {
-		return object, WrapErrorf(NotFoundErr("RewriteUrlRule", id), NotFoundMsg, response)
-	}
-	configId, _ := jsonpath.Get("$.ConfigId", response)
-	if configId == nil {
-		return object, WrapErrorf(NotFoundErr("RewriteUrlRule", id), NotFoundMsg, response)
-	}
 	code, _ := jsonpath.Get("$.Code", response)
-	if InArray(fmt.Sprint(code), []string{"32", "SiteNotFound", "101", "0"}) {
+	if InArray(fmt.Sprint(code), []string{"32", "SiteNotFound", "101"}) {
 		return object, WrapErrorf(NotFoundErr("RewriteUrlRule", id), NotFoundMsg, response)
 	}
 
@@ -2137,7 +2128,6 @@ func (s *EsaServiceV2) DescribeEsaCertificate(id string) (object map[string]inte
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
