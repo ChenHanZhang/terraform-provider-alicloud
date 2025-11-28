@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -39,8 +40,9 @@ func resourceAliCloudEsaVideoProcessing() *schema.Resource {
 				Optional: true,
 			},
 			"flv_video_seek_mode": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"by_byte", "by_time"}, false),
 			},
 			"mp4_seek_end": {
 				Type:     schema.TypeString,
@@ -55,8 +57,9 @@ func resourceAliCloudEsaVideoProcessing() *schema.Resource {
 				Optional: true,
 			},
 			"rule_enable": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"on", "off"}, false),
 			},
 			"rule_name": {
 				Type:     schema.TypeString,
@@ -65,10 +68,9 @@ func resourceAliCloudEsaVideoProcessing() *schema.Resource {
 			"sequence": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 			"site_id": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -78,8 +80,9 @@ func resourceAliCloudEsaVideoProcessing() *schema.Resource {
 				ForceNew: true,
 			},
 			"video_seek_enable": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"on", "off"}, false),
 			},
 		},
 	}
@@ -183,7 +186,7 @@ func resourceAliCloudEsaVideoProcessingRead(d *schema.ResourceData, meta interfa
 	d.Set("config_id", objectRaw["ConfigId"])
 
 	parts := strings.Split(d.Id(), ":")
-	d.Set("site_id", formatInt(parts[0]))
+	d.Set("site_id", fmt.Sprint(parts[0]))
 
 	return nil
 }
@@ -291,7 +294,6 @@ func resourceAliCloudEsaVideoProcessingDelete(d *schema.ResourceData, meta inter
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
