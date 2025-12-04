@@ -1185,6 +1185,7 @@ func (s *EsaServiceV2) DescribeEsaHttpResponseHeaderModificationRule(id string) 
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -1210,10 +1211,7 @@ func (s *EsaServiceV2) DescribeEsaHttpResponseHeaderModificationRule(id string) 
 	if err != nil {
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
-	configId, _ := jsonpath.Get("$.ConfigId", response)
-	if configId == nil {
-		return object, WrapErrorf(NotFoundErr("HttpResponseHeaderModificationRule", id), NotFoundMsg, response)
-	}
+
 	return response, nil
 }
 

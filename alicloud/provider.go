@@ -916,7 +916,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_cr_storage_domain_routing_rule":                       resourceAliCloudCrStorageDomainRoutingRule(),
 			"alicloud_cr_scan_rule":                                         resourceAliCloudCrScanRule(),
 			"alicloud_cloud_firewall_private_dns":                           resourceAliCloudCloudFirewallPrivateDns(),
 			"alicloud_eflo_hyper_node":                                      resourceAliCloudEfloHyperNode(),
@@ -1475,7 +1474,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_cluster":                                       resourceAlicloudPolarDBCluster(),
 			"alicloud_polardb_cluster_endpoint":                              resourceAlicloudPolarDBClusterEndpoint(),
 			"alicloud_polardb_backup_policy":                                 resourceAlicloudPolarDBBackupPolicy(),
-			"alicloud_polardb_database":                                      resourceAliCloudPolarDbDatabase(),
+			"alicloud_polardb_database":                                      resourceAlicloudPolarDBDatabase(),
 			"alicloud_polardb_account":                                       resourceAliCloudPolarDbAccount(),
 			"alicloud_polardb_account_privilege":                             resourceAlicloudPolarDBAccountPrivilege(),
 			"alicloud_polardb_endpoint":                                      resourceAlicloudPolarDBEndpoint(),
