@@ -1112,7 +1112,6 @@ func (s *EsaServiceV2) DescribeEsaRedirectRule(id string) (object map[string]int
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -1287,10 +1286,6 @@ func (s *EsaServiceV2) DescribeEsaHttpsBasicConfiguration(id string) (object map
 	addDebug(action, response, request)
 	if err != nil {
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-	configId, _ := jsonpath.Get("$.ConfigId", response)
-	if configId == nil {
-		return object, WrapErrorf(NotFoundErr("HttpsBasicConfiguration", id), NotFoundMsg, response)
 	}
 
 	return response, nil
@@ -3120,7 +3115,6 @@ func (s *EsaServiceV2) DescribeEsaRoutineRoute(id string) (object map[string]int
 	parts := strings.Split(id, ":")
 	if len(parts) != 3 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
-		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -3157,18 +3151,15 @@ func (s *EsaServiceV2) DescribeEsaRoutineRoute(id string) (object map[string]int
 }
 
 func (s *EsaServiceV2) EsaRoutineRouteStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.EsaRoutineRouteStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaRoutineRoute)
-}
-
-func (s *EsaServiceV2) EsaRoutineRouteStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := call(id)
+		object, err := s.DescribeEsaRoutineRoute(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
+
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
