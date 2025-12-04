@@ -1212,10 +1212,7 @@ func (s *EsaServiceV2) DescribeEsaHttpResponseHeaderModificationRule(id string) 
 	if err != nil {
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
-	configId, _ := jsonpath.Get("$.ConfigId", response)
-	if configId == nil {
-		return object, WrapErrorf(NotFoundErr("HttpResponseHeaderModificationRule", id), NotFoundMsg, response)
-	}
+
 	return response, nil
 }
 
