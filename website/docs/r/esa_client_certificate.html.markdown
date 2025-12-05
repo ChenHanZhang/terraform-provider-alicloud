@@ -49,7 +49,6 @@ The following arguments are supported:
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
-* `status` - (Optional) The certificate status. Valid values: `revoked`, `active`.
 
 ## Attributes Reference
 
@@ -57,6 +56,7 @@ The following attributes are exported:
 * `id` - The ID of the resource supplied above.The value is formulated as `<site_id>:<client_cert_id>`.
 * `client_cert_id` - ClientCertificate Id
 * `create_time` - The time when the certificate was created.
+* `status` - The certificate status.
 
 ## Timeouts
 

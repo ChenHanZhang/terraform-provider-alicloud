@@ -2255,7 +2255,12 @@ func (s *EsaServiceV2) DescribeEsaClientCertificate(id string) (object map[strin
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	return response, nil
+	v, err := jsonpath.Get("$.Result", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Result", response)
+	}
+
+	return v.(map[string]interface{}), nil
 }
 
 func (s *EsaServiceV2) EsaClientCertificateStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {

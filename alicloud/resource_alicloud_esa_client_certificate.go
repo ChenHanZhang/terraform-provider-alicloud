@@ -51,7 +51,6 @@ func resourceAliCloudEsaClientCertificate() *schema.Resource {
 			},
 			"status": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 			"validity_days": {
@@ -120,18 +119,13 @@ func resourceAliCloudEsaClientCertificateRead(d *schema.ResourceData, meta inter
 		return WrapError(err)
 	}
 
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("client_cert_id", objectRaw["Id"])
+
 	if v, ok := objectRaw["SiteId"]; ok {
 		d.Set("site_id", v)
 	}
-
-	resultRawObj, _ := jsonpath.Get("$.Result", objectRaw)
-	resultRaw := make(map[string]interface{})
-	if resultRawObj != nil {
-		resultRaw = resultRawObj.(map[string]interface{})
-	}
-	d.Set("create_time", resultRaw["CreateTime"])
-	d.Set("status", resultRaw["Status"])
-	d.Set("client_cert_id", resultRaw["Id"])
 
 	return nil
 }
@@ -149,9 +143,9 @@ func resourceAliCloudEsaClientCertificateUpdate(d *schema.ResourceData, meta int
 		var err error
 		target := d.Get("status").(string)
 
-		currentStatus, err := jsonpath.Get("$.Result.Status", objectRaw)
+		currentStatus, err := jsonpath.Get("Status", objectRaw)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "$.Result.Status", objectRaw)
+			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "Status", objectRaw)
 		}
 		if fmt.Sprint(currentStatus) != target {
 			if target == "revoked" {
