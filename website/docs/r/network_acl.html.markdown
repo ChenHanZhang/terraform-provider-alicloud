@@ -20,12 +20,6 @@ For information about VPC Network Acl and how to use it, see [What is Network Ac
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_network_acl&exampleId=aed0a736-863d-b32b-db8f-664f45fa028a7a80911a&activeTab=example&spm=docs.r.network_acl.0.aed0a73686&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "tf-example"
@@ -82,6 +76,9 @@ The following arguments are supported:
 The name must be 1 to 128 characters in length and cannot start with http:// or https.
 * `resources` - (Optional, Computed, Set) The associated resource. See [`resources`](#resources) below.
 * `source_network_acl_id` - (Optional, Available since v1.220.0) SOURCE NetworkAcl specified by CopyNetworkAclEntries
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `tags` - (Optional, Map, Available since v1.206.0) The tags of this resource.
 * `vpc_id` - (Required, ForceNew) The ID of the associated VPC.
 
@@ -99,6 +96,7 @@ custom custom rule
 system system rules
 service Cloud service rules
 * `ip_version` - (Optional, Computed, Available since v1.220.0) The IP protocol version of the route entry. Valid values: "Ipv4" and "ipv6'
+* `network_acl_entry_id` - (Optional, ForceNew, Available since v1.266.0) Network acl entry id.
 * `network_acl_entry_name` - (Optional) Name of the outbound rule entry.
 The name must be 1 to 128 characters in length and cannot start with http:// or https.
 * `policy` - (Optional) The action to be performed on network traffic that matches the rule. Valid values:
@@ -120,10 +118,11 @@ The ingress_acl_entries supports the following:
 * `description` - (Optional) Description of the inbound rule.
 The description must be 1 to 256 characters in length and cannot start with http:// or https.
 * `entry_type` - (Optional, Computed, Available since v1.220.0) The route entry type. Value
-  - `custom` custom rule
-  - `system` system rules
-  - `service` Cloud service rules
+custom custom rule
+system system rules
+service Cloud service rules
 * `ip_version` - (Optional, Computed, Available since v1.220.0) The IP protocol version of the route entry. Valid values: "Ipv4" and "ipv6'
+* `network_acl_entry_id` - (Optional, ForceNew, Available since v1.266.0) Network acl entry id.
 * `network_acl_entry_name` - (Optional) The name of the inbound rule entry.
 The name must be 1 to 128 characters in length and cannot start with http:// or https.
 * `policy` - (Optional) The action to be performed on network traffic that matches the rule. Valid values:
@@ -151,6 +150,7 @@ The resources supports the following:
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.
 * `create_time` - The creation time of the resource.
+* `region_id` - The region
 * `resources` - The associated resource.
   * `status` - The state of the associated resource
 * `status` - The state of the network ACL.

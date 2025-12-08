@@ -1091,11 +1091,11 @@ func (s *VpcServiceV2) DescribeVpcNetworkAcl(id string) (object map[string]inter
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeNetworkAclAttributes"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["NetworkAclId"] = id
-	query["RegionId"] = client.RegionId
+	request["NetworkAclId"] = id
+	request["RegionId"] = client.RegionId
+	action := "DescribeNetworkAclAttributes"
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -1110,14 +1110,13 @@ func (s *VpcServiceV2) DescribeVpcNetworkAcl(id string) (object map[string]inter
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"InvalidNetworkAcl.NotFound"}) {
 			return object, WrapErrorf(NotFoundErr("NetworkAcl", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -1130,17 +1129,27 @@ func (s *VpcServiceV2) DescribeVpcNetworkAcl(id string) (object map[string]inter
 }
 
 func (s *VpcServiceV2) VpcNetworkAclStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.VpcNetworkAclStateRefreshFuncWithApi(id, field, failStates, s.DescribeVpcNetworkAcl)
+}
+
+func (s *VpcServiceV2) VpcNetworkAclStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeVpcNetworkAcl(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
