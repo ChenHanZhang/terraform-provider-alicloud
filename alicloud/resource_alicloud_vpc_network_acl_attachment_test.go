@@ -463,3 +463,142 @@ func TestUnitAlicloudVpcNetworkAclAttachment(t *testing.T) {
 		}
 	}
 }
+
+// Test Vpc NetworkAclAttachment. >>> Resource test cases, automatically generated.
+// Case NetworkAclAttachment 测试用例 2060
+func TestAccAliCloudVpcNetworkAclAttachment_basic2060(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_vpc_network_acl_attachment.default"
+	ra := resourceAttrInit(resourceId, AlicloudVpcNetworkAclAttachmentMap2060)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVpcNetworkAclAttachment")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccvpc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcNetworkAclAttachmentBasicDependence2060)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"network_acl_id": "${var.network_acl_id}",
+					"resource_id":    "${var.resource_id}",
+					"resource_type":  "${var.resource_type}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"network_acl_id": CHECKSET,
+						"resource_id":    CHECKSET,
+						"resource_type":  CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudVpcNetworkAclAttachmentMap2060 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudVpcNetworkAclAttachmentBasicDependence2060(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "network_acl_id" {
+  default = "nacl-uf6ehke1ay3vjzkcm17r9"
+}
+
+variable "resource_id" {
+  default = "vsw-uf6l3wcgnbflu8beanbo4"
+}
+
+variable "resource_type" {
+  default = "VSwitch"
+}
+
+variable "region_id" {
+  default = "cn-shanghai"
+}
+
+
+`, name)
+}
+
+// Case 全生命周期 1949
+func TestAccAliCloudVpcNetworkAclAttachment_basic1949(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_vpc_network_acl_attachment.default"
+	ra := resourceAttrInit(resourceId, AlicloudVpcNetworkAclAttachmentMap1949)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVpcNetworkAclAttachment")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccvpc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcNetworkAclAttachmentBasicDependence1949)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"network_acl_id": "nacl-bp11gv5p59eoa96ann9z0",
+					"resource_id":    "vsw-bp1b0igqrymss8qw1wsvh",
+					"resource_type":  "VSwitch",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"network_acl_id": "nacl-bp11gv5p59eoa96ann9z0",
+						"resource_id":    "vsw-bp1b0igqrymss8qw1wsvh",
+						"resource_type":  "VSwitch",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudVpcNetworkAclAttachmentMap1949 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudVpcNetworkAclAttachmentBasicDependence1949(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Vpc NetworkAclAttachment. <<< Resource test cases, automatically generated.
