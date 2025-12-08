@@ -916,6 +916,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_ali_kafka_acl":                                        resourceAliCloudAliKafkaAcl(),
 			"alicloud_cr_storage_domain_routing_rule":                       resourceAliCloudCrStorageDomainRoutingRule(),
 			"alicloud_cr_scan_rule":                                         resourceAliCloudCrScanRule(),
 			"alicloud_realtime_compute_deployment":                          resourceAliCloudRealtimeComputeDeployment(),
