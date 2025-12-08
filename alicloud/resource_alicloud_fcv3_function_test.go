@@ -2052,3 +2052,2263 @@ data "alicloud_resource_manager_resource_groups" "default" {
 }
 
 // Test Fcv3 Function. <<< Resource test cases, automatically generated.
+// Test Fcv3 Function. >>> Resource test cases, automatically generated.
+// Case TestNativeRuntime_ResourceGroup 11257
+func TestAccAliCloudFcv3Function_basic11257(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap11257)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence11257)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "python3.10",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"zip_file": "UEsDBBQACAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAaW5kZXgucHmEkEFKxEAQRfd9ig9ZTCJOooIwDMwNXLqXnnQlaalUhU5lRj2KZ/FOXkESGR114bJ/P/7jV4b1xRq1hijtFpM1682cuNgPmgysbRulPT0fRxXnMtwrSPyeCdYRokSLnuMLJTTkbUqEvDMbxm1VdcRD6Tk+T1LW2ldB66knsYdA5iNX17ebm6tN2VnPhcswMPmREPuBacb+CiapLarAj9gT6/H97dVlCNScY3mtYvRkxdZlwDKDEnanPWVLdrdkeXEGlFEazVdfPVHaVeHc3N15CUwppwOJXeK7HshAB8NuOU7J6sP4SRXuH/EvbUfMiqMmDqv5M5FNSfAj/wgAAP//UEsHCPl//NYAAQAArwEAAFBLAQIUABQACAAIAAAAAAD5f/zWAAEAAK8BAAAIAAAAAAAAAAAAAAAAAAAAAABpbmRleC5weVBLBQYAAAAAAQABADYAAAA2AQAAAAA=",
+						},
+					},
+					"description": "Create",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"command": []string{},
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{},
+							},
+						},
+					},
+					"cpu":               "0.5",
+					"disk_size":         "512",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name":     name,
+						"memory_size":       "512",
+						"runtime":           "python3.10",
+						"timeout":           "3",
+						"handler":           "index.handler",
+						"description":       "Create",
+						"cpu":               CHECKSET,
+						"disk_size":         "512",
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"description": "update",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"command": []string{},
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{},
+							},
+						},
+					},
+					"cpu":               "1",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size":       "1024",
+						"timeout":           "6",
+						"handler":           "index.Handler",
+						"description":       "update",
+						"cpu":               "1",
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap11257 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence11257(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case TestCustomContainer_Initializer_Command 11204
+func TestAccAliCloudFcv3Function_basic11204(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap11204)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence11204)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "custom-container",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"description":   "Create",
+					"cpu":           "0.5",
+					"disk_size":     "512",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image1}",
+							"port":  "9000",
+							"entrypoint": []string{
+								"python", "-c", "xx"},
+							"command": []string{
+								"xx", "x", "a"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "1",
+									"http_get_url":          "/ready",
+									"initial_delay_seconds": "1",
+									"period_seconds":        "1",
+									"success_threshold":     "1",
+									"timeout_seconds":       "1",
+								},
+							},
+						},
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "6",
+									"command": []string{
+										"curl", "'http://localhost:9000/preWarm'"},
+								},
+							},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name": name,
+						"memory_size":   "512",
+						"runtime":       "custom-container",
+						"timeout":       "3",
+						"handler":       "index.handler",
+						"description":   "Create",
+						"cpu":           CHECKSET,
+						"disk_size":     "512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"description": "update",
+					"cpu":         "1",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image2}",
+							"port":  "9001",
+							"entrypoint": []string{
+								"python3"},
+							"command": []string{
+								"app.py"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "2",
+									"http_get_url":          "/readyz",
+									"initial_delay_seconds": "2",
+									"period_seconds":        "2",
+									"success_threshold":     "2",
+									"timeout_seconds":       "2",
+								},
+							},
+						},
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"command": []string{
+										"curl", "'http://localhost:9000/preWarmV2'"},
+								},
+							},
+						},
+					},
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+					"invocation_restriction": []map[string]interface{}{
+						{
+							"disable": "false",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"timeout":     "6",
+						"handler":     "index.Handler",
+						"description": "update",
+						"cpu":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"cpu":         "0.5",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"entrypoint": []string{},
+							"command":    []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"cpu":         CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap11204 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence11204(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "image1" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.1"
+}
+
+variable "image2" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.2"
+}
+
+
+`, name)
+}
+
+// Case TestCustomContainer_Base 6936
+func TestAccAliCloudFcv3Function_basic6936(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6936)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6936)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "custom-container",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"description":   "Create",
+					"cpu":           "0.5",
+					"disk_size":     "512",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image1}",
+							"port":  "9000",
+							"entrypoint": []string{
+								"python", "-c", "xx"},
+							"command": []string{
+								"xx", "x", "a"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "1",
+									"http_get_url":          "/ready",
+									"initial_delay_seconds": "1",
+									"period_seconds":        "1",
+									"success_threshold":     "1",
+									"timeout_seconds":       "1",
+								},
+							},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name": name,
+						"memory_size":   "512",
+						"runtime":       "custom-container",
+						"timeout":       "3",
+						"handler":       "index.handler",
+						"description":   "Create",
+						"cpu":           CHECKSET,
+						"disk_size":     "512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"description": "update",
+					"cpu":         "1",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image2}",
+							"port":  "9001",
+							"entrypoint": []string{
+								"python3"},
+							"command": []string{
+								"app.py"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "2",
+									"http_get_url":          "/readyz",
+									"initial_delay_seconds": "2",
+									"period_seconds":        "2",
+									"success_threshold":     "2",
+									"timeout_seconds":       "2",
+								},
+							},
+						},
+					},
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+					"invocation_restriction": []map[string]interface{}{
+						{
+							"disable": "false",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"timeout":     "6",
+						"handler":     "index.Handler",
+						"description": "update",
+						"cpu":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"cpu":         "0.5",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"entrypoint": []string{},
+							"command":    []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"cpu":         CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6936 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6936(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "image1" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.1"
+}
+
+variable "image2" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.2"
+}
+
+
+`, name)
+}
+
+// Case TestNativeRuntimePython_Full 6916
+func TestAccAliCloudFcv3Function_basic6916(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6916)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6916)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "python3.9",
+					"timeout":       "6",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-1511928242963727",
+							"oss_object_name": "fc3Py39.zip",
+							"checksum":        "16724580610624463476",
+						},
+					},
+					"description": "Create",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal",
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "1",
+									"handler": "index.init",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "1",
+									"handler": "index.stop",
+								},
+							},
+						},
+					},
+					"cpu":             "0.5",
+					"disk_size":       "512",
+					"internet_access": "true",
+					"log_config": []map[string]interface{}{
+						{
+							"project":                 "fc3-api-1511928242963727-cn-shanghai",
+							"logstore":                "function-log",
+							"log_begin_rule":          "None",
+							"enable_instance_metrics": "false",
+							"enable_request_metrics":  "false",
+						},
+					},
+					"custom_dns": []map[string]interface{}{
+						{
+							"name_servers": []string{
+								"8.8.8.8", "100.100.2.136", "100.100.2.138"},
+							"searches": []string{
+								"ns1.svc.cluster-domain.example", "example.com", "mydomain.com"},
+							"dns_options": []map[string]interface{}{
+								{
+									"name":  "timeout",
+									"value": "2",
+								},
+								{
+									"name":  "attempts",
+									"value": "2",
+								},
+								{
+									"name":  "ndots",
+									"value": "2",
+								},
+							},
+						},
+					},
+					"role": "acs:ram::1511928242963727:role/AliyunFCDefaultRole",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name":   name,
+						"memory_size":     "512",
+						"runtime":         "python3.9",
+						"timeout":         "6",
+						"handler":         "index.handler",
+						"description":     "Create",
+						"cpu":             CHECKSET,
+						"disk_size":       "512",
+						"internet_access": "true",
+						"role":            CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"runtime":     "python3.10",
+					"handler":     "index.HandlerX",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-v2-1511928242963727",
+							"oss_object_name": "fc3Py39v2.zip",
+							"checksum":        "1033112430191868705",
+						},
+					},
+					"description": "update",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+									"handler": "index.initializer",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+									"handler": "index.prestop",
+								},
+							},
+						},
+					},
+					"cpu":       "1",
+					"disk_size": "10240",
+					"log_config": []map[string]interface{}{
+						{
+							"enable_instance_metrics": "true",
+							"enable_request_metrics":  "true",
+							"project":                 "fc3-api-v2-1511928242963727-cn-shanghai",
+							"logstore":                "function-log-v2",
+							"log_begin_rule":          "DefaultRegex",
+						},
+					},
+					"custom_dns": []map[string]interface{}{
+						{
+							"dns_options": []map[string]interface{}{
+								{
+									"name":  "timeout",
+									"value": "1",
+								},
+								{
+									"name":  "attempts",
+									"value": "1",
+								},
+							},
+							"name_servers": []string{
+								"8.8.8.8"},
+							"searches": []string{
+								"example.com"},
+						},
+					},
+					"role":   "acs:ram::1511928242963727:role/FC3APIResourceTest",
+					"layers": []string{},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"runtime":     "python3.10",
+						"handler":     "index.HandlerX",
+						"description": "update",
+						"cpu":         "1",
+						"disk_size":   "10240",
+						"role":        CHECKSET,
+						"layers.#":    "0",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"timeout":     "3",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":             "0.5",
+					"disk_size":       "512",
+					"internet_access": "false",
+					"custom_dns": []map[string]interface{}{
+						{
+							"dns_options": []map[string]interface{}{},
+						},
+					},
+					"oss_mount_config": []map[string]interface{}{
+						{
+							"mount_points": []map[string]interface{}{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size":     "512",
+						"timeout":         "3",
+						"cpu":             CHECKSET,
+						"disk_size":       "512",
+						"internet_access": "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6916 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6916(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case TestCustomRuntime_Full 6917
+func TestAccAliCloudFcv3Function_basic6917(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6917)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6917)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "custom.debian10",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-1511928242963727",
+							"oss_object_name": "fc3Py39.zip",
+							"checksum":        "16724580610624463476",
+						},
+					},
+					"description": "Create",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal",
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "1",
+									"handler": "index.init",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "1",
+									"handler": "index.stop",
+								},
+							},
+						},
+					},
+					"cpu":             "0.5",
+					"disk_size":       "512",
+					"internet_access": "true",
+					"layers": []string{
+						"acs:fc:cn-shanghai:1221968287646227:layers/Python39-OSS2/versions/1", "acs:fc:cn-shanghai:1221968287646227:layers/Loggie13x/versions/1", "acs:fc:cn-shanghai:official:layers/Python3-Flask2x/versions/2"},
+					"custom_runtime_config": []map[string]interface{}{
+						{
+							"command": []string{
+								"python", "-c", "test"},
+							"args": []string{
+								"app.py", "xx", "x"},
+							"port": "9000",
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "3",
+									"http_get_url":          "/ready",
+									"initial_delay_seconds": "1",
+									"period_seconds":        "10",
+									"success_threshold":     "1",
+									"timeout_seconds":       "1",
+								},
+							},
+						},
+					},
+					"instance_concurrency": "2",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name":        name,
+						"memory_size":          "512",
+						"runtime":              "custom.debian10",
+						"timeout":              "3",
+						"handler":              "index.handler",
+						"description":          "Create",
+						"cpu":                  CHECKSET,
+						"disk_size":            "512",
+						"internet_access":      "true",
+						"layers.#":             "3",
+						"instance_concurrency": "2",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"timeout":     "6",
+					"handler":     "index.HandlerX",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-v2-1511928242963727",
+							"oss_object_name": "fc3Py39v2.zip",
+							"checksum":        "1033112430191868705",
+						},
+					},
+					"description": "update",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+									"handler": "index.initializer",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+									"handler": "index.prestop",
+								},
+							},
+						},
+					},
+					"cpu":       "1",
+					"disk_size": "10240",
+					"layers": []string{
+						"acs:fc:cn-shanghai:1431999136518149:layers/Python3-Flask2x/versions/2"},
+					"custom_runtime_config": []map[string]interface{}{
+						{
+							"command": []string{
+								"python3"},
+							"args": []string{
+								"server.py"},
+							"port": "9001",
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "5",
+									"http_get_url":          "/readyx",
+									"initial_delay_seconds": "2",
+									"period_seconds":        "2",
+									"success_threshold":     "2",
+									"timeout_seconds":       "2",
+								},
+							},
+						},
+					},
+					"instance_concurrency": "5",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size":          "1024",
+						"timeout":              "6",
+						"handler":              "index.HandlerX",
+						"description":          "update",
+						"cpu":                  "1",
+						"disk_size":            "10240",
+						"layers.#":             "1",
+						"instance_concurrency": "5",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"runtime":     "custom",
+					"timeout":     "60",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":       "0.5",
+					"disk_size": "512",
+					"layers":    []string{},
+					"custom_runtime_config": []map[string]interface{}{
+						{
+							"command": []string{},
+							"args":    []string{},
+							"port":    "9000",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"runtime":     "custom",
+						"timeout":     "60",
+						"cpu":         CHECKSET,
+						"disk_size":   "512",
+						"layers.#":    "0",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6917 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6917(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "function_name" {
+  default = "TestCustomRuntime_Full"
+}
+
+
+`, name)
+}
+
+// Case TestNativeRuntimePython_OSSMount 6927
+func TestAccAliCloudFcv3Function_basic6927(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6927)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6927)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "python3.9",
+					"timeout":       "6",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-1511928242963727",
+							"oss_object_name": "fc3Py39.zip",
+							"checksum":        "16724580610624463476",
+						},
+					},
+					"description": "Create",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":             "0.5",
+					"disk_size":       "512",
+					"internet_access": "true",
+					"log_config": []map[string]interface{}{
+						{
+							"project":                 "fc3-api-1511928242963727-cn-shanghai",
+							"logstore":                "function-log",
+							"log_begin_rule":          "None",
+							"enable_instance_metrics": "false",
+							"enable_request_metrics":  "false",
+						},
+					},
+					"oss_mount_config": []map[string]interface{}{
+						{
+							"mount_points": []map[string]interface{}{
+								{
+									"bucket_name": "fc3-api-1511928242963727",
+									"bucket_path": "/test",
+									"endpoint":    "http://oss-cn-shanghai-internal.aliyuncs.com",
+									"mount_dir":   "/mnt1",
+									"read_only":   "false",
+								},
+								{
+									"bucket_name": "fc3-api-v2-1511928242963727",
+									"bucket_path": "/test2",
+									"endpoint":    "http://oss-cn-shanghai-internal.aliyuncs.com",
+									"mount_dir":   "/mnt2",
+									"read_only":   "false",
+								},
+								{
+									"bucket_name": "fc3-api-v2-1511928242963727",
+									"bucket_path": "/test3",
+									"endpoint":    "http://oss-cn-shanghai-internal.aliyuncs.com",
+									"mount_dir":   "/mnt3",
+									"read_only":   "false",
+								},
+							},
+						},
+					},
+					"role": "acs:ram::1511928242963727:role/FC3APIResourceTest",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name":   name,
+						"memory_size":     "512",
+						"runtime":         "python3.9",
+						"timeout":         "6",
+						"handler":         "index.handler",
+						"description":     "Create",
+						"cpu":             CHECKSET,
+						"disk_size":       "512",
+						"internet_access": "true",
+						"role":            CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"handler": "index.Handler",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-v2-1511928242963727",
+							"oss_object_name": "fc3Py39v2.zip",
+							"checksum":        "1033112430191868705",
+						},
+					},
+					"description": "update",
+					"oss_mount_config": []map[string]interface{}{
+						{
+							"mount_points": []map[string]interface{}{
+								{
+									"bucket_name": "fc3-api-1511928242963727",
+									"bucket_path": "/test1",
+									"endpoint":    "http://oss-cn-shanghai.aliyuncs.com",
+									"mount_dir":   "/mnt1",
+									"read_only":   "true",
+								},
+							},
+						},
+					},
+					"layers": []string{},
+					"custom_dns": []map[string]interface{}{
+						{
+							"name_servers": []string{},
+							"searches":     []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"handler":     "index.Handler",
+						"description": "update",
+						"layers.#":    "0",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"timeout":         "3",
+					"internet_access": "false",
+					"oss_mount_config": []map[string]interface{}{
+						{
+							"mount_points": []map[string]interface{}{},
+						},
+					},
+					"custom_dns": []map[string]interface{}{
+						{
+							"name_servers": []string{},
+							"searches":     []string{},
+							"dns_options":  []map[string]interface{}{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"timeout":         "3",
+						"internet_access": "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6927 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6927(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "function_name" {
+  default = "TestNativeRuntimePython_OSSMount"
+}
+
+
+`, name)
+}
+
+// Case TestCustomContainer_GPU 6950
+func TestAccAliCloudFcv3Function_basic6950(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6950)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6950)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "custom-container",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"description":   "Create",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":       "0.5",
+					"disk_size": "512",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image1}",
+							"port":  "9000",
+							"entrypoint": []string{
+								"python", "-c", "xx"},
+							"command": []string{
+								"xx", "x", "a"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "1",
+									"http_get_url":          "/ready",
+									"initial_delay_seconds": "1",
+									"period_seconds":        "1",
+									"success_threshold":     "1",
+									"timeout_seconds":       "1",
+								},
+							},
+						},
+					},
+					"gpu_config": []map[string]interface{}{
+						{
+							"gpu_type":        "fc.gpu.tesla.1",
+							"gpu_memory_size": "2048",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name": name,
+						"memory_size":   "512",
+						"runtime":       "custom-container",
+						"timeout":       "3",
+						"handler":       "index.handler",
+						"description":   "Create",
+						"cpu":           CHECKSET,
+						"disk_size":     "512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"description": "update",
+					"cpu":         "1",
+					"custom_container_config": []map[string]interface{}{
+						{
+							"image": "${var.image2}",
+							"port":  "9001",
+							"entrypoint": []string{
+								"python3"},
+							"command": []string{
+								"app.py"},
+							"health_check_config": []map[string]interface{}{
+								{
+									"failure_threshold":     "2",
+									"http_get_url":          "/readyz",
+									"initial_delay_seconds": "2",
+									"period_seconds":        "2",
+									"success_threshold":     "2",
+									"timeout_seconds":       "2",
+								},
+							},
+						},
+					},
+					"gpu_config": []map[string]interface{}{
+						{
+							"gpu_type":        "fc.gpu.ampere.1",
+							"gpu_memory_size": "4096",
+						},
+					},
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"timeout":     "6",
+						"handler":     "index.Handler",
+						"description": "update",
+						"cpu":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"cpu":         "0.5",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"cpu":         CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6950 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6950(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "function_name" {
+  default = "TestCustomContainer_GPU"
+}
+
+variable "image1" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.1"
+}
+
+variable "image2" {
+  default = "registry-vpc.cn-shanghai.aliyuncs.com/fc-demo2/fc-demo:luoni-py39-http-v0.2"
+}
+
+
+`, name)
+}
+
+// Case TestNativeRuntimePython_VPC 6938
+func TestAccAliCloudFcv3Function_basic6938(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap6938)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence6938)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "python3.9",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"zip_file": "UEsDBBQACAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAaW5kZXgucHmEkEFKxEAQRfd9ig9ZTCJOooIwDMwNXLqXnnQlaalUhU5lRj2KZ/FOXkESGR114bJ/P/7jV4b1xRq1hijtFpM1682cuNgPmgysbRulPT0fRxXnMtwrSPyeCdYRokSLnuMLJTTkbUqEvDMbxm1VdcRD6Tk+T1LW2ldB66knsYdA5iNX17ebm6tN2VnPhcswMPmREPuBacb+CiapLarAj9gT6/H97dVlCNScY3mtYvRkxdZlwDKDEnanPWVLdrdkeXEGlFEazVdfPVHaVeHc3N15CUwppwOJXeK7HshAB8NuOU7J6sP4SRXuH/EvbUfMiqMmDqv5M5FNSfAj/wgAAP//UEsHCPl//NYAAQAArwEAAFBLAQIUABQACAAIAAAAAAD5f/zWAAEAAK8BAAAIAAAAAAAAAAAAAAAAAAAAAABpbmRleC5weVBLBQYAAAAAAQABADYAAAA2AQAAAAA=",
+						},
+					},
+					"description": "Create",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal",
+					},
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":       "0.5",
+					"disk_size": "512",
+					"vpc_config": []map[string]interface{}{
+						{
+							"security_group_id": "${alicloud_security_group.sg-a.id}",
+							"vpc_id":            "${alicloud_vpc.vpc-a.id}",
+							"vswitch_ids": []string{
+								"${alicloud_vswitch.vsw-a-1.id}", "${alicloud_vswitch.vsw-a-2.id}", "${alicloud_vswitch.vsw-a-3.id}"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name": name,
+						"memory_size":   "512",
+						"runtime":       "python3.9",
+						"timeout":       "3",
+						"handler":       "index.handler",
+						"description":   "Create",
+						"cpu":           CHECKSET,
+						"disk_size":     "512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"runtime":     "python3.10",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"code": []map[string]interface{}{
+						{
+							"zip_file": "UEsDBBQACAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAaW5kZXgucHmEkEFKxEAQRfd9ig9ZJBEncQRhGJgbuHQvPelK0lKpCp3KjHoUz+KdvIJkZHTQhcv+/fiPXxlWVys0GqJ0W8zWrjZL4uIwajKwdl2U7vx8mlScy/CgIPF7JlhPiBIteo6vlNCStzkRit5snLZ13ROPlef4MkvV6FAHbeaBxB4DmY9cr+82tzebqreBS5dhZPITIQ4j04L9FczSWFSBn7An1uPH+5vLEKi9xIpGxejZyq3LgNMMStid91Qd2f0pK8oLoIrSapF/90Tp8tK5pbv3EphSQQcSu8ZPPZCBDobd6TgVqw/TF1W6f8S/tD0xK46aOOTLZyKbk+Ayxzr/DAAA//9QSwcIBlYFIgIBAACxAQAAUEsBAhQAFAAIAAgAAAAAAAZWBSICAQAAsQEAAAgAAAAAAAAAAAAAAAAAAAAAAGluZGV4LnB5UEsFBgAAAAABAAEANgAAADgBAAAAAA==",
+						},
+					},
+					"description": "update",
+					"environment_variables": map[string]interface{}{
+						"\"TestEnvKey\"": "TestEnvVal2",
+					},
+					"cpu": "1",
+					"vpc_config": []map[string]interface{}{
+						{
+							"vpc_id": "${alicloud_vpc.vpc-b.id}",
+							"vswitch_ids": []string{
+								"${alicloud_vswitch.vsw-b-1.id}"},
+							"security_group_id": "${alicloud_security_group.sg-b.id}",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"runtime":     "python3.10",
+						"timeout":     "6",
+						"handler":     "index.Handler",
+						"description": "update",
+						"cpu":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"cpu":         "0.5",
+					"vpc_config": []map[string]interface{}{
+						{
+							"vswitch_ids": []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"cpu":         CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap6938 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence6938(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "function_name" {
+  default = "TestNativeRuntimePython_VPC"
+}
+
+resource "alicloud_vpc" "vpc-a" {
+  description = "Alibaba-Fc-V3-Component-Generated"
+  cidr_block  = "10.0.0.0/8"
+  vpc_name    = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_vswitch" "vsw-a-1" {
+  description  = "Alibaba-Fc-V3-Component-Generated"
+  vpc_id       = alicloud_vpc.vpc-a.id
+  zone_id      = "cn-shanghai-l"
+  cidr_block   = "10.20.0.0/24"
+  vswitch_name = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_vswitch" "vsw-a-2" {
+  vpc_id       = alicloud_vpc.vpc-a.id
+  zone_id      = "cn-shanghai-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_vswitch" "vsw-a-3" {
+  vpc_id       = alicloud_vpc.vpc-a.id
+  zone_id      = "cn-shanghai-g"
+  cidr_block   = "10.2.0.0/24"
+  vswitch_name = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_security_group" "sg-a" {
+  security_group_name = "Alibaba-Fc-V3-Component-Generated"
+  vpc_id              = alicloud_vpc.vpc-a.id
+  security_group_type = "normal"
+  inner_access_policy = "Accept"
+}
+
+resource "alicloud_vpc" "vpc-b" {
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "FC3-API-Resource-Test"
+  description = "luoni.fz"
+}
+
+resource "alicloud_vswitch" "vsw-b-1" {
+  vpc_id       = alicloud_vpc.vpc-b.id
+  zone_id      = "cn-shanghai-l"
+  cidr_block   = "192.168.1.0/24"
+  vswitch_name = "FC3-API-Resource-Test"
+  description  = "luoni.fz"
+}
+
+resource "alicloud_security_group" "sg-b" {
+  security_group_name = "FC3-API-Resource-Test"
+  vpc_id              = alicloud_vpc.vpc-b.id
+  security_group_type = "normal"
+  inner_access_policy = "Accept"
+  description         = "luoni.fz"
+}
+
+
+`, name)
+}
+
+// Case TestNativeRuntimePython_Nas 7025
+func TestAccAliCloudFcv3Function_basic7025(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_function.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3FunctionMap7025)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3Function")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3FunctionBasicDependence7025)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": name,
+					"memory_size":   "512",
+					"runtime":       "python3.9",
+					"timeout":       "3",
+					"handler":       "index.handler",
+					"code": []map[string]interface{}{
+						{
+							"oss_bucket_name": "fc3-api-1511928242963727",
+							"oss_object_name": "fc3Py39.zip",
+						},
+					},
+					"description": "Create",
+					"instance_lifecycle_config": []map[string]interface{}{
+						{
+							"initializer": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+							"pre_stop": []map[string]interface{}{
+								{
+									"timeout": "3",
+								},
+							},
+						},
+					},
+					"cpu":       "0.5",
+					"disk_size": "512",
+					"vpc_config": []map[string]interface{}{
+						{
+							"security_group_id": "${alicloud_security_group.sg-a.id}",
+							"vpc_id":            "${alicloud_vpc.vpc-a.id}",
+							"vswitch_ids": []string{
+								"${alicloud_vswitch.vsw-a-1.id}"},
+						},
+					},
+					"nas_config": []map[string]interface{}{
+						{
+							"group_id": "0",
+							"user_id":  "0",
+							"mount_points": []map[string]interface{}{
+								{
+									"server_addr": "${alicloud_nas_mount_target.mg1.mount_target_domain}:/luoni-test",
+									"mount_dir":   "/luoni-test",
+									"enable_tls":  "false",
+								},
+								{
+									"server_addr": "${alicloud_nas_mount_target.mg1.mount_target_domain}:/luoni-test1",
+									"mount_dir":   "/luoni-test1",
+									"enable_tls":  "false",
+								},
+								{
+									"server_addr": "${alicloud_nas_mount_target.mg1.mount_target_domain}:/luoni-test2",
+									"mount_dir":   "/luoni-test2",
+									"enable_tls":  "false",
+								},
+							},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name": name,
+						"memory_size":   "512",
+						"runtime":       "python3.9",
+						"timeout":       "3",
+						"handler":       "index.handler",
+						"description":   "Create",
+						"cpu":           CHECKSET,
+						"disk_size":     "512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "1024",
+					"runtime":     "python3.10",
+					"timeout":     "6",
+					"handler":     "index.Handler",
+					"description": "update",
+					"cpu":         "1",
+					"vpc_config": []map[string]interface{}{
+						{
+							"vpc_id": "${alicloud_vpc.vpc-a.id}",
+							"vswitch_ids": []string{
+								"${alicloud_vswitch.vsw-a-1.id}"},
+							"security_group_id": "${alicloud_security_group.sg-a.id}",
+						},
+					},
+					"nas_config": []map[string]interface{}{
+						{
+							"group_id": "1",
+							"user_id":  "1",
+							"mount_points": []map[string]interface{}{
+								{
+									"server_addr": "${alicloud_nas_mount_target.mg1.mount_target_domain}:/luoni-test3",
+									"mount_dir":   "/luoni-test3",
+									"enable_tls":  "true",
+								},
+							},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "1024",
+						"runtime":     "python3.10",
+						"timeout":     "6",
+						"handler":     "index.Handler",
+						"description": "update",
+						"cpu":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"memory_size": "512",
+					"cpu":         "0.5",
+					"vpc_config": []map[string]interface{}{
+						{
+							"vpc_id": "${alicloud_vpc.vpc-a.id}",
+							"vswitch_ids": []string{
+								"${alicloud_vswitch.vsw-a-1.id}"},
+							"security_group_id": "${alicloud_security_group.sg-a.id}",
+						},
+					},
+					"nas_config": []map[string]interface{}{
+						{
+							"mount_points": []map[string]interface{}{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"memory_size": "512",
+						"cpu":         CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"code"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3FunctionMap7025 = map[string]string{
+	"tracing_config.#":               CHECKSET,
+	"last_update_status":             CHECKSET,
+	"function_id":                    CHECKSET,
+	"function_arn":                   CHECKSET,
+	"last_update_status_reason":      CHECKSET,
+	"create_time":                    CHECKSET,
+	"code_size":                      CHECKSET,
+	"state":                          CHECKSET,
+	"state_reason":                   CHECKSET,
+	"last_modified_time":             CHECKSET,
+	"state_reason_code":              CHECKSET,
+	"last_update_status_reason_code": CHECKSET,
+}
+
+func AlicloudFcv3FunctionBasicDependence7025(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "function_name" {
+  default = "TestNativeRuntimePython_Nas_Pre2"
+}
+
+resource "alicloud_vpc" "vpc-a" {
+  description = "Alibaba-Fc-V3-Component-Generated"
+  cidr_block  = "10.0.0.0/8"
+  vpc_name    = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_vswitch" "vsw-a-1" {
+  description  = "Alibaba-Fc-V3-Component-Generated"
+  vpc_id       = alicloud_vpc.vpc-a.id
+  zone_id      = "cn-shanghai-l"
+  cidr_block   = "10.20.0.0/24"
+  vswitch_name = "Alibaba-Fc-V3-Component-Generated"
+}
+
+resource "alicloud_security_group" "sg-a" {
+  security_group_name = "Alibaba-Fc-V3-Component-Generated"
+  vpc_id              = alicloud_vpc.vpc-a.id
+  security_group_type = "normal"
+  inner_access_policy = "Accept"
+}
+
+resource "alicloud_nas_file_system" "fs1" {
+  storage_type     = "Performance"
+  zone_id          = "cn-shanghai-l"
+  encrypt_type     = "0"
+  protocol_type    = "NFS"
+  file_system_type = "standard"
+  description      = "Alibaba-Fc-V3-Component-Generated"
+  vpc_id           = alicloud_vpc.vpc-a.id
+}
+
+resource "alicloud_nas_mount_target" "mg1" {
+  vpc_id         = alicloud_vpc.vpc-a.id
+  vswitch_id     = alicloud_vswitch.vsw-a-1.id
+  network_type   = "Vpc"
+  file_system_id = alicloud_nas_file_system.fs1.id
+}
+
+
+`, name)
+}
+
+// Test Fcv3 Function. <<< Resource test cases, automatically generated.
