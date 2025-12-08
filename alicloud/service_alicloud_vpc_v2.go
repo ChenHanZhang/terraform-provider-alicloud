@@ -1688,7 +1688,6 @@ func (s *VpcServiceV2) VpcGatewayEndpointRouteTableAttachmentStateRefreshFunc(id
 // DescribeVpcNetworkAclAttachment <<< Encapsulated get interface for Vpc NetworkAclAttachment.
 
 func (s *VpcServiceV2) DescribeVpcNetworkAclAttachment(id string) (object map[string]interface{}, err error) {
-
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -1696,14 +1695,14 @@ func (s *VpcServiceV2) DescribeVpcNetworkAclAttachment(id string) (object map[st
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
-	action := "DescribeNetworkAcls"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["NetworkAclId"] = parts[0]
-	// For VSwitch resource type, we need to filter by VSwitchId instead of ResourceId
-	query["ResourceType"] = "VSwitch"
+	request["NetworkAclId"] = parts[0]
+	request["ResourceId"] = parts[1]
 	request["RegionId"] = client.RegionId
+	action := "DescribeNetworkAcls"
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -1718,53 +1717,53 @@ func (s *VpcServiceV2) DescribeVpcNetworkAclAttachment(id string) (object map[st
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
-
+	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{}) {
-			return object, WrapErrorf(NotFoundErr("NetworkAclAttachment", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	v, err := jsonpath.Get("$.NetworkAcls.NetworkAcl[*].Resources.Resource[*]", response)
+	v, err := jsonpath.Get("$.NetworkAcls.NetworkAcl[*]", response)
 	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.NetworkAcls.NetworkAcl[*].Resources.Resource[*]", response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.NetworkAcls.NetworkAcl[*]", response)
 	}
 
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(NotFoundErr("NetworkAclAttachment", id), NotFoundMsg, response)
 	}
 
-	// Filter by VSwitchId (ResourceId) since the API might return multiple resources
-	resources := v.([]interface{})
-	for _, r := range resources {
-		resourceMap := r.(map[string]interface{})
-		if resourceMap["ResourceId"] == parts[1] {
-			currentStatus := resourceMap["Status"]
-			if currentStatus == "UNBINDING" {
-				return object, WrapErrorf(NotFoundErr("NetworkAclAttachment", id), NotFoundMsg, response)
-			}
-			return resourceMap, nil
-		}
+	currentStatus, err := jsonpath.Get("$.Resources.Resource[0].Status", v.([]interface{})[0].(map[string]interface{}))
+	if fmt.Sprint(currentStatus) == "UNBINDING" {
+		return object, WrapErrorf(NotFoundErr("NetworkAclAttachment", id), NotFoundMsg, response)
 	}
 
-	return object, WrapErrorf(NotFoundErr("NetworkAclAttachment", id), NotFoundMsg, response)
+	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
 func (s *VpcServiceV2) VpcNetworkAclAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.VpcNetworkAclAttachmentStateRefreshFuncWithApi(id, field, failStates, s.DescribeVpcNetworkAclAttachment)
+}
+
+func (s *VpcServiceV2) VpcNetworkAclAttachmentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeVpcNetworkAclAttachment(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
 
-		currentStatus := fmt.Sprint(object[field])
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
 		for _, failState := range failStates {
 			if currentStatus == failState {
 				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
