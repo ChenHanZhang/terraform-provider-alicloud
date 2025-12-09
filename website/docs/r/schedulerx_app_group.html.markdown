@@ -20,12 +20,6 @@ For information about Schedulerx App Group and how to use it, see [What is App G
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_schedulerx_app_group&exampleId=7c4026fb-fc32-b667-2eb4-7dc928fd7538610bd0b9&activeTab=example&spm=docs.r.schedulerx_app_group.0.7c4026fbfc&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -65,23 +59,45 @@ The following arguments are supported:
 * `app_type` - (Optional, Int) Application type.
   - 1, general application.
   - 2, k8s application.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `app_version` - (Optional) Application Version, 1: Basic Edition, 2: Professional Edition
 * `delete_jobs` - (Optional) Whether to delete the task in the application Group. The values are as follows:
   - `true`: Delete.
   - `false`: Do not delete.
+
+-> **NOTE:** This parameter only takes effect when deletion is triggered.
+
 * `description` - (Optional) Application Description
 * `enable_log` - (Optional) Whether to enable the log.
   - true: On
   - false: Close
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `group_id` - (Required, ForceNew) Application ID
 * `max_concurrency` - (Optional, Int) The maximum number of instances running at the same time. The default value is 1, that is, the last trigger is not completed, and the next trigger will not be performed even at the running time.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `max_jobs` - (Optional, ForceNew, Int) Application Grouping Configurable Maximum Number of Tasks
 * `monitor_config_json` - (Optional) Alarm configuration JSON field. For more information about this field, see **Request Parameters * *.
 * `monitor_contacts_json` - (Optional) Alarm contact JSON format.
 * `namespace` - (Required, ForceNew) The namespace ID, which is obtained on the namespace page of the console.
 * `namespace_name` - (Required) The namespace name.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `namespace_source` - (Optional) Not supported for the time being, no need to fill in.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `notification_policy_name` - (Optional, Available since v1.266.0) This property does not have a description in the spec, please add it before generating code.
 * `schedule_busy_workers` - (Optional) Whether to schedule a busy machine.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 
 ## Attributes Reference
 
