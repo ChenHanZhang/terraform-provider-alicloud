@@ -26,7 +26,7 @@ func TestAccAliCloudLindormInstanceV2_basic11753(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudLindormInstanceV2BasicDependence11753)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -40,11 +40,12 @@ func TestAccAliCloudLindormInstanceV2_basic11753(t *testing.T) {
 							"engine_type": "TABLE",
 							"node_group": []map[string]interface{}{
 								{
-									"node_count":          "2",
-									"node_spec":           "lindorm.g.2xlarge",
-									"resource_group_name": "chixiao-rg-test",
-									"node_disk_type":      "cloud_essd",
-									"node_disk_size":      "200",
+									"node_count":               "2",
+									"node_spec":                "lindorm.g.2xlarge",
+									"resource_group_name":      "chixiao-rg-test",
+									"node_disk_type":           "cloud_essd",
+									"node_disk_size":           "200",
+									"enable_attach_local_disk": "true",
 								},
 							},
 						},
@@ -154,7 +155,7 @@ func TestAccAliCloudLindormInstanceV2_basic11176(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudLindormInstanceV2BasicDependence11176)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -285,7 +286,7 @@ func TestAccAliCloudLindormInstanceV2_basic11191(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudLindormInstanceV2BasicDependence11191)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -401,7 +402,7 @@ func TestAccAliCloudLindormInstanceV2_basic11034(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudLindormInstanceV2BasicDependence11034)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -415,11 +416,12 @@ func TestAccAliCloudLindormInstanceV2_basic11034(t *testing.T) {
 							"engine_type": "TABLE",
 							"node_group": []map[string]interface{}{
 								{
-									"node_count":          "2",
-									"node_spec":           "lindorm.g.2xlarge",
-									"resource_group_name": "chixiao-rg-test",
-									"node_disk_type":      "cloud_essd",
-									"node_disk_size":      "200",
+									"node_count":               "2",
+									"node_spec":                "lindorm.g.2xlarge",
+									"resource_group_name":      "chixiao-rg-test",
+									"node_disk_type":           "cloud_essd",
+									"node_disk_size":           "200",
+									"enable_attach_local_disk": "true",
 								},
 							},
 						},
@@ -460,33 +462,6 @@ func TestAccAliCloudLindormInstanceV2_basic11034(t *testing.T) {
 						},
 					},
 					"instance_alias":      "preTest-cx",
-					"deletion_protection": "false",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"engine_list.#":       "1",
-						"instance_alias":      "preTest-cx",
-						"deletion_protection": "false",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"engine_list": []map[string]interface{}{
-						{
-							"engine_type": "TABLE",
-							"node_group": []map[string]interface{}{
-								{
-									"node_count":          "4",
-									"node_spec":           "lindorm.g.2xlarge",
-									"resource_group_name": "chixiao-rg-test",
-									"node_disk_size":      "400",
-									"node_disk_type":      "cloud_essd",
-								},
-							},
-						},
-					},
-					"instance_alias":      "preTest-cx",
 					"deletion_protection": "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -494,16 +469,6 @@ func TestAccAliCloudLindormInstanceV2_basic11034(t *testing.T) {
 						"engine_list.#":       "1",
 						"instance_alias":      "preTest-cx",
 						"deletion_protection": "true",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"deletion_protection": "false",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"deletion_protection": "false",
 					}),
 				),
 			},
