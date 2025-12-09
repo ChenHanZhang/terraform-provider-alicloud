@@ -22,16 +22,17 @@ func (s *Fcv3ServiceV2) DescribeFcv3Function(id string) (object map[string]inter
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	functionName := id
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["functionName"] = id
+	header = make(map[string]*string)
 
 	action := fmt.Sprintf("/2023-03-30/functions/%s", functionName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("FC", "2023-03-30", action, query, nil, nil)
+		response, err = client.RoaGet("FC", "2023-03-30", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
