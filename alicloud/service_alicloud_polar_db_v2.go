@@ -3,9 +3,10 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/blues/jsonata-go"
 	"strings"
 	"time"
+
+	"github.com/blues/jsonata-go"
 
 	"github.com/PaesslerAG/jsonpath"
 
@@ -347,7 +348,7 @@ func (s *PolarDbServiceV2) DescribePolarDbDatabase(id string) (object map[string
 		response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"InvalidDBClusterId.NotFound"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -357,9 +358,6 @@ func (s *PolarDbServiceV2) DescribePolarDbDatabase(id string) (object map[string
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidDBClusterId.NotFound"}) {
-			return object, WrapErrorf(NotFoundErr("Database", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
