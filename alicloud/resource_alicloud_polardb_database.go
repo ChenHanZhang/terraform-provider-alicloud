@@ -34,8 +34,7 @@ func resourceAliCloudPolarDbDatabase() *schema.Resource {
 			},
 			"character_set_name": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"collate": {
@@ -89,33 +88,16 @@ func resourceAliCloudPolarDbDatabaseCreate(d *schema.ResourceData, meta interfac
 	if v, ok := d.GetOk("account_name"); ok {
 		request["AccountName"] = v
 	}
+	if v, ok := d.GetOk("ctype"); ok {
+		request["Ctype"] = v
+	}
 	if v, ok := d.GetOk("db_description"); ok {
 		request["DBDescription"] = v
 	}
-	if v, ok := d.GetOk("character_set_name"); ok {
-		request["CharacterSetName"] = v
-	} else {
-		request["CharacterSetName"] = "utf8"
-	}
-
-	polarDBService := PolarDBService{client}
-	cluster, err := polarDBService.DescribePolarDBCluster(fmt.Sprint(request["DBClusterId"]))
-	if err != nil {
-		return WrapError(err)
-	}
-
 	if v, ok := d.GetOk("collate"); ok {
 		request["Collate"] = v
-	} else if cluster.DBType == "PostgreSQL" || cluster.DBType == "Oracle" {
-		request["Collate"] = "C"
 	}
-
-	if v, ok := d.GetOk("ctype"); ok {
-		request["Ctype"] = v
-	} else if cluster.DBType == "PostgreSQL" || cluster.DBType == "Oracle" {
-		request["Ctype"] = "C"
-	}
-
+	request["CharacterSetName"] = d.Get("character_set_name")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
@@ -193,6 +175,7 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 	request["DBClusterId"] = parts[0]
 	request["DBName"] = parts[1]
 
+	request["DBName"] = buildClientToken(action)
 	if d.HasChange("db_description") {
 		update = true
 	}
@@ -202,7 +185,7 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"Connect.Timeout"}) || NeedRetry(err) {
+				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -218,8 +201,7 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 	update = false
 	objectRaw, _ = polarDbServiceV2.DescribePolarDbDatabase(d.Id())
 	enableGrantAccountPrivilege1 := false
-	checkValue00 := objectRaw["Engine"]
-
+	checkValue00 := objectRaw["$.Engine"]
 	if InArray(fmt.Sprint(checkValue00), []string{"PostgreSQL", "Oracle"}) {
 		enableGrantAccountPrivilege1 = true
 	}
