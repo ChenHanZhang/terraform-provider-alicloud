@@ -44,7 +44,7 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 			},
 			"account_password": {
 				Type:      schema.TypeString,
-				Optional:  true,
+				Required:  true,
 				Sensitive: true,
 			},
 			"account_password_valid_time": {
@@ -55,8 +55,8 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 			"account_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"Normal", "Super"}, false),
 			},
 			"db_cluster_id": {
@@ -67,19 +67,6 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-			"kms_encrypted_password": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				DiffSuppressFunc: kmsDiffSuppressFunc,
-			},
-			"kms_encryption_context": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return d.Get("kms_encrypted_password").(string) == ""
-				},
-				Elem: schema.TypeString,
 			},
 		},
 	}
@@ -107,27 +94,9 @@ func resourceAliCloudPolarDbAccountCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("account_description"); ok {
 		request["AccountDescription"] = v
 	}
-
-	password := d.Get("account_password").(string)
-	kmsPassword := d.Get("kms_encrypted_password").(string)
-
-	if password == "" && kmsPassword == "" {
-		return WrapError(Error("One of the 'password' and 'kms_encrypted_password' should be set."))
-	}
-	if password != "" {
-		request["AccountPassword"] = password
-	} else {
-		kmsService := KmsService{client}
-		decryptResp, err := kmsService.Decrypt(kmsPassword, d.Get("kms_encryption_context").(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-		request["AccountPassword"] = decryptResp
-	}
+	request["AccountPassword"] = d.Get("account_password")
 	if v, ok := d.GetOk("account_type"); ok {
 		request["AccountType"] = v
-	} else {
-		request["AccountType"] = "Normal"
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -268,20 +237,8 @@ func resourceAliCloudPolarDbAccountUpdate(d *schema.ResourceData, meta interface
 
 	if !d.IsNewResource() && d.HasChange("account_password") {
 		update = true
-
-		request["NewAccountPassword"] = d.Get("account_password")
 	}
-
-	if !d.IsNewResource() && d.HasChange("kms_encrypted_password") {
-		update = true
-
-		kmsService := KmsService{meta.(*connectivity.AliyunClient)}
-		decryptResp, err := kmsService.Decrypt(d.Get("kms_encrypted_password").(string), d.Get("kms_encryption_context").(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-		request["NewAccountPassword"] = decryptResp
-	}
+	request["NewAccountPassword"] = d.Get("account_password")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {

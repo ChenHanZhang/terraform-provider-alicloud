@@ -3,9 +3,10 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/blues/jsonata-go"
 	"strings"
 	"time"
+
+	"github.com/blues/jsonata-go"
 
 	"github.com/PaesslerAG/jsonpath"
 
@@ -274,15 +275,10 @@ func (s *PolarDbServiceV2) DescribePolarDbAccount(id string) (object map[string]
 
 	v, err := jsonpath.Get("$.Accounts[*]", response)
 	if err != nil {
-		return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Accounts[*]", response)
 	}
 
 	if len(v.([]interface{})) == 0 {
-		return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
-	}
-
-	currentStatus := v.([]interface{})[0].(map[string]interface{})["AccountName"]
-	if currentStatus == nil {
 		return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
 	}
 
