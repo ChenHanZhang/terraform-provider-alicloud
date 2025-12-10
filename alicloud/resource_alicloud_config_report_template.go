@@ -1,0 +1,321 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
+package alicloud
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/PaesslerAG/jsonpath"
+	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+)
+
+func resourceAliCloudConfigReportTemplate() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAliCloudConfigReportTemplateCreate,
+		Read:   resourceAliCloudConfigReportTemplateRead,
+		Update: resourceAliCloudConfigReportTemplateUpdate,
+		Delete: resourceAliCloudConfigReportTemplateDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
+		Schema: map[string]*schema.Schema{
+			"report_file_formats": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"excel"}, false),
+			},
+			"report_granularity": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"report_language": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"report_scope": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"match_type": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: StringInSlice([]string{"In"}, false),
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"report_template_description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"report_template_name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"subscription_frequency": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	}
+}
+
+func resourceAliCloudConfigReportTemplateCreate(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+
+	action := "CreateReportTemplate"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+
+	if v, ok := d.GetOk("report_template_description"); ok {
+		request["ReportTemplateDescription"] = v
+	}
+	request["ReportTemplateName"] = d.Get("report_template_name")
+	if v, ok := d.GetOk("subscription_frequency"); ok {
+		request["SubscriptionFrequency"] = v
+	}
+	reportScopeDataList := make(map[string]interface{})
+
+	if v, ok := d.GetOk("report_scope"); ok {
+		value1, _ := jsonpath.Get("$.value", v)
+		if value1 != nil && value1 != "" {
+			reportScopeDataList["Value"] = value1
+		}
+	}
+
+	if v, ok := d.GetOk("report_scope"); ok {
+		matchType1, _ := jsonpath.Get("$.match_type", v)
+		if matchType1 != nil && matchType1 != "" {
+			reportScopeDataList["MatchType"] = matchType1
+		}
+	}
+
+	if v, ok := d.GetOk("report_scope"); ok {
+		key1, _ := jsonpath.Get("$.key", v)
+		if key1 != nil && key1 != "" {
+			reportScopeDataList["Key"] = key1
+		}
+	}
+
+	ReportScopeMap := make([]interface{}, 0)
+	ReportScopeMap = append(ReportScopeMap, reportScopeDataList)
+	reportScopeDataListJson, err := json.Marshal(ReportScopeMap)
+	if err != nil {
+		return WrapError(err)
+	}
+	request["ReportScope"] = string(reportScopeDataListJson)
+
+	if v, ok := d.GetOk("report_granularity"); ok {
+		request["ReportGranularity"] = v
+	}
+	if v, ok := d.GetOk("report_language"); ok {
+		request["ReportLanguage"] = v
+	}
+	if v, ok := d.GetOk("report_file_formats"); ok {
+		request["ReportFileFormats"] = v
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Config", "2020-09-07", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_config_report_template", action, AlibabaCloudSdkGoERROR)
+	}
+
+	d.SetId(fmt.Sprint(response["ReportTemplateId"]))
+
+	return resourceAliCloudConfigReportTemplateRead(d, meta)
+}
+
+func resourceAliCloudConfigReportTemplateRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.AliyunClient)
+	configServiceV2 := ConfigServiceV2{client}
+
+	objectRaw, err := configServiceV2.DescribeConfigReportTemplate(d.Id())
+	if err != nil {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_config_report_template DescribeConfigReportTemplate Failed!!! %s", err)
+			d.SetId("")
+			return nil
+		}
+		return WrapError(err)
+	}
+
+	d.Set("report_file_formats", objectRaw["ReportFileFormats"])
+	d.Set("report_granularity", objectRaw["ReportGranularity"])
+	d.Set("report_language", objectRaw["ReportLanguage"])
+	d.Set("report_template_description", objectRaw["ReportTemplateDescription"])
+	d.Set("report_template_name", objectRaw["ReportTemplateName"])
+	d.Set("subscription_frequency", objectRaw["SubscriptionFrequency"])
+
+	reportScopeChildRaw := reportScopeChildRaw.(map[string]interface{})
+	reportScopeMaps := make([]map[string]interface{}, 0)
+	if reportScopeChildRaw != nil {
+		for _, keyRaw := range convertToInterfaceArray(reportScopeChildRaw) {
+			reportScopeMap := make(map[string]interface{})
+			reportScopeChildRaw := reportScopeChildRaw.(map[string]interface{})
+			reportScopeMap["key"] = reportScopeChildRaw["Key"]
+			reportScopeMap["match_type"] = reportScopeChildRaw["MatchType"]
+			reportScopeMap["value"] = reportScopeChildRaw["Value"]
+
+			reportScopeMaps = append(reportScopeMaps, reportScopeMap)
+		}
+	}
+	if err := d.Set("report_scope", reportScopeMaps); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func resourceAliCloudConfigReportTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.AliyunClient)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
+
+	var err error
+	action := "UpdateReportTemplate"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ReportTemplateId"] = d.Id()
+
+	if d.HasChange("report_template_description") {
+		update = true
+		request["ReportTemplateDescription"] = d.Get("report_template_description")
+	}
+
+	if d.HasChange("report_template_name") {
+		update = true
+	}
+	request["ReportTemplateName"] = d.Get("report_template_name")
+	if d.HasChange("subscription_frequency") {
+		update = true
+		request["SubscriptionFrequency"] = d.Get("subscription_frequency")
+	}
+
+	if d.HasChange("report_scope") {
+		update = true
+		if v, ok := d.GetOk("report_scope"); ok || d.HasChange("report_scope") {
+			reportScopeMapsArray := make([]interface{}, 0)
+			for _, dataLoop := range convertToInterfaceArray(v) {
+				dataLoopTmp := dataLoop.(map[string]interface{})
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["Value"] = dataLoopTmp["value"]
+				dataLoopMap["MatchType"] = dataLoopTmp["match_type"]
+				dataLoopMap["Key"] = dataLoopTmp["key"]
+				reportScopeMapsArray = append(reportScopeMapsArray, dataLoopMap)
+			}
+			reportScopeMapsJson, err := json.Marshal(reportScopeMapsArray)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["ReportScope"] = string(reportScopeMapsJson)
+		}
+	}
+
+	if d.HasChange("report_granularity") {
+		update = true
+		request["ReportGranularity"] = d.Get("report_granularity")
+	}
+
+	if d.HasChange("report_language") {
+		update = true
+		request["ReportLanguage"] = d.Get("report_language")
+	}
+
+	if d.HasChange("report_file_formats") {
+		update = true
+		request["ReportFileFormats"] = d.Get("report_file_formats")
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Config", "2020-09-07", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	return resourceAliCloudConfigReportTemplateRead(d, meta)
+}
+
+func resourceAliCloudConfigReportTemplateDelete(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+	action := "DeleteReportTemplate"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["ReportTemplateId"] = d.Id()
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Config", "2020-09-07", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	}
+
+	return nil
+}
