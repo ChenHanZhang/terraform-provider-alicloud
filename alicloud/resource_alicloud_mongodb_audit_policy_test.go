@@ -361,37 +361,27 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"audit_status":   "Enable",
 					"db_instance_id": "${alicloud_mongodb_instance.default6TxENd.id}",
 					"storage_period": "10",
+					"audit_status":   "enable",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"audit_status":   "Enable",
 						"db_instance_id": CHECKSET,
 						"storage_period": "10",
+						"audit_status":   "enable",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"audit_status": "Disabled",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"audit_status": "Disabled",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"audit_status":   "Enable",
 					"storage_period": "12",
+					"audit_status":   "disabled",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"audit_status":   "Enable",
 						"storage_period": "12",
+						"audit_status":   "disabled",
 					}),
 				),
 			},
