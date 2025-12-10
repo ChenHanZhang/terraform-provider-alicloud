@@ -3,9 +3,10 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/PaesslerAG/jsonpath"
 	"strings"
 	"time"
+
+	"github.com/PaesslerAG/jsonpath"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -58,15 +59,18 @@ func (s *SslCertificatesServiceServiceV2) DescribeSslCertificatesServicePcaCerti
 }
 
 func (s *SslCertificatesServiceServiceV2) SslCertificatesServicePcaCertificateStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SslCertificatesServicePcaCertificateStateRefreshFuncWithApi(id, field, failStates, s.DescribeSslCertificatesServicePcaCertificate)
+}
+
+func (s *SslCertificatesServiceServiceV2) SslCertificatesServicePcaCertificateStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSslCertificatesServicePcaCertificate(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
