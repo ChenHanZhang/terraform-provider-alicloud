@@ -69,7 +69,7 @@ func resourceAliCloudMongodbAuditPolicyCreate(d *schema.ResourceData, meta inter
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Dds", "2015-12-01", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationDenied.DBInstanceStatus"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -135,10 +135,7 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 	query = make(map[string]interface{})
 	request["DBInstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if d.HasChange("storage_period") {
-		update = true
-	}
-	if v, ok := d.GetOk("storage_period"); ok {
+	if v, ok := d.GetOkExists("storage_period"); ok {
 		request["StoragePeriod"] = v
 	}
 	if d.HasChange("audit_status") {
@@ -195,17 +192,6 @@ func convertMongodbAuditPolicyAuditStatusRequest(source interface{}) interface{}
 		return "Enable"
 	case " disabled":
 		return "Disabled"
-	}
-	return source
-}
-
-func convertMongodbAuditPolicyResponse(source string) string {
-	source = fmt.Sprint(source)
-	switch source {
-	case "Enable":
-		return "enable"
-	case "Disabled":
-		return "disabled"
 	}
 	return source
 }
