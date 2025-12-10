@@ -255,7 +255,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobCreate(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -272,7 +272,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobCreate(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -289,7 +289,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobCreate(dCreate, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -307,7 +307,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobDelete(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -324,7 +324,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobDelete(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -341,7 +341,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobDelete(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobDelete(d, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -358,7 +358,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobDelete(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -375,7 +375,7 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobRead(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -391,8 +391,220 @@ func TestUnitAlicloudActiontrailHistoryDeliveryJob(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudActiontrailHistoryDeliveryJobRead(d, rawClient)
+		err := resourceAliCloudActionTrailHistoryDeliveryJobRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
 }
+
+// Test ActionTrail HistoryDeliveryJob. >>> Resource test cases, automatically generated.
+// Case HistoryDeliveryJob资源测试用例-线上 10766
+func TestAccAliCloudActionTrailHistoryDeliveryJob_basic10766(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_actiontrail_history_delivery_job.default"
+	ra := resourceAttrInit(resourceId, AlicloudActionTrailHistoryDeliveryJobMap10766)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ActionTrailServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeActionTrailHistoryDeliveryJob")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccactiontrail%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudActionTrailHistoryDeliveryJobBasicDependence10766)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"trail_name": "${alicloud_actiontrail_trail.defaultYKkKWO.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"trail_name": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudActionTrailHistoryDeliveryJobMap10766 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudActionTrailHistoryDeliveryJobBasicDependence10766(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "trail_name" {
+  default = "testTrail131231"
+}
+
+resource "alicloud_actiontrail_trail" "defaultYKkKWO" {
+  event_rw                = "Write"
+  sls_project_arn         = "acs:log:cn-hangzhou:1511928242963727:project/actiontrail2sls2-1511928242963727"
+  oss_key_prefix          = "actiontrail"
+  oss_bucket_name         = "actiontrail2oss-test-1511928242963727"
+  trail_name              = "delivery-test-case-1511928242963727"
+  sls_write_role_arn      = "acs:ram::1511928242963727:role/aliyunserviceroleforactiontrail"
+  oss_write_role_arn      = "acs:ram::1511928242963727:role/aliyunserviceroleforactiontrail"
+  trail_region            = "All"
+  is_organization_trail   = false
+  status                  = "Enable"
+  event_selectors         = "[{\"ServiceName\":\"PDS\"}]"
+  data_event_trail_region = "cn-hangzhou"
+}
+
+
+`, name)
+}
+
+// Case HistoryDeliveryJob资源测试用例-预发备份 11993
+func TestAccAliCloudActionTrailHistoryDeliveryJob_basic11993(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_actiontrail_history_delivery_job.default"
+	ra := resourceAttrInit(resourceId, AlicloudActionTrailHistoryDeliveryJobMap11993)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ActionTrailServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeActionTrailHistoryDeliveryJob")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccactiontrail%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudActionTrailHistoryDeliveryJobBasicDependence11993)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"trail_name": "${alicloud_actiontrail_trail.defaultYKkKWO.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"trail_name": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudActionTrailHistoryDeliveryJobMap11993 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudActionTrailHistoryDeliveryJobBasicDependence11993(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "trail_name" {
+  default = "testTrail131231"
+}
+
+resource "alicloud_actiontrail_trail" "defaultYKkKWO" {
+  event_rw                = "Write"
+  sls_project_arn         = "acs:log:cn-hangzhou:1511928242963727:project/actiontrail2sls2-1511928242963727"
+  oss_key_prefix          = "actiontrail"
+  oss_bucket_name         = "actiontrail2oss-test-1511928242963727"
+  trail_name              = "delivery-test-case-1511928242963727"
+  sls_write_role_arn      = "acs:ram::1511928242963727:role/aliyunserviceroleforactiontrail"
+  oss_write_role_arn      = "acs:ram::1511928242963727:role/aliyunserviceroleforactiontrail"
+  trail_region            = "All"
+  is_organization_trail   = false
+  status                  = "Enable"
+  event_selectors         = "[{\"ServiceName\":\"PDS\"}]"
+  data_event_trail_region = "cn-hangzhou"
+}
+
+
+`, name)
+}
+
+// Case ActionTrail下HistoryDeliveryJob测试用例 312
+func TestAccAliCloudActionTrailHistoryDeliveryJob_basic312(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_actiontrail_history_delivery_job.default"
+	ra := resourceAttrInit(resourceId, AlicloudActionTrailHistoryDeliveryJobMap312)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ActionTrailServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeActionTrailHistoryDeliveryJob")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccactiontrail%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudActionTrailHistoryDeliveryJobBasicDependence312)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"trail_name": "${var.name}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"trail_name": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudActionTrailHistoryDeliveryJobMap312 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudActionTrailHistoryDeliveryJobBasicDependence312(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test ActionTrail HistoryDeliveryJob. <<< Resource test cases, automatically generated.
