@@ -1,149 +1,76 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	r_kvstore "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudKvStoreBackupPolicy() *schema.Resource {
+func resourceAliCloudRedisBackup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudKvStoreBackupPolicyCreate,
-		Read:   resourceAliCloudKvStoreBackupPolicyRead,
-		Update: resourceAliCloudKvStoreBackupPolicyUpdate,
-		Delete: resourceAliCloudKvStoreBackupPolicyDelete,
+		Create: resourceAliCloudRedisBackupCreate,
+		Read:   resourceAliCloudRedisBackupRead,
+		Update: resourceAliCloudRedisBackupUpdate,
+		Delete: resourceAliCloudRedisBackupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Update: schema.DefaultTimeout(40 * time.Minute),
+			Create: schema.DefaultTimeout(31 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"backup_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"backup_retention_period": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"backup_time": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "02:00Z-03:00Z",
-				ValidateFunc: StringInSlice(BACKUP_TIME, false),
-			},
-			"backup_period": {
-				Type: schema.TypeSet,
-				// terraform does not support ValidateFunc of TypeList attr
-				// ValidateFunc: validateAllowedStringValue([]string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}),
-				Optional: true,
+			"status": {
+				Type:     schema.TypeString,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
 }
 
-func resourceAliCloudKvStoreBackupPolicyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRedisBackupCreate(d *schema.ResourceData, meta interface{}) error {
 
-	d.SetId(d.Get("instance_id").(string))
-
-	return resourceAliCloudKvStoreBackupPolicyUpdate(d, meta)
-}
-
-func resourceAliCloudKvStoreBackupPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	kvstoreService := KvstoreService{client}
 
-	object, err := kvstoreService.DescribeKVstoreBackupPolicy(d.Id())
-	if err != nil {
-		if !d.IsNewResource() && NotFoundError(err) {
-			d.SetId("")
-			return nil
-		}
-		return WrapError(err)
-	}
-
-	d.Set("instance_id", d.Id())
-	d.Set("backup_time", object.PreferredBackupTime)
-	d.Set("backup_period", strings.Split(object.PreferredBackupPeriod, ","))
-
-	return nil
-}
-
-func resourceAliCloudKvStoreBackupPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	r_kvstoreService := R_kvstoreService{client}
-	kvstoreService := KvstoreService{client}
-
-	if d.HasChange("backup_time") || d.HasChange("backup_period") {
-		request := r_kvstore.CreateModifyBackupPolicyRequest()
-		request.RegionId = client.RegionId
-		request.InstanceId = d.Id()
-
-		request.PreferredBackupTime = d.Get("backup_time").(string)
-		request.PreferredBackupPeriod = convertListToCommaSeparate(d.Get("backup_period").(*schema.Set).List())
-
-		var raw interface{}
-		var err error
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-			raw, err = client.WithRKvstoreClient(func(rkvClient *r_kvstore.Client) (interface{}, error) {
-				return rkvClient.ModifyBackupPolicy(request)
-			})
-			if err != nil {
-				if IsExpectedErrors(err, []string{"IncorrectDBInstanceState"}) || NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
-		}
-
-		stateConf := BuildStateConf([]string{}, []string{"Normal"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, r_kvstoreService.KvstoreInstanceStateRefreshFunc(d.Id(), []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-
-		// There is a random error and need waiting some seconds to ensure the update is success
-		_, err = kvstoreService.DescribeKVstoreBackupPolicy(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
-	}
-
-	return resourceAliCloudKvStoreBackupPolicyRead(d, meta)
-}
-
-func resourceAliCloudKvStoreBackupPolicyDelete(d *schema.ResourceData, meta interface{}) error {
-	// In case of a delete we are resetting to default values which is Monday - Sunday each 3am-4am
-	client := meta.(*connectivity.AliyunClient)
-	r_kvstoreService := R_kvstoreService{client}
-
-	request := r_kvstore.CreateModifyBackupPolicyRequest()
-	request.RegionId = client.RegionId
-	request.InstanceId = d.Id()
-
-	request.PreferredBackupTime = "01:00Z-02:00Z"
-	request.PreferredBackupPeriod = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"
-
-	var raw interface{}
+	action := "CreateBackup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		raw, err = client.WithRKvstoreClient(func(rkvClient *r_kvstore.Client) (interface{}, error) {
-			return rkvClient.ModifyBackupPolicy(request)
-		})
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceId"] = v
+	}
+	request["RegionId"] = client.RegionId
+
+	if v, ok := d.GetOkExists("backup_retention_period"); ok {
+		request["BackupRetentionPeriod"] = v
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("R-kvstore", "2015-01-01", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"IncorrectDBInstanceState"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"BackupJobExists"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -151,15 +78,84 @@ func resourceAliCloudKvStoreBackupPolicyDelete(d *schema.ResourceData, meta inte
 		}
 		return nil
 	})
-	addDebug(request.GetActionName(), raw, request.RpcRequest, request)
+	addDebug(action, response, request)
 
 	if err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_kvstore_backup_policy", action, AlibabaCloudSdkGoERROR)
 	}
 
-	stateConf := BuildStateConf([]string{}, []string{"Normal"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, r_kvstoreService.KvstoreInstanceStateRefreshFunc(d.Id(), []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+	d.SetId(fmt.Sprintf("%v", request["InstanceId"]))
+
+	redisServiceV2 := RedisServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, redisServiceV2.DescribeAsyncRedisBackupStateRefreshFunc(d, response, "#$.Backups.Backup[*].BackupId", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
+	}
+
+	return resourceAliCloudRedisBackupRead(d, meta)
+}
+
+func resourceAliCloudRedisBackupRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.AliyunClient)
+	redisServiceV2 := RedisServiceV2{client}
+
+	objectRaw, err := redisServiceV2.DescribeRedisBackup(d.Id())
+	if err != nil {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_kvstore_backup_policy DescribeRedisBackup Failed!!! %s", err)
+			d.SetId("")
+			return nil
+		}
+		return WrapError(err)
+	}
+
+	d.Set("status", objectRaw["BackupStatus"])
+	d.Set("backup_id", objectRaw["BackupId"])
+
+	parts := strings.Split(d.Id(), ":")
+	d.Set("instance_id", parts[0])
+
+	return nil
+}
+
+func resourceAliCloudRedisBackupUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Cannot update resource Alicloud Resource Backup.")
+	return nil
+}
+
+func resourceAliCloudRedisBackupDelete(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+	parts := strings.Split(d.Id(), ":")
+	action := "DeleteBackup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["BackupId"] = parts[1]
+	request["InstanceId"] = parts[0]
+	request["RegionId"] = client.RegionId
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("R-kvstore", "2015-01-01", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
 	return nil

@@ -2,20 +2,19 @@
 subcategory: "Tair (Redis OSS-Compatible) And Memcache (KVStore)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_kvstore_backup_policy"
-sidebar_current: "docs-alicloud-resource-kvstore-backup-policy"
 description: |-
-  Provides a Backup Policy for Tair (Redis OSS-Compatible) And Memcache (KVStore) resource.
+  Provides a Alicloud Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup resource.
 ---
 
 # alicloud_kvstore_backup_policy
 
-Provides a Backup Policy for Tair (Redis OSS-Compatible) And Memcache (KVStore) resource.
+Provides a Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup resource.
 
-For information about Backup Policy for Tair (Redis OSS-Compatible) And Memcache (KVStore) and how to use it, see [What is Backup Policy](https://www.alibabacloud.com/help/en/redis/developer-reference/api-r-kvstore-2015-01-01-modifybackuppolicy-redis).
+Instance level or database level backup objects.
+
+For information about Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup and how to use it, see [What is Backup](https://www.alibabacloud.com/help/en/redis/developer-reference/api-r-kvstore-2015-01-01-modifybackuppolicy-redis).
 
 -> **NOTE:** Available since v1.15.0.
-
--> **DEPRECATED:**  This resource  has been deprecated from version `1.104.0`. Please use resource [alicloud_kvstore_instance](https://www.terraform.io/docs/providers/alicloud/r/kvstore_instance).
 
 ## Example Usage
 
@@ -73,27 +72,29 @@ resource "alicloud_kvstore_backup_policy" "default" {
 ## Argument Reference
 
 The following arguments are supported:
+* `backup_retention_period` - (Optional, Int, Available since v1.266.0) 本次手动备份的过期时长，取值范围为 7~730 天。当您传入-1 时，表示本次手动备份数据不过期（实例生命周期内）；当您不传入任何值（默认情况），表示与当前自动备份策略一致。
 
-* `instance_id` - (Required, ForceNew) The id of Tair (Redis OSS-Compatible) And Memcache (KVStore) Instance.
-* `backup_time` - (Optional) Backup time, in the format of HH:mmZ- HH:mm Z.
-* `backup_period` - (Optional) Backup Cycle. Allowed values: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday.
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `instance_id` - (Required, ForceNew) InstanceId
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Backup Policy.
+* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<backup_id>`.
+* `backup_id` - Backup ID.
+* `status` - Backup status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `update` - (Defaults to 40 mins) Used when update the Backup Policy.
+* `create` - (Defaults to 31 mins) Used when create the Backup.
+* `delete` - (Defaults to 5 mins) Used when delete the Backup.
 
 ## Import
 
-Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup Policy can be imported using the id, e.g.
+Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_kvstore_backup_policy.example <id>
+$ terraform import alicloud_kvstore_backup_policy.example <instance_id>:<backup_id>
 ```
