@@ -173,9 +173,6 @@ func (s *Wafv3ServiceV2) DescribeWafv3Domain(id string) (object map[string]inter
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"Waf.Instance.ValidFaild"}) {
-			return object, WrapErrorf(NotFoundErr("Domain", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -198,7 +195,6 @@ func (s *Wafv3ServiceV2) DescribeDomainListTagResources(id string) (object map[s
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["ResourceId.1"] = parts[1]
 	request["RegionId"] = client.RegionId
 	request["ResourceType"] = "ALIYUN::WAF::DEFENSERESOURCE"
 	action := "ListTagResources"
@@ -276,12 +272,21 @@ func (s *Wafv3ServiceV2) SetResourceTags(d *schema.ResourceData, resourceType st
 			}
 		}
 		if len(removedTagKeys) > 0 {
-			parts := strings.Split(d.Id(), ":")
+			parts = strings.Split(d.Id(), ":")
 			action = "UntagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			request["ResourceId.1"] = parts[1]
 			request["RegionId"] = client.RegionId
+			if v, ok := d.GetOk("domain_id"); ok {
+				localData, err := jsonpath.Get("$", v)
+				if err != nil {
+					return WrapError(err)
+				}
+				resourceIdMapsArray := convertToInterfaceArray(localData)
+
+				request["ResourceId"] = resourceIdMapsArray
+			}
+
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
@@ -307,12 +312,21 @@ func (s *Wafv3ServiceV2) SetResourceTags(d *schema.ResourceData, resourceType st
 		}
 
 		if len(added) > 0 {
-			parts := strings.Split(d.Id(), ":")
+			parts = strings.Split(d.Id(), ":")
 			action = "TagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			request["ResourceId.1"] = parts[1]
 			request["RegionId"] = client.RegionId
+			if v, ok := d.GetOk("domain_id"); ok {
+				localData, err := jsonpath.Get("$", v)
+				if err != nil {
+					return WrapError(err)
+				}
+				resourceIdMapsArray := convertToInterfaceArray(localData)
+
+				request["ResourceId"] = resourceIdMapsArray
+			}
+
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
