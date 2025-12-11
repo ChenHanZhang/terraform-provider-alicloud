@@ -1,30 +1,24 @@
 ---
-subcategory: "AliKafka"
+subcategory: "Ali Kafka"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_alikafka_topic"
 description: |-
-  Provides a Alicloud Alikafka Topic resource.
+  Provides a Alicloud Ali Kafka Topic resource.
 ---
 
 # alicloud_alikafka_topic
 
-Provides a Alikafka Topic resource.
+Provides a Ali Kafka Topic resource.
 
 Topic in kafka.
 
-For information about Alikafka Topic and how to use it, see [What is Topic](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createtopic).
+For information about Ali Kafka Topic and how to use it, see [What is Topic](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createtopic).
 
 -> **NOTE:** Available since v1.56.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_alikafka_topic&exampleId=777edb69-3f55-dbe0-541e-4240ae1486ac9df26498&activeTab=example&spm=docs.r.alikafka_topic.0.777edb693f&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -95,30 +89,60 @@ resource "alicloud_alikafka_topic" "default" {
 ## Argument Reference
 
 The following arguments are supported:
-* `compact_topic` - (Optional, ForceNew, Bool) The cleanup policy for the topic. This parameter is available only if you set the storage engine of the topic to Local storage. Valid values:
-  - false: The delete cleanup policy is used.
-  - true: The compact cleanup policy is used.
-* `configs` - (Optional, Available since v1.262.1) The advanced configurations.
-* `instance_id` - (Required, ForceNew) The ID of the instance.
-* `local_topic` - (Optional, ForceNew, Bool) The storage engine of the topic. Valid values:
+* `compact_topic` - (Optional, ForceNew) When the storage engine of the Topic is configured as Local storage, a log cleanup policy is configured. Value:
+  - false:delete the cleanup policy.
+  - true:compact cleanup policy.
+* `config` - (Optional, Available since v1.266.0) The key of the Topic configuration word.
+  - Currently, Reserved Instances only support the Topic of the Local storage engine, and the Topic of the cloud storage engine cannot be modified.
+  - Supports Serverless instances to modify Topic configurations.
+  - The 'local topic' supported keys for Reserved Instances are retention.ms, max.message.bytes, replications, message.timestamp.type, message.timestamp.difference.max.ms.
+  - A Serverless instance supports retention.hours, max.message.bytes, message.timestamp.type, and message.timestamp.difference.max.ms.
+* `instance_id` - (Required, ForceNew) The instance ID.
+* `local_topic` - (Optional, ForceNew) The storage engine of the Topic. Value:
   - false: Cloud storage.
-  - true: Local storage.
-* `partition_num` - (Optional, Int) The number of partitions in the topic.
-* `remark` - (Required) The description of the topic.
-* `tags` - (Optional, Map, Available since v1.63.0) A mapping of tags to assign to the resource.
-* `topic` - (Required, ForceNew) The topic name.
+  - true:Local storage.
+* `min_insync_replicas` - (Optional, Int, Available since v1.266.0) Minimum number of ISR synchronization replicas.
+  - This parameter can be specified only when the value of `LocalTopic` is `true` or The `type` is **open source version (local disk).
+  - The value must be less than the number of Topic copies.
+  - The number of synchronized copies is limited to 1~3.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `partition_num` - (Optional, Computed, Int) Number of partitions
+* `remark` - (Required) Remarks
+* `replication_factor` - (Optional, Int, Available since v1.266.0) The number of Topic replicas.
+  - This parameter can be specified only when the value of `LocalTopic` is `true` or The `type` is **open source version (local disk).
+  - The number of copies is limited to 1~3.
+
+-> **NOTE:**  When the number of copies is `1`, there is a risk of data loss. Please set it carefully.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `tags` - (Optional, Map, Available since v1.63.0) The tag of the kafka console, which is used to group instance,topic, and consumption.
+* `topic` - (Required, ForceNew) The Topic name.
+* `value` - (Optional, Available since v1.266.0) The value of the Topic configuration word.
+  - Serverless instances support the following configurations:
+  -'retention.hours' indicates the message retention duration. The value type is String, and the value limit is 24 to 8760.
+  -'max.message.bytes' indicates the maximum size of the sent message. The value type is String and the value limit is 1048576~10485760.
+  -'message.timestamp.type' Specifies the type of message timestamp. CreateTime indicates the specified timestamp when the producer sends the message. If it is not specified, it is the creation time of the message on the client. LogAppendTime indicates the drop time of the message on the server. Optional values are: CreateTime or LogAppendTime.
+  -'message.timestamp.difference.max.ms' indicates the maximum allowed difference between the timestamp when the server receives the message and the timestamp specified in the message. When message.timestamp.type is set to CreateTime, **messages are rejected** if the timestamp difference exceeds this threshold * *. This configuration does not take effect when message.timestamp.type is LogAppendTime.
+  - Reserved Instances support the following configurations:
+  -'retention.ms' indicates the message retention duration. The value type is String and the value limit is 3600000~31536000000.
+  -'max.message.bytes' indicates the maximum size of the sent message. The value type is String and the value limit is 1048576~10485760.
+  -'replications' indicates the number of replicas. The value type is String, and the value is limited to 1 to 3.
+  -'message.timestamp.type' Specifies the type of message timestamp. CreateTime indicates the specified timestamp when the producer sends the message. If it is not specified, it is the creation time of the message on the client. LogAppendTime indicates the drop time of the message on the server. Optional values are: CreateTime or LogAppendTime.
+  -'message.timestamp.difference.max.ms' indicates the maximum allowed difference between the timestamp when the server receives the message and the timestamp specified in the message. When message.timestamp.type is set to CreateTime, **messages are rejected** if the timestamp difference exceeds this threshold * *. This configuration does not take effect when message.timestamp.type is LogAppendTime.
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<topic>`.
-* `create_time` - (Available since v1.262.1) The time when the topic was created.
-* `region_id` - (Available since v1.262.1) The ID of the region where the instance resides.
-* `status` - (Available since v1.262.1) The status of the service.
+* `create_time` - The creation timestamp. Unit: millisecond
+* `region_id` - The region ID of the Topic instance.
+* `status` - Service status. Value:
 
 ## Timeouts
-
--> **NOTE:** Available since v1.119.0.
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 5 mins) Used when create the Topic.
@@ -127,7 +151,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Alikafka Topic can be imported using the id, e.g.
+Ali Kafka Topic can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_alikafka_topic.example <instance_id>:<topic>
