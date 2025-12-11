@@ -32,10 +32,9 @@ func resourceAliCloudSslCertificatesServiceCertificate() *schema.Resource {
 				ForceNew: true,
 			},
 			"certificate_name": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				AtLeastOneOf: []string{"certificate_name", "name"},
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"encrypt_cert": {
 				Type:     schema.TypeString,
@@ -71,17 +70,6 @@ func resourceAliCloudSslCertificatesServiceCertificate() *schema.Resource {
 				Sensitive: true,
 			},
 			"tags": tagsSchema(),
-			"name": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Field 'name' has been deprecated from provider version 1.129.0 and it will be removed in the future version. Please use the new attribute 'certificate_name' instead.",
-			},
-			"lang": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Field 'lang' has been deprecated from provider version 1.260.1 and it will be removed in the future version.",
-			},
 		},
 	}
 }
@@ -99,7 +87,7 @@ func resourceAliCloudSslCertificatesServiceCertificateCreate(d *schema.ResourceD
 
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
-		request = expandTagsToMapWithTags(request, tagsMap)
+		request = expandTagsToMap(request, tagsMap)
 	}
 
 	if v, ok := d.GetOk("resource_group_id"); ok {
@@ -114,11 +102,7 @@ func resourceAliCloudSslCertificatesServiceCertificateCreate(d *schema.ResourceD
 	if v, ok := d.GetOk("sign_cert"); ok {
 		request["SignCert"] = v
 	}
-	if v, ok := d.GetOk("certificate_name"); ok {
-		request["Name"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["Name"] = v
-	}
+	request["Name"] = d.Get("certificate_name")
 	if v, ok := d.GetOk("encrypt_private_key"); ok {
 		request["EncryptPrivateKey"] = v
 	}
@@ -173,7 +157,6 @@ func resourceAliCloudSslCertificatesServiceCertificateRead(d *schema.ResourceDat
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("sign_cert", objectRaw["SignCert"])
 	d.Set("sign_private_key", objectRaw["SignPrivateKey"])
-	d.Set("name", objectRaw["Name"])
 
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -182,64 +165,8 @@ func resourceAliCloudSslCertificatesServiceCertificateRead(d *schema.ResourceDat
 }
 
 func resourceAliCloudSslCertificatesServiceCertificateUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	update := false
-
-	var err error
-	action := "CreateCertificateName"
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["CertificateId"] = d.Id()
-	request["RegionId"] = client.RegionId
-	if !d.IsNewResource() && d.HasChange("tags") {
-		update = true
-		if v, ok := d.GetOk("tags"); ok {
-			tagsMap := ConvertTags(v.(map[string]interface{}))
-			request = expandTagsToMapWithTags(request, tagsMap)
-		} else {
-			request["Tags.1.Key"] = ""
-			request["Tags.1.Value"] = ""
-		}
-	}
-
-	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
-		update = true
-		request["ResourceGroupId"] = d.Get("resource_group_id")
-	}
-
-	if !d.IsNewResource() && d.HasChange("certificate_name") {
-		update = true
-		request["Name"] = d.Get("certificate_name")
-	}
-
-	if !d.IsNewResource() && d.HasChange("name") {
-		update = true
-		request["Name"] = d.Get("name")
-	}
-
-	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPost("cas", "2018-08-13", action, query, request, true)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-	}
-
-	return resourceAliCloudSslCertificatesServiceCertificateRead(d, meta)
+	log.Printf("[INFO] Cannot update resource Alicloud Resource Certificate.")
+	return nil
 }
 
 func resourceAliCloudSslCertificatesServiceCertificateDelete(d *schema.ResourceData, meta interface{}) error {
@@ -256,7 +183,6 @@ func resourceAliCloudSslCertificatesServiceCertificateDelete(d *schema.ResourceD
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("cas", "2020-04-07", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
