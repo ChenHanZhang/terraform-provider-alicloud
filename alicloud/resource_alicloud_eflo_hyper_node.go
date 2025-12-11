@@ -2,6 +2,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 func resourceAliCloudEfloHyperNode() *schema.Resource {
@@ -23,23 +25,72 @@ func resourceAliCloudEfloHyperNode() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(38 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"cluster_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"data_disk": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"delete_with_node": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"bursting_enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"category": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"size": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"performance_level": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"provisioned_iops": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"hostname": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"hpn_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+			"login_password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+			},
 			"machine_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+			"node_group_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"payment_duration": {
 				Type:     schema.TypeInt,
@@ -84,6 +135,18 @@ func resourceAliCloudEfloHyperNode() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchema(),
+			"user_data": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"vswitch_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"vpc_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"zone_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -216,7 +279,7 @@ func resourceAliCloudEfloHyperNodeCreate(d *schema.ResourceData, meta interface{
 	d.SetId(fmt.Sprint(id))
 
 	efloServiceV2 := EfloServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"HealthyUnused"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, efloServiceV2.EfloHyperNodeStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"HealthyUnused"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, efloServiceV2.EfloHyperNodeStateRefreshFunc(d.Id(), "OperatingState", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -238,11 +301,14 @@ func resourceAliCloudEfloHyperNodeRead(d *schema.ResourceData, meta interface{})
 		return WrapError(err)
 	}
 
+	d.Set("cluster_id", objectRaw["ClusterId"])
 	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("hostname", objectRaw["Hostname"])
 	d.Set("hpn_zone", objectRaw["HpnZone"])
 	d.Set("machine_type", objectRaw["MachineType"])
+	d.Set("node_group_id", objectRaw["NodeGroupId"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
-	d.Set("status", objectRaw["Status"])
+	d.Set("status", objectRaw["OperatingState"])
 	d.Set("zone_id", objectRaw["ZoneId"])
 
 	objectRaw, err = efloServiceV2.DescribeHyperNodeQueryAvailableInstances(d)
@@ -253,12 +319,16 @@ func resourceAliCloudEfloHyperNodeRead(d *schema.ResourceData, meta interface{})
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("payment_type", objectRaw["SubscriptionType"])
 	d.Set("region_id", objectRaw["Region"])
-	if fmt.Sprint(objectRaw["RenewalDurationUnit"]) == "Y" {
-		d.Set("renewal_duration", formatInt(objectRaw["RenewalDuration"])*12)
-	} else {
-		d.Set("renewal_duration", objectRaw["RenewalDuration"])
-	}
+	d.Set("renewal_duration", objectRaw["RenewalDuration"])
 	d.Set("renewal_status", objectRaw["RenewStatus"])
+
+	objectRaw, err = efloServiceV2.DescribeHyperNodeListClusterHyperNodes(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("vswitch_id", objectRaw["VSwitchId"])
+	d.Set("vpc_id", objectRaw["VpcId"])
 
 	objectRaw, err = efloServiceV2.DescribeHyperNodeListTagResources(d.Id())
 	if err != nil && !NotFoundError(err) {
@@ -311,30 +381,6 @@ func resourceAliCloudEfloHyperNodeUpdate(d *schema.ResourceData, meta interface{
 		if v, ok := d.GetOk("payment_type"); ok && v == "PayAsYouGo" {
 			request["ProductCode"] = "bccluster"
 			request["ProductType"] = "bccluster_computinginstance_public_intl"
-		}
-	}
-	if v, ok := d.GetOk("payment_type"); ok {
-		request["SubscriptionType"] = v
-	}
-	if request["SubscriptionType"] == "" {
-		request["SubscriptionType"] = "Subscription"
-	}
-	if request["SubscriptionType"] == "Subscription" {
-		v, ok := d.GetOk("renewal_duration")
-		if !ok {
-			return WrapError(Error("renewal_duration is required when renewal_status is set to AutoRenewal."))
-		}
-		request["RenewalPeriod"] = v
-		if v.(int) < 12 {
-			request["RenewalPeriod"] = v
-			request["RenewalPeriodUnit"] = "M"
-		} else {
-			if v.(int)%12 != 0 {
-				return WrapError(Error("renewal_duration must be a multiple of 12 when renewal_duration more than 12."))
-			}
-			renewPeriod := v.(int) / 12
-			request["RenewalPeriod"] = renewPeriod
-			request["RenewalPeriodUnit"] = "Y"
 		}
 	}
 	if update {
@@ -395,10 +441,113 @@ func resourceAliCloudEfloHyperNodeUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if d.HasChange("tags") {
-		efloServiceV2 := EfloServiceV2{client}
-		if err := efloServiceV2.SetResourceTags(d, "HyperNode"); err != nil {
-			return WrapError(err)
+	if d.HasChange("node_group_id") {
+		oldEntry, newEntry := d.GetChange("node_group_id")
+		oldValue := oldEntry.(string)
+		newValue := newEntry.(string)
+
+		if oldValue != "" {
+			action := "ShrinkCluster"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RegionId"] = client.RegionId
+			if v, ok := d.GetOk("cluster_id"); ok {
+				request["ClusterId"] = v
+			}
+			nodeGroupsDataList := make(map[string]interface{})
+
+			if v, ok := d.GetOk("node_group_id"); ok {
+				nodeGroupsDataList["NodeGroupId"] = v
+			}
+
+			NodeGroupsMap := make([]interface{}, 0)
+			NodeGroupsMap = append(NodeGroupsMap, nodeGroupsDataList)
+			nodeGroupsDataListJson, err := json.Marshal(NodeGroupsMap)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["NodeGroups"] = string(nodeGroupsDataListJson)
+
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "NodeGroups.0.HyperNodes.0.HyperNodeId", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("eflo-controller", "2022-12-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+			efloServiceV2 := EfloServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"HealthyUnused"}, d.Timeout(schema.TimeoutUpdate), 5*time.Minute, efloServiceV2.EfloHyperNodeStateRefreshFunc(d.Id(), "OperatingState", []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+
+		}
+
+		if newValue != "" {
+			action := "ExtendCluster"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RegionId"] = client.RegionId
+			nodeGroupsDataList := make(map[string]interface{})
+
+			if v, ok := d.GetOk("node_group_id"); ok {
+				nodeGroupsDataList["NodeGroupId"] = v
+			}
+
+			if v, ok := d.GetOk("user_data"); ok {
+				nodeGroupsDataList["UserData"] = v
+			}
+
+			NodeGroupsMap := make([]interface{}, 0)
+			NodeGroupsMap = append(NodeGroupsMap, nodeGroupsDataList)
+			nodeGroupsDataListJson, err := json.Marshal(NodeGroupsMap)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["NodeGroups"] = string(nodeGroupsDataListJson)
+
+			if v, ok := d.GetOk("cluster_id"); ok {
+				request["ClusterId"] = v
+			}
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "NodeGroups.0.HyperNodes.0.HyperNodeId", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("eflo-controller", "2022-12-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+			efloServiceV2 := EfloServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"HealthyUsing"}, d.Timeout(schema.TimeoutUpdate), 9*time.Minute, efloServiceV2.EfloHyperNodeStateRefreshFunc(d.Id(), "OperatingState", []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+
 		}
 	}
 	d.Partial(false)
