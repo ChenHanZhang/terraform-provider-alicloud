@@ -248,8 +248,10 @@ func (s *OssServiceV2) DescribeOssBucketCors(id string) (object map[string]inter
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(id)
 
@@ -257,7 +259,7 @@ func (s *OssServiceV2) DescribeOssBucketCors(id string) (object map[string]inter
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketCors", action), query, nil, nil, hostMap, false)
+		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketCors", action), query, nil, nil, hostMap, true)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -266,7 +268,6 @@ func (s *OssServiceV2) DescribeOssBucketCors(id string) (object map[string]inter
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
 	addDebug(action, response, request)
@@ -274,11 +275,7 @@ func (s *OssServiceV2) DescribeOssBucketCors(id string) (object map[string]inter
 		if IsExpectedErrors(err, []string{"NoSuchBucket", "NoSuchCORSConfiguration"}) {
 			return object, WrapErrorf(NotFoundErr("BucketCors", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-	if response == nil {
-		return object, WrapErrorf(NotFoundErr("BucketCors", id), NotFoundMsg, response)
 	}
 
 	v, err := jsonpath.Get("$.CORSConfiguration", response)
@@ -290,15 +287,18 @@ func (s *OssServiceV2) DescribeOssBucketCors(id string) (object map[string]inter
 }
 
 func (s *OssServiceV2) OssBucketCorsStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketCorsStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketCors)
+}
+
+func (s *OssServiceV2) OssBucketCorsStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeOssBucketCors(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

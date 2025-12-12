@@ -10,21 +10,22 @@ import (
 )
 
 // Test Oss BucketCors. >>> Resource test cases, automatically generated.
-// Case BucketCors测试 6362
-func TestAccAliCloudOssBucketCors_basic6362(t *testing.T) {
+// Case BucketCors测试 6634
+func TestAccAliCloudOssBucketCors_basic6634(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_oss_bucket_cors.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketCorsMap6362)
+	ra := resourceAttrInit(resourceId, AlicloudOssBucketCorsMap6634)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeOssBucketCors")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketcors%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketCorsBasicDependence6362)
+	name := fmt.Sprintf("tfaccoss%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketCorsBasicDependence6634)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -33,70 +34,7 @@ func TestAccAliCloudOssBucketCors_basic6362(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"cors_rule": []map[string]interface{}{
-						{
-							"allowed_methods": []string{
-								"GET"},
-							"allowed_origins": []string{
-								"*"},
-							"allowed_headers": []string{
-								"x-oss-test", "x-oss-abc"},
-							"expose_header": []string{
-								"x-oss-request-id"},
-							"max_age_seconds": "1000",
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"cors_rule.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"response_vary": "false",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"response_vary": "false",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"cors_rule": []map[string]interface{}{
-						{
-							"allowed_methods": []string{
-								"POST", "HEAD", "GET", "DELETE"},
-							"allowed_origins": []string{
-								"oss.aliyuncs.com"},
-							"allowed_headers": []string{
-								"*"},
-							"max_age_seconds": "100",
-						},
-						{
-							"allowed_methods": []string{
-								"PUT"},
-							"allowed_origins": []string{
-								"allow.aliyuncs.com.", "*.aliyuncs.com"},
-							"allowed_headers": []string{
-								"test-oss"},
-							"expose_header": []string{
-								"x-oss-meta"},
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"cors_rule.#": "2",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket":        "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket":        "${alicloud_oss_bucket.CreateBucket.id}",
 					"response_vary": "true",
 					"cors_rule": []map[string]interface{}{
 						{
@@ -106,9 +44,9 @@ func TestAccAliCloudOssBucketCors_basic6362(t *testing.T) {
 								"*"},
 							"allowed_headers": []string{
 								"x-oss-test", "x-oss-abc"},
-							"expose_header": []string{
-								"x-oss-request-id"},
 							"max_age_seconds": "1000",
+							"expose_headers": []string{
+								"osstest"},
 						},
 					},
 				}),
@@ -121,63 +59,7 @@ func TestAccAliCloudOssBucketCors_basic6362(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
-}
-
-var AlicloudOssBucketCorsMap6362 = map[string]string{
-	"response_vary": "false",
-}
-
-func AlicloudOssBucketCorsBasicDependence6362(name string) string {
-	return fmt.Sprintf(`
-variable "name" {
-    default = "%s"
-}
-
-resource "alicloud_oss_bucket" "CreateBucket" {
-  storage_class = "Standard"
-  bucket        = var.name
-  lifecycle {
-    ignore_changes = [
-      cors_rule,
-    ]
-  }
-}
-
-
-`, name)
-}
-
-// Case BucketCors测试 6362  twin
-func TestAccAliCloudOssBucketCors_basic6362_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_oss_bucket_cors.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketCorsMap6362)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeOssBucketCors")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketcors%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketCorsBasicDependence6362)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":        "${alicloud_oss_bucket.CreateBucket.bucket}",
 					"response_vary": "false",
 					"cors_rule": []map[string]interface{}{
 						{
@@ -186,10 +68,19 @@ func TestAccAliCloudOssBucketCors_basic6362_twin(t *testing.T) {
 							"allowed_origins": []string{
 								"oss.aliyuncs.com"},
 							"allowed_headers": []string{
-								"*", "x-oss-abc"},
-							"expose_header": []string{
-								"x-oss-request-id"},
+								"*"},
 							"max_age_seconds": "100",
+							"expose_headers": []string{
+								"osstest", "abc", "test"},
+						},
+						{
+							"allowed_methods": []string{
+								"GET"},
+							"allowed_origins": []string{
+								"*"},
+							"allowed_headers": []string{
+								"*"},
+							"max_age_seconds": "200",
 						},
 						{
 							"allowed_methods": []string{
@@ -198,16 +89,41 @@ func TestAccAliCloudOssBucketCors_basic6362_twin(t *testing.T) {
 								"allow.aliyuncs.com.", "*.aliyuncs.com"},
 							"allowed_headers": []string{
 								"test-oss"},
-							"expose_header": []string{
-								"x-oss-meta"},
 						},
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"bucket":        CHECKSET,
 						"response_vary": "false",
-						"cors_rule.#":   "2",
+						"cors_rule.#":   "3",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"cors_rule": []map[string]interface{}{
+						{
+							"allowed_methods": []string{
+								"GET", "PUT"},
+							"allowed_origins": []string{
+								"*"},
+							"allowed_headers": []string{
+								"test", "abc"},
+						},
+						{
+							"allowed_methods": []string{
+								"GET"},
+							"allowed_origins": []string{
+								"*"},
+							"allowed_headers": []string{
+								"abc", "def"},
+							"max_age_seconds": "150",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"cors_rule.#": "2",
 					}),
 				),
 			},
@@ -219,6 +135,22 @@ func TestAccAliCloudOssBucketCors_basic6362_twin(t *testing.T) {
 			},
 		},
 	})
+}
+
+var AlicloudOssBucketCorsMap6634 = map[string]string{}
+
+func AlicloudOssBucketCorsBasicDependence6634(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_oss_bucket" "CreateBucket" {
+  storage_class = "Standard"
+}
+
+
+`, name)
 }
 
 // Test Oss BucketCors. <<< Resource test cases, automatically generated.
