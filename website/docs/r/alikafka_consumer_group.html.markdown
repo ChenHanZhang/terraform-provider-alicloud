@@ -1,30 +1,24 @@
 ---
-subcategory: "AliKafka"
+subcategory: "Ali Kafka"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_alikafka_consumer_group"
-sidebar_current: "docs-alicloud-resource-alikafka-consumer-group"
 description: |-
-  Provides a Alicloud Alikafka Consumer Group resource.
+  Provides a Alicloud Ali Kafka Consumer Group resource.
 ---
 
 # alicloud_alikafka_consumer_group
 
-Provides an ALIKAFKA consumer group resource, see [What is alikafka consumer group](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createconsumergroup).
+Provides a Ali Kafka Consumer Group resource.
+
+Group in kafka.
+
+For information about Ali Kafka Consumer Group and how to use it, see [What is Consumer Group](https://next.api.alibabacloud.com/document/alikafka/2019-09-16/CreateConsumerGroup).
 
 -> **NOTE:** Available since v1.56.0.
-
--> **NOTE:**  Only the following regions support create alikafka consumer group.
-[`cn-hangzhou`,`cn-beijing`,`cn-shenzhen`,`cn-shanghai`,`cn-qingdao`,`cn-hongkong`,`cn-huhehaote`,`cn-zhangjiakou`,`cn-chengdu`,`cn-heyuan`,`ap-southeast-1`,`ap-southeast-3`,`ap-southeast-5`,`ap-northeast-1`,`eu-central-1`,`eu-west-1`,`us-west-1`,`us-east-1`]
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_alikafka_consumer_group&exampleId=e0c01fec-c5b8-1e8d-7fd6-c01a9798ede2dfa2cf90&activeTab=example&spm=docs.r.alikafka_consumer_group.0.e0c01fecc5&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -74,22 +68,33 @@ resource "alicloud_alikafka_consumer_group" "default" {
 ## Argument Reference
 
 The following arguments are supported:
-
-* `instance_id` - (Required, ForceNew) ID of the ALIKAFKA Instance that owns the groups.
-* `consumer_id` - (Required, ForceNew) ID of the consumer group. The length cannot exceed 64 characters.
-* `tags` - (Optional, Available in v1.63.0+) A mapping of tags to assign to the resource.
-* `description` - (Optional, ForceNew, Available in v1.157.0+) The description of the resource.
+* `consumer_id` - (Required, ForceNew) The Group name.
+  - Reserved Instances:
+It supports uppercase and lowercase letters, digits, underscores (_), dashes (-), and periods (.), and is limited to 3 to 64 characters in length.
+  - Serverless instance:
+Can only contain letters, numbers and special characters "@._* $#^! &-", limited to 1~249 characters.
+* `instance_id` - (Required, ForceNew) The ID of the instance.
+* `remark` - (Optional, ForceNew, Available since v1.266.0) Remarks.
+* `tags` - (Optional, Map) A list of tags.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<consumer_id>`.
+* `create_time` - The creation timestamp. Unit: millisecond
+* `region_id` - The region ID.
 
-* `id` - The `key` of the resource supplied above. The value is formulated as `<instance_id>:<consumer_id>`.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Consumer Group.
+* `delete` - (Defaults to 5 mins) Used when delete the Consumer Group.
+* `update` - (Defaults to 5 mins) Used when update the Consumer Group.
 
 ## Import
 
-ALIKAFKA GROUP can be imported using the id, e.g.
+Ali Kafka Consumer Group can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_alikafka_consumer_group.group alikafka_post-cn-123455abc:consumerId
+$ terraform import alicloud_alikafka_consumer_group.example <instance_id>:<consumer_id>
 ```
