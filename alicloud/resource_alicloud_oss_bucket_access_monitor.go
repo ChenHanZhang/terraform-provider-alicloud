@@ -53,11 +53,11 @@ func resourceAliCloudOssBucketAccessMonitorCreate(d *schema.ResourceData, meta i
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	accessMonitorConfiguration := make(map[string]interface{})
 
 	if v := d.Get("status"); v != nil {
-		objectDataLocalMap["Status"] = v
-		request["AccessMonitorConfiguration"] = objectDataLocalMap
+		accessMonitorConfiguration["Status"] = v
+		request["AccessMonitorConfiguration"] = accessMonitorConfiguration
 	}
 
 	body = request
@@ -80,12 +80,6 @@ func resourceAliCloudOssBucketAccessMonitorCreate(d *schema.ResourceData, meta i
 	}
 
 	d.SetId(fmt.Sprint(*hostMap["bucket"]))
-
-	ossServiceV2 := OssServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("status"))}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ossServiceV2.OssBucketAccessMonitorStateRefreshFunc(d.Id(), "Status", []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
-	}
 
 	return resourceAliCloudOssBucketAccessMonitorRead(d, meta)
 }
@@ -115,6 +109,7 @@ func resourceAliCloudOssBucketAccessMonitorUpdate(d *schema.ResourceData, meta i
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
@@ -130,14 +125,14 @@ func resourceAliCloudOssBucketAccessMonitorUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("status") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	accessMonitorConfiguration := make(map[string]interface{})
 
 	if v := d.Get("status"); v != nil {
 		if v, ok := d.GetOk("status"); ok {
-			objectDataLocalMap["Status"] = v
+			accessMonitorConfiguration["Status"] = v
 		}
 
-		request["AccessMonitorConfiguration"] = objectDataLocalMap
+		request["AccessMonitorConfiguration"] = accessMonitorConfiguration
 	}
 
 	body = request
@@ -157,11 +152,6 @@ func resourceAliCloudOssBucketAccessMonitorUpdate(d *schema.ResourceData, meta i
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		ossServiceV2 := OssServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("status"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ossServiceV2.OssBucketAccessMonitorStateRefreshFunc(d.Id(), "Status", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 

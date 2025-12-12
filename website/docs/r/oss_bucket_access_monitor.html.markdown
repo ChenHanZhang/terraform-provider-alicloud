@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_oss_bucket_access_monitor
 
-Provides a OSS Bucket Access Monitor resource. Enables or disables access tracking for a bucket.
+Provides a OSS Bucket Access Monitor resource.
+
+Enables or disables access tracking for a bucket.
 
 For information about OSS Bucket Access Monitor and how to use it, see [What is Bucket Access Monitor](https://www.alibabacloud.com/help/en/oss/developer-reference/putbucketaccessmonitor).
 
@@ -17,12 +19,6 @@ For information about OSS Bucket Access Monitor and how to use it, see [What is 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_access_monitor&exampleId=82af3813-21a3-964c-e231-a8a40cbfcdc3c64f23aa&activeTab=example&spm=docs.r.oss_bucket_access_monitor.0.82af381321&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
