@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_oss_bucket_transfer_acceleration
 
-Provides a OSS Bucket Transfer Acceleration resource. Transfer acceleration configuration of a bucket.
+Provides a OSS Bucket Transfer Acceleration resource.
+
+Transfer acceleration configuration of a bucket.
 
 For information about OSS Bucket Transfer Acceleration and how to use it, see [What is Bucket Transfer Acceleration](https://www.alibabacloud.com/help/en/oss/developer-reference/putbuckettransferacceleration).
 
@@ -17,12 +19,6 @@ For information about OSS Bucket Transfer Acceleration and how to use it, see [W
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_transfer_acceleration&exampleId=902fa53d-3c73-cdea-c3c6-acf529710ae9a8bd1b49&activeTab=example&spm=docs.r.oss_bucket_transfer_acceleration.0.902fa53d3c&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -63,8 +59,10 @@ Terraform cannot destroy resource `alicloud_oss_bucket_transfer_acceleration`. T
 ## Argument Reference
 
 The following arguments are supported:
-* `bucket` - (Required, ForceNew) The name of the Bucket.
-* `enabled` - (Optional) Specifies whether to enable transfer acceleration for the bucket. Valid values: true: transfer acceleration for the bucket is enabled. false: transfer acceleration for the bucket is disabled.
+* `bucket` - (Required, ForceNew) The name of the Bucket
+* `enabled` - (Optional) Specifies whether to enable transfer acceleration for the bucket. Valid values:
+true: transfer acceleration for the bucket is enabled.
+false: transfer acceleration for the bucket is disabled.
 
 ## Attributes Reference
 

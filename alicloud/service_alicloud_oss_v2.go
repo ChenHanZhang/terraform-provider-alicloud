@@ -646,8 +646,6 @@ func (s *OssServiceV2) OssBucketTransferAccelerationStateRefreshFunc(id string, 
 	}
 }
 
-// DescribeOssBucketTransferAcceleration >>> Encapsulated.
-
 // DescribeOssBucketAccessMonitor <<< Encapsulated get interface for Oss BucketAccessMonitor.
 func (s *OssServiceV2) DescribeOssBucketAccessMonitor(id string) (object map[string]interface{}, err error) {
 	client := s.client
@@ -1743,3 +1741,81 @@ func (s *OssServiceV2) OssBucketLoggingStateRefreshFuncWithApi(id string, field 
 }
 
 // DescribeOssBucketLogging >>> Encapsulated.
+// DescribeOssBucketTransferAcceleration <<< Encapsulated get interface for Oss BucketTransferAcceleration.
+
+func (s *OssServiceV2) DescribeOssBucketTransferAcceleration(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+	hostMap := make(map[string]*string)
+	hostMap["bucket"] = StringPointer(id)
+
+	action := fmt.Sprintf("/?transferAcceleration")
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketTransferAcceleration", action), query, nil, nil, hostMap, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"NoSuchBucket", "NoSuchTransferAccelerationConfiguration"}) {
+			return object, WrapErrorf(NotFoundErr("BucketTransferAcceleration", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.TransferAccelerationConfiguration", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.TransferAccelerationConfiguration", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *OssServiceV2) OssBucketTransferAccelerationStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketTransferAccelerationStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketTransferAcceleration)
+}
+
+func (s *OssServiceV2) OssBucketTransferAccelerationStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeOssBucketTransferAcceleration >>> Encapsulated.
