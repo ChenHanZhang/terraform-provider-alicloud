@@ -35,7 +35,7 @@ func resourceAliCloudOssBucketRequestPayment() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"Requester", "BucketOwner"}, true),
+				ValidateFunc: StringInSlice([]string{"Requester", "BucketOwner"}, false),
 			},
 		},
 	}
@@ -55,10 +55,11 @@ func resourceAliCloudOssBucketRequestPaymentCreate(d *schema.ResourceData, meta 
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	requestPaymentConfiguration := make(map[string]interface{})
+
 	if v := d.Get("payer"); !IsNil(v) {
-		objectDataLocalMap["Payer"] = v
-		request["RequestPaymentConfiguration"] = objectDataLocalMap
+		requestPaymentConfiguration["Payer"] = v
+		request["RequestPaymentConfiguration"] = requestPaymentConfiguration
 	}
 
 	body = request
@@ -72,9 +73,9 @@ func resourceAliCloudOssBucketRequestPaymentCreate(d *schema.ResourceData, meta 
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_request_payment", action, AlibabaCloudSdkGoERROR)
@@ -110,23 +111,30 @@ func resourceAliCloudOssBucketRequestPaymentUpdate(d *schema.ResourceData, meta 
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?requestPayment")
+
 	var err error
+	action := fmt.Sprintf("/?requestPayment")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
+
 	if d.HasChange("payer") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
-	if v := d.Get("payer"); v != nil {
-		objectDataLocalMap["Payer"] = d.Get("payer")
-		request["RequestPaymentConfiguration"] = objectDataLocalMap
+	requestPaymentConfiguration := make(map[string]interface{})
+
+	if v := d.Get("payer"); !IsNil(v) || d.HasChange("payer") {
+		if v, ok := d.GetOk("payer"); ok {
+			requestPaymentConfiguration["Payer"] = v
+		}
+
+		request["RequestPaymentConfiguration"] = requestPaymentConfiguration
 	}
 
 	body = request
@@ -141,9 +149,9 @@ func resourceAliCloudOssBucketRequestPaymentUpdate(d *schema.ResourceData, meta 
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}

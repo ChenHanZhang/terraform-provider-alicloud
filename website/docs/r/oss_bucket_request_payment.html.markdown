@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_oss_bucket_request_payment
 
-Provides a OSS Bucket Request Payment resource. Whether to enable pay-by-requester for a bucket.
+Provides a OSS Bucket Request Payment resource.
+
+Whether to enable pay-by-requester for a bucket.
 
 For information about OSS Bucket Request Payment and how to use it, see [What is Bucket Request Payment](https://www.alibabacloud.com/help/en/oss/developer-reference/putbucketrequestpayment).
 
@@ -17,12 +19,6 @@ For information about OSS Bucket Request Payment and how to use it, see [What is
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_request_payment&exampleId=9f16db7f-6cbf-083d-612e-45a23b3bfac3fc468f87&activeTab=example&spm=docs.r.oss_bucket_request_payment.0.9f16db7f6c&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -57,7 +53,7 @@ Terraform cannot destroy resource `alicloud_oss_bucket_request_payment`. Terrafo
 ## Argument Reference
 
 The following arguments are supported:
-* `bucket` - (Required, ForceNew) The name of the bucket.
+* `bucket` - (Required, ForceNew) The name of the bucket
 * `payer` - (Optional, Computed) The payer of the request and traffic fees.Valid values: BucketOwner: request and traffic fees are paid by the bucket owner. Requester: request and traffic fees are paid by the requester.
 
 ## Attributes Reference
