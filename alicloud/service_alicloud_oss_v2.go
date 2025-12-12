@@ -716,13 +716,16 @@ func (s *OssServiceV2) OssBucketAccessMonitorStateRefreshFunc(id string, field s
 // DescribeOssBucketAccessMonitor >>> Encapsulated.
 
 // DescribeOssBucketServerSideEncryption <<< Encapsulated get interface for Oss BucketServerSideEncryption.
+
 func (s *OssServiceV2) DescribeOssBucketServerSideEncryption(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(id)
 
@@ -748,9 +751,6 @@ func (s *OssServiceV2) DescribeOssBucketServerSideEncryption(id string) (object 
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
-	if response == nil {
-		return object, WrapErrorf(NotFoundErr("BucketServerSideEncryption", id), NotFoundMsg, response)
-	}
 
 	v, err := jsonpath.Get("$.ServerSideEncryptionRule.ApplyServerSideEncryptionByDefault", response)
 	if err != nil {
@@ -761,15 +761,18 @@ func (s *OssServiceV2) DescribeOssBucketServerSideEncryption(id string) (object 
 }
 
 func (s *OssServiceV2) OssBucketServerSideEncryptionStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketServerSideEncryptionStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketServerSideEncryption)
+}
+
+func (s *OssServiceV2) OssBucketServerSideEncryptionStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeOssBucketServerSideEncryption(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

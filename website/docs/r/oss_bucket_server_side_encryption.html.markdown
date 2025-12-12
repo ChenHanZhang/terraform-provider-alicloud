@@ -8,21 +8,17 @@ description: |-
 
 # alicloud_oss_bucket_server_side_encryption
 
-Provides a OSS Bucket Server Side Encryption resource. Server-side encryption rules of the bucket.
+Provides a OSS Bucket Server Side Encryption resource.
 
-For information about OSS Bucket Server Side Encryption and how to use it, see [What is Bucket Server Side Encryption](https://www.alibabacloud.com/help/en/oss/developer-reference/putbucketencryption).
+Server-side encryption rules of the bucket.
 
--> **NOTE:** Available since v1.222.0.
+For information about OSS Bucket Server Side Encryption and how to use it, see [What is Bucket Server Side Encryption](https://next.api.alibabacloud.com/document/Oss/2019-05-17/PutBucketEncryption).
+
+-> **NOTE:** Available since v1.266.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_server_side_encryption&exampleId=9b44ce5d-da59-85c9-407b-eaae723eaf9f3bb89158&activeTab=example&spm=docs.r.oss_bucket_server_side_encryption.0.9b44ce5dda&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -33,36 +29,24 @@ provider "alicloud" {
   region = "cn-hangzhou"
 }
 
-resource "random_integer" "default" {
-  min = 10000
-  max = 99999
-}
-
 resource "alicloud_oss_bucket" "CreateBucket" {
   storage_class = "Standard"
-  bucket        = "${var.name}-${random_integer.default.result}"
-  lifecycle {
-    ignore_changes = [
-      server_side_encryption_rule,
-    ]
-  }
 }
 
 resource "alicloud_kms_key" "GetKMS" {
-  origin                 = "Aliyun_KMS"
-  protection_level       = "SOFTWARE"
-  description            = var.name
-  key_spec               = "Aliyun_AES_256"
-  key_usage              = "ENCRYPT/DECRYPT"
-  automatic_rotation     = "Disabled"
-  pending_window_in_days = 7
+  origin             = "Aliyun_KMS"
+  protection_level   = "SOFTWARE"
+  description        = "用于exampleOSS服务端加密"
+  key_spec           = "Aliyun_AES_256"
+  key_usage          = "ENCRYPT/DECRYPT"
+  automatic_rotation = "false"
 }
 
 
 resource "alicloud_oss_bucket_server_side_encryption" "default" {
   kms_data_encryption = "SM4"
   kms_master_key_id   = alicloud_kms_key.GetKMS.id
-  bucket              = alicloud_oss_bucket.CreateBucket.bucket
+  bucket              = alicloud_oss_bucket.CreateBucket.id
   sse_algorithm       = "KMS"
 }
 ```
