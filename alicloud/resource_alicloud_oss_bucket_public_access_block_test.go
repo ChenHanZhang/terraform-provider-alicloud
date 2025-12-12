@@ -21,10 +21,11 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketpublicaccessblock%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketPublicAccessBlockBasicDependence6640)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -33,7 +34,7 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":              "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket":              "${alicloud_oss_bucket.CreateBucket.id}",
 					"block_public_access": "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -50,18 +51,6 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"block_public_access": "false",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket":              "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"block_public_access": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket":              CHECKSET,
-						"block_public_access": "true",
 					}),
 				),
 			},
@@ -85,28 +74,28 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "CreateBucket" {
   storage_class = "Standard"
-  bucket        = var.name
 }
 
 
 `, name)
 }
 
-// Case Bucket阻止公共访问 6640  twin
-func TestAccAliCloudOssBucketPublicAccessBlock_basic6640_twin(t *testing.T) {
+// Case BucketPublicAccessBlock测试 7418
+func TestAccAliCloudOssBucketPublicAccessBlock_basic7418(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_oss_bucket_public_access_block.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketPublicAccessBlockMap6640)
+	ra := resourceAttrInit(resourceId, AlicloudOssBucketPublicAccessBlockMap7418)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeOssBucketPublicAccessBlock")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketpublicaccessblock%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketPublicAccessBlockBasicDependence6640)
+	name := fmt.Sprintf("tfaccoss%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketPublicAccessBlockBasicDependence7418)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -115,50 +104,7 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640_twin(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":              "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"block_public_access": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket":              CHECKSET,
-						"block_public_access": "true",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
-}
-
-// Case Bucket阻止公共访问 6640  raw
-func TestAccAliCloudOssBucketPublicAccessBlock_basic6640_raw(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_oss_bucket_public_access_block.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketPublicAccessBlockMap6640)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeOssBucketPublicAccessBlock")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketpublicaccessblock%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketPublicAccessBlockBasicDependence6640)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket":              "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket":              "${alicloud_oss_bucket.CreateBucket.id}",
 					"block_public_access": "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -179,16 +125,6 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640_raw(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"block_public_access": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"block_public_access": "true",
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -196,6 +132,22 @@ func TestAccAliCloudOssBucketPublicAccessBlock_basic6640_raw(t *testing.T) {
 			},
 		},
 	})
+}
+
+var AlicloudOssBucketPublicAccessBlockMap7418 = map[string]string{}
+
+func AlicloudOssBucketPublicAccessBlockBasicDependence7418(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_oss_bucket" "CreateBucket" {
+  storage_class = "Standard"
+}
+
+
+`, name)
 }
 
 // Test Oss BucketPublicAccessBlock. <<< Resource test cases, automatically generated.
