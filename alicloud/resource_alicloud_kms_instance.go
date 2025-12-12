@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -90,12 +91,24 @@ func resourceAliCloudKmsInstance() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"0", "1"}, false),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "PayAsYouGo" {
+						return true
+					}
+					return false
+				},
 			},
 			"log_storage": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: IntBetween(0, 500000),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "PayAsYouGo" {
+						return true
+					}
+					return false
+				},
 			},
 			"payment_type": {
 				Type:         schema.TypeString,
@@ -280,10 +293,7 @@ func resourceAliCloudKmsInstanceCreate(d *schema.ResourceData, meta interface{})
 	if v, ok := d.GetOk("renew_status"); ok {
 		request["RenewalStatus"] = v
 	}
-	request["SubscriptionType"] = "Subscription"
-	if v, ok := d.GetOk("payment_type"); ok {
-		request["SubscriptionType"] = convertKmsInstanceSubscriptionTypeRequest(v.(string))
-	}
+	request["SubscriptionType"] = d.Get("payment_type")
 	var endpoint string
 	request["ProductCode"] = "kms"
 	request["ProductType"] = "kms_ddi_public_cn"
@@ -437,19 +447,18 @@ func resourceAliCloudKmsInstanceRead(d *schema.ResourceData, meta interface{}) e
 	if err := d.Set("bind_vpcs", bindVpcsMaps); err != nil {
 		return err
 	}
-
-	vswitchIds := make([]interface{}, 0)
+	vswitchIdsRaw := make([]interface{}, 0)
 	if objectRaw["VswitchIds"] != nil {
-		vswitchIds = objectRaw["VswitchIds"].([]interface{})
+		vswitchIdsRaw = convertToInterfaceArray(objectRaw["VswitchIds"])
 	}
 
-	d.Set("vswitch_ids", vswitchIds)
-
-	zoneIds := make([]interface{}, 0)
+	d.Set("vswitch_ids", vswitchIdsRaw)
+	zoneIdsRaw := make([]interface{}, 0)
 	if objectRaw["ZoneIds"] != nil {
-		zoneIds = objectRaw["ZoneIds"].([]interface{})
+		zoneIdsRaw = convertToInterfaceArray(objectRaw["ZoneIds"])
 	}
-	d.Set("zone_ids", zoneIds)
+
+	d.Set("zone_ids", zoneIdsRaw)
 
 	objectRaw, err = kmsServiceV2.DescribeInstanceQueryAvailableInstances(d)
 	if err != nil && !NotFoundError(err) {
@@ -868,12 +877,6 @@ func convertKmsInstanceKmsInstanceChargeTypeResponse(source interface{}) interfa
 		return "Subscription"
 	case "POSTPAY":
 		return "PayAsYouGo"
-	}
-	return source
-}
-func convertKmsInstanceSubscriptionTypeRequest(source interface{}) interface{} {
-	source = fmt.Sprint(source)
-	switch source {
 	}
 	return source
 }
