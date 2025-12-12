@@ -47,10 +47,11 @@ func resourceAliCloudOssAccountPublicAccessBlockCreate(d *schema.ResourceData, m
 	var err error
 	request = make(map[string]interface{})
 
-	objectDataLocalMap := make(map[string]interface{})
+	publicAccessBlockConfiguration := make(map[string]interface{})
+
 	if v := d.Get("block_public_access"); v != nil {
-		objectDataLocalMap["BlockPublicAccess"] = v
-		request["PublicAccessBlockConfiguration"] = objectDataLocalMap
+		publicAccessBlockConfiguration["BlockPublicAccess"] = v
+		request["PublicAccessBlockConfiguration"] = publicAccessBlockConfiguration
 	}
 
 	body = request
@@ -64,22 +65,16 @@ func resourceAliCloudOssAccountPublicAccessBlockCreate(d *schema.ResourceData, m
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_account_public_access_block", action, AlibabaCloudSdkGoERROR)
 	}
 
 	accountId, err := client.AccountId()
-	d.SetId(fmt.Sprint(accountId))
-
-	ossServiceV2 := OssServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("block_public_access"))}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ossServiceV2.OssAccountPublicAccessBlockStateRefreshFunc(d.Id(), "BlockPublicAccess", []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
-	}
+	d.SetId(accountId)
 
 	return resourceAliCloudOssAccountPublicAccessBlockRead(d, meta)
 }
@@ -98,7 +93,7 @@ func resourceAliCloudOssAccountPublicAccessBlockRead(d *schema.ResourceData, met
 		return WrapError(err)
 	}
 
-	d.Set("block_public_access", formatBool(objectRaw["BlockPublicAccess"]))
+	d.Set("block_public_access", objectRaw["BlockPublicAccess"])
 
 	return nil
 }
@@ -107,22 +102,29 @@ func resourceAliCloudOssAccountPublicAccessBlockUpdate(d *schema.ResourceData, m
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?publicAccessBlock")
+
 	var err error
+	action := fmt.Sprintf("/?publicAccessBlock")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
+
 	if d.HasChange("block_public_access") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	publicAccessBlockConfiguration := make(map[string]interface{})
+
 	if v := d.Get("block_public_access"); v != nil {
-		objectDataLocalMap["BlockPublicAccess"] = d.Get("block_public_access")
-		request["PublicAccessBlockConfiguration"] = objectDataLocalMap
+		if v, ok := d.GetOkExists("block_public_access"); ok {
+			publicAccessBlockConfiguration["BlockPublicAccess"] = v
+		}
+
+		request["PublicAccessBlockConfiguration"] = publicAccessBlockConfiguration
 	}
 
 	body = request
@@ -137,16 +139,11 @@ func resourceAliCloudOssAccountPublicAccessBlockUpdate(d *schema.ResourceData, m
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		ossServiceV2 := OssServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("block_public_access"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ossServiceV2.OssAccountPublicAccessBlockStateRefreshFunc(d.Id(), "BlockPublicAccess", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 
@@ -154,20 +151,19 @@ func resourceAliCloudOssAccountPublicAccessBlockUpdate(d *schema.ResourceData, m
 }
 
 func resourceAliCloudOssAccountPublicAccessBlockDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := fmt.Sprintf("/?publicAccessBlock")
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]*string)
-	body := make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
 
-	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeletePublicAccessBlock", action), query, body, nil, hostMap, false)
+		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeletePublicAccessBlock", action), query, nil, nil, hostMap, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -175,11 +171,14 @@ func resourceAliCloudOssAccountPublicAccessBlockDelete(d *schema.ResourceData, m
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
