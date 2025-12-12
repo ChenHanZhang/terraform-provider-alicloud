@@ -24,16 +24,19 @@ func (s *OssServiceV2) DescribeOssBucketAcl(id string) (object map[string]interf
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
-	action := fmt.Sprintf("/?acl")
-
+	var header map[string]*string
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(id)
+
+	action := fmt.Sprintf("/?acl")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketAcl", action), query, nil, nil, hostMap, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -41,18 +44,14 @@ func (s *OssServiceV2) DescribeOssBucketAcl(id string) (object map[string]interf
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"NoSuchBucket"}) {
 			return object, WrapErrorf(NotFoundErr("BucketAcl", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-	if response == nil {
-		return object, WrapErrorf(NotFoundErr("BucketAcl", id), NotFoundMsg, response)
 	}
 
 	v, err := jsonpath.Get("$.AccessControlPolicy.AccessControlList", response)
@@ -64,17 +63,27 @@ func (s *OssServiceV2) DescribeOssBucketAcl(id string) (object map[string]interf
 }
 
 func (s *OssServiceV2) OssBucketAclStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketAclStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketAcl)
+}
+
+func (s *OssServiceV2) OssBucketAclStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeOssBucketAcl(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {

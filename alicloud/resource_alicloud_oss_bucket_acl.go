@@ -46,6 +46,7 @@ func resourceAliCloudOssBucketAclCreate(d *schema.ResourceData, meta interface{}
 	action := fmt.Sprintf("/?acl")
 	var request map[string]interface{}
 	var response map[string]interface{}
+	header := make(map[string]*string)
 	query := make(map[string]*string)
 	body := make(map[string]interface{})
 	hostMap := make(map[string]*string)
@@ -61,7 +62,7 @@ func resourceAliCloudOssBucketAclCreate(d *schema.ResourceData, meta interface{}
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("PUT", "2019-05-17", "PutBucketAcl", action), query, body, headerMap, hostMap, false)
+		response, err = client.Do("Oss", xmlParam("PUT", "2019-05-17", "PutBucketAcl", action), query, body, nil, hostMap, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -69,9 +70,9 @@ func resourceAliCloudOssBucketAclCreate(d *schema.ResourceData, meta interface{}
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_acl", action, AlibabaCloudSdkGoERROR)
@@ -107,21 +108,25 @@ func resourceAliCloudOssBucketAclUpdate(d *schema.ResourceData, meta interface{}
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?acl")
+
 	var err error
+	action := fmt.Sprintf("/?acl")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	headerMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
+
 	if d.HasChange("acl") {
 		update = true
 	}
-	if v, ok := d.GetOk("acl"); ok {
+	if v, ok := d.GetOk("acl"); ok || d.HasChange("acl") {
 		headerMap["x-oss-acl"] = StringPointer(v.(string))
 	}
 
@@ -129,7 +134,7 @@ func resourceAliCloudOssBucketAclUpdate(d *schema.ResourceData, meta interface{}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.Do("Oss", xmlParam("PUT", "2019-05-17", "PutBucketAcl", action), query, body, headerMap, hostMap, false)
+			response, err = client.Do("Oss", xmlParam("PUT", "2019-05-17", "PutBucketAcl", action), query, body, nil, hostMap, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -137,9 +142,9 @@ func resourceAliCloudOssBucketAclUpdate(d *schema.ResourceData, meta interface{}
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}

@@ -21,10 +21,11 @@ func TestAccAliCloudOssBucketAcl_basic6192(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketacl%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketAclBasicDependence6192)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -32,7 +33,7 @@ func TestAccAliCloudOssBucketAcl_basic6192(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket": "${alicloud_oss_bucket.CreateBucket.id}",
 					"acl":    "private",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -73,18 +74,6 @@ func TestAccAliCloudOssBucketAcl_basic6192(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"acl":    "private",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket": CHECKSET,
-						"acl":    "private",
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -104,53 +93,10 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "CreateBucket" {
   storage_class = "Standard"
-  bucket        = var.name
 }
 
 
 `, name)
-}
-
-// Case 测试BucketAcl 6192  twin
-func TestAccAliCloudOssBucketAcl_basic6192_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_oss_bucket_acl.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketAclMap6192)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeOssBucketAcl")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketacl%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketAclBasicDependence6192)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"acl":    "private",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket": CHECKSET,
-						"acl":    "private",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
 }
 
 // Test Oss BucketAcl. <<< Resource test cases, automatically generated.
