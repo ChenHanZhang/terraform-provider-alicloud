@@ -20,12 +20,6 @@ For information about OSS Bucket Worm and how to use it, see [What is Bucket Wor
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_worm&exampleId=cdc3e025-aec0-bea3-a4ea-4b8b456dfa98f1a43289&activeTab=example&spm=docs.r.oss_bucket_worm.0.cdc3e025ae&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -58,15 +52,13 @@ You can resume managing the subscription instance via the AlibabaCloud Console.
 The following arguments are supported:
 * `bucket` - (Required, ForceNew) The name of the bucket
 * `retention_period_in_days` - (Optional, Int) The specified number of days to retain the Object.
-* `status` - (Optional) The status of the compliance retention policy. Optional values:
-  - `InProgress`: After a compliance retention policy is created, the policy is in the InProgress status by default, and the validity period of this status is 24 hours.
-  - `Locked`: The compliance retention policy is Locked.
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.The value is formulated as `<bucket>:<worm_id>`.
 * `create_time` - The creation time of the resource
+* `status` - The status of the compliance retention policy.
 * `worm_id` - The ID of the retention policy.
 
 ## Timeouts

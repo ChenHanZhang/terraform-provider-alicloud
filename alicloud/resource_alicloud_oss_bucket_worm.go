@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -42,7 +43,6 @@ func resourceAliCloudOssBucketWorm() *schema.Resource {
 			},
 			"status": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 			"worm_id": {
@@ -67,11 +67,11 @@ func resourceAliCloudOssBucketWormCreate(d *schema.ResourceData, meta interface{
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	initiateWormConfiguration := make(map[string]interface{})
 
 	if v := d.Get("retention_period_in_days"); !IsNil(v) {
-		objectDataLocalMap["RetentionPeriodInDays"] = v
-		request["InitiateWormConfiguration"] = objectDataLocalMap
+		initiateWormConfiguration["RetentionPeriodInDays"] = v
+		request["InitiateWormConfiguration"] = initiateWormConfiguration
 	}
 
 	body = request
@@ -93,8 +93,7 @@ func resourceAliCloudOssBucketWormCreate(d *schema.ResourceData, meta interface{
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_worm", action, AlibabaCloudSdkGoERROR)
 	}
 
-	xOssWormIdVar, _ := response["headers"].(map[string]interface{})["x-oss-worm-id"]
-	d.SetId(fmt.Sprintf("%v:%v", *hostMap["bucket"], xOssWormIdVar))
+	d.SetId(fmt.Sprintf("%v:%v", *hostMap["bucket"], response["x-oss-worm-id"]))
 
 	return resourceAliCloudOssBucketWormUpdate(d, meta)
 }
@@ -113,18 +112,10 @@ func resourceAliCloudOssBucketWormRead(d *schema.ResourceData, meta interface{})
 		return WrapError(err)
 	}
 
-	if objectRaw["CreationDate"] != nil {
-		d.Set("create_time", objectRaw["CreationDate"])
-	}
-	if objectRaw["RetentionPeriodInDays"] != nil {
-		d.Set("retention_period_in_days", objectRaw["RetentionPeriodInDays"])
-	}
-	if objectRaw["State"] != nil {
-		d.Set("status", objectRaw["State"])
-	}
-	if objectRaw["WormId"] != nil {
-		d.Set("worm_id", objectRaw["WormId"])
-	}
+	d.Set("create_time", objectRaw["CreationDate"])
+	d.Set("retention_period_in_days", objectRaw["RetentionPeriodInDays"])
+	d.Set("status", objectRaw["State"])
+	d.Set("worm_id", objectRaw["WormId"])
 
 	parts := strings.Split(d.Id(), ":")
 	d.Set("bucket", parts[0])
@@ -136,19 +127,23 @@ func resourceAliCloudOssBucketWormUpdate(d *schema.ResourceData, meta interface{
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
 
-	if d.HasChange("status") {
-		ossServiceV2 := OssServiceV2{client}
-		object, err := ossServiceV2.DescribeOssBucketWorm(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
+	ossServiceV2 := OssServiceV2{client}
+	objectRaw, _ := ossServiceV2.DescribeOssBucketWorm(d.Id())
 
+	if d.HasChange("status") {
+		var err error
 		target := d.Get("status").(string)
-		if object["State"].(string) != target {
+
+		currentStatus, err := jsonpath.Get("State", objectRaw)
+		if err != nil {
+			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "State", objectRaw)
+		}
+		if fmt.Sprint(currentStatus) != target {
 			if target == "Locked" {
 				parts := strings.Split(d.Id(), ":")
 				action := fmt.Sprintf("/")
@@ -181,9 +176,9 @@ func resourceAliCloudOssBucketWormUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	var err error
 	parts := strings.Split(d.Id(), ":")
 	action := fmt.Sprintf("/?wormExtend")
-	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
@@ -191,14 +186,17 @@ func resourceAliCloudOssBucketWormUpdate(d *schema.ResourceData, meta interface{
 	hostMap["bucket"] = StringPointer(parts[0])
 	query["wormId"] = StringPointer(parts[1])
 
-	if !d.IsNewResource() && d.HasChange("retention_period_in_days") {
+	if d.HasChange("retention_period_in_days") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	extendWormConfiguration := make(map[string]interface{})
 
-	if v := d.Get("retention_period_in_days"); v != nil {
-		objectDataLocalMap["RetentionPeriodInDays"] = d.Get("retention_period_in_days")
-		request["ExtendWormConfiguration"] = objectDataLocalMap
+	if v := d.Get("retention_period_in_days"); !IsNil(v) || d.HasChange("retention_period_in_days") {
+		if v, ok := d.GetOkExists("retention_period_in_days"); ok {
+			extendWormConfiguration["RetentionPeriodInDays"] = v
+		}
+
+		request["ExtendWormConfiguration"] = extendWormConfiguration
 	}
 
 	body = request
@@ -220,7 +218,7 @@ func resourceAliCloudOssBucketWormUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		ossServiceV2 := OssServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("retention_period_in_days"))}, d.Timeout(schema.TimeoutUpdate), 0, ossServiceV2.OssBucketWormStateRefreshFunc(d.Id(), "RetentionPeriodInDays", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("retention_period_in_days"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ossServiceV2.OssBucketWormStateRefreshFunc(d.Id(), "RetentionPeriodInDays", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
@@ -231,43 +229,46 @@ func resourceAliCloudOssBucketWormUpdate(d *schema.ResourceData, meta interface{
 
 func resourceAliCloudOssBucketWormDelete(d *schema.ResourceData, meta interface{}) error {
 
-	if v, ok := d.GetOk("status"); ok {
-		if v == "Locked" {
-			log.Printf("[WARN] Cannot destroy resource alicloud_oss_bucket_worm which status valued Locked. Terraform will remove this resource from the state file, however resources may remain.")
-			return nil
-		}
-	}
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")
-	action := fmt.Sprintf("/?worm")
-	var request map[string]interface{}
-	var response map[string]interface{}
-	query := make(map[string]*string)
-	hostMap := make(map[string]*string)
-	var err error
-	request = make(map[string]interface{})
-	hostMap["bucket"] = StringPointer(parts[0])
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "AbortBucketWorm", action), query, request, nil, hostMap, false)
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
+	enableDelete := true
+	if v, ok := d.GetOkExists("status"); ok {
+		if InArray(fmt.Sprint(v), []string{"Locked"}) {
+			enableDelete = false
+			log.Printf("[WARN] Cannot destroy resource alicloud_oss_bucket_worm which status valued Locked. Terraform will remove this resource from the state file, however resources may remain.")
 		}
-		return nil
-	})
-	addDebug(action, response, request)
-
-	if err != nil {
-		if IsExpectedErrors(err, []string{"NoSuchBucket", "NoSuchWORMConfiguration"}) || NotFoundError(err) {
-			return nil
-		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+	if enableDelete {
+		action := fmt.Sprintf("/?worm")
+		var request map[string]interface{}
+		var response map[string]interface{}
+		query := make(map[string]*string)
+		hostMap := make(map[string]*string)
+		var err error
+		request = make(map[string]interface{})
+		hostMap["bucket"] = StringPointer(parts[0])
 
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+			response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "AbortBucketWorm", action), query, nil, nil, hostMap, false)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+
+		if err != nil {
+			if IsExpectedErrors(err, []string{"NoSuchBucket", "NoSuchWORMConfiguration"}) || NotFoundError(err) {
+				return nil
+			}
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+	}
 	return nil
 }

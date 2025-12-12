@@ -21,7 +21,7 @@ func TestAccAliCloudOssBucketWorm_basic9223(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketworm%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketWormBasicDependence9223)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -34,15 +34,13 @@ func TestAccAliCloudOssBucketWorm_basic9223(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.bucket}",
-					"retention_period_in_days": "3",
-					"status":                   "InProgress",
+					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.id}",
+					"retention_period_in_days": "1",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"bucket":                   CHECKSET,
-						"retention_period_in_days": "3",
-						"status":                   "InProgress",
+						"retention_period_in_days": "1",
 					}),
 				),
 			},
@@ -54,13 +52,11 @@ func TestAccAliCloudOssBucketWorm_basic9223(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"status":                   "Locked",
-					"retention_period_in_days": "4",
+					"retention_period_in_days": "2",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"status":                   "Locked",
-						"retention_period_in_days": "4",
+						"retention_period_in_days": "2",
 					}),
 				),
 			},
@@ -88,7 +84,6 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "defaulthNMfIF" {
   storage_class = "Standard"
-  bucket = var.name
 }
 
 
@@ -106,7 +101,7 @@ func TestAccAliCloudOssBucketWorm_basic9745(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketworm%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketWormBasicDependence9745)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -119,15 +114,13 @@ func TestAccAliCloudOssBucketWorm_basic9745(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.bucket}",
+					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.id}",
 					"retention_period_in_days": "1",
-					"status":                   "Locked",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"bucket":                   CHECKSET,
 						"retention_period_in_days": "1",
-						"status":                   "Locked",
 					}),
 				),
 			},
@@ -155,7 +148,6 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "defaulthNMfIF" {
   storage_class = "Standard"
-  bucket = var.name
 }
 
 
@@ -173,7 +165,7 @@ func TestAccAliCloudOssBucketWorm_basic9746(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketworm%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketWormBasicDependence9746)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -186,7 +178,7 @@ func TestAccAliCloudOssBucketWorm_basic9746(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.bucket}",
+					"bucket":                   "${alicloud_oss_bucket.defaulthNMfIF.id}",
 					"retention_period_in_days": "1",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -220,7 +212,6 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "defaulthNMfIF" {
   storage_class = "Standard"
-  bucket = var.name
 }
 
 
