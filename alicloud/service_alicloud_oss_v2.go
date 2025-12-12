@@ -1205,8 +1205,6 @@ func (s *OssServiceV2) OssBucketCnameStateRefreshFunc(id string, field string, f
 	}
 }
 
-// DescribeOssBucketCname >>> Encapsulated.
-
 // DescribeOssBucketCnameToken
 func (s *OssServiceV2) DescribeOssBucketCnameToken(id string) (object map[string]interface{}, err error) {
 	client := s.client
@@ -1743,3 +1741,86 @@ func (s *OssServiceV2) OssBucketLoggingStateRefreshFuncWithApi(id string, field 
 }
 
 // DescribeOssBucketLogging >>> Encapsulated.
+// DescribeOssBucketCname <<< Encapsulated get interface for Oss BucketCname.
+
+func (s *OssServiceV2) DescribeOssBucketCname(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
+	}
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+	hostMap := make(map[string]*string)
+	hostMap["bucket"] = StringPointer(parts[0])
+
+	action := fmt.Sprintf("/?cname")
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "ListCname", action), query, nil, nil, hostMap, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"NoSuchBucket"}) {
+			return object, WrapErrorf(NotFoundErr("BucketCname", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.ListCnameResult", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ListCnameResult", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *OssServiceV2) OssBucketCnameStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketCnameStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketCname)
+}
+
+func (s *OssServiceV2) OssBucketCnameStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeOssBucketCname >>> Encapsulated.

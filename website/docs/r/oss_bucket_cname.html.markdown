@@ -10,7 +10,7 @@ description: |-
 
 Provides a OSS Bucket Cname resource.
 
-Customizing Bucket domains.
+Manage user-defined domain names.
 
 For information about OSS Bucket Cname and how to use it, see [What is Bucket Cname](https://www.alibabacloud.com/help/en/oss/developer-reference/putcname).
 
@@ -19,12 +19,6 @@ For information about OSS Bucket Cname and how to use it, see [What is Bucket Cn
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_cname&exampleId=92762852-0dd7-ec06-735a-62a9c3fc60b9ba3ae5bd&activeTab=example&spm=docs.r.oss_bucket_cname.0.927628520d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -73,9 +67,18 @@ The following arguments are supported:
 * `bucket` - (Required, ForceNew) The bucket to which the custom domain name belongs
 * `certificate` - (Optional, List) The container for the certificate configuration. See [`certificate`](#certificate) below.
 * `delete_certificate` - (Optional) Whether to delete the certificate.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `domain` - (Required, ForceNew) User-defined domain name
 * `force` - (Optional) Whether to force overwrite certificate.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 * `previous_cert_id` - (Optional) The current certificate ID. If the Force value is not true, the OSS Server checks whether the value matches the current certificate ID. If the value does not match, an error is reported.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 
 ### `certificate`
 
