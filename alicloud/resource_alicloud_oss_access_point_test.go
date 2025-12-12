@@ -21,7 +21,7 @@ func TestAccAliCloudOssAccessPoint_basic6642(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossaccesspoint%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssAccessPointBasicDependence6642)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -35,7 +35,7 @@ func TestAccAliCloudOssAccessPoint_basic6642(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"access_point_name": name,
-					"bucket":            "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket":            "${alicloud_oss_bucket.CreateBucket.id}",
 					"vpc_configuration": []map[string]interface{}{
 						{
 							"vpc_id": "vpc-abctest",
