@@ -20,12 +20,6 @@ For information about Hologres (Hologram) Instance and how to use it, see [What 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_hologram_instance&exampleId=0b00ef79-0a1a-0387-f75a-5a3dc8b0a46958126843&activeTab=example&spm=docs.r.hologram_instance.0.0b00ef790a&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -78,63 +72,112 @@ The following arguments are supported:
 * `auto_pay` - (Optional) Whether to pay automatically. The default value is true. Value:
   - true: automatic payment
   - false: only generate orders, not pay
+
 -> **NOTE:**  The default value is true. If the balance of your payment method is insufficient, you can set the parameter AutoPay to false, and an unpaid order will be generated. You can log in to the user Center to pay by yourself.
-* `cold_storage_size` - (Optional) Instance low-frequency storage space. Unit: GB.
--> **NOTE:**  PayAsYouGo (PostPaid) instances ignore this parameter.
-* `cpu` - (Optional) Instance specifications. Value:
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `cold_storage_size` - (Optional, Int) Instance low-frequency storage space. Unit: GB.
+
+-> **NOTE:**  Pay-As-You-Go (PostPaid) instances ignore this parameter.
+
+* `cpu` - (Optional, Computed, Int) Instance specifications. Value:
   - 8 cores 32 GB (number of compute nodes: 1)
   - 16 cores 64 GB (number of compute nodes: 1)
   - 32 core 128 GB (number of compute nodes: 2)
   - 64 core 256 GB (number of compute nodes: 4)
   - 96 core 384 GB (number of computing nodes: 6)
   - 128 core 512 GB (number of compute nodes: 8)
--> **NOTE:** Just fill in the audit number. Please submit a work order application for purchasing 1024 or above specifications. Shared instance types do not need to specify specifications. The specification of - 8 core 32GB (number of computing nodes: 1) is only for experience use and cannot be used for production.
-* `duration` - (Optional) The buying cycle. Buy for 2 months. If the Payment type is PayAsYouGo (PostPaid), you do not need to specify it.
-* `endpoints` - (Optional) List of domain names. See [`endpoints`](#endpoints) below.
-* `gateway_count` - (Optional) Number of gateway nodes.
-* `initial_databases` - (Optional) Initialize the database and split multiple database names ",".
-* `instance_name` - (Required) The name of the resource.
-* `instance_type` - (Required, ForceNew) The instance type. Value:
+  - Wait
+
+-> **NOTE:** >
+
+-> **NOTE:** - just fill in the audit number.
+
+-> **NOTE:** - Please submit a work order application for purchasing 1024 or above specifications.
+
+-> **NOTE:** - Shared instance types do not need to specify specifications.
+
+-> **NOTE:**  The specification of - 8 core 32GB (number of computing nodes: 1) is only for experience use and cannot be used for production.
+
+* `duration` - (Optional, Int) The buying cycle. Buy for 2 months.
+
+-> **NOTE:**  If the Payment type is PostPaid, you do not need to specify it.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `enable_ssl` - (Optional, Available since v1.266.0) Specifies whether to enable SSL encryption. Default Value: `false`. Valid values: `true`, `false`.
+* `endpoints` - (Required, List) List of domain names. See [`endpoints`](#endpoints) below.
+* `gateway_count` - (Optional, Int) Number of gateway nodes.
+* `initial_databases` - (Optional) Initialize the database and split multiple database names ","
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `instance_name` - (Required) The name of the resource
+* `instance_type` - (Required, ForceNew, Available since v1.259.0) The instance type. Value:
   - Standard: Universal.
   - Follower: Read-only slave instance.
   - Warehouse: calculation group type.
   - Shared: Shared.
-  - Serverless: (Available since v1.259.0) Serverless.
 * `leader_instance_id` - (Optional, ForceNew) The ID of the primary instance.
-* `payment_type` - (Required, ForceNew) The payment type of the resource.
+* `payment_type` - (Required, ForceNew) The payment type of the resource
 * `pricing_cycle` - (Optional) Billing cycle. Value:
   - Month: monthly billing
   - Hour: hourly billing
--> **NOTE:**  Subscription instances (PrePaid) only supports Month. PayAsYouGo instances (PostPaid) only supports Hour. The Shared type is automatically set to Hour without specifying it.
-* `resource_group_id` - (Optional, Computed) The ID of the resource group.
+
+-> **NOTE:** >
+
+-> **NOTE:**  - PrePaid only supports Month
+
+-> **NOTE:**  - PostPaid only supports Hour
+
+-> **NOTE:** - The Shared type is automatically set to Hour without specifying it.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `resource_group_id` - (Optional, Computed) The ID of the resource group
 * `scale_type` - (Optional) Change matching type. Value:
   - UPGRADE: UPGRADE
   - DOWNGRADE: Downgrading
--> **NOTE:** The upgrade specification cannot be less than the original specification. A blank field indicates that the original specification remains unchanged. On this basis, at least one specification is larger than the original specification. The downgrading specification cannot be greater than the original specification. A blank field indicates that the original specification remains unchanged. On this basis, at least one specification is smaller than the original specification.
-* `status` - (Optional, Computed) The status of the resource.
-* `storage_size` - (Optional) The standard storage space of the instance. Unit: GB.
--> **NOTE:**  PayAsYouGo instances (PostPaid) ignore this parameter.
-* `tags` - (Optional, Map) Instance tag.
-* `zone_id` - (Required, ForceNew) The zone Id. Refer to "Instructions for Use".
+
+-> **NOTE:** >
+
+-> **NOTE:** - The upgrade specification cannot be less than the original specification. A blank field indicates that the original specification remains unchanged. On this basis, at least one specification is larger than the original specification.
+
+-> **NOTE:** - The downgrading specification cannot be greater than the original specification. A blank field indicates that the original specification remains unchanged. On this basis, at least one specification is smaller than the original specification.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `status` - (Optional, Computed) The status of the resource
+* `storage_size` - (Optional, Int) The standard storage space of the instance. Unit: GB.
+
+-> **NOTE:**  Pay-As-You-Go instances (PostPaid) ignore this parameter.
+
+* `tags` - (Optional, Map) Instance tag
+* `zone_id` - (Required, ForceNew) The zone Id. Refer to "Instructions for Use"
 
 ### `endpoints`
 
 The endpoints supports the following:
-* `type` - (Optional) The network type.
-* `vswitch_id` - (Optional) The ID of the virtual switch.
-* `vpc_id` - (Optional) VPC primary key.
+* `type` - (Optional, Computed) The network type.
+* `vswitch_id` - (Required) The ID of the virtual switch.
+* `vpc_id` - (Required) VPC primary key
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.
-* `create_time` - The creation time of the resource.
-* `region_id` - (Available since v1.259.0) The region ID.
+* `create_time` - The creation time of the resource
 * `endpoints` - List of domain names.
   * `alternative_endpoints` - Some old instances have both AnyTunnel and SingleTunnel enabled. When switching from AnyTunnel to SingleTunnel, the endpoints of both are retained. Therefore, one more field is required to store the Endpoint.
   * `enabled` - Whether to turn on the network.
   * `endpoint` - Domain name.
   * `vpc_instance_id` - The vpc instance ID.
+* `region_id` - Region Id. You can go to [API Portal](https://api.aliyun.com/product/Hologram) or "instructions for use" to view.
 
 ## Timeouts
 
@@ -145,7 +188,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Hologram Instance can be imported using the id, e.g.
+Hologres (Hologram) Instance can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_hologram_instance.example <id>

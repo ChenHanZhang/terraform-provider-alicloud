@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 type HologramServiceV2 struct {
@@ -22,18 +24,17 @@ func (s *HologramServiceV2) DescribeHologramInstance(id string) (object map[stri
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
-	var body map[string]interface{}
+	var header map[string]*string
 	instanceId := id
-	action := fmt.Sprintf("/api/v1/instances/%s", instanceId)
 	request = make(map[string]interface{})
-	body = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["instanceId"] = id
+	header = make(map[string]*string)
 
-	body = request
+	action := fmt.Sprintf("/api/v1/instances/%s", instanceId)
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("Hologram", "2022-06-01", action, query, nil, body)
+		response, err = client.RoaGet("Hologram", "2022-06-01", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -45,7 +46,6 @@ func (s *HologramServiceV2) DescribeHologramInstance(id string) (object map[stri
 		return nil
 	})
 	addDebug(action, response, request)
-
 	if err != nil {
 		if IsExpectedErrors(err, []string{"resource not exists failed"}) {
 			return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
@@ -55,22 +55,26 @@ func (s *HologramServiceV2) DescribeHologramInstance(id string) (object map[stri
 
 	v, err := jsonpath.Get("$.Instance", response)
 	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.body.Instance", response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Instance", response)
 	}
 
 	return v.(map[string]interface{}), nil
 }
 
 func (s *HologramServiceV2) HologramInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.HologramInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeHologramInstance)
+}
+
+func (s *HologramServiceV2) HologramInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeHologramInstance(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
+		object["InstanceChargeType"] = convertHologramInstanceInstanceInstanceChargeTypeResponse(object["InstanceChargeType"])
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -100,6 +104,7 @@ func (s *HologramServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
+		header := make(map[string]*string)
 		query := make(map[string]*string)
 		body := make(map[string]interface{})
 
@@ -115,14 +120,16 @@ func (s *HologramServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			request = make(map[string]interface{})
 			query = make(map[string]*string)
 			body = make(map[string]interface{})
-			request["resourceIds"] = expandSingletonToList(d.Id())
+			query["RegionId"] = StringPointer(client.RegionId)
 			request["tagKeys"] = convertListStringToListInterface(removedTagKeys)
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "resourceIds.0", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
 
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RoaPost("Hologram", "2022-06-01", action, query, nil, body, true)
-
+				response, err = client.RoaPost("Hologram", "2022-06-01", action, query, header, body, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -130,9 +137,9 @@ func (s *HologramServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -144,23 +151,26 @@ func (s *HologramServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			request = make(map[string]interface{})
 			query = make(map[string]*string)
 			body = make(map[string]interface{})
-			request["resourceIds"] = expandSingletonToList(d.Id())
+			query["RegionId"] = StringPointer(client.RegionId)
 			count := 1
 			tagsMaps := make([]map[string]interface{}, 0)
 			for key, value := range added {
 				tagsMap := make(map[string]interface{})
-				tagsMap["key"] = key
 				tagsMap["value"] = value
+				tagsMap["key"] = key
 				tagsMaps = append(tagsMaps, tagsMap)
 				count++
 			}
 			request["tags"] = tagsMaps
 
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "resourceIds.0", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RoaPost("Hologram", "2022-06-01", action, query, nil, body, true)
-
+				response, err = client.RoaPost("Hologram", "2022-06-01", action, query, header, body, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -168,14 +178,19 @@ func (s *HologramServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
+			hologramServiceV2 := HologramServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, hologramServiceV2.HologramInstanceStateRefreshFunc(d.Id(), "#TagsChild", []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+
 		}
-		d.SetPartial("tags")
 	}
 
 	return nil
