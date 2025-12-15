@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -11,12 +12,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudEsaVersion() *schema.Resource {
+func resourceAliCloudEsaSiteVersion() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudEsaVersionCreate,
-		Read:   resourceAliCloudEsaVersionRead,
-		Update: resourceAliCloudEsaVersionUpdate,
-		Delete: resourceAliCloudEsaVersionDelete,
+		Create: resourceAliCloudEsaSiteVersionCreate,
+		Read:   resourceAliCloudEsaSiteVersionRead,
+		Update: resourceAliCloudEsaSiteVersionUpdate,
+		Delete: resourceAliCloudEsaSiteVersionDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -39,14 +40,10 @@ func resourceAliCloudEsaVersion() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"origin_version": {
+			"site_version": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
-			},
-			"site_version": {
-				Type:     schema.TypeInt,
-				Computed: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
@@ -56,7 +53,7 @@ func resourceAliCloudEsaVersion() *schema.Resource {
 	}
 }
 
-func resourceAliCloudEsaVersionCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudEsaSiteVersionCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -66,13 +63,12 @@ func resourceAliCloudEsaVersionCreate(d *schema.ResourceData, meta interface{}) 
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	if v, ok := d.GetOkExists("origin_version"); ok {
+	if v, ok := d.GetOk("site_version"); ok {
 		request["SiteVersion"] = v
 	}
 	if v, ok := d.GetOk("site_id"); ok {
 		request["SiteId"] = v
 	}
-	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -92,19 +88,19 @@ func resourceAliCloudEsaVersionCreate(d *schema.ResourceData, meta interface{}) 
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_esa_version", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprintf("%v:%v", request["SiteId"], response["CloneVersion"]))
+	d.SetId(fmt.Sprintf("%v:%v", request["SiteId"], request["SiteVersion"]))
 
-	return resourceAliCloudEsaVersionUpdate(d, meta)
+	return resourceAliCloudEsaSiteVersionUpdate(d, meta)
 }
 
-func resourceAliCloudEsaVersionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudEsaSiteVersionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	esaServiceV2 := EsaServiceV2{client}
 
-	objectRaw, err := esaServiceV2.DescribeEsaVersion(d.Id())
+	objectRaw, err := esaServiceV2.DescribeEsaSiteVersion(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_esa_version DescribeEsaVersion Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_esa_version DescribeEsaSiteVersion Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -122,7 +118,7 @@ func resourceAliCloudEsaVersionRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAliCloudEsaVersionUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudEsaSiteVersionUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -160,10 +156,10 @@ func resourceAliCloudEsaVersionUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return resourceAliCloudEsaVersionRead(d, meta)
+	return resourceAliCloudEsaSiteVersionRead(d, meta)
 }
 
-func resourceAliCloudEsaVersionDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudEsaSiteVersionDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")

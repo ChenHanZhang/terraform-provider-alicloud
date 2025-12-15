@@ -962,7 +962,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_sls_logtail_config":                                   resourceAliCloudSlsLogtailConfig(),
 			"alicloud_message_service_event_rule":                           resourceAliCloudMessageServiceEventRule(),
 			"alicloud_esa_custom_scene_policy":                              resourceAliCloudEsaCustomScenePolicy(),
-			"alicloud_esa_version":                                          resourceAliCloudEsaVersion(),
+			"alicloud_esa_version":                                          resourceAliCloudEsaSiteVersion(),
 			"alicloud_cloud_firewall_policy_advanced_config":                resourceAliCloudCloudFirewallPolicyAdvancedConfig(),
 			"alicloud_threat_detection_cycle_task":                          resourceAliCloudThreatDetectionCycleTask(),
 			"alicloud_message_service_service":                              resourceAliCloudMessageServiceService(),
