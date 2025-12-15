@@ -20,12 +20,6 @@ For information about ESA Waf Rule and how to use it, see [What is Waf Rule](htt
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_waf_rule&exampleId=032985c1-00b2-e5cf-d900-02f61f3b1d5843fd5677&activeTab=example&spm=docs.r.esa_waf_rule.0.032985c100&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_esa_sites" "default" {
   plan_subscribe_type = "enterpriseplan"
@@ -64,8 +58,8 @@ resource "alicloud_esa_waf_rule" "default" {
 
 The following arguments are supported:
 * `config` - (Optional, List) The specific configuration of the WAF rule. See [`config`](#config) below.
-* `phase` - (Required, ForceNew) The phase in which the WAF processes this rule.
-* `ruleset_id` - (Optional, ForceNew, Int) The ID of the WAF ruleset, which can be obtained by calling the [ListWafRulesets](https://www.alibabacloud.com/help/en/doc-detail/2850233.html) operation.
+* `phase` - (Required) The phase in which the WAF processes this rule.
+* `ruleset_id` - (Optional, Int) The ID of the WAF ruleset, which can be obtained by calling the [ListWafRulesets](https://www.alibabacloud.com/help/en/doc-detail/2850233.html) operation.
 * `shared` - (Optional, List) Shared configuration attributes used across multiple rules. See [`shared`](#shared) below.
 
 -> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
@@ -79,14 +73,14 @@ The following arguments are supported:
 ### `config`
 
 The config supports the following:
-* `action` - (Optional) The action to perform when a request matches this rule.
-* `actions` - (Optional, List) Extended action configurations, including custom responses and bypass settings. See [`actions`](#config-actions) below.
-* `app_package` - (Optional, List) Security mechanism to prevent apps from being repackaged. See [`app_package`](#config-app_package) below.
+* `action` - (Optional, Computed) The action to perform when a request matches this rule.
+* `actions` - (Optional, Computed, List) Extended action configurations, including custom responses and bypass settings. See [`actions`](#config-actions) below.
+* `app_package` - (Optional, Computed, List) Security mechanism to prevent apps from being repackaged. See [`app_package`](#config-app_package) below.
 * `app_sdk` - (Optional, List) Mobile app SDK-related configurations. See [`app_sdk`](#config-app_sdk) below.
 * `expression` - (Optional) The match expression used to evaluate incoming requests.
 * `managed_list` - (Optional) The name of the managed list applied to this rule.
 * `managed_rulesets` - (Optional, Set) The managed rulesets referenced by this rule and their configurations. See [`managed_rulesets`](#config-managed_rulesets) below.
-* `name` - (Optional) The display name of the WAF rule.
+* `name` - (Optional, Computed) The display name of the WAF rule.
 * `notes` - (Optional) Additional notes about this rule.
 * `rate_limit` - (Optional, List) Configuration of the rate limiting rule. See [`rate_limit`](#config-rate_limit) below.
 * `security_level` - (Optional, List) The overall security protection level of WAF.
@@ -98,16 +92,16 @@ Valid values:
   - high
   - under_attack See [`security_level`](#config-security_level) below.
 * `sigchl` - (Optional, Set) Configuration items for token verification mechanisms.
-* `status` - (Optional) The status of the WAF rule: whether it is enabled or disabled.
+* `status` - (Optional, Computed) The status of the WAF rule: whether it is enabled or disabled.
 * `timer` - (Optional, List) Configuration for the time schedule when the rule takes effect. See [`timer`](#config-timer) below.
-* `type` - (Optional, ForceNew) The type category of the WAF rule.
+* `type` - (Optional, Computed) The type category of the WAF rule.
 * `value` - (Optional) The IP address allowed or denied in IP access control.
 
 ### `config-actions`
 
 The config-actions supports the following:
-* `bypass` - (Optional, List) The skip configuration specified by the whitelist rule. See [`bypass`](#config-actions-bypass) below.
-* `response` - (Optional, List) The custom error page returned when the rule is triggered. See [`response`](#config-actions-response) below.
+* `bypass` - (Optional, Computed, List) The skip configuration specified by the whitelist rule. See [`bypass`](#config-actions-bypass) below.
+* `response` - (Optional, Computed, List) The custom error page returned when the rule is triggered. See [`response`](#config-actions-response) below.
 
 ### `config-app_package`
 
@@ -251,7 +245,7 @@ The config-actions-bypass supports the following:
 ### `config-actions-response`
 
 The config-actions-response supports the following:
-* `code` - (Optional, Int) The HTTP response code returned to the client.
+* `code` - (Optional, Computed, Int) The HTTP response code returned to the client.
 * `id` - (Optional, Int) The ID of the custom error page, which can be obtained by calling the ListPages operation.
 
 ### `shared`
