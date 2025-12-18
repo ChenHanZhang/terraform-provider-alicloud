@@ -2,26 +2,23 @@
 subcategory: "NAT Gateway"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_forward_entry"
-sidebar_current: "docs-alicloud-resource-vpc"
 description: |-
-  Provides a Alicloud forward resource.
+  Provides a Alicloud N A T Gateway Forward Entry resource.
 ---
 
 # alicloud_forward_entry
 
-Provides a forward resource.
+Provides a N A T Gateway Forward Entry resource.
 
--> **NOTE:** Available since v1.40.0.
+DNAT table entry.
+
+For information about N A T Gateway Forward Entry and how to use it, see [What is Forward Entry](https://next.api.alibabacloud.com/document/Vpc/2016-04-28/CreateForwardEntry).
+
+-> **NOTE:** Available since v1.119.1.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_forward_entry&exampleId=207dc119-7890-c1c7-0c3b-d22ae8ec57c985b9329e&activeTab=example&spm=docs.r.forward_entry.0.207dc11978&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -71,46 +68,44 @@ resource "alicloud_forward_entry" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_forward_entry&spm=docs.r.forward_entry.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `external_ip` - (Required) The public IP address in the DNAT entry. The public IP address is used by the ECS instance to receive requests from the Internet.
+* `external_port` - (Required) The external port in the DNAT entry. The external port is used by the ECS instance to receive requests from the Internet.
+* `forward_entry_name` - (Optional, Computed) The name of the DNAT entry.
+* `forward_table_id` - (Required, ForceNew) The ID of the DNAT table to which the DNAT entry belongs.
+* `internal_ip` - (Required) The private IP address that is mapped to the public IP address in the DNAT entry.
+* `internal_port` - (Required) The internal port that is mapped to the external port in the DNAT entry.
+* `ip_protocol` - (Required) The type of the protocol.
+* `port_break` - (Optional) Whether to enable Port breakout, value:
+  - `true`: Enable Port breakout.
+  - `false` (default): Do not enable Port breakout.
 
-* `forward_table_id` - (Required, ForceNew) The value can get from `alicloud_nat_gateway` Attributes "forward_table_ids".
-* `name` - (Optional, Deprecated) Field `name` has been deprecated from provider version 1.119.1. New field `forward_entry_name` instead.
-* `forward_entry_name` - (Optional, Available since v1.119.1) The name of forward entry.
-* `external_ip` - (Required) The external ip address, the ip must along bandwidth package public ip which `alicloud_nat_gateway` argument `bandwidth_packages`.
-* `external_port` - (Required) The external port, valid value is 1~65535|any.
-* `ip_protocol` - (Required) The ip protocol, valid value is tcp|udp|any.
-* `internal_ip` - (Required) The internal ip, must a private ip.
-* `internal_port` - (Required) The internal port, valid value is 1~65535|any.
-* `port_break` - (Optional, Available since v1.119.1) Specifies whether to remove limits on the port range. Default value is `false`.
+-> **NOTE:**  When the DNAT entry and SNAT entry use the same public IP address, if you need to configure a port number greater than 1024, you must specify `PortBreak` to **true * *.
 
--> **NOTE:** A SNAT entry and a DNAT entry may use the same public IP address. If you want to specify a port number greater than 1024 in this case, set `port_break` to true.
+
+-> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The ID of the forward entry. The value formats as `<forward_table_id>:<forward_entry_id>`
-* `forward_entry_id` - The id of the forward entry on the server.
-* `status` - (Available since v1.119.1) The status of forward entry.
+* `id` - The ID of the resource supplied above.The value is formulated as `<forward_table_id>:<forward_entry_id>`.
+* `forward_entry_id` - The ID of the DNAT entry.
+* `status` - The state of the DNAT entry
 
 ## Timeouts
 
--> **NOTE:** Available since v1.119.1.
-
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 10 mins) Used when create the forward entry.
-* `update` - (Defaults to 10 mins) Used when update the forward entry. 
-* `delete` - (Defaults to 10 mins) Used when delete the forward entry. 
+* `create` - (Defaults to 5 mins) Used when create the Forward Entry.
+* `delete` - (Defaults to 5 mins) Used when delete the Forward Entry.
+* `update` - (Defaults to 5 mins) Used when update the Forward Entry.
 
 ## Import
 
-Forward Entry can be imported using the id, e.g.
+N A T Gateway Forward Entry can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_forward_entry.foo ftb-1aece3:fwd-232ce2
+$ terraform import alicloud_forward_entry.example <forward_table_id>:<forward_entry_id>
 ```
