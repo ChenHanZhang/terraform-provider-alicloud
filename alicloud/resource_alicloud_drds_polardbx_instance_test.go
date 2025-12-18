@@ -471,3 +471,209 @@ func TestAccAliCloudDrdsPolardbxInstance_basic4497_single(t *testing.T) {
 }
 
 // Test Drds PolardbXInstance. <<< Resource test cases, automatically generated.
+// Test Drds PolardbxInstance. >>> Resource test cases, automatically generated.
+// Case polardbx instance三可用区资源生命周期测试 4582
+func TestAccAliCloudDrdsPolardbxInstance_basic4582(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_drds_polardbx_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudDrdsPolardbxInstanceMap4582)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &DrdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeDrdsPolardbxInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccdrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudDrdsPolardbxInstanceBasicDependence4582)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"topology_type":            "3azones",
+					"vswitch_id":               "${alicloud_vswitch.default0amZnE.id}",
+					"primary_zone":             "cn-beijing-f",
+					"cn_node_count":            "2",
+					"dn_class":                 "mysql.n4.medium.25",
+					"cn_class":                 "polarx.x4.medium.2e",
+					"dn_node_count":            "2",
+					"vpc_id":                   "${alicloud_vpc.defaultlKripL.id}",
+					"is_read_db_instance":      "false",
+					"primary_db_instance_name": "null",
+					"resource_group_id":        "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"secondary_zone":           "cn-beijing-k",
+					"tertiary_zone":            "cn-beijing-h",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"topology_type":            "3azones",
+						"vswitch_id":               CHECKSET,
+						"primary_zone":             "cn-beijing-f",
+						"cn_node_count":            CHECKSET,
+						"dn_class":                 "mysql.n4.medium.25",
+						"cn_class":                 "polarx.x4.medium.2e",
+						"dn_node_count":            CHECKSET,
+						"vpc_id":                   CHECKSET,
+						"is_read_db_instance":      "false",
+						"primary_db_instance_name": CHECKSET,
+						"resource_group_id":        CHECKSET,
+						"secondary_zone":           "cn-beijing-k",
+						"tertiary_zone":            "cn-beijing-h",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"cn_node_count": "3",
+					"dn_node_count": "3",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"cn_node_count": "3",
+						"dn_node_count": "3",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"is_read_db_instance", "primary_db_instance_name"},
+			},
+		},
+	})
+}
+
+var AlicloudDrdsPolardbxInstanceMap4582 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudDrdsPolardbxInstanceBasicDependence4582(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "defaultlKripL" {
+  vpc_name = "terraform-1azone-test-1"
+}
+
+resource "alicloud_vswitch" "default0amZnE" {
+  vpc_id       = alicloud_vpc.defaultlKripL.id
+  zone_id      = "cn-beijing-f"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "terraform-1azone-test-1"
+}
+
+
+`, name)
+}
+
+// Case polardbx instance单可用区资源创建测试 4575
+func TestAccAliCloudDrdsPolardbxInstance_basic4575(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_drds_polardbx_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudDrdsPolardbxInstanceMap4575)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &DrdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeDrdsPolardbxInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccdrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudDrdsPolardbxInstanceBasicDependence4575)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"topology_type":            "1azone",
+					"vswitch_id":               "${alicloud_vswitch.default0amZnE.id}",
+					"primary_zone":             "cn-beijing-f",
+					"cn_node_count":            "2",
+					"dn_class":                 "mysql.n4.medium.25",
+					"cn_class":                 "polarx.x4.medium.2e",
+					"dn_node_count":            "2",
+					"vpc_id":                   "${alicloud_vpc.defaultlKripL.id}",
+					"is_read_db_instance":      "false",
+					"primary_db_instance_name": "null",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"topology_type":            "1azone",
+						"vswitch_id":               CHECKSET,
+						"primary_zone":             "cn-beijing-f",
+						"cn_node_count":            CHECKSET,
+						"dn_class":                 "mysql.n4.medium.25",
+						"cn_class":                 "polarx.x4.medium.2e",
+						"dn_node_count":            CHECKSET,
+						"vpc_id":                   CHECKSET,
+						"is_read_db_instance":      "false",
+						"primary_db_instance_name": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"is_read_db_instance", "primary_db_instance_name"},
+			},
+		},
+	})
+}
+
+var AlicloudDrdsPolardbxInstanceMap4575 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudDrdsPolardbxInstanceBasicDependence4575(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "defaultlKripL" {
+  vpc_name = "terraform-1azone-test"
+}
+
+resource "alicloud_vswitch" "default0amZnE" {
+  vpc_id       = alicloud_vpc.defaultlKripL.id
+  zone_id      = "cn-beijing-f"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "terraform-1azone-test"
+}
+
+
+`, name)
+}
+
+// Test Drds PolardbxInstance. <<< Resource test cases, automatically generated.
