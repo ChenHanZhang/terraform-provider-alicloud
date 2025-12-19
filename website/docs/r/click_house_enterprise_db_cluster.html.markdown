@@ -3,28 +3,22 @@ subcategory: "Click House"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_click_house_enterprise_db_cluster"
 description: |-
-  Provides a Alicloud Click House Enterprise D B Cluster resource.
+  Provides a Alicloud Click House Enterprise Db Cluster resource.
 ---
 
 # alicloud_click_house_enterprise_db_cluster
 
-Provides a Click House Enterprise D B Cluster resource.
+Provides a Click House Enterprise Db Cluster resource.
 
 Enterprise Edition Cluster Resources.
 
-For information about Click House Enterprise D B Cluster and how to use it, see [What is Enterprise D B Cluster](https://next.api.alibabacloud.com/document/clickhouse/2023-05-22/CreateDBInstance).
+For information about Click House Enterprise Db Cluster and how to use it, see [What is Enterprise Db Cluster](https://next.api.alibabacloud.com/document/clickhouse/2023-05-22/CreateDBInstance).
 
 -> **NOTE:** Available since v1.247.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_click_house_enterprise_db_cluster&exampleId=8ce07065-3a31-4351-ee77-0e550bbea75663424c64&activeTab=example&spm=docs.r.click_house_enterprise_db_cluster.0.8ce070653a&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -111,14 +105,14 @@ resource "alicloud_click_house_enterprise_db_cluster" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_click_house_enterprise_db_cluster&spm=docs.r.click_house_enterprise_db_cluster.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `multi_zones` - (Optional, ForceNew, Computed, Set) The list of multi-zone information. See [`multi_zones`](#multi_zones) below.
+* `resource_group_id` - (Optional, Computed, Available since v1.266.0) The ID of the resource group
 * `scale_max` - (Optional) The maximum value of serverless auto scaling.
 * `scale_min` - (Optional) The minimum value of serverless auto scaling.
+* `tags` - (Optional, Map, Available since v1.266.0) Label information.
 * `vpc_id` - (Optional, ForceNew) The VPC ID.
 * `vswitch_id` - (Optional, ForceNew) The vSwitch ID.
 * `zone_id` - (Optional, ForceNew) The zone ID.
@@ -140,13 +134,13 @@ The following attributes are exported:
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 60 mins) Used when create the Enterprise D B Cluster.
-* `delete` - (Defaults to 5 mins) Used when delete the Enterprise D B Cluster.
-* `update` - (Defaults to 60 mins) Used when update the Enterprise D B Cluster.
+* `create` - (Defaults to 60 mins) Used when create the Enterprise Db Cluster.
+* `delete` - (Defaults to 5 mins) Used when delete the Enterprise Db Cluster.
+* `update` - (Defaults to 60 mins) Used when update the Enterprise Db Cluster.
 
 ## Import
 
-Click House Enterprise D B Cluster can be imported using the id, e.g.
+Click House Enterprise Db Cluster can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_click_house_enterprise_db_cluster.example <id>
