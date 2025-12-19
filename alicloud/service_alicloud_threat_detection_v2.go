@@ -508,6 +508,7 @@ func (s *ThreatDetectionServiceV2) ThreatDetectionMaliciousFileWhitelistConfigSt
 }
 
 // DescribeThreatDetectionMaliciousFileWhitelistConfig >>> Encapsulated.
+
 // DescribeThreatDetectionImageEventOperation <<< Encapsulated get interface for ThreatDetection ImageEventOperation.
 
 func (s *ThreatDetectionServiceV2) DescribeThreatDetectionImageEventOperation(id string) (object map[string]interface{}, err error) {
@@ -551,15 +552,18 @@ func (s *ThreatDetectionServiceV2) DescribeThreatDetectionImageEventOperation(id
 }
 
 func (s *ThreatDetectionServiceV2) ThreatDetectionImageEventOperationStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ThreatDetectionImageEventOperationStateRefreshFuncWithApi(id, field, failStates, s.DescribeThreatDetectionImageEventOperation)
+}
+
+func (s *ThreatDetectionServiceV2) ThreatDetectionImageEventOperationStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeThreatDetectionImageEventOperation(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

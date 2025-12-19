@@ -167,21 +167,16 @@ func resourceAliCloudThreatDetectionImageEventOperationUpdate(d *schema.Resource
 
 	if d.HasChange("note") {
 		update = true
-	}
-	if v, ok := d.GetOk("note"); ok {
-		request["Note"] = v
+		request["Note"] = d.Get("note")
 	}
 
 	if d.HasChange("conditions") {
 		update = true
 	}
 	request["Conditions"] = d.Get("conditions")
-
 	if d.HasChange("scenarios") {
 		update = true
-	}
-	if v, ok := d.GetOk("scenarios"); ok {
-		request["Scenarios"] = v
+		request["Scenarios"] = d.Get("scenarios")
 	}
 
 	if update {
@@ -220,7 +215,6 @@ func resourceAliCloudThreatDetectionImageEventOperationDelete(d *schema.Resource
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
