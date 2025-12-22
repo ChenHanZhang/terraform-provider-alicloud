@@ -15,7 +15,7 @@ import (
 func TestAccAliCloudSslCertificatesServicePcaCertificate_basic11010(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ssl_certificates_service_pca_certificate.default"
-	ra := resourceAttrInit(resourceId, AliCloudSslCertificatesServicePcaCertificateMap11010)
+	ra := resourceAttrInit(resourceId, AlicloudSslCertificatesServicePcaCertificateMap11010)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &SslCertificatesServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeSslCertificatesServicePcaCertificate")
@@ -23,7 +23,7 @@ func TestAccAliCloudSslCertificatesServicePcaCertificate_basic11010(t *testing.T
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccsslcertificatesservice%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudSslCertificatesServicePcaCertificateBasicDependence11010)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudSslCertificatesServicePcaCertificateBasicDependence11010)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
@@ -35,39 +35,51 @@ func TestAccAliCloudSslCertificatesServicePcaCertificate_basic11010(t *testing.T
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"common_name":       "cbc.certqa.cn",
-					"locality":          "a",
 					"organization":      "a",
+					"years":             "1",
+					"locality":          "a",
 					"organization_unit": "a",
 					"state":             "a",
-					"years":             "1",
+					"country_code":      "cn",
+					"common_name":       "cbc.certqa.cn",
+					"algorithm":         "RSA_2048",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"common_name":       "cbc.certqa.cn",
-						"locality":          "a",
 						"organization":      "a",
+						"years":             "1",
+						"locality":          "a",
 						"organization_unit": "a",
 						"state":             "a",
-						"years":             "1",
+						"country_code":      "cn",
+						"common_name":       "cbc.certqa.cn",
+						"algorithm":         "RSA_2048",
+						"resource_group_id": CHECKSET,
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"alias_name": name,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"alias_name":        "test",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"resource_group_id": CHECKSET,
+						"alias_name":        "test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"alias_name":        "testupdate",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+						"alias_name":        "testupdate",
 					}),
 				),
 			},
@@ -123,83 +135,18 @@ func TestAccAliCloudSslCertificatesServicePcaCertificate_basic11010(t *testing.T
 	})
 }
 
-func TestAccAliCloudSslCertificatesServicePcaCertificate_basic11010_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_ssl_certificates_service_pca_certificate.default"
-	ra := resourceAttrInit(resourceId, AliCloudSslCertificatesServicePcaCertificateMap11010)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &SslCertificatesServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeSslCertificatesServicePcaCertificate")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccsslcertificatesservice%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudSslCertificatesServicePcaCertificateBasicDependence11010)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"organization":      "a",
-					"years":             "1",
-					"locality":          "a",
-					"organization_unit": "a",
-					"state":             "a",
-					"country_code":      "cn",
-					"common_name":       "cbc.certqa.cn",
-					"algorithm":         "RSA_1024",
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-					"alias_name":        name,
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"organization":      "a",
-						"years":             "1",
-						"locality":          "a",
-						"organization_unit": "a",
-						"state":             "a",
-						"country_code":      "cn",
-						"common_name":       "cbc.certqa.cn",
-						"algorithm":         "RSA_1024",
-						"resource_group_id": CHECKSET,
-						"tags.%":            "2",
-						"tags.Created":      "TF",
-						"tags.For":          "Test",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"alias_name"},
-			},
-		},
-	})
-}
-
-var AliCloudSslCertificatesServicePcaCertificateMap11010 = map[string]string{
+var AlicloudSslCertificatesServicePcaCertificateMap11010 = map[string]string{
 	"status": CHECKSET,
 }
 
-func AliCloudSslCertificatesServicePcaCertificateBasicDependence11010(name string) string {
+func AlicloudSslCertificatesServicePcaCertificateBasicDependence11010(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
-data "alicloud_resource_manager_resource_groups" "default" {
-}
+data "alicloud_resource_manager_resource_groups" "default" {}
+
 
 `, name)
 }

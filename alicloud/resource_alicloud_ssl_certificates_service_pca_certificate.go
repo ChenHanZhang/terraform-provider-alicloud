@@ -104,7 +104,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateCreate(d *schema.Resour
 	}
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
-		request = expandTagsToMapWithTags(request, tagsMap)
+		request = expandTagsToMap(request, tagsMap)
 	}
 
 	if v, ok := d.GetOk("resource_group_id"); ok {
@@ -138,7 +138,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateCreate(d *schema.Resour
 
 	d.SetId(fmt.Sprint(response["Identifier"]))
 
-	return resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d, meta)
+	return resourceAliCloudSslCertificatesServicePcaCertificateRead(d, meta)
 }
 
 func resourceAliCloudSslCertificatesServicePcaCertificateRead(d *schema.ResourceData, meta interface{}) error {
@@ -186,7 +186,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
 		update = true
 	}
 	request["ResourceGroupId"] = d.Get("resource_group_id")
@@ -216,11 +216,8 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 	request["Identifier"] = d.Id()
 
 	request["ClientToken"] = buildClientToken(action)
-	if d.HasChange("alias_name") {
-		update = true
-		if v, ok := d.GetOk("alias_name"); ok {
-			request["AliasName"] = v
-		}
+	if v, ok := d.GetOk("alias_name"); ok {
+		request["AliasName"] = v
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -241,7 +238,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 		}
 	}
 
-	if !d.IsNewResource() && d.HasChange("tags") {
+	if d.HasChange("tags") {
 		sslCertificatesServiceServiceV2 := SslCertificatesServiceServiceV2{client}
 		if err := sslCertificatesServiceServiceV2.SetResourceTags(d, "PcaCertificate"); err != nil {
 			return WrapError(err)
@@ -265,7 +262,6 @@ func resourceAliCloudSslCertificatesServicePcaCertificateDelete(d *schema.Resour
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("cas", "2020-06-30", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
