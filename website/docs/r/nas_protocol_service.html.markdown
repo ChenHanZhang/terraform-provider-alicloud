@@ -26,44 +26,43 @@ variable "name" {
 }
 
 provider "alicloud" {
-  region = "cn-beijing"
+  region = "cn-hangzhou"
 }
 
-resource "alicloud_vpc" "example" {
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
   is_default  = false
   cidr_block  = "192.168.0.0/16"
-  vpc_name    = "nas-examplee1031-vpc"
+  vpc_name    = "nas-examplee1223-vpc"
   enable_ipv6 = true
 }
 
-resource "alicloud_vswitch" "example" {
+resource "alicloud_vswitch" "CreateVswitch1" {
   is_default   = false
-  vpc_id       = alicloud_vpc.example.id
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
   zone_id      = "cn-beijing-i"
-  cidr_block   = "192.168.2.0/24"
-  vswitch_name = "nas-examplee1031-vsw1sdw-F"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-examplee1223-vsw2sdw-C"
 }
 
-resource "alicloud_nas_file_system" "example" {
-  description      = var.name
+resource "alicloud_nas_file_system" "create_cpfs_file_system_General" {
+  description      = "cpfs-文件系统本地冗余-protocol_service-genexample"
   storage_type     = "advance_100"
   zone_id          = "cn-beijing-i"
-  encrypt_type     = "0"
-  vpc_id           = alicloud_vpc.example.id
+  vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
   capacity         = "3600"
   protocol_type    = "cpfs"
-  vswitch_id       = alicloud_vswitch.example.id
+  vswitch_id       = alicloud_vswitch.CreateVswitch1.id
   file_system_type = "cpfs"
 }
 
 
 resource "alicloud_nas_protocol_service" "default" {
-  vpc_id         = alicloud_vpc.example.id
+  vpc_id         = alicloud_vpc.createEVpc_Cpfs1.id
   protocol_type  = "NFS"
   protocol_spec  = "General"
-  vswitch_id     = alicloud_vswitch.example.id
+  vswitch_id     = alicloud_vswitch.CreateVswitch1.id
   dry_run        = false
-  file_system_id = alicloud_nas_file_system.example.id
+  file_system_id = alicloud_nas_file_system.create_cpfs_file_system_General.id
 }
 ```
 
@@ -90,7 +89,7 @@ Value:
 * `protocol_spec` - (Required, ForceNew) The specification of the protocol machine cluster.
   - Value range: General、CL1、CL2
   - Default value: General
-* `protocol_throughput` - (Optional, ForceNew, Int) The throughput of the protocol service. Unit: MB/s.
+* `protocol_throughput` - (Optional, ForceNew, Computed, Int) The throughput of the protocol service. Unit: MB/s.
 * `protocol_type` - (Required, ForceNew) The protocol type supported by the protocol service.
 
 Value range:
@@ -103,14 +102,14 @@ Value range:
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<protocol_service_id>`.
 * `create_time` - The time when the protocol server service was created. The UTC time.
-* `protocol_service_id` - The ID of protocol server.
+* `protocol_service_id` - Protocol Service ID
 * `status` - Agreement service status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 10 mins) Used when create the Protocol Service.
-* `delete` - (Defaults to 10 mins) Used when delete the Protocol Service.
+* `create` - (Defaults to 20 mins) Used when create the Protocol Service.
+* `delete` - (Defaults to 20 mins) Used when delete the Protocol Service.
 * `update` - (Defaults to 10 mins) Used when update the Protocol Service.
 
 ## Import
