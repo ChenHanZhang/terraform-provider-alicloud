@@ -1,62 +1,112 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAlicloudAlikafkaConsumerGroup() *schema.Resource {
+func resourceAliCloudAliKafkaConsumerGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudAlikafkaConsumerGroupCreate,
-		Update: resourceAlicloudAlikafkaConsumerGroupUpdate,
-		Read:   resourceAlicloudAlikafkaConsumerGroupRead,
-		Delete: resourceAlicloudAlikafkaConsumerGroupDelete,
+		Create: resourceAliCloudAliKafkaConsumerGroupCreate,
+		Read:   resourceAliCloudAliKafkaConsumerGroupRead,
+		Update: resourceAliCloudAliKafkaConsumerGroupUpdate,
+		Delete: resourceAliCloudAliKafkaConsumerGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
+			"consumer_id": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"create_time": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"consumer_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: StringLenBetween(1, 64),
+			"offset": {
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
-			"description": {
+			"partition": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"remark": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+			"reset_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"tags": tagsSchema(),
+			"time": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"topic": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
-func resourceAlicloudAlikafkaConsumerGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudAliKafkaConsumerGroupCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "CreateConsumerGroup"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
-	request["ConsumerId"] = d.Get("consumer_id")
-	request["InstanceId"] = d.Get("instance_id")
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceId"] = v
+	}
+	if v, ok := d.GetOk("consumer_id"); ok {
+		request["ConsumerId"] = v
+	}
 	request["RegionId"] = client.RegionId
-	if v, ok := d.GetOk("description"); ok {
+
+	if v, ok := d.GetOk("remark"); ok {
 		request["Remark"] = v
 	}
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
+	}
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPost("alikafka", "2019-09-16", action, nil, request, false)
+		response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -67,76 +117,174 @@ func resourceAlicloudAlikafkaConsumerGroupCreate(d *schema.ResourceData, meta in
 		return nil
 	})
 	addDebug(action, response, request)
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_alikafka_consumer_group", action, AlibabaCloudSdkGoERROR)
 	}
-	if fmt.Sprint(response["Success"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
+
+	d.SetId(fmt.Sprintf("%v:%v", request["InstanceId"], request["ConsumerId"]))
+
+	aliKafkaServiceV2 := AliKafkaServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, aliKafkaServiceV2.AliKafkaConsumerGroupStateRefreshFunc(d.Id(), "#$.RebalanceInfoList.RebalanceInfoList[0].GroupId", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	d.SetId(fmt.Sprint(request["InstanceId"], ":", request["ConsumerId"]))
-
-	return resourceAlicloudAlikafkaConsumerGroupUpdate(d, meta)
+	return resourceAliCloudAliKafkaConsumerGroupUpdate(d, meta)
 }
 
-func resourceAlicloudAlikafkaConsumerGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudAliKafkaConsumerGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	alikafkaService := AlikafkaService{client}
-	object, err := alikafkaService.DescribeAliKafkaConsumerGroup(d.Id())
+	aliKafkaServiceV2 := AliKafkaServiceV2{client}
+
+	objectRaw, err := aliKafkaServiceV2.DescribeAliKafkaConsumerGroup(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_ali_kafka_consumer_group alikafkaService.DescribeAliKafkaConsumerGroup Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_alikafka_consumer_group DescribeAliKafkaConsumerGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
+
+	rebalanceInfoListRawObj, _ := jsonpath.Get("$.RebalanceInfoList.RebalanceInfoList[*]", objectRaw)
+	rebalanceInfoListRaw := make([]interface{}, 0)
+	if rebalanceInfoListRawObj != nil {
+		rebalanceInfoListRaw = convertToInterfaceArray(rebalanceInfoListRawObj)
+	}
+
+	d.Set("consumer_id", rebalanceInfoListRaw["GroupId"])
+
+	topicListRawObj, _ := jsonpath.Get("$.TopicList.TopicList[*]", objectRaw)
+	topicListRaw := make([]interface{}, 0)
+	if topicListRawObj != nil {
+		topicListRaw = convertToInterfaceArray(topicListRawObj)
+	}
+
+	d.Set("topic", topicListRaw["Topic"])
+
+	offsetListRawObj, _ := jsonpath.Get("$.TopicList.TopicList[*].OffsetList.OffsetList[*]", objectRaw)
+	offsetListRaw := make([]interface{}, 0)
+	if offsetListRawObj != nil {
+		offsetListRaw = convertToInterfaceArray(offsetListRawObj)
+	}
+
+	d.Set("offset", offsetListRaw["ConsumerOffset"])
+	d.Set("partition", offsetListRaw["Partition"])
+
+	objectRaw, err = aliKafkaServiceV2.DescribeConsumerGroupGetConsumerList(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
-	d.Set("consumer_id", parts[1])
-	d.Set("instance_id", parts[0])
-	d.Set("description", object["Remark"])
-	if v, ok := object["Tags"].(map[string]interface{}); ok {
-		d.Set("tags", tagsToMap(v["TagVO"]))
-	}
+
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("remark", objectRaw["Remark"])
+	d.Set("consumer_id", objectRaw["ConsumerId"])
+	d.Set("instance_id", objectRaw["InstanceId"])
+
+	tagsMaps, _ := jsonpath.Get("$.Tags.TagVO", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
 
-func resourceAlicloudAlikafkaConsumerGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudAliKafkaConsumerGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	alikafkaService := AlikafkaService{client}
-	if d.HasChange("tags") {
-		if err := alikafkaService.SetResourceTags(d, "CONSUMERGROUP"); err != nil {
-			return WrapError(err)
-		}
-		d.SetPartial("tags")
-	}
-	return resourceAlicloudAlikafkaConsumerGroupRead(d, meta)
-}
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
 
-func resourceAlicloudAlikafkaConsumerGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	alikafkaService := AlikafkaService{client}
-	parts, err := ParseResourceId(d.Id(), 2)
+	var err error
+	parts := strings.Split(d.Id(), ":")
+	action := "UpdateConsumerOffset"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceId"] = parts[0]
+	request["ConsumerId"] = parts[1]
+	request["RegionId"] = client.RegionId
+	if d.HasChange("topic") {
+		update = true
+	}
+	request["Topic"] = d.Get("topic")
+	if v, ok := d.GetOk("reset_type"); ok {
+		request["ResetType"] = v
+	}
+	if v, ok := d.GetOk("time"); ok {
+		request["Time"] = v
+	}
+	offsetsDataList := make(map[string]interface{})
+
+	if d.HasChange("partition") {
+		update = true
+		if v, ok := d.GetOkExists("partition"); ok {
+			offsetsDataList["Partition"] = v
+		}
+	}
+
+	if d.HasChange("offset") {
+		update = true
+		if v, ok := d.GetOkExists("offset"); ok {
+			offsetsDataList["Offset"] = v
+		}
+	}
+
+	OffsetsMap := make([]interface{}, 0)
+	OffsetsMap = append(OffsetsMap, offsetsDataList)
+	offsetsDataListJson, err := json.Marshal(OffsetsMap)
 	if err != nil {
 		return WrapError(err)
 	}
-	action := "DeleteConsumerGroup"
-	var response map[string]interface{}
-	request := map[string]interface{}{
-		"ConsumerId": parts[1],
-		"InstanceId": parts[0],
+	request["Offsets"] = string(offsetsDataListJson)
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
 	}
 
+	if d.HasChange("tags") {
+		aliKafkaServiceV2 := AliKafkaServiceV2{client}
+		if err := aliKafkaServiceV2.SetResourceTags(d, "CONSUMERGROUP"); err != nil {
+			return WrapError(err)
+		}
+	}
+	return resourceAliCloudAliKafkaConsumerGroupRead(d, meta)
+}
+
+func resourceAliCloudAliKafkaConsumerGroupDelete(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+	parts := strings.Split(d.Id(), ":")
+	action := "DeleteConsumerGroup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["InstanceId"] = parts[0]
+	request["ConsumerId"] = parts[1]
 	request["RegionId"] = client.RegionId
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("alikafka", "2019-09-16", action, nil, request, false)
+		response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{ThrottlingUser, "ONS_SYSTEM_FLOW_CONTROL"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -145,15 +293,19 @@ func resourceAlicloudAlikafkaConsumerGroupDelete(d *schema.ResourceData, meta in
 		return nil
 	})
 	addDebug(action, response, request)
+
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	if fmt.Sprint(response["Success"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, alikafkaService.AliKafkaConsumerStateRefreshFunc(d.Id(), "ServiceStatus", []string{}))
+
+	aliKafkaServiceV2 := AliKafkaServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 10*time.Second, aliKafkaServiceV2.AliKafkaConsumerGroupStateRefreshFuncWithApi(d.Id(), "$.AutomaticallyCreatedGroup", []string{}, aliKafkaServiceV2.DescribeConsumerGroupGetConsumerList))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
+
 	return nil
 }
