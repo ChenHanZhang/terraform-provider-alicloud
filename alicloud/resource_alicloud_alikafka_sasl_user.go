@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -34,38 +35,23 @@ func resourceAliCloudAliKafkaSaslUser() *schema.Resource {
 			"mechanism": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+				ForceNew: true,
 			},
 			"password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				Sensitive: true,
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+				ForceNew: true,
 			},
 			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-			"kms_encrypted_password": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				DiffSuppressFunc: kmsDiffSuppressFunc,
-			},
-			"kms_encryption_context": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return d.Get("kms_encrypted_password").(string) == ""
-				},
 			},
 		},
 	}
@@ -89,24 +75,7 @@ func resourceAliCloudAliKafkaSaslUserCreate(d *schema.ResourceData, meta interfa
 	}
 	request["RegionId"] = client.RegionId
 
-	password := d.Get("password").(string)
-	kmsPassword := d.Get("kms_encrypted_password").(string)
-
-	if password == "" && kmsPassword == "" {
-		return WrapError(Error("One of the 'password' and 'kms_encrypted_password' should be set."))
-	}
-
-	if password != "" {
-		request["Password"] = password
-	} else {
-		kmsService := KmsService{client}
-		decryptResp, err := kmsService.Decrypt(kmsPassword, d.Get("kms_encryption_context").(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-
-		request["Password"] = decryptResp
-	}
+	request["Password"] = d.Get("password")
 	if v, ok := d.GetOk("type"); ok {
 		request["Type"] = v
 	}
@@ -138,7 +107,7 @@ func resourceAliCloudAliKafkaSaslUserCreate(d *schema.ResourceData, meta interfa
 
 func resourceAliCloudAliKafkaSaslUserRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	aliKafkaServiceV2 := AlikafkaServiceV2{client}
+	aliKafkaServiceV2 := AliKafkaServiceV2{client}
 
 	objectRaw, err := aliKafkaServiceV2.DescribeAliKafkaSaslUser(d.Id())
 	if err != nil {
@@ -166,6 +135,7 @@ func resourceAliCloudAliKafkaSaslUserUpdate(d *schema.ResourceData, meta interfa
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
+	update := false
 
 	var err error
 	parts := strings.Split(d.Id(), ":")
@@ -175,31 +145,21 @@ func resourceAliCloudAliKafkaSaslUserUpdate(d *schema.ResourceData, meta interfa
 	request["Username"] = parts[1]
 	request["InstanceId"] = parts[0]
 	request["RegionId"] = client.RegionId
-
-	if v, ok := d.GetOk("type"); ok {
-		request["Type"] = v
+	if d.HasChange("password") {
+		update = true
+	}
+	request["Password"] = d.Get("password")
+	if d.HasChange("type") {
+		update = true
+		request["Type"] = d.Get("type")
 	}
 
-	if !d.IsNewResource() && (d.HasChange("password") || d.HasChange("kms_encrypted_password")) {
-		password := d.Get("password").(string)
-		kmsPassword := d.Get("kms_encrypted_password").(string)
+	if d.HasChange("mechanism") {
+		update = true
+		request["Mechanism"] = d.Get("mechanism")
+	}
 
-		if password == "" && kmsPassword == "" {
-			return WrapError(Error("One of the 'password' and 'kms_encrypted_password' should be set."))
-		}
-
-		if password != "" {
-			request["Password"] = password
-		} else {
-			kmsService := KmsService{client}
-			decryptResp, err := kmsService.Decrypt(kmsPassword, d.Get("kms_encryption_context").(map[string]interface{}))
-			if err != nil {
-				return WrapError(err)
-			}
-
-			request["Password"] = decryptResp
-		}
-
+	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)

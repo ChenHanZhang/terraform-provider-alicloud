@@ -704,3 +704,126 @@ func TestUnitAliCloudAliKafkaSaslUser(t *testing.T) {
 		}
 	}
 }
+
+// Test AliKafka SaslUser. >>> Resource test cases, automatically generated.
+// Case v3 SASL用户全生命周期 10740
+func TestAccAliCloudAliKafkaSaslUser_basic10740(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_alikafka_sasl_user.default"
+	ra := resourceAttrInit(resourceId, AlicloudAliKafkaSaslUserMap10740)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AliKafkaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAliKafkaSaslUser")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccalikafka%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudAliKafkaSaslUserBasicDependence10740)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"type":        "scram",
+					"username":    "qwoeiuqwoieurandom701",
+					"password":    "123123",
+					"instance_id": "${alicloud_alikafka_instance_v2.defaultBzMsgy.id}",
+					"mechanism":   "SCRAM-SHA-256",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"type":        "scram",
+						"username":    CHECKSET,
+						"password":    CHECKSET,
+						"instance_id": CHECKSET,
+						"mechanism":   "SCRAM-SHA-256",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"type":      "plain",
+					"password":  "213123123",
+					"mechanism": "SCRAM-SHA-512",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"type":      "plain",
+						"password":  CHECKSET,
+						"mechanism": "SCRAM-SHA-512",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"type":      "scram",
+					"password":  "653463456",
+					"mechanism": "SCRAM-SHA-256",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"type":      "scram",
+						"password":  CHECKSET,
+						"mechanism": "SCRAM-SHA-256",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudAliKafkaSaslUserMap10740 = map[string]string{}
+
+func AlicloudAliKafkaSaslUserBasicDependence10740(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region" {
+  default = "cn-beijing"
+}
+
+resource "alicloud_vpc" "defaultbqyuKu" {
+  cidr_block = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "defaultjvEBtT" {
+  vpc_id     = alicloud_vpc.defaultbqyuKu.id
+  zone_id    = "cn-beijing-a"
+  cidr_block = "172.18.0.0/23"
+}
+
+resource "alicloud_alikafka_instance_v2" "defaultBzMsgy" {
+  deploy_type   = "5"
+  spec_type     = "normal"
+  paid_type     = "3"
+  deploy_module = "vpc"
+  vswitch_ids   = []
+  vswitch_id    = alicloud_vswitch.defaultjvEBtT.id
+  vpc_id        = alicloud_vpc.defaultbqyuKu.id
+  serverless_config {
+    reserved_publish_capacity   = "60"
+    reserved_subscribe_capacity = "60"
+  }
+  zone_id = "cn-beijing-a"
+  config  = "{\"auto.create.topics.enable\":\"true\",\"enable.acl\":\"true\",\"enable.vpc_sasl_ssl\":\"false\",\"kafka.ssl.bit\":\"4096\",\"log.retention.hours\":\"72\",\"message.max.bytes\":\"1048576\",\"num.partitions\":\"3\",\"offsets.retention.minutes\":\"10080\"}"
+}
+
+
+`, name)
+}
+
+// Test AliKafka SaslUser. <<< Resource test cases, automatically generated.

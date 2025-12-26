@@ -3,28 +3,22 @@ subcategory: "AliKafka"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_alikafka_sasl_user"
 description: |-
-  Provides a Alicloud AliKafka Sasl User resource.
+  Provides a Alicloud Ali Kafka Sasl User resource.
 ---
 
 # alicloud_alikafka_sasl_user
 
-Provides an AliKafka Sasl User resource.
+Provides a Ali Kafka Sasl User resource.
 
 
 
-For information about AliKafka Sasl User and how to use it, see [What is Sasl User](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createsasluser).
+For information about Ali Kafka Sasl User and how to use it, see [What is Sasl User](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createsasluser).
 
 -> **NOTE:** Available since v1.66.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_alikafka_sasl_user&exampleId=77a9bce6-faec-d108-7b52-743d81c525e0d6cdc9f7&activeTab=example&spm=docs.r.alikafka_sasl_user.0.77a9bce6fa&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -81,34 +75,42 @@ resource "alicloud_alikafka_sasl_user" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_alikafka_sasl_user&spm=docs.r.alikafka_sasl_user.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `instance_id` - (Required, ForceNew) The instance ID.
-* `mechanism` - (Optional, ForceNew, Available since v1.266.0) The encryption method. Valid values:
-  - SCRAM-SHA-512. This is the default value.
-  - SCRAM-SHA-256
+* `mechanism` - (Optional, ForceNew, Computed, Available since v1.266.0) The encryption method. Valid values:
+
+*   SCRAM-SHA-512. This is the default value.
+*   SCRAM-SHA-256
+
 -> **NOTE:**   This parameter is available only for serverless ApsaraMQ for Kafka instances.
-* `username` - (Required, ForceNew) The name of the SASL user. The length should between `1` to `64` characters. The characters can only contain `a`-`z`, `A`-`Z`, `0`-`9`, `_` and `-`.
-* `type` - (Optional, ForceNew, Available since v1.159.0) The authentication mechanism. Default value: `plain`. Valid values:
+
+* `password` - (Required) The password.
+* `type` - (Optional, ForceNew, Computed, Available since v1.159.0) Type. Value:
   - `plain`: A simple user name and password verification mechanism. Kafka optimizes the PLAIN mechanism and supports the dynamic addition of SASL users without restarting the instance.
   - `scram`: A user name and password verification mechanism with higher security than PLAIN. Message Queue for Kafka uses SCRAM-SHA-256.
   - `LDAP`: This user type is displayed only for Confluent instances.
-* `password` - (Optional, Sensitive) The password of the SASL user. It may consist of letters, digits, or underlines, with a length of 1 to 64 characters. You have to specify one of `password` and `kms_encrypted_password` fields.
-* `kms_encrypted_password` - (Optional) An KMS encrypts password used to a db account. You have to specify one of `password` and `kms_encrypted_password` fields.
-* `kms_encryption_context` - (Optional, MapString) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating a user with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set.
+
+The default value is **plain * *.
+* `username` - (Required, ForceNew) The user name.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The resource ID in terraform of Sasl User. It formats as `<instance_id>:<username>`.
+* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<username>`.
+
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Sasl User.
+* `delete` - (Defaults to 5 mins) Used when delete the Sasl User.
+* `update` - (Defaults to 5 mins) Used when update the Sasl User.
 
 ## Import
 
-AliKafka Sasl User can be imported using the id, e.g.
+Ali Kafka Sasl User can be imported using the id, e.g.
 
 ```shell
-terraform import alicloud_alikafka_sasl_user.example <instance_id>:<username>
+$ terraform import alicloud_alikafka_sasl_user.example <instance_id>:<username>
 ```
