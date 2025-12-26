@@ -196,7 +196,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudNasFilesetCreate(d, rawClient)
+		err := resourceAliCloudNasFilesetCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -213,7 +213,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetCreate(d, rawClient)
+		err := resourceAliCloudNasFilesetCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -230,7 +230,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetCreate(dCreate, rawClient)
+		err := resourceAliCloudNasFilesetCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -248,7 +248,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 		})
 
-		err := resourceAlicloudNasFilesetUpdate(d, rawClient)
+		err := resourceAliCloudNasFilesetUpdate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -284,7 +284,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetUpdate(resourceData1, rawClient)
+		err := resourceAliCloudNasFilesetUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -319,7 +319,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetUpdate(resourceData1, rawClient)
+		err := resourceAliCloudNasFilesetUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -334,7 +334,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudNasFilesetDelete(d, rawClient)
+		err := resourceAliCloudNasFilesetDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -351,7 +351,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetDelete(d, rawClient)
+		err := resourceAliCloudNasFilesetDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -371,7 +371,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 		patcheDescribeNasFileset := gomonkey.ApplyMethod(reflect.TypeOf(&NasService{}), "DescribeNasFileset", func(*NasService, string) (map[string]interface{}, error) {
 			return responseMock["NotFoundError"]("ResourceNotfound")
 		})
-		err := resourceAlicloudNasFilesetDelete(d, rawClient)
+		err := resourceAliCloudNasFilesetDelete(d, rawClient)
 		patches.Reset()
 		patcheDescribeNasFileset.Reset()
 		assert.Nil(t, err)
@@ -389,7 +389,7 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetRead(d, rawClient)
+		err := resourceAliCloudNasFilesetRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -405,8 +405,456 @@ func TestUnitAlicloudNASFileset(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudNasFilesetRead(d, rawClient)
+		err := resourceAliCloudNasFilesetRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
 }
+
+// Test Nas Fileset. >>> Resource test cases, automatically generated.
+// Case cpfs_fileset 11898
+func TestAccAliCloudNasFileset_basic11898(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_fileset.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFilesetMap11898)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileset")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFilesetBasicDependence11898)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"file_system_path":    "/testfileset/",
+					"description":         "cpfs-LRS-fileset测试-wyf",
+					"file_system_id":      "${alicloud_nas_file_system.create_cpfs_file_system05.id}",
+					"deletion_protection": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"file_system_path":    "/testfileset/",
+						"description":         "cpfs-LRS-fileset测试-wyf",
+						"file_system_id":      CHECKSET,
+						"deletion_protection": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "cpfs-fileset更新测试-wyf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "cpfs-fileset更新测试-wyf",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"deletion_protection": "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"deletion_protection": "false",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasFilesetMap11898 = map[string]string{
+	"status":      CHECKSET,
+	"fileset_id":  CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasFilesetBasicDependence11898(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1223-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitch1" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
+  zone_id      = "cn-beijing-i"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
+}
+
+resource "alicloud_nas_file_system" "create_cpfs_file_system05" {
+  description      = "cpfs-文件系统本地冗余-fileset测试-wyf"
+  storage_type     = "advance_100"
+  zone_id          = "cn-beijing-i"
+  encrypt_type     = "0"
+  vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
+  capacity         = "3600"
+  protocol_type    = "cpfs"
+  vswitch_id       = alicloud_vswitch.CreateVswitch1.id
+  file_system_type = "cpfs"
+}
+
+
+`, name)
+}
+
+// Case cpfs_LRS_fileset 12176
+func TestAccAliCloudNasFileset_basic12176(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_fileset.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFilesetMap12176)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileset")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFilesetBasicDependence12176)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"file_system_path": "/testfileset/",
+					"description":      "cpfs-LRS-fileset测试-wyf",
+					"file_system_id":   "${alicloud_nas_file_system.create_cpfs_file_LRS_system_02.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"file_system_path": "/testfileset/",
+						"description":      "cpfs-LRS-fileset测试-wyf",
+						"file_system_id":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "cpfs-fileset更新测试-wyf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "cpfs-fileset更新测试-wyf",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasFilesetMap12176 = map[string]string{
+	"status":      CHECKSET,
+	"fileset_id":  CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasFilesetBasicDependence12176(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1223-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitch1" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
+  zone_id      = "cn-beijing-i"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
+}
+
+resource "alicloud_nas_file_system" "create_cpfs_file_LRS_system_02" {
+  description      = "cpfs-文件系统本地冗余-fileset测试-wyf"
+  storage_type     = "advance_100"
+  zone_id          = "cn-beijing-i"
+  encrypt_type     = "0"
+  vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
+  capacity         = "3600"
+  protocol_type    = "cpfs"
+  vswitch_id       = alicloud_vswitch.CreateVswitch1.id
+  file_system_type = "cpfs"
+}
+
+
+`, name)
+}
+
+// Case cpfsse_fileset 12187
+func TestAccAliCloudNasFileset_basic12187(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_fileset.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFilesetMap12187)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileset")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFilesetBasicDependence12187)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"file_system_path":    "/testfileset/",
+					"description":         "cpfs-fileset测试-wyf",
+					"file_system_id":      "${alicloud_nas_file_system.create_cpfsse_ZRS_file_system.id}",
+					"deletion_protection": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"file_system_path":    "/testfileset/",
+						"description":         "cpfs-fileset测试-wyf",
+						"file_system_id":      CHECKSET,
+						"deletion_protection": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "cpfsse-fileset更新测试-wyf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "cpfsse-fileset更新测试-wyf",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"deletion_protection": "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"deletion_protection": "false",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasFilesetMap12187 = map[string]string{
+	"status":      CHECKSET,
+	"fileset_id":  CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasFilesetBasicDependence12187(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1223-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitchF" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-h"
+  cidr_block   = "192.168.2.0/24"
+  vswitch_name = "nas-teste1223-vsw1sdw-F"
+}
+
+resource "alicloud_vswitch" "CreateVswitchC" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-i"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
+}
+
+resource "alicloud_vswitch" "CreateVswitchD" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-l"
+  cidr_block   = "192.168.4.0/24"
+  vswitch_name = "nas-teste1223-vsw3sdw-D"
+}
+
+resource "alicloud_nas_file_system" "create_cpfsse_ZRS_file_system" {
+  description      = "cpfsse-文件系统同城冗余测试-wyf"
+  storage_type     = "advance_100"
+  vpc_id           = alicloud_vpc.createEVpc_Cpfs.id
+  capacity         = "500"
+  protocol_type    = "cpfs"
+  file_system_type = "cpfsse"
+}
+
+
+`, name)
+}
+
+// Case for_tf 11889
+func TestAccAliCloudNasFileset_basic11889(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_fileset.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFilesetMap11889)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileset")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFilesetBasicDependence11889)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"file_system_path":    "/testfileset/",
+					"description":         "cpfs-LRS-fileset测试-wyf",
+					"file_system_id":      "${alicloud_nas_file_system.create_cpfs_file_system.id}",
+					"deletion_protection": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"file_system_path":    "/testfileset/",
+						"description":         "cpfs-LRS-fileset测试-wyf",
+						"file_system_id":      CHECKSET,
+						"deletion_protection": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "cpfs-fileset更新测试-wyf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "cpfs-fileset更新测试-wyf",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"deletion_protection": "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"deletion_protection": "false",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasFilesetMap11889 = map[string]string{
+	"status":      CHECKSET,
+	"fileset_id":  CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasFilesetBasicDependence11889(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1031-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitch1" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
+  zone_id      = "cn-shenzhen-f"
+  cidr_block   = "192.168.2.0/24"
+  vswitch_name = "nas-teste1031-vsw1sdw-F"
+}
+
+resource "alicloud_nas_file_system" "create_cpfs_file_system" {
+  description      = "cpfs-文件系统本地冗余-fileset测试-wyf"
+  storage_type     = "advance_100"
+  zone_id          = "cn-shenzhen-f"
+  encrypt_type     = "0"
+  vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
+  capacity         = "3600"
+  protocol_type    = "cpfs"
+  vswitch_id       = alicloud_vswitch.CreateVswitch1.id
+  file_system_type = "cpfs"
+}
+
+
+`, name)
+}
+
+// Test Nas Fileset. <<< Resource test cases, automatically generated.
