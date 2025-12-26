@@ -175,7 +175,6 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"alicloud_threat_detection_check_structures":          dataSourceAliCloudThreatDetectionCheckStructures(),
 			"alicloud_fcv3_functions":                             dataSourceAliCloudFcv3Functions(),
 			"alicloud_cloud_firewall_tls_inspect_ca_certificates": dataSourceAliCloudCloudFirewallTlsInspectCaCertificates(),
 			"alicloud_sls_indexs":                                 dataSourceAliCloudSlsIndexs(),
@@ -917,8 +916,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_kms_value_added_service":                              resourceAliCloudKmsValueAddedService(),
-			"alicloud_nas_protocol_service":                                 resourceAliCloudNasProtocolService(),
+			"alicloud_ali_kafka_allowed_ip_attachment":                      resourceAliCloudAliKafkaAllowedIpAttachment(),
 			"alicloud_config_report_template":                               resourceAliCloudConfigReportTemplate(),
 			"alicloud_redis_backup":                                         resourceAliCloudRedisBackup(),
 			"alicloud_cs_kubernetes_policy_instance":                        resourceAliCloudCSKubernetesPolicyInstance(),
@@ -1269,7 +1267,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_launch_template":                                      resourceAliCloudEcsLaunchTemplate(),
 			"alicloud_security_group":                                       resourceAliCloudEcsSecurityGroup(),
 			"alicloud_security_group_rule":                                  resourceAliyunSecurityGroupRule(),
-			"alicloud_db_database":                                          resourceAliCloudRdsDatabase(),
+			"alicloud_db_database":                                          resourceAlicloudDBDatabase(),
 			"alicloud_db_account":                                           resourceAliCloudRdsAccount(),
 			"alicloud_db_account_privilege":                                 resourceAlicloudDBAccountPrivilege(),
 			"alicloud_db_backup_policy":                                     resourceAlicloudDBBackupPolicy(),
