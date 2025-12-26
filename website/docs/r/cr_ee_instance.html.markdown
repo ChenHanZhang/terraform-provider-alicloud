@@ -10,19 +10,16 @@ description: |-
 
 Provides a CR Instance resource.
 
-For information about Container Registry Enterprise Edition instances and how to use it, see [Create a Instance](https://www.alibabacloud.com/help/en/doc-detail/208144.htm)
+
+For information about Container Registry Instance and how to use it, see [What is Container Registry](https://www.alibabacloud.com/help/en/acr/product-overview/what-is-container-registry).
+
+For information about CR Instance and how to use it, see [What is Instance](https://www.alibabacloud.com/help/en/doc-detail/208144.htm).
 
 -> **NOTE:** Available since v1.124.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cr_ee_instance&exampleId=25749ea8-d0d9-59b9-d587-cf2975510050df3b0d18&activeTab=example&spm=docs.r.cr_ee_instance.0.25749ea8d0&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -44,8 +41,6 @@ resource "alicloud_cr_ee_instance" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cr_ee_instance&spm=docs.r.cr_ee_instance.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -54,22 +49,26 @@ The following arguments are supported:
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
 * `default_oss_bucket` - (Optional, Available since v1.235.0) Whether to use the default OSS Bucket. Value:
-  - `true`: Use the default OSS Bucket.
-  - `false`: Use a custom OSS Bucket.
+true: Use the default OSS Bucket.
+false: Use a custom OSS Bucket.
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
 * `image_scanner` - (Optional, Available since v1.235.0) The security scan engine used by the Enterprise Edition of Container Image Service. Value:
-  - `ACR`: Uses the Trivy scan engine provided by default.
-  - `SAS`: uses the enhanced cloud security scan engine.
+ACR: Uses the Trivy scan engine provided by default.
+SAS: uses the enhanced cloud security scan engine.
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
 * `instance_name` - (Required, ForceNew) InstanceName
 * `instance_type` - (Required) The Value configuration of the Group 1 attribute of Container Mirror Service Enterprise Edition. Valid values:
-  - `Basic`: Basic instance
-  - `Standard`: Standard instance
-  - `Advanced`: Advanced Edition Instance
+Basic: Basic instance
+Standard: Standard instance
+Advanced: Advanced Edition Instance
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `namespace_quota` - (Optional, Int, Available since v1.267.0) This property does not have a description in the spec, please add it before generating code.
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
@@ -91,13 +90,19 @@ The following arguments are supported:
   - AutoRenewal: automatic renewal.
   - ManualRenewal: manual renewal.
 
-  Default ManualRenewal.
+Default ManualRenewal.
+* `repo_quota` - (Optional, Int, Available since v1.267.0) This property does not have a description in the spec, please add it before generating code.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `resource_group_id` - (Optional, Computed, Available since v1.235.0) The ID of the resource group
+* `vpc_quota` - (Optional, Int, Available since v1.267.0) This property does not have a description in the spec, please add it before generating code.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 
 The following arguments will be discarded. Please use new fields as soon as possible:
 * `created_time` - (Deprecated since v1.235.0). Field 'created_time' has been deprecated from provider version 1.235.0. New field 'create_time' instead.
-* `kms_encrypted_password` - (Optional, Available since v1.132.0) An KMS encrypts password used to an instance. If the `password` is filled in, this field will be ignored.
-* `kms_encryption_context` - (Optional, MapString, Available since v1.132.0) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating instance with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set.
 
 ## Attributes Reference
 
@@ -105,7 +110,7 @@ The following attributes are exported:
 * `id` - The ID of the resource supplied above.
 * `create_time` - The creation time of the resource
 * `end_time` - Expiration Time
-* `instance_endpoints` - (Available since v1.240.0) Instance Network Access Endpoint List
+* `instance_endpoints` - Instance Network Access Endpoint List
   * `domains` - Domain List
     * `domain` - Domain
     * `type` - Domain Type
