@@ -589,3 +589,194 @@ func testAccCheckCenRouteMapAttachmentDestroyWithProvider(s *terraform.State, pr
 
 	return nil
 }
+
+// Test case for issue 69722554 - cen创建路由策略一次都是报错，然后，再接着创建一次，创建成功
+func TestAccAlicloudCenRouteMap_issue69722554(t *testing.T) {
+	var routeMap cbn.RouteMap
+	resourceId := "alicloud_cen_route_map.regionA_route_map"
+	ra := resourceAttrInit(resourceId, cenRouteMapBasicMap)
+	serviceFunc := func() interface{} {
+		return &CbnService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}
+	rc := resourceCheckInit(resourceId, &routeMap, serviceFunc)
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1000000, 9999999)
+	name := fmt.Sprintf("tf-testAccCenRouteMapIssue69722554%d", rand)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: resourceCenRouteMapIssue69722554ConfigDependence(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"cen_region_id":      CHECKSET,
+						"cen_id":             CHECKSET,
+						"priority":           "100",
+						"transmit_direction": "RegionOut",
+						"map_result":         "Permit",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func resourceCenRouteMapIssue69722554ConfigDependence(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+  default = "%s"
+}
+
+variable "regionA" {
+  type = object({
+    id = string
+    geo  = string
+    az1 = string
+    az2 = string
+  })
+  default = {
+    id = "cn-shanghai"
+    geo  = "China"
+    az1 = "cn-shanghai-b"
+    az2 = "cn-shanghai-c"
+  }
+}
+
+variable "regionB" {
+  type = object({
+    id = string
+    geo  = string
+    az1 = string
+    az2 = string
+  })
+  default = {
+    id = "cn-chengdu"
+    geo  = "China"
+    az1 = "cn-chengdu-a"
+    az2 = "cn-chengdu-b"
+  }
+}
+
+provider "alicloud" {
+  alias  = "provider_regionB"
+  region = var.regionB.id
+}
+
+provider "alicloud" {
+  alias = "provider_regionA"
+  region = var.regionA.id
+}
+
+resource "alicloud_cen_instance" "cen1" {
+  provider    = alicloud.provider_regionA
+  cen_instance_name = "${var.name}_cen_e2e_test"
+  description = "${var.name}"
+}
+
+resource "alicloud_vpc" "cloudvpc1" {
+  provider    = alicloud.provider_regionA
+  vpc_name   = "${var.name}-cloudvpc1_e2e_test"
+  description = "${var.name}"
+  cidr_block = "192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "cloudvpc1_vsw1" {
+  provider    = alicloud.provider_regionA
+  vswitch_name      = "vsw1"
+  vpc_id            = alicloud_vpc.cloudvpc1.id
+  cidr_block        = "192.168.10.0/24"
+  availability_zone = var.regionA.az1
+}
+
+resource "alicloud_vpc" "cloudvpc2" {
+  provider    = alicloud.provider_regionB
+  vpc_name   = "${var.name}-cloudvpc2_e2e_test"
+  description = "${var.name}"
+  cidr_block ="192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "cloudvpc1_vsw2" {
+  provider    = alicloud.provider_regionB
+  vswitch_name      = "vsw1"
+  vpc_id            = alicloud_vpc.cloudvpc2.id
+  cidr_block        = "192.168.200.0/24"
+  availability_zone = var.regionB.az1
+}
+
+resource "alicloud_cen_instance_attachment" "attachment-vpc1" {
+  provider    = alicloud.provider_regionA
+  instance_id              = alicloud_cen_instance.cen1.id
+  child_instance_type      = "VPC"
+  child_instance_id        = alicloud_vpc.cloudvpc1.id
+  child_instance_region_id = var.regionA.id
+}
+
+resource "alicloud_cen_instance_attachment" "attachment-vpc2" {
+  provider    = alicloud.provider_regionB
+  instance_id              = alicloud_cen_instance.cen1.id
+  child_instance_type      = "VPC"
+  child_instance_id        = alicloud_vpc.cloudvpc2.id
+  child_instance_region_id = var.regionB.id
+}
+
+resource "alicloud_cen_bandwidth_package" "r1_to_r2_bwp" {
+  provider = alicloud.provider_regionA
+  bandwidth                  = 1000
+  geographic_region_a_id     = var.regionA.geo
+  geographic_region_b_id     = var.regionB.geo
+  depends_on = [alicloud_cen_instance_attachment.attachment-vpc1,alicloud_cen_instance_attachment.attachment-vpc2]
+}
+
+resource "alicloud_cen_bandwidth_package_attachment" "cen_bind_bwp" {
+  provider    = alicloud.provider_regionA
+  instance_id          = alicloud_cen_instance.cen1.id
+  bandwidth_package_id = alicloud_cen_bandwidth_package.r1_to_r2_bwp.id
+}
+
+resource "alicloud_cen_bandwidth_limit" "a_b" {
+  provider = alicloud.provider_regionA
+  instance_id     = alicloud_cen_bandwidth_package_attachment.cen_bind_bwp.instance_id
+  region_ids      = [
+    alicloud_cen_instance_attachment.attachment-vpc1.child_instance_region_id,
+    alicloud_cen_instance_attachment.attachment-vpc2.child_instance_region_id
+  ]
+  bandwidth_limit = 10
+}
+
+resource "alicloud_cen_route_map" "regionA_route_map"{
+  provider = alicloud.provider_regionA
+  depends_on = [alicloud_cen_instance_attachment.attachment-vpc1, alicloud_cen_instance_attachment.attachment-vpc2]
+  cen_region_id                          = var.regionA.id
+  cen_id                                 = alicloud_cen_instance.cen1.id
+  priority                               = "100"
+  transmit_direction                     = "RegionOut"
+  map_result                             = "Permit"
+  source_child_instance_types            = ["VPC","CCN","VBR"]
+  destination_child_instance_types       = ["VPC","CCN","VBR"]
+}
+
+resource "alicloud_cen_route_map" "regionB_route_map"{
+  provider = alicloud.provider_regionB
+  depends_on = [alicloud_cen_instance_attachment.attachment-vpc1, alicloud_cen_instance_attachment.attachment-vpc2]
+  cen_region_id                          = var.regionB.id
+  cen_id                                 = alicloud_cen_instance.cen1.id
+  priority                               = "100"
+  transmit_direction                     = "RegionOut"
+  map_result                             = "Permit"
+  source_child_instance_types            = ["VPC","CCN","VBR"]
+  destination_child_instance_types       = ["VPC","CCN","VBR"]
+}
+`, name)
+}
