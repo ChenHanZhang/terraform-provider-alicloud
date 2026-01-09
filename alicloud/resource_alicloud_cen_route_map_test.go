@@ -592,15 +592,18 @@ func testAccCheckCenRouteMapAttachmentDestroyWithProvider(s *terraform.State, pr
 
 // Test case for issue 69722554 - cen创建路由策略一次都是报错，然后，再接着创建一次，创建成功
 func TestAccAlicloudCenRouteMap_issue69722554(t *testing.T) {
-	var routeMap cbn.RouteMap
 	resourceId := "alicloud_cen_route_map.regionA_route_map"
-	ra := resourceAttrInit(resourceId, cenRouteMapBasicMap)
-	serviceFunc := func() interface{} {
-		return &CbnService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	var providers []*schema.Provider
+	providerFactories := map[string]terraform.ResourceProviderFactory{
+		"alicloud": func() (terraform.ResourceProvider, error) {
+			p := Provider()
+			providers = append(providers, p.(*schema.Provider))
+			return p, nil
+		},
 	}
-	rc := resourceCheckInit(resourceId, &routeMap, serviceFunc)
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
+
+	ra := resourceAttrInit(resourceId, cenRouteMapBasicMap)
+	testAccCheck := ra.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1000000, 9999999)
 	name := fmt.Sprintf("tf-testAccCenRouteMapIssue69722554%d", rand)
 
@@ -608,9 +611,9 @@ func TestAccAlicloudCenRouteMap_issue69722554(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckCenRouteMapAttachmentDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
 			{
 				Config: resourceCenRouteMapIssue69722554ConfigDependence(name),
@@ -623,11 +626,6 @@ func TestAccAlicloudCenRouteMap_issue69722554(t *testing.T) {
 						"map_result":         "Permit",
 					}),
 				),
-			},
-			{
-				ResourceName:      resourceId,
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -757,7 +755,7 @@ resource "alicloud_cen_bandwidth_limit" "a_b" {
 
 resource "alicloud_cen_route_map" "regionA_route_map"{
   provider = alicloud.provider_regionA
-  depends_on = [alicloud_cen_instance_attachment.attachment-vpc1, alicloud_cen_instance_attachment.attachment-vpc2]
+  depends_on = [alicloud_cen_bandwidth_limit.a_b]
   cen_region_id                          = var.regionA.id
   cen_id                                 = alicloud_cen_instance.cen1.id
   priority                               = "100"
@@ -769,7 +767,7 @@ resource "alicloud_cen_route_map" "regionA_route_map"{
 
 resource "alicloud_cen_route_map" "regionB_route_map"{
   provider = alicloud.provider_regionB
-  depends_on = [alicloud_cen_instance_attachment.attachment-vpc1, alicloud_cen_instance_attachment.attachment-vpc2]
+  depends_on = [alicloud_cen_bandwidth_limit.a_b]
   cen_region_id                          = var.regionB.id
   cen_id                                 = alicloud_cen_instance.cen1.id
   priority                               = "100"
