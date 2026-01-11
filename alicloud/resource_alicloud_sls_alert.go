@@ -157,7 +157,7 @@ func resourceAliCloudSlsAlert() *schema.Resource {
 									"type": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: StringInSlice([]string{"no_group", "custom", "labels_auto"}, true),
+										ValidateFunc: StringInSlice([]string{"no_group", "custom", "labels_auto"}, false),
 									},
 									"fields": {
 										Type:     schema.TypeList,
@@ -225,7 +225,7 @@ func resourceAliCloudSlsAlert() *schema.Resource {
 									"type": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: StringInSlice([]string{"cross_join", "inner_join", "left_join", "right_join", "full_join", "left_exclude", "right_exclude", "concat", "no_join"}, true),
+										ValidateFunc: StringInSlice([]string{"cross_join", "inner_join", "left_join", "right_join", "full_join", "left_exclude", "right_exclude", "concat", "no_join"}, false),
 									},
 								},
 							},
@@ -396,7 +396,7 @@ func resourceAliCloudSlsAlert() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: StringInSlice([]string{"FixedRate", "Cron"}, true),
+							ValidateFunc: StringInSlice([]string{"FixedRate", "Cron"}, false),
 						},
 						"time_zone": {
 							Type:     schema.TypeString,
@@ -425,7 +425,7 @@ func resourceAliCloudSlsAlert() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"ENABLED", "DISABLED"}, true),
+				ValidateFunc: StringInSlice([]string{"ENABLED", "DISABLED"}, false),
 			},
 		},
 	}
@@ -443,287 +443,325 @@ func resourceAliCloudSlsAlertCreate(d *schema.ResourceData, meta interface{}) er
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
-	hostMap["project"] = StringPointer(d.Get("project_name").(string))
-	request["name"] = d.Get("alert_name")
-
-	request["displayName"] = d.Get("display_name")
-	if v, ok := d.GetOk("description"); ok {
-		request["description"] = v
+	if v, ok := d.GetOk("alert_name"); ok {
+		request["name"] = v
 	}
-	objectDataLocalMap := make(map[string]interface{})
-	if v := d.Get("configuration"); v != nil {
-		nodeNative, _ := jsonpath.Get("$[0].mute_until", d.Get("configuration"))
-		if nodeNative != nil && nodeNative != "" {
-			objectDataLocalMap["muteUntil"] = nodeNative
+	hostMap["project"] = StringPointer(d.Get("project_name").(string))
+
+	schedule := make(map[string]interface{})
+
+	if v := d.Get("schedule"); v != nil {
+		cronExpression1, _ := jsonpath.Get("$[0].cron_expression", v)
+		if cronExpression1 != nil && cronExpression1 != "" {
+			schedule["cronExpression"] = cronExpression1
 		}
-		nodeNative1, _ := jsonpath.Get("$[0].version", d.Get("configuration"))
-		if nodeNative1 != nil && nodeNative1 != "" {
-			objectDataLocalMap["version"] = nodeNative1
+		runImmdiately, _ := jsonpath.Get("$[0].run_immdiately", v)
+		if runImmdiately != nil && runImmdiately != "" {
+			schedule["runImmediately"] = runImmdiately
 		}
-		nodeNative2, _ := jsonpath.Get("$[0].type", d.Get("configuration"))
-		if nodeNative2 != nil && nodeNative2 != "" {
-			objectDataLocalMap["type"] = nodeNative2
+		timeZone1, _ := jsonpath.Get("$[0].time_zone", v)
+		if timeZone1 != nil && timeZone1 != "" {
+			schedule["timeZone"] = timeZone1
 		}
-		templateConfiguration := make(map[string]interface{})
-		nodeNative3, _ := jsonpath.Get("$[0].template_configuration[0].type", d.Get("configuration"))
-		if nodeNative3 != nil && nodeNative3 != "" {
-			templateConfiguration["type"] = nodeNative3
+		interval1, _ := jsonpath.Get("$[0].interval", v)
+		if interval1 != nil && interval1 != "" {
+			schedule["interval"] = interval1
 		}
-		nodeNative4, _ := jsonpath.Get("$[0].template_configuration[0].version", d.Get("configuration"))
-		if nodeNative4 != nil && nodeNative4 != "" {
-			templateConfiguration["version"] = nodeNative4
+		delay1, _ := jsonpath.Get("$[0].delay", v)
+		if delay1 != nil && delay1 != "" {
+			schedule["delay"] = delay1
 		}
-		nodeNative5, _ := jsonpath.Get("$[0].template_configuration[0].lang", d.Get("configuration"))
-		if nodeNative5 != nil && nodeNative5 != "" {
-			templateConfiguration["lang"] = nodeNative5
-		}
-		nodeNative6, _ := jsonpath.Get("$[0].template_configuration[0].template_id", d.Get("configuration"))
-		if nodeNative6 != nil && nodeNative6 != "" {
-			templateConfiguration["id"] = nodeNative6
-		}
-		nodeNative7, _ := jsonpath.Get("$[0].template_configuration[0].tokens", d.Get("configuration"))
-		if nodeNative7 != nil && nodeNative7 != "" {
-			templateConfiguration["tokens"] = nodeNative7
-		}
-		nodeNative8, _ := jsonpath.Get("$[0].template_configuration[0].annotations", d.Get("configuration"))
-		if nodeNative8 != nil && nodeNative8 != "" {
-			templateConfiguration["aonotations"] = nodeNative8
+		type1, _ := jsonpath.Get("$[0].type", v)
+		if type1 != nil && type1 != "" {
+			schedule["type"] = type1
 		}
 
-		objectDataLocalMap["templateConfiguration"] = templateConfiguration
-		nodeNative9, _ := jsonpath.Get("$[0].dashboard", d.Get("configuration"))
-		if nodeNative9 != nil && nodeNative9 != "" {
-			objectDataLocalMap["dashboard"] = nodeNative9
+		request["schedule"] = schedule
+	}
+
+	configuration := make(map[string]interface{})
+
+	if v := d.Get("configuration"); v != nil {
+		templateConfiguration := make(map[string]interface{})
+		annotations, _ := jsonpath.Get("$[0].template_configuration[0].annotations", d.Get("configuration"))
+		if annotations != nil && annotations != "" {
+			templateConfiguration["aonotations"] = annotations
 		}
-		nodeNative10, _ := jsonpath.Get("$[0].threshold", d.Get("configuration"))
-		if nodeNative10 != nil && nodeNative10 != "" {
-			objectDataLocalMap["threshold"] = nodeNative10
+		type3, _ := jsonpath.Get("$[0].template_configuration[0].type", d.Get("configuration"))
+		if type3 != nil && type3 != "" {
+			templateConfiguration["type"] = type3
 		}
-		nodeNative11, _ := jsonpath.Get("$[0].no_data_fire", d.Get("configuration"))
-		if nodeNative11 != nil && nodeNative11 != "" {
-			objectDataLocalMap["noDataFire"] = nodeNative11
+		tokens1, _ := jsonpath.Get("$[0].template_configuration[0].tokens", d.Get("configuration"))
+		if tokens1 != nil && tokens1 != "" {
+			templateConfiguration["tokens"] = tokens1
 		}
-		nodeNative12, _ := jsonpath.Get("$[0].no_data_severity", d.Get("configuration"))
-		if nodeNative12 != nil && nodeNative12 != "" {
-			objectDataLocalMap["noDataSeverity"] = nodeNative12
+		templateId, _ := jsonpath.Get("$[0].template_configuration[0].template_id", d.Get("configuration"))
+		if templateId != nil && templateId != "" {
+			templateConfiguration["id"] = templateId
 		}
-		nodeNative13, _ := jsonpath.Get("$[0].send_resolved", d.Get("configuration"))
-		if nodeNative13 != nil && nodeNative13 != "" {
-			objectDataLocalMap["sendResolved"] = nodeNative13
+		lang1, _ := jsonpath.Get("$[0].template_configuration[0].lang", d.Get("configuration"))
+		if lang1 != nil && lang1 != "" {
+			templateConfiguration["lang"] = lang1
+		}
+		version1, _ := jsonpath.Get("$[0].template_configuration[0].version", d.Get("configuration"))
+		if version1 != nil && version1 != "" {
+			templateConfiguration["version"] = version1
+		}
+
+		if len(templateConfiguration) > 0 {
+			configuration["templateConfiguration"] = templateConfiguration
+		}
+		type5, _ := jsonpath.Get("$[0].type", v)
+		if type5 != nil && type5 != "" {
+			configuration["type"] = type5
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData, err := jsonpath.Get("$[0].query_list", v)
 			if err != nil {
-				return WrapError(err)
+				localData = make([]interface{}, 0)
 			}
 			localMaps := make([]interface{}, 0)
-			for _, dataLoop := range localData.([]interface{}) {
-				dataLoopTmp := dataLoop.(map[string]interface{})
+			for _, dataLoop := range convertToInterfaceArray(localData) {
+				dataLoopTmp := make(map[string]interface{})
+				if dataLoop != nil {
+					dataLoopTmp = dataLoop.(map[string]interface{})
+				}
 				dataLoopMap := make(map[string]interface{})
 				dataLoopMap["chartTitle"] = dataLoopTmp["chart_title"]
-				dataLoopMap["query"] = dataLoopTmp["query"]
-				dataLoopMap["timeSpanType"] = dataLoopTmp["time_span_type"]
-				dataLoopMap["start"] = dataLoopTmp["start"]
-				dataLoopMap["end"] = dataLoopTmp["end"]
-				dataLoopMap["storeType"] = dataLoopTmp["store_type"]
 				dataLoopMap["project"] = dataLoopTmp["project"]
-				dataLoopMap["store"] = dataLoopTmp["store"]
-				dataLoopMap["region"] = dataLoopTmp["region"]
 				dataLoopMap["roleArn"] = dataLoopTmp["role_arn"]
+				dataLoopMap["storeType"] = dataLoopTmp["store_type"]
 				dataLoopMap["dashboardId"] = dataLoopTmp["dashboard_id"]
-				dataLoopMap["powerSqlMode"] = dataLoopTmp["power_sql_mode"]
+				dataLoopMap["region"] = dataLoopTmp["region"]
 				dataLoopMap["ui"] = dataLoopTmp["ui"]
+				dataLoopMap["query"] = dataLoopTmp["query"]
+				dataLoopMap["start"] = dataLoopTmp["start"]
+				dataLoopMap["store"] = dataLoopTmp["store"]
+				dataLoopMap["powerSqlMode"] = dataLoopTmp["power_sql_mode"]
+				dataLoopMap["end"] = dataLoopTmp["end"]
+				dataLoopMap["timeSpanType"] = dataLoopTmp["time_span_type"]
 				localMaps = append(localMaps, dataLoopMap)
 			}
-			objectDataLocalMap["queryList"] = localMaps
+			configuration["queryList"] = localMaps
+		}
+
+		autoAnnotation1, _ := jsonpath.Get("$[0].auto_annotation", v)
+		if autoAnnotation1 != nil && autoAnnotation1 != "" {
+			configuration["autoAnnotation"] = autoAnnotation1
+		}
+		conditionConfiguration := make(map[string]interface{})
+		countCondition1, _ := jsonpath.Get("$[0].condition_configuration[0].count_condition", d.Get("configuration"))
+		if countCondition1 != nil && countCondition1 != "" {
+			conditionConfiguration["countCondition"] = countCondition1
+		}
+		condition1, _ := jsonpath.Get("$[0].condition_configuration[0].condition", d.Get("configuration"))
+		if condition1 != nil && condition1 != "" {
+			conditionConfiguration["condition"] = condition1
+		}
+
+		if len(conditionConfiguration) > 0 {
+			configuration["conditionConfiguration"] = conditionConfiguration
+		}
+		noDataSeverity1, _ := jsonpath.Get("$[0].no_data_severity", v)
+		if noDataSeverity1 != nil && noDataSeverity1 != "" {
+			configuration["noDataSeverity"] = noDataSeverity1
 		}
 		if v, ok := d.GetOk("configuration"); ok {
-			localData1, err := jsonpath.Get("$[0].annotations", v)
+			localData1, err := jsonpath.Get("$[0].labels", v)
 			if err != nil {
-				return WrapError(err)
+				localData1 = make([]interface{}, 0)
 			}
 			localMaps1 := make([]interface{}, 0)
-			for _, dataLoop1 := range localData1.([]interface{}) {
-				dataLoop1Tmp := dataLoop1.(map[string]interface{})
+			for _, dataLoop1 := range convertToInterfaceArray(localData1) {
+				dataLoop1Tmp := make(map[string]interface{})
+				if dataLoop1 != nil {
+					dataLoop1Tmp = dataLoop1.(map[string]interface{})
+				}
 				dataLoop1Map := make(map[string]interface{})
 				dataLoop1Map["key"] = dataLoop1Tmp["key"]
 				dataLoop1Map["value"] = dataLoop1Tmp["value"]
 				localMaps1 = append(localMaps1, dataLoop1Map)
 			}
-			objectDataLocalMap["annotations"] = localMaps1
-		}
-		if v, ok := d.GetOk("configuration"); ok {
-			localData2, err := jsonpath.Get("$[0].labels", v)
-			if err != nil {
-				return WrapError(err)
-			}
-			localMaps2 := make([]interface{}, 0)
-			for _, dataLoop2 := range localData2.([]interface{}) {
-				dataLoop2Tmp := dataLoop2.(map[string]interface{})
-				dataLoop2Map := make(map[string]interface{})
-				dataLoop2Map["key"] = dataLoop2Tmp["key"]
-				dataLoop2Map["value"] = dataLoop2Tmp["value"]
-				localMaps2 = append(localMaps2, dataLoop2Map)
-			}
-			objectDataLocalMap["labels"] = localMaps2
-		}
-		conditionConfiguration := make(map[string]interface{})
-		nodeNative31, _ := jsonpath.Get("$[0].condition_configuration[0].count_condition", d.Get("configuration"))
-		if nodeNative31 != nil && nodeNative31 != "" {
-			conditionConfiguration["countCondition"] = nodeNative31
-		}
-		nodeNative32, _ := jsonpath.Get("$[0].condition_configuration[0].condition", d.Get("configuration"))
-		if nodeNative32 != nil && nodeNative32 != "" {
-			conditionConfiguration["condition"] = nodeNative32
+			configuration["labels"] = localMaps1
 		}
 
-		objectDataLocalMap["conditionConfiguration"] = conditionConfiguration
+		muteUntil1, _ := jsonpath.Get("$[0].mute_until", v)
+		if muteUntil1 != nil && muteUntil1 != "" {
+			configuration["muteUntil"] = muteUntil1
+		}
+		policyConfiguration := make(map[string]interface{})
+		alertPolicyId1, _ := jsonpath.Get("$[0].policy_configuration[0].alert_policy_id", d.Get("configuration"))
+		if alertPolicyId1 != nil && alertPolicyId1 != "" {
+			policyConfiguration["alertPolicyId"] = alertPolicyId1
+		}
+		repeatInterval1, _ := jsonpath.Get("$[0].policy_configuration[0].repeat_interval", d.Get("configuration"))
+		if repeatInterval1 != nil && repeatInterval1 != "" {
+			policyConfiguration["repeatInterval"] = repeatInterval1
+		}
+		actionPolicyId1, _ := jsonpath.Get("$[0].policy_configuration[0].action_policy_id", d.Get("configuration"))
+		if actionPolicyId1 != nil && actionPolicyId1 != "" {
+			policyConfiguration["actionPolicyId"] = actionPolicyId1
+		}
+
+		if len(policyConfiguration) > 0 {
+			configuration["policyConfiguration"] = policyConfiguration
+		}
+		noDataFire1, _ := jsonpath.Get("$[0].no_data_fire", v)
+		if noDataFire1 != nil && noDataFire1 != "" {
+			configuration["noDataFire"] = noDataFire1
+		}
+		sinkEventStore := make(map[string]interface{})
+		enabled1, _ := jsonpath.Get("$[0].sink_event_store[0].enabled", d.Get("configuration"))
+		if enabled1 != nil && enabled1 != "" {
+			sinkEventStore["enabled"] = enabled1
+		}
+		eventStore1, _ := jsonpath.Get("$[0].sink_event_store[0].event_store", d.Get("configuration"))
+		if eventStore1 != nil && eventStore1 != "" {
+			sinkEventStore["eventStore"] = eventStore1
+		}
+		endpoint1, _ := jsonpath.Get("$[0].sink_event_store[0].endpoint", d.Get("configuration"))
+		if endpoint1 != nil && endpoint1 != "" {
+			sinkEventStore["endpoint"] = endpoint1
+		}
+		roleArn3, _ := jsonpath.Get("$[0].sink_event_store[0].role_arn", d.Get("configuration"))
+		if roleArn3 != nil && roleArn3 != "" {
+			sinkEventStore["roleArn"] = roleArn3
+		}
+		project3, _ := jsonpath.Get("$[0].sink_event_store[0].project", d.Get("configuration"))
+		if project3 != nil && project3 != "" {
+			sinkEventStore["project"] = project3
+		}
+
+		if len(sinkEventStore) > 0 {
+			configuration["sinkEventStore"] = sinkEventStore
+		}
 		if v, ok := d.GetOk("configuration"); ok {
-			localData3, err := jsonpath.Get("$[0].severity_configurations", v)
+			localData2, err := jsonpath.Get("$[0].severity_configurations", v)
 			if err != nil {
-				return WrapError(err)
+				localData2 = make([]interface{}, 0)
 			}
-			localMaps3 := make([]interface{}, 0)
-			for _, dataLoop3 := range localData3.([]interface{}) {
-				dataLoop3Tmp := dataLoop3.(map[string]interface{})
-				dataLoop3Map := make(map[string]interface{})
-				dataLoop3Map["severity"] = dataLoop3Tmp["severity"]
-				if !IsNil(dataLoop3Tmp["eval_condition"]) {
-					localData4 := make(map[string]interface{})
-					nodeNative34, _ := jsonpath.Get("$[0].condition", dataLoop3Tmp["eval_condition"])
-					if nodeNative34 != nil && nodeNative34 != "" {
-						localData4["condition"] = nodeNative34
-					}
-					nodeNative35, _ := jsonpath.Get("$[0].count_condition", dataLoop3Tmp["eval_condition"])
-					if nodeNative35 != nil && nodeNative35 != "" {
-						localData4["countCondition"] = nodeNative35
-					}
-					dataLoop3Map["evalCondition"] = localData4
+			localMaps2 := make([]interface{}, 0)
+			for _, dataLoop2 := range convertToInterfaceArray(localData2) {
+				dataLoop2Tmp := make(map[string]interface{})
+				if dataLoop2 != nil {
+					dataLoop2Tmp = dataLoop2.(map[string]interface{})
 				}
-				localMaps3 = append(localMaps3, dataLoop3Map)
+				dataLoop2Map := make(map[string]interface{})
+				localData3 := make(map[string]interface{})
+				countCondition3, _ := jsonpath.Get("$[0].count_condition", dataLoop2Tmp["eval_condition"])
+				if countCondition3 != nil && countCondition3 != "" {
+					localData3["countCondition"] = countCondition3
+				}
+				condition3, _ := jsonpath.Get("$[0].condition", dataLoop2Tmp["eval_condition"])
+				if condition3 != nil && condition3 != "" {
+					localData3["condition"] = condition3
+				}
+				if len(localData3) > 0 {
+					dataLoop2Map["evalCondition"] = localData3
+				}
+				dataLoop2Map["severity"] = dataLoop2Tmp["severity"]
+				localMaps2 = append(localMaps2, dataLoop2Map)
 			}
-			objectDataLocalMap["severityConfigurations"] = localMaps3
+			configuration["severityConfigurations"] = localMaps2
+		}
+
+		version3, _ := jsonpath.Get("$[0].version", v)
+		if version3 != nil && version3 != "" {
+			configuration["version"] = version3
+		}
+		sinkCms := make(map[string]interface{})
+		enabled3, _ := jsonpath.Get("$[0].sink_cms[0].enabled", d.Get("configuration"))
+		if enabled3 != nil && enabled3 != "" {
+			sinkCms["enabled"] = enabled3
+		}
+
+		if len(sinkCms) > 0 {
+			configuration["sinkCms"] = sinkCms
+		}
+		groupConfiguration := make(map[string]interface{})
+		fields1, _ := jsonpath.Get("$[0].group_configuration[0].fields", d.Get("configuration"))
+		if fields1 != nil && fields1 != "" {
+			groupConfiguration["fields"] = fields1
+		}
+		type7, _ := jsonpath.Get("$[0].group_configuration[0].type", d.Get("configuration"))
+		if type7 != nil && type7 != "" {
+			groupConfiguration["type"] = type7
+		}
+
+		if len(groupConfiguration) > 0 {
+			configuration["groupConfiguration"] = groupConfiguration
+		}
+		if v, ok := d.GetOk("configuration"); ok {
+			localData4, err := jsonpath.Get("$[0].annotations", v)
+			if err != nil {
+				localData4 = make([]interface{}, 0)
+			}
+			localMaps4 := make([]interface{}, 0)
+			for _, dataLoop4 := range convertToInterfaceArray(localData4) {
+				dataLoop4Tmp := make(map[string]interface{})
+				if dataLoop4 != nil {
+					dataLoop4Tmp = dataLoop4.(map[string]interface{})
+				}
+				dataLoop4Map := make(map[string]interface{})
+				dataLoop4Map["key"] = dataLoop4Tmp["key"]
+				dataLoop4Map["value"] = dataLoop4Tmp["value"]
+				localMaps4 = append(localMaps4, dataLoop4Map)
+			}
+			configuration["annotations"] = localMaps4
+		}
+
+		sinkAlerthub := make(map[string]interface{})
+		enabled5, _ := jsonpath.Get("$[0].sink_alerthub[0].enabled", d.Get("configuration"))
+		if enabled5 != nil && enabled5 != "" {
+			sinkAlerthub["enabled"] = enabled5
+		}
+
+		if len(sinkAlerthub) > 0 {
+			configuration["sinkAlerthub"] = sinkAlerthub
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData5, err := jsonpath.Get("$[0].join_configurations", v)
 			if err != nil {
-				return WrapError(err)
+				localData5 = make([]interface{}, 0)
 			}
 			localMaps5 := make([]interface{}, 0)
-			for _, dataLoop5 := range localData5.([]interface{}) {
-				dataLoop5Tmp := dataLoop5.(map[string]interface{})
+			for _, dataLoop5 := range convertToInterfaceArray(localData5) {
+				dataLoop5Tmp := make(map[string]interface{})
+				if dataLoop5 != nil {
+					dataLoop5Tmp = dataLoop5.(map[string]interface{})
+				}
 				dataLoop5Map := make(map[string]interface{})
-				dataLoop5Map["type"] = dataLoop5Tmp["type"]
 				dataLoop5Map["condition"] = dataLoop5Tmp["condition"]
+				dataLoop5Map["type"] = dataLoop5Tmp["type"]
 				localMaps5 = append(localMaps5, dataLoop5Map)
 			}
-			objectDataLocalMap["joinConfigurations"] = localMaps5
-		}
-		groupConfiguration := make(map[string]interface{})
-		nodeNative38, _ := jsonpath.Get("$[0].group_configuration[0].type", d.Get("configuration"))
-		if nodeNative38 != nil && nodeNative38 != "" {
-			groupConfiguration["type"] = nodeNative38
-		}
-		nodeNative39, _ := jsonpath.Get("$[0].group_configuration[0].fields", v)
-		if nodeNative39 != nil && nodeNative39 != "" {
-			groupConfiguration["fields"] = nodeNative39
+			configuration["joinConfigurations"] = localMaps5
 		}
 
-		objectDataLocalMap["groupConfiguration"] = groupConfiguration
-		policyConfiguration := make(map[string]interface{})
-		nodeNative40, _ := jsonpath.Get("$[0].policy_configuration[0].alert_policy_id", d.Get("configuration"))
-		if nodeNative40 != nil && nodeNative40 != "" {
-			policyConfiguration["alertPolicyId"] = nodeNative40
+		dashboard1, _ := jsonpath.Get("$[0].dashboard", v)
+		if dashboard1 != nil && dashboard1 != "" {
+			configuration["dashboard"] = dashboard1
 		}
-		nodeNative41, _ := jsonpath.Get("$[0].policy_configuration[0].action_policy_id", d.Get("configuration"))
-		if nodeNative41 != nil && nodeNative41 != "" {
-			policyConfiguration["actionPolicyId"] = nodeNative41
+		tags1, _ := jsonpath.Get("$[0].tags", v)
+		if tags1 != nil && tags1 != "" {
+			configuration["tags"] = tags1
 		}
-		nodeNative42, _ := jsonpath.Get("$[0].policy_configuration[0].repeat_interval", d.Get("configuration"))
-		if nodeNative42 != nil && nodeNative42 != "" {
-			policyConfiguration["repeatInterval"] = nodeNative42
+		threshold1, _ := jsonpath.Get("$[0].threshold", v)
+		if threshold1 != nil && threshold1 != "" {
+			configuration["threshold"] = threshold1
 		}
-
-		objectDataLocalMap["policyConfiguration"] = policyConfiguration
-		nodeNative43, _ := jsonpath.Get("$[0].auto_annotation", d.Get("configuration"))
-		if nodeNative43 != nil && nodeNative43 != "" {
-			objectDataLocalMap["autoAnnotation"] = nodeNative43
-		}
-		sinkEventStore := make(map[string]interface{})
-		nodeNative44, _ := jsonpath.Get("$[0].sink_event_store[0].enabled", d.Get("configuration"))
-		if nodeNative44 != nil && nodeNative44 != "" {
-			sinkEventStore["enabled"] = nodeNative44
-		}
-		nodeNative45, _ := jsonpath.Get("$[0].sink_event_store[0].endpoint", d.Get("configuration"))
-		if nodeNative45 != nil && nodeNative45 != "" {
-			sinkEventStore["endpoint"] = nodeNative45
-		}
-		nodeNative46, _ := jsonpath.Get("$[0].sink_event_store[0].project", d.Get("configuration"))
-		if nodeNative46 != nil && nodeNative46 != "" {
-			sinkEventStore["project"] = nodeNative46
-		}
-		nodeNative47, _ := jsonpath.Get("$[0].sink_event_store[0].event_store", d.Get("configuration"))
-		if nodeNative47 != nil && nodeNative47 != "" {
-			sinkEventStore["eventStore"] = nodeNative47
-		}
-		nodeNative48, _ := jsonpath.Get("$[0].sink_event_store[0].role_arn", d.Get("configuration"))
-		if nodeNative48 != nil && nodeNative48 != "" {
-			sinkEventStore["roleArn"] = nodeNative48
+		sendResolved1, _ := jsonpath.Get("$[0].send_resolved", v)
+		if sendResolved1 != nil && sendResolved1 != "" {
+			configuration["sendResolved"] = sendResolved1
 		}
 
-		objectDataLocalMap["sinkEventStore"] = sinkEventStore
-		sinkCms := make(map[string]interface{})
-		nodeNative49, _ := jsonpath.Get("$[0].sink_cms[0].enabled", d.Get("configuration"))
-		if nodeNative49 != nil && nodeNative49 != "" {
-			sinkCms["enabled"] = nodeNative49
-		}
-
-		objectDataLocalMap["sinkCms"] = sinkCms
-		sinkAlerthub := make(map[string]interface{})
-		nodeNative50, _ := jsonpath.Get("$[0].sink_alerthub[0].enabled", d.Get("configuration"))
-		if nodeNative50 != nil && nodeNative50 != "" {
-			sinkAlerthub["enabled"] = nodeNative50
-		}
-
-		objectDataLocalMap["sinkAlerthub"] = sinkAlerthub
-		nodeNative51, _ := jsonpath.Get("$[0].tags", v)
-		if nodeNative51 != nil && nodeNative51 != "" {
-			objectDataLocalMap["tags"] = nodeNative51
-		}
-
-		request["configuration"] = objectDataLocalMap
+		request["configuration"] = configuration
 	}
 
-	objectDataLocalMap1 := make(map[string]interface{})
-	if v := d.Get("schedule"); v != nil {
-		nodeNative52, _ := jsonpath.Get("$[0].type", d.Get("schedule"))
-		if nodeNative52 != nil && nodeNative52 != "" {
-			objectDataLocalMap1["type"] = nodeNative52
-		}
-		nodeNative53, _ := jsonpath.Get("$[0].cron_expression", d.Get("schedule"))
-		if nodeNative53 != nil && nodeNative53 != "" {
-			objectDataLocalMap1["cronExpression"] = nodeNative53
-		}
-		nodeNative54, _ := jsonpath.Get("$[0].run_immdiately", d.Get("schedule"))
-		if nodeNative54 != nil && nodeNative54 != "" {
-			objectDataLocalMap1["runImmediately"] = nodeNative54
-		}
-		nodeNative55, _ := jsonpath.Get("$[0].time_zone", d.Get("schedule"))
-		if nodeNative55 != nil && nodeNative55 != "" {
-			objectDataLocalMap1["timeZone"] = nodeNative55
-		}
-		nodeNative56, _ := jsonpath.Get("$[0].delay", d.Get("schedule"))
-		if nodeNative56 != nil && nodeNative56 != "" {
-			objectDataLocalMap1["delay"] = nodeNative56
-		}
-		nodeNative57, _ := jsonpath.Get("$[0].interval", d.Get("schedule"))
-		if nodeNative57 != nil && nodeNative57 != "" {
-			objectDataLocalMap1["interval"] = nodeNative57
-		}
-
-		request["schedule"] = objectDataLocalMap1
+	if v, ok := d.GetOk("description"); ok {
+		request["description"] = v
 	}
-
+	request["displayName"] = d.Get("display_name")
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -735,9 +773,9 @@ func resourceAliCloudSlsAlertCreate(d *schema.ResourceData, meta interface{}) er
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_sls_alert", action, AlibabaCloudSdkGoERROR)
@@ -770,29 +808,29 @@ func resourceAliCloudSlsAlertRead(d *schema.ResourceData, meta interface{}) erro
 
 	configurationMaps := make([]map[string]interface{}, 0)
 	configurationMap := make(map[string]interface{})
-	configuration1Raw := make(map[string]interface{})
+	configurationRaw := make(map[string]interface{})
 	if objectRaw["configuration"] != nil {
-		configuration1Raw = objectRaw["configuration"].(map[string]interface{})
+		configurationRaw = objectRaw["configuration"].(map[string]interface{})
 	}
-	if len(configuration1Raw) > 0 {
-		configurationMap["auto_annotation"] = configuration1Raw["autoAnnotation"]
-		configurationMap["dashboard"] = configuration1Raw["dashboard"]
-		configurationMap["mute_until"] = configuration1Raw["muteUntil"]
-		configurationMap["no_data_fire"] = configuration1Raw["noDataFire"]
-		configurationMap["no_data_severity"] = configuration1Raw["noDataSeverity"]
-		configurationMap["send_resolved"] = configuration1Raw["sendResolved"]
-		configurationMap["threshold"] = configuration1Raw["threshold"]
-		configurationMap["type"] = configuration1Raw["type"]
-		configurationMap["version"] = configuration1Raw["version"]
+	if len(configurationRaw) > 0 {
+		configurationMap["auto_annotation"] = configurationRaw["autoAnnotation"]
+		configurationMap["dashboard"] = configurationRaw["dashboard"]
+		configurationMap["mute_until"] = configurationRaw["muteUntil"]
+		configurationMap["no_data_fire"] = configurationRaw["noDataFire"]
+		configurationMap["no_data_severity"] = configurationRaw["noDataSeverity"]
+		configurationMap["send_resolved"] = configurationRaw["sendResolved"]
+		configurationMap["threshold"] = configurationRaw["threshold"]
+		configurationMap["type"] = configurationRaw["type"]
+		configurationMap["version"] = configurationRaw["version"]
 
-		annotations1Raw := configuration1Raw["annotations"]
+		annotationsRaw := configurationRaw["annotations"]
 		annotationsMaps := make([]map[string]interface{}, 0)
-		if annotations1Raw != nil {
-			for _, annotationsChild1Raw := range annotations1Raw.([]interface{}) {
+		if annotationsRaw != nil {
+			for _, annotationsChildRaw := range convertToInterfaceArray(annotationsRaw) {
 				annotationsMap := make(map[string]interface{})
-				annotationsChild1Raw := annotationsChild1Raw.(map[string]interface{})
-				annotationsMap["key"] = annotationsChild1Raw["key"]
-				annotationsMap["value"] = annotationsChild1Raw["value"]
+				annotationsChildRaw := annotationsChildRaw.(map[string]interface{})
+				annotationsMap["key"] = annotationsChildRaw["key"]
+				annotationsMap["value"] = annotationsChildRaw["value"]
 
 				annotationsMaps = append(annotationsMaps, annotationsMap)
 			}
@@ -800,56 +838,56 @@ func resourceAliCloudSlsAlertRead(d *schema.ResourceData, meta interface{}) erro
 		configurationMap["annotations"] = annotationsMaps
 		conditionConfigurationMaps := make([]map[string]interface{}, 0)
 		conditionConfigurationMap := make(map[string]interface{})
-		conditionConfiguration1Raw := make(map[string]interface{})
-		if configuration1Raw["conditionConfiguration"] != nil {
-			conditionConfiguration1Raw = configuration1Raw["conditionConfiguration"].(map[string]interface{})
+		conditionConfigurationRaw := make(map[string]interface{})
+		if configurationRaw["conditionConfiguration"] != nil {
+			conditionConfigurationRaw = configurationRaw["conditionConfiguration"].(map[string]interface{})
 		}
-		if len(conditionConfiguration1Raw) > 0 {
-			conditionConfigurationMap["condition"] = conditionConfiguration1Raw["condition"]
-			conditionConfigurationMap["count_condition"] = conditionConfiguration1Raw["countCondition"]
+		if len(conditionConfigurationRaw) > 0 {
+			conditionConfigurationMap["condition"] = conditionConfigurationRaw["condition"]
+			conditionConfigurationMap["count_condition"] = conditionConfigurationRaw["countCondition"]
 
 			conditionConfigurationMaps = append(conditionConfigurationMaps, conditionConfigurationMap)
 		}
 		configurationMap["condition_configuration"] = conditionConfigurationMaps
 		groupConfigurationMaps := make([]map[string]interface{}, 0)
 		groupConfigurationMap := make(map[string]interface{})
-		groupConfiguration1Raw := make(map[string]interface{})
-		if configuration1Raw["groupConfiguration"] != nil {
-			groupConfiguration1Raw = configuration1Raw["groupConfiguration"].(map[string]interface{})
+		groupConfigurationRaw := make(map[string]interface{})
+		if configurationRaw["groupConfiguration"] != nil {
+			groupConfigurationRaw = configurationRaw["groupConfiguration"].(map[string]interface{})
 		}
-		if len(groupConfiguration1Raw) > 0 {
-			groupConfigurationMap["type"] = groupConfiguration1Raw["type"]
+		if len(groupConfigurationRaw) > 0 {
+			groupConfigurationMap["type"] = groupConfigurationRaw["type"]
 
-			fields1Raw := make([]interface{}, 0)
-			if groupConfiguration1Raw["fields"] != nil {
-				fields1Raw = groupConfiguration1Raw["fields"].([]interface{})
+			fieldsRaw := make([]interface{}, 0)
+			if groupConfigurationRaw["fields"] != nil {
+				fieldsRaw = convertToInterfaceArray(groupConfigurationRaw["fields"])
 			}
 
-			groupConfigurationMap["fields"] = fields1Raw
+			groupConfigurationMap["fields"] = fieldsRaw
 			groupConfigurationMaps = append(groupConfigurationMaps, groupConfigurationMap)
 		}
 		configurationMap["group_configuration"] = groupConfigurationMaps
-		joinConfigurations1Raw := configuration1Raw["joinConfigurations"]
+		joinConfigurationsRaw := configurationRaw["joinConfigurations"]
 		joinConfigurationsMaps := make([]map[string]interface{}, 0)
-		if joinConfigurations1Raw != nil {
-			for _, joinConfigurationsChild1Raw := range joinConfigurations1Raw.([]interface{}) {
+		if joinConfigurationsRaw != nil {
+			for _, joinConfigurationsChildRaw := range convertToInterfaceArray(joinConfigurationsRaw) {
 				joinConfigurationsMap := make(map[string]interface{})
-				joinConfigurationsChild1Raw := joinConfigurationsChild1Raw.(map[string]interface{})
-				joinConfigurationsMap["condition"] = joinConfigurationsChild1Raw["condition"]
-				joinConfigurationsMap["type"] = joinConfigurationsChild1Raw["type"]
+				joinConfigurationsChildRaw := joinConfigurationsChildRaw.(map[string]interface{})
+				joinConfigurationsMap["condition"] = joinConfigurationsChildRaw["condition"]
+				joinConfigurationsMap["type"] = joinConfigurationsChildRaw["type"]
 
 				joinConfigurationsMaps = append(joinConfigurationsMaps, joinConfigurationsMap)
 			}
 		}
 		configurationMap["join_configurations"] = joinConfigurationsMaps
-		labels1Raw := configuration1Raw["labels"]
+		labelsRaw := configurationRaw["labels"]
 		labelsMaps := make([]map[string]interface{}, 0)
-		if labels1Raw != nil {
-			for _, labelsChild1Raw := range labels1Raw.([]interface{}) {
+		if labelsRaw != nil {
+			for _, labelsChildRaw := range convertToInterfaceArray(labelsRaw) {
 				labelsMap := make(map[string]interface{})
-				labelsChild1Raw := labelsChild1Raw.(map[string]interface{})
-				labelsMap["key"] = labelsChild1Raw["key"]
-				labelsMap["value"] = labelsChild1Raw["value"]
+				labelsChildRaw := labelsChildRaw.(map[string]interface{})
+				labelsMap["key"] = labelsChildRaw["key"]
+				labelsMap["value"] = labelsChildRaw["value"]
 
 				labelsMaps = append(labelsMaps, labelsMap)
 			}
@@ -857,59 +895,59 @@ func resourceAliCloudSlsAlertRead(d *schema.ResourceData, meta interface{}) erro
 		configurationMap["labels"] = labelsMaps
 		policyConfigurationMaps := make([]map[string]interface{}, 0)
 		policyConfigurationMap := make(map[string]interface{})
-		policyConfiguration1Raw := make(map[string]interface{})
-		if configuration1Raw["policyConfiguration"] != nil {
-			policyConfiguration1Raw = configuration1Raw["policyConfiguration"].(map[string]interface{})
+		policyConfigurationRaw := make(map[string]interface{})
+		if configurationRaw["policyConfiguration"] != nil {
+			policyConfigurationRaw = configurationRaw["policyConfiguration"].(map[string]interface{})
 		}
-		if len(policyConfiguration1Raw) > 0 {
-			policyConfigurationMap["action_policy_id"] = policyConfiguration1Raw["actionPolicyId"]
-			policyConfigurationMap["alert_policy_id"] = policyConfiguration1Raw["alertPolicyId"]
-			policyConfigurationMap["repeat_interval"] = policyConfiguration1Raw["repeatInterval"]
+		if len(policyConfigurationRaw) > 0 {
+			policyConfigurationMap["action_policy_id"] = policyConfigurationRaw["actionPolicyId"]
+			policyConfigurationMap["alert_policy_id"] = policyConfigurationRaw["alertPolicyId"]
+			policyConfigurationMap["repeat_interval"] = policyConfigurationRaw["repeatInterval"]
 
 			policyConfigurationMaps = append(policyConfigurationMaps, policyConfigurationMap)
 		}
 		configurationMap["policy_configuration"] = policyConfigurationMaps
-		queryList1Raw := configuration1Raw["queryList"]
+		queryListRaw := configurationRaw["queryList"]
 		queryListMaps := make([]map[string]interface{}, 0)
-		if queryList1Raw != nil {
-			for _, queryListChild1Raw := range queryList1Raw.([]interface{}) {
+		if queryListRaw != nil {
+			for _, queryListChildRaw := range convertToInterfaceArray(queryListRaw) {
 				queryListMap := make(map[string]interface{})
-				queryListChild1Raw := queryListChild1Raw.(map[string]interface{})
-				queryListMap["chart_title"] = queryListChild1Raw["chartTitle"]
-				queryListMap["dashboard_id"] = queryListChild1Raw["dashboardId"]
-				queryListMap["end"] = queryListChild1Raw["end"]
-				queryListMap["power_sql_mode"] = queryListChild1Raw["powerSqlMode"]
-				queryListMap["project"] = queryListChild1Raw["project"]
-				queryListMap["query"] = queryListChild1Raw["query"]
-				queryListMap["region"] = queryListChild1Raw["region"]
-				queryListMap["role_arn"] = queryListChild1Raw["roleArn"]
-				queryListMap["start"] = queryListChild1Raw["start"]
-				queryListMap["store"] = queryListChild1Raw["store"]
-				queryListMap["store_type"] = queryListChild1Raw["storeType"]
-				queryListMap["time_span_type"] = queryListChild1Raw["timeSpanType"]
-				queryListMap["ui"] = queryListChild1Raw["ui"]
+				queryListChildRaw := queryListChildRaw.(map[string]interface{})
+				queryListMap["chart_title"] = queryListChildRaw["chartTitle"]
+				queryListMap["dashboard_id"] = queryListChildRaw["dashboardId"]
+				queryListMap["end"] = queryListChildRaw["end"]
+				queryListMap["power_sql_mode"] = queryListChildRaw["powerSqlMode"]
+				queryListMap["project"] = queryListChildRaw["project"]
+				queryListMap["query"] = queryListChildRaw["query"]
+				queryListMap["region"] = queryListChildRaw["region"]
+				queryListMap["role_arn"] = queryListChildRaw["roleArn"]
+				queryListMap["start"] = queryListChildRaw["start"]
+				queryListMap["store"] = queryListChildRaw["store"]
+				queryListMap["store_type"] = queryListChildRaw["storeType"]
+				queryListMap["time_span_type"] = queryListChildRaw["timeSpanType"]
+				queryListMap["ui"] = queryListChildRaw["ui"]
 
 				queryListMaps = append(queryListMaps, queryListMap)
 			}
 		}
 		configurationMap["query_list"] = queryListMaps
-		severityConfigurations1Raw := configuration1Raw["severityConfigurations"]
+		severityConfigurationsRaw := configurationRaw["severityConfigurations"]
 		severityConfigurationsMaps := make([]map[string]interface{}, 0)
-		if severityConfigurations1Raw != nil {
-			for _, severityConfigurationsChild1Raw := range severityConfigurations1Raw.([]interface{}) {
+		if severityConfigurationsRaw != nil {
+			for _, severityConfigurationsChildRaw := range convertToInterfaceArray(severityConfigurationsRaw) {
 				severityConfigurationsMap := make(map[string]interface{})
-				severityConfigurationsChild1Raw := severityConfigurationsChild1Raw.(map[string]interface{})
-				severityConfigurationsMap["severity"] = severityConfigurationsChild1Raw["severity"]
+				severityConfigurationsChildRaw := severityConfigurationsChildRaw.(map[string]interface{})
+				severityConfigurationsMap["severity"] = severityConfigurationsChildRaw["severity"]
 
 				evalConditionMaps := make([]map[string]interface{}, 0)
 				evalConditionMap := make(map[string]interface{})
-				evalCondition1Raw := make(map[string]interface{})
-				if severityConfigurationsChild1Raw["evalCondition"] != nil {
-					evalCondition1Raw = severityConfigurationsChild1Raw["evalCondition"].(map[string]interface{})
+				evalConditionRaw := make(map[string]interface{})
+				if severityConfigurationsChildRaw["evalCondition"] != nil {
+					evalConditionRaw = severityConfigurationsChildRaw["evalCondition"].(map[string]interface{})
 				}
-				if len(evalCondition1Raw) > 0 {
-					evalConditionMap["condition"] = evalCondition1Raw["condition"]
-					evalConditionMap["count_condition"] = evalCondition1Raw["countCondition"]
+				if len(evalConditionRaw) > 0 {
+					evalConditionMap["condition"] = evalConditionRaw["condition"]
+					evalConditionMap["count_condition"] = evalConditionRaw["countCondition"]
 
 					evalConditionMaps = append(evalConditionMaps, evalConditionMap)
 				}
@@ -920,91 +958,94 @@ func resourceAliCloudSlsAlertRead(d *schema.ResourceData, meta interface{}) erro
 		configurationMap["severity_configurations"] = severityConfigurationsMaps
 		sinkAlerthubMaps := make([]map[string]interface{}, 0)
 		sinkAlerthubMap := make(map[string]interface{})
-		sinkAlerthub1Raw := make(map[string]interface{})
-		if configuration1Raw["sinkAlerthub"] != nil {
-			sinkAlerthub1Raw = configuration1Raw["sinkAlerthub"].(map[string]interface{})
+		sinkAlerthubRaw := make(map[string]interface{})
+		if configurationRaw["sinkAlerthub"] != nil {
+			sinkAlerthubRaw = configurationRaw["sinkAlerthub"].(map[string]interface{})
 		}
-		if len(sinkAlerthub1Raw) > 0 {
-			sinkAlerthubMap["enabled"] = sinkAlerthub1Raw["enabled"]
+		if len(sinkAlerthubRaw) > 0 {
+			sinkAlerthubMap["enabled"] = sinkAlerthubRaw["enabled"]
 
 			sinkAlerthubMaps = append(sinkAlerthubMaps, sinkAlerthubMap)
 		}
 		configurationMap["sink_alerthub"] = sinkAlerthubMaps
 		sinkCmsMaps := make([]map[string]interface{}, 0)
 		sinkCmsMap := make(map[string]interface{})
-		sinkCms1Raw := make(map[string]interface{})
-		if configuration1Raw["sinkCms"] != nil {
-			sinkCms1Raw = configuration1Raw["sinkCms"].(map[string]interface{})
+		sinkCmsRaw := make(map[string]interface{})
+		if configurationRaw["sinkCms"] != nil {
+			sinkCmsRaw = configurationRaw["sinkCms"].(map[string]interface{})
 		}
-		if len(sinkCms1Raw) > 0 {
-			sinkCmsMap["enabled"] = sinkCms1Raw["enabled"]
+		if len(sinkCmsRaw) > 0 {
+			sinkCmsMap["enabled"] = sinkCmsRaw["enabled"]
 
 			sinkCmsMaps = append(sinkCmsMaps, sinkCmsMap)
 		}
 		configurationMap["sink_cms"] = sinkCmsMaps
 		sinkEventStoreMaps := make([]map[string]interface{}, 0)
 		sinkEventStoreMap := make(map[string]interface{})
-		sinkEventStore1Raw := make(map[string]interface{})
-		if configuration1Raw["sinkEventStore"] != nil {
-			sinkEventStore1Raw = configuration1Raw["sinkEventStore"].(map[string]interface{})
+		sinkEventStoreRaw := make(map[string]interface{})
+		if configurationRaw["sinkEventStore"] != nil {
+			sinkEventStoreRaw = configurationRaw["sinkEventStore"].(map[string]interface{})
 		}
-		if len(sinkEventStore1Raw) > 0 {
-			sinkEventStoreMap["enabled"] = sinkEventStore1Raw["enabled"]
-			sinkEventStoreMap["endpoint"] = sinkEventStore1Raw["endpoint"]
-			sinkEventStoreMap["event_store"] = sinkEventStore1Raw["eventStore"]
-			sinkEventStoreMap["project"] = sinkEventStore1Raw["project"]
-			sinkEventStoreMap["role_arn"] = sinkEventStore1Raw["roleArn"]
+		if len(sinkEventStoreRaw) > 0 {
+			sinkEventStoreMap["enabled"] = sinkEventStoreRaw["enabled"]
+			sinkEventStoreMap["endpoint"] = sinkEventStoreRaw["endpoint"]
+			sinkEventStoreMap["event_store"] = sinkEventStoreRaw["eventStore"]
+			sinkEventStoreMap["project"] = sinkEventStoreRaw["project"]
+			sinkEventStoreMap["role_arn"] = sinkEventStoreRaw["roleArn"]
 
 			sinkEventStoreMaps = append(sinkEventStoreMaps, sinkEventStoreMap)
 		}
 		configurationMap["sink_event_store"] = sinkEventStoreMaps
-		tags1Raw := make([]interface{}, 0)
-		if configuration1Raw["tags"] != nil {
-			tags1Raw = configuration1Raw["tags"].([]interface{})
+		tagsRaw := make([]interface{}, 0)
+		if configurationRaw["tags"] != nil {
+			tagsRaw = convertToInterfaceArray(configurationRaw["tags"])
 		}
 
-		configurationMap["tags"] = tags1Raw
+		configurationMap["tags"] = tagsRaw
 		templateConfigurationMaps := make([]map[string]interface{}, 0)
 		templateConfigurationMap := make(map[string]interface{})
-		templateConfiguration1Raw := make(map[string]interface{})
-		if configuration1Raw["templateConfiguration"] != nil {
-			templateConfiguration1Raw = configuration1Raw["templateConfiguration"].(map[string]interface{})
+		templateConfigurationRaw := make(map[string]interface{})
+		if configurationRaw["templateConfiguration"] != nil {
+			templateConfigurationRaw = configurationRaw["templateConfiguration"].(map[string]interface{})
 		}
-		if len(templateConfiguration1Raw) > 0 {
-			templateConfigurationMap["annotations"] = templateConfiguration1Raw["aonotations"]
-			templateConfigurationMap["lang"] = templateConfiguration1Raw["lang"]
-			templateConfigurationMap["template_id"] = templateConfiguration1Raw["id"]
-			templateConfigurationMap["tokens"] = templateConfiguration1Raw["tokens"]
-			templateConfigurationMap["type"] = templateConfiguration1Raw["type"]
-			templateConfigurationMap["version"] = templateConfiguration1Raw["version"]
+		if len(templateConfigurationRaw) > 0 {
+			templateConfigurationMap["annotations"] = templateConfigurationRaw["aonotations"]
+			templateConfigurationMap["lang"] = templateConfigurationRaw["lang"]
+			templateConfigurationMap["template_id"] = templateConfigurationRaw["id"]
+			templateConfigurationMap["tokens"] = templateConfigurationRaw["tokens"]
+			templateConfigurationMap["type"] = templateConfigurationRaw["type"]
+			templateConfigurationMap["version"] = templateConfigurationRaw["version"]
 
 			templateConfigurationMaps = append(templateConfigurationMaps, templateConfigurationMap)
 		}
 		configurationMap["template_configuration"] = templateConfigurationMaps
 		configurationMaps = append(configurationMaps, configurationMap)
 	}
-	d.Set("configuration", configurationMaps)
+	if err := d.Set("configuration", configurationMaps); err != nil {
+		return err
+	}
 	scheduleMaps := make([]map[string]interface{}, 0)
 	scheduleMap := make(map[string]interface{})
-	schedule1Raw := make(map[string]interface{})
+	scheduleRaw := make(map[string]interface{})
 	if objectRaw["schedule"] != nil {
-		schedule1Raw = objectRaw["schedule"].(map[string]interface{})
+		scheduleRaw = objectRaw["schedule"].(map[string]interface{})
 	}
-	if len(schedule1Raw) > 0 {
-		scheduleMap["cron_expression"] = schedule1Raw["cronExpression"]
-		scheduleMap["delay"] = schedule1Raw["delay"]
-		scheduleMap["interval"] = schedule1Raw["interval"]
-		scheduleMap["run_immdiately"] = schedule1Raw["runImmediately"]
-		scheduleMap["time_zone"] = schedule1Raw["timeZone"]
-		scheduleMap["type"] = schedule1Raw["type"]
+	if len(scheduleRaw) > 0 {
+		scheduleMap["cron_expression"] = scheduleRaw["cronExpression"]
+		scheduleMap["delay"] = scheduleRaw["delay"]
+		scheduleMap["interval"] = scheduleRaw["interval"]
+		scheduleMap["run_immdiately"] = scheduleRaw["runImmediately"]
+		scheduleMap["time_zone"] = scheduleRaw["timeZone"]
+		scheduleMap["type"] = scheduleRaw["type"]
 
 		scheduleMaps = append(scheduleMaps, scheduleMap)
 	}
-	d.Set("schedule", scheduleMaps)
+	if err := d.Set("schedule", scheduleMaps); err != nil {
+		return err
+	}
 
 	parts := strings.Split(d.Id(), ":")
 	d.Set("project_name", parts[0])
-	d.Set("alert_name", parts[1])
 
 	return nil
 }
@@ -1016,303 +1057,418 @@ func resourceAliCloudSlsAlertUpdate(d *schema.ResourceData, meta interface{}) er
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
+
+	slsServiceV2 := SlsServiceV2{client}
+	objectRaw, _ := slsServiceV2.DescribeSlsAlert(d.Id())
+
+	if d.HasChange("status") {
+		var err error
+		target := d.Get("status").(string)
+
+		currentStatus, err := jsonpath.Get("status", objectRaw)
+		if err != nil {
+			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "status", objectRaw)
+		}
+		if fmt.Sprint(currentStatus) != target {
+			if target == "ENABLED" {
+				parts := strings.Split(d.Id(), ":")
+				alertName := parts[1]
+				action := fmt.Sprintf("/alerts/%s?action=enable", alertName)
+				request = make(map[string]interface{})
+				query = make(map[string]*string)
+				body = make(map[string]interface{})
+				hostMap := make(map[string]*string)
+				hostMap["project"] = StringPointer(parts[0])
+
+				body = request
+				wait := incrementalWait(3*time.Second, 5*time.Second)
+				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+					response, err = client.Do("Sls", roaParam("PUT", "2020-12-30", "EnableAlert", action), query, body, nil, hostMap, false)
+					if err != nil {
+						if NeedRetry(err) {
+							wait()
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					return nil
+				})
+				addDebug(action, response, request)
+				if err != nil {
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+				}
+
+			}
+			if target == "DISABLED" {
+				parts := strings.Split(d.Id(), ":")
+				alertName := parts[1]
+				action := fmt.Sprintf("/alerts/%s?action=disable", alertName)
+				request = make(map[string]interface{})
+				query = make(map[string]*string)
+				body = make(map[string]interface{})
+				hostMap := make(map[string]*string)
+				hostMap["project"] = StringPointer(parts[0])
+
+				body = request
+				wait := incrementalWait(3*time.Second, 5*time.Second)
+				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+					response, err = client.Do("Sls", roaParam("PUT", "2020-12-30", "DisableAlert", action), query, body, nil, hostMap, false)
+					if err != nil {
+						if NeedRetry(err) {
+							wait()
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					return nil
+				})
+				addDebug(action, response, request)
+				if err != nil {
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+				}
+
+			}
+		}
+	}
+
+	var err error
 	parts := strings.Split(d.Id(), ":")
 	alertName := parts[1]
 	action := fmt.Sprintf("/alerts/%s", alertName)
-	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["project"] = StringPointer(parts[0])
-	if !d.IsNewResource() && d.HasChange("display_name") {
+
+	if !d.IsNewResource() && d.HasChange("schedule") {
 		update = true
 	}
-	request["displayName"] = d.Get("display_name")
-	if !d.IsNewResource() && d.HasChange("description") {
-		update = true
+	schedule := make(map[string]interface{})
+
+	if v := d.Get("schedule"); v != nil {
+		cronExpression1, _ := jsonpath.Get("$[0].cron_expression", v)
+		if cronExpression1 != nil && cronExpression1 != "" {
+			schedule["cronExpression"] = cronExpression1
+		}
+		runImmdiately, _ := jsonpath.Get("$[0].run_immdiately", v)
+		if runImmdiately != nil && runImmdiately != "" {
+			schedule["runImmediately"] = runImmdiately
+		}
+		timeZone1, _ := jsonpath.Get("$[0].time_zone", v)
+		if timeZone1 != nil && timeZone1 != "" {
+			schedule["timeZone"] = timeZone1
+		}
+		interval1, _ := jsonpath.Get("$[0].interval", v)
+		if interval1 != nil && interval1 != "" {
+			schedule["interval"] = interval1
+		}
+		delay1, _ := jsonpath.Get("$[0].delay", v)
+		if delay1 != nil && delay1 != "" {
+			schedule["delay"] = delay1
+		}
+		type1, _ := jsonpath.Get("$[0].type", v)
+		if type1 != nil && type1 != "" {
+			schedule["type"] = type1
+		}
+
+		request["schedule"] = schedule
 	}
-	request["description"] = d.Get("description")
+
 	if d.HasChange("configuration") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	configuration := make(map[string]interface{})
+
 	if v := d.Get("configuration"); v != nil {
-		nodeNative, _ := jsonpath.Get("$[0].mute_until", v)
-		if nodeNative != nil && nodeNative != "" {
-			objectDataLocalMap["muteUntil"] = nodeNative
-		}
-		nodeNative1, _ := jsonpath.Get("$[0].version", v)
-		if nodeNative1 != nil && nodeNative1 != "" {
-			objectDataLocalMap["version"] = nodeNative1
-		}
-		nodeNative2, _ := jsonpath.Get("$[0].type", v)
-		if nodeNative2 != nil && nodeNative2 != "" {
-			objectDataLocalMap["type"] = nodeNative2
-		}
 		templateConfiguration := make(map[string]interface{})
-		nodeNative3, _ := jsonpath.Get("$[0].template_configuration[0].type", v)
-		if nodeNative3 != nil && nodeNative3 != "" {
-			templateConfiguration["type"] = nodeNative3
+		annotations, _ := jsonpath.Get("$[0].template_configuration[0].annotations", d.Get("configuration"))
+		if annotations != nil && annotations != "" {
+			templateConfiguration["aonotations"] = annotations
 		}
-		nodeNative4, _ := jsonpath.Get("$[0].template_configuration[0].version", v)
-		if nodeNative4 != nil && nodeNative4 != "" {
-			templateConfiguration["version"] = nodeNative4
+		type3, _ := jsonpath.Get("$[0].template_configuration[0].type", d.Get("configuration"))
+		if type3 != nil && type3 != "" {
+			templateConfiguration["type"] = type3
 		}
-		nodeNative5, _ := jsonpath.Get("$[0].template_configuration[0].lang", v)
-		if nodeNative5 != nil && nodeNative5 != "" {
-			templateConfiguration["lang"] = nodeNative5
+		tokens1, _ := jsonpath.Get("$[0].template_configuration[0].tokens", d.Get("configuration"))
+		if tokens1 != nil && tokens1 != "" {
+			templateConfiguration["tokens"] = tokens1
 		}
-		nodeNative6, _ := jsonpath.Get("$[0].template_configuration[0].template_id", v)
-		if nodeNative6 != nil && nodeNative6 != "" {
-			templateConfiguration["id"] = nodeNative6
+		templateId, _ := jsonpath.Get("$[0].template_configuration[0].template_id", d.Get("configuration"))
+		if templateId != nil && templateId != "" {
+			templateConfiguration["id"] = templateId
 		}
-		nodeNative7, _ := jsonpath.Get("$[0].template_configuration[0].tokens", v)
-		if nodeNative7 != nil && nodeNative7 != "" {
-			templateConfiguration["tokens"] = nodeNative7
+		lang1, _ := jsonpath.Get("$[0].template_configuration[0].lang", d.Get("configuration"))
+		if lang1 != nil && lang1 != "" {
+			templateConfiguration["lang"] = lang1
 		}
-		nodeNative8, _ := jsonpath.Get("$[0].template_configuration[0].annotations", v)
-		if nodeNative8 != nil && nodeNative8 != "" {
-			templateConfiguration["aonotations"] = nodeNative8
+		version1, _ := jsonpath.Get("$[0].template_configuration[0].version", d.Get("configuration"))
+		if version1 != nil && version1 != "" {
+			templateConfiguration["version"] = version1
 		}
 
-		objectDataLocalMap["templateConfiguration"] = templateConfiguration
-		nodeNative9, _ := jsonpath.Get("$[0].dashboard", v)
-		if nodeNative9 != nil && nodeNative9 != "" {
-			objectDataLocalMap["dashboard"] = nodeNative9
+		if len(templateConfiguration) > 0 {
+			configuration["templateConfiguration"] = templateConfiguration
 		}
-		nodeNative10, _ := jsonpath.Get("$[0].threshold", v)
-		if nodeNative10 != nil && nodeNative10 != "" {
-			objectDataLocalMap["threshold"] = nodeNative10
-		}
-		nodeNative11, _ := jsonpath.Get("$[0].no_data_fire", v)
-		if nodeNative11 != nil && nodeNative11 != "" {
-			objectDataLocalMap["noDataFire"] = nodeNative11
-		}
-		nodeNative12, _ := jsonpath.Get("$[0].no_data_severity", v)
-		if nodeNative12 != nil && nodeNative12 != "" {
-			objectDataLocalMap["noDataSeverity"] = nodeNative12
-		}
-		nodeNative13, _ := jsonpath.Get("$[0].send_resolved", v)
-		if nodeNative13 != nil && nodeNative13 != "" {
-			objectDataLocalMap["sendResolved"] = nodeNative13
+		type5, _ := jsonpath.Get("$[0].type", v)
+		if type5 != nil && type5 != "" {
+			configuration["type"] = type5
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData, err := jsonpath.Get("$[0].query_list", v)
 			if err != nil {
-				return WrapError(err)
+				localData = make([]interface{}, 0)
 			}
 			localMaps := make([]interface{}, 0)
-			for _, dataLoop := range localData.([]interface{}) {
-				dataLoopTmp := dataLoop.(map[string]interface{})
+			for _, dataLoop := range convertToInterfaceArray(localData) {
+				dataLoopTmp := make(map[string]interface{})
+				if dataLoop != nil {
+					dataLoopTmp = dataLoop.(map[string]interface{})
+				}
 				dataLoopMap := make(map[string]interface{})
 				dataLoopMap["chartTitle"] = dataLoopTmp["chart_title"]
-				dataLoopMap["query"] = dataLoopTmp["query"]
-				dataLoopMap["timeSpanType"] = dataLoopTmp["time_span_type"]
-				dataLoopMap["start"] = dataLoopTmp["start"]
-				dataLoopMap["end"] = dataLoopTmp["end"]
-				dataLoopMap["storeType"] = dataLoopTmp["store_type"]
 				dataLoopMap["project"] = dataLoopTmp["project"]
-				dataLoopMap["store"] = dataLoopTmp["store"]
-				dataLoopMap["region"] = dataLoopTmp["region"]
 				dataLoopMap["roleArn"] = dataLoopTmp["role_arn"]
-				dataLoopMap["powerSqlMode"] = dataLoopTmp["power_sql_mode"]
+				dataLoopMap["storeType"] = dataLoopTmp["store_type"]
 				dataLoopMap["dashboardId"] = dataLoopTmp["dashboard_id"]
+				dataLoopMap["region"] = dataLoopTmp["region"]
 				dataLoopMap["ui"] = dataLoopTmp["ui"]
+				dataLoopMap["query"] = dataLoopTmp["query"]
+				dataLoopMap["start"] = dataLoopTmp["start"]
+				dataLoopMap["store"] = dataLoopTmp["store"]
+				dataLoopMap["powerSqlMode"] = dataLoopTmp["power_sql_mode"]
+				dataLoopMap["end"] = dataLoopTmp["end"]
+				dataLoopMap["timeSpanType"] = dataLoopTmp["time_span_type"]
 				localMaps = append(localMaps, dataLoopMap)
 			}
-			objectDataLocalMap["queryList"] = localMaps
+			configuration["queryList"] = localMaps
+		}
+
+		autoAnnotation1, _ := jsonpath.Get("$[0].auto_annotation", v)
+		if autoAnnotation1 != nil && autoAnnotation1 != "" {
+			configuration["autoAnnotation"] = autoAnnotation1
+		}
+		conditionConfiguration := make(map[string]interface{})
+		countCondition1, _ := jsonpath.Get("$[0].condition_configuration[0].count_condition", d.Get("configuration"))
+		if countCondition1 != nil && countCondition1 != "" {
+			conditionConfiguration["countCondition"] = countCondition1
+		}
+		condition1, _ := jsonpath.Get("$[0].condition_configuration[0].condition", d.Get("configuration"))
+		if condition1 != nil && condition1 != "" {
+			conditionConfiguration["condition"] = condition1
+		}
+
+		if len(conditionConfiguration) > 0 {
+			configuration["conditionConfiguration"] = conditionConfiguration
+		}
+		noDataSeverity1, _ := jsonpath.Get("$[0].no_data_severity", v)
+		if noDataSeverity1 != nil && noDataSeverity1 != "" {
+			configuration["noDataSeverity"] = noDataSeverity1
 		}
 		if v, ok := d.GetOk("configuration"); ok {
-			localData1, err := jsonpath.Get("$[0].annotations", v)
+			localData1, err := jsonpath.Get("$[0].labels", v)
 			if err != nil {
-				return WrapError(err)
+				localData1 = make([]interface{}, 0)
 			}
 			localMaps1 := make([]interface{}, 0)
-			for _, dataLoop1 := range localData1.([]interface{}) {
-				dataLoop1Tmp := dataLoop1.(map[string]interface{})
+			for _, dataLoop1 := range convertToInterfaceArray(localData1) {
+				dataLoop1Tmp := make(map[string]interface{})
+				if dataLoop1 != nil {
+					dataLoop1Tmp = dataLoop1.(map[string]interface{})
+				}
 				dataLoop1Map := make(map[string]interface{})
 				dataLoop1Map["key"] = dataLoop1Tmp["key"]
 				dataLoop1Map["value"] = dataLoop1Tmp["value"]
 				localMaps1 = append(localMaps1, dataLoop1Map)
 			}
-			objectDataLocalMap["annotations"] = localMaps1
-		}
-		if v, ok := d.GetOk("configuration"); ok {
-			localData2, err := jsonpath.Get("$[0].labels", v)
-			if err != nil {
-				return WrapError(err)
-			}
-			localMaps2 := make([]interface{}, 0)
-			for _, dataLoop2 := range localData2.([]interface{}) {
-				dataLoop2Tmp := dataLoop2.(map[string]interface{})
-				dataLoop2Map := make(map[string]interface{})
-				dataLoop2Map["key"] = dataLoop2Tmp["key"]
-				dataLoop2Map["value"] = dataLoop2Tmp["value"]
-				localMaps2 = append(localMaps2, dataLoop2Map)
-			}
-			objectDataLocalMap["labels"] = localMaps2
-		}
-		conditionConfiguration := make(map[string]interface{})
-		nodeNative31, _ := jsonpath.Get("$[0].condition_configuration[0].condition", v)
-		if nodeNative31 != nil && nodeNative31 != "" {
-			conditionConfiguration["condition"] = nodeNative31
-		}
-		nodeNative32, _ := jsonpath.Get("$[0].condition_configuration[0].count_condition", v)
-		if nodeNative32 != nil && nodeNative32 != "" {
-			conditionConfiguration["countCondition"] = nodeNative32
+			configuration["labels"] = localMaps1
 		}
 
-		objectDataLocalMap["conditionConfiguration"] = conditionConfiguration
+		muteUntil1, _ := jsonpath.Get("$[0].mute_until", v)
+		if muteUntil1 != nil && muteUntil1 != "" {
+			configuration["muteUntil"] = muteUntil1
+		}
+		policyConfiguration := make(map[string]interface{})
+		alertPolicyId1, _ := jsonpath.Get("$[0].policy_configuration[0].alert_policy_id", d.Get("configuration"))
+		if alertPolicyId1 != nil && alertPolicyId1 != "" {
+			policyConfiguration["alertPolicyId"] = alertPolicyId1
+		}
+		repeatInterval1, _ := jsonpath.Get("$[0].policy_configuration[0].repeat_interval", d.Get("configuration"))
+		if repeatInterval1 != nil && repeatInterval1 != "" {
+			policyConfiguration["repeatInterval"] = repeatInterval1
+		}
+		actionPolicyId1, _ := jsonpath.Get("$[0].policy_configuration[0].action_policy_id", d.Get("configuration"))
+		if actionPolicyId1 != nil && actionPolicyId1 != "" {
+			policyConfiguration["actionPolicyId"] = actionPolicyId1
+		}
+
+		if len(policyConfiguration) > 0 {
+			configuration["policyConfiguration"] = policyConfiguration
+		}
+		noDataFire1, _ := jsonpath.Get("$[0].no_data_fire", v)
+		if noDataFire1 != nil && noDataFire1 != "" {
+			configuration["noDataFire"] = noDataFire1
+		}
+		sinkEventStore := make(map[string]interface{})
+		enabled1, _ := jsonpath.Get("$[0].sink_event_store[0].enabled", d.Get("configuration"))
+		if enabled1 != nil && enabled1 != "" {
+			sinkEventStore["enabled"] = enabled1
+		}
+		eventStore1, _ := jsonpath.Get("$[0].sink_event_store[0].event_store", d.Get("configuration"))
+		if eventStore1 != nil && eventStore1 != "" {
+			sinkEventStore["eventStore"] = eventStore1
+		}
+		endpoint1, _ := jsonpath.Get("$[0].sink_event_store[0].endpoint", d.Get("configuration"))
+		if endpoint1 != nil && endpoint1 != "" {
+			sinkEventStore["endpoint"] = endpoint1
+		}
+		roleArn3, _ := jsonpath.Get("$[0].sink_event_store[0].role_arn", d.Get("configuration"))
+		if roleArn3 != nil && roleArn3 != "" {
+			sinkEventStore["roleArn"] = roleArn3
+		}
+		project3, _ := jsonpath.Get("$[0].sink_event_store[0].project", d.Get("configuration"))
+		if project3 != nil && project3 != "" {
+			sinkEventStore["project"] = project3
+		}
+
+		if len(sinkEventStore) > 0 {
+			configuration["sinkEventStore"] = sinkEventStore
+		}
 		if v, ok := d.GetOk("configuration"); ok {
-			localData3, err := jsonpath.Get("$[0].severity_configurations", v)
+			localData2, err := jsonpath.Get("$[0].severity_configurations", v)
 			if err != nil {
-				return WrapError(err)
+				localData2 = make([]interface{}, 0)
 			}
-			localMaps3 := make([]interface{}, 0)
-			for _, dataLoop3 := range localData3.([]interface{}) {
-				dataLoop3Tmp := dataLoop3.(map[string]interface{})
-				dataLoop3Map := make(map[string]interface{})
-				dataLoop3Map["severity"] = dataLoop3Tmp["severity"]
-				if !IsNil(dataLoop3Tmp["eval_condition"]) {
-					localData4 := make(map[string]interface{})
-					nodeNative34, _ := jsonpath.Get("$[0].condition", dataLoop3Tmp["eval_condition"])
-					if nodeNative34 != nil && nodeNative34 != "" {
-						localData4["condition"] = nodeNative34
-					}
-					nodeNative35, _ := jsonpath.Get("$[0].count_condition", dataLoop3Tmp["eval_condition"])
-					if nodeNative35 != nil && nodeNative35 != "" {
-						localData4["countCondition"] = nodeNative35
-					}
-					dataLoop3Map["evalCondition"] = localData4
+			localMaps2 := make([]interface{}, 0)
+			for _, dataLoop2 := range convertToInterfaceArray(localData2) {
+				dataLoop2Tmp := make(map[string]interface{})
+				if dataLoop2 != nil {
+					dataLoop2Tmp = dataLoop2.(map[string]interface{})
 				}
-				localMaps3 = append(localMaps3, dataLoop3Map)
+				dataLoop2Map := make(map[string]interface{})
+				if !IsNil(dataLoop2Tmp["eval_condition"]) {
+					localData3 := make(map[string]interface{})
+					countCondition3, _ := jsonpath.Get("$[0].count_condition", dataLoop2Tmp["eval_condition"])
+					if countCondition3 != nil && countCondition3 != "" {
+						localData3["countCondition"] = countCondition3
+					}
+					condition3, _ := jsonpath.Get("$[0].condition", dataLoop2Tmp["eval_condition"])
+					if condition3 != nil && condition3 != "" {
+						localData3["condition"] = condition3
+					}
+					if len(localData3) > 0 {
+						dataLoop2Map["evalCondition"] = localData3
+					}
+				}
+				dataLoop2Map["severity"] = dataLoop2Tmp["severity"]
+				localMaps2 = append(localMaps2, dataLoop2Map)
 			}
-			objectDataLocalMap["severityConfigurations"] = localMaps3
+			configuration["severityConfigurations"] = localMaps2
+		}
+
+		version3, _ := jsonpath.Get("$[0].version", v)
+		if version3 != nil && version3 != "" {
+			configuration["version"] = version3
+		}
+		sinkCms := make(map[string]interface{})
+		enabled3, _ := jsonpath.Get("$[0].sink_cms[0].enabled", d.Get("configuration"))
+		if enabled3 != nil && enabled3 != "" {
+			sinkCms["enabled"] = enabled3
+		}
+
+		if len(sinkCms) > 0 {
+			configuration["sinkCms"] = sinkCms
+		}
+		groupConfiguration := make(map[string]interface{})
+		fields1, _ := jsonpath.Get("$[0].group_configuration[0].fields", d.Get("configuration"))
+		if fields1 != nil && fields1 != "" {
+			groupConfiguration["fields"] = fields1
+		}
+		type7, _ := jsonpath.Get("$[0].group_configuration[0].type", d.Get("configuration"))
+		if type7 != nil && type7 != "" {
+			groupConfiguration["type"] = type7
+		}
+
+		if len(groupConfiguration) > 0 {
+			configuration["groupConfiguration"] = groupConfiguration
+		}
+		if v, ok := d.GetOk("configuration"); ok {
+			localData4, err := jsonpath.Get("$[0].annotations", v)
+			if err != nil {
+				localData4 = make([]interface{}, 0)
+			}
+			localMaps4 := make([]interface{}, 0)
+			for _, dataLoop4 := range convertToInterfaceArray(localData4) {
+				dataLoop4Tmp := make(map[string]interface{})
+				if dataLoop4 != nil {
+					dataLoop4Tmp = dataLoop4.(map[string]interface{})
+				}
+				dataLoop4Map := make(map[string]interface{})
+				dataLoop4Map["key"] = dataLoop4Tmp["key"]
+				dataLoop4Map["value"] = dataLoop4Tmp["value"]
+				localMaps4 = append(localMaps4, dataLoop4Map)
+			}
+			configuration["annotations"] = localMaps4
+		}
+
+		sinkAlerthub := make(map[string]interface{})
+		enabled5, _ := jsonpath.Get("$[0].sink_alerthub[0].enabled", d.Get("configuration"))
+		if enabled5 != nil && enabled5 != "" {
+			sinkAlerthub["enabled"] = enabled5
+		}
+
+		if len(sinkAlerthub) > 0 {
+			configuration["sinkAlerthub"] = sinkAlerthub
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData5, err := jsonpath.Get("$[0].join_configurations", v)
 			if err != nil {
-				return WrapError(err)
+				localData5 = make([]interface{}, 0)
 			}
 			localMaps5 := make([]interface{}, 0)
-			for _, dataLoop5 := range localData5.([]interface{}) {
-				dataLoop5Tmp := dataLoop5.(map[string]interface{})
+			for _, dataLoop5 := range convertToInterfaceArray(localData5) {
+				dataLoop5Tmp := make(map[string]interface{})
+				if dataLoop5 != nil {
+					dataLoop5Tmp = dataLoop5.(map[string]interface{})
+				}
 				dataLoop5Map := make(map[string]interface{})
-				dataLoop5Map["type"] = dataLoop5Tmp["type"]
 				dataLoop5Map["condition"] = dataLoop5Tmp["condition"]
+				dataLoop5Map["type"] = dataLoop5Tmp["type"]
 				localMaps5 = append(localMaps5, dataLoop5Map)
 			}
-			objectDataLocalMap["joinConfigurations"] = localMaps5
-		}
-		groupConfiguration := make(map[string]interface{})
-		nodeNative38, _ := jsonpath.Get("$[0].group_configuration[0].type", v)
-		if nodeNative38 != nil && nodeNative38 != "" {
-			groupConfiguration["type"] = nodeNative38
-		}
-		nodeNative39, _ := jsonpath.Get("$[0].group_configuration[0].fields", d.Get("configuration"))
-		if nodeNative39 != nil && nodeNative39 != "" {
-			groupConfiguration["fields"] = nodeNative39
+			configuration["joinConfigurations"] = localMaps5
 		}
 
-		objectDataLocalMap["groupConfiguration"] = groupConfiguration
-		policyConfiguration := make(map[string]interface{})
-		nodeNative40, _ := jsonpath.Get("$[0].policy_configuration[0].alert_policy_id", v)
-		if nodeNative40 != nil && nodeNative40 != "" {
-			policyConfiguration["alertPolicyId"] = nodeNative40
+		dashboard1, _ := jsonpath.Get("$[0].dashboard", v)
+		if dashboard1 != nil && dashboard1 != "" {
+			configuration["dashboard"] = dashboard1
 		}
-		nodeNative41, _ := jsonpath.Get("$[0].policy_configuration[0].action_policy_id", v)
-		if nodeNative41 != nil && nodeNative41 != "" {
-			policyConfiguration["actionPolicyId"] = nodeNative41
+		tags1, _ := jsonpath.Get("$[0].tags", v)
+		if tags1 != nil && tags1 != "" {
+			configuration["tags"] = tags1
 		}
-		nodeNative42, _ := jsonpath.Get("$[0].policy_configuration[0].repeat_interval", v)
-		if nodeNative42 != nil && nodeNative42 != "" {
-			policyConfiguration["repeatInterval"] = nodeNative42
+		threshold1, _ := jsonpath.Get("$[0].threshold", v)
+		if threshold1 != nil && threshold1 != "" {
+			configuration["threshold"] = threshold1
 		}
-
-		objectDataLocalMap["policyConfiguration"] = policyConfiguration
-		nodeNative43, _ := jsonpath.Get("$[0].auto_annotation", v)
-		if nodeNative43 != nil && nodeNative43 != "" {
-			objectDataLocalMap["autoAnnotation"] = nodeNative43
-		}
-		sinkEventStore := make(map[string]interface{})
-		nodeNative44, _ := jsonpath.Get("$[0].sink_event_store[0].enabled", v)
-		if nodeNative44 != nil && nodeNative44 != "" {
-			sinkEventStore["enabled"] = nodeNative44
-		}
-		nodeNative45, _ := jsonpath.Get("$[0].sink_event_store[0].endpoint", v)
-		if nodeNative45 != nil && nodeNative45 != "" {
-			sinkEventStore["endpoint"] = nodeNative45
-		}
-		nodeNative46, _ := jsonpath.Get("$[0].sink_event_store[0].project", v)
-		if nodeNative46 != nil && nodeNative46 != "" {
-			sinkEventStore["project"] = nodeNative46
-		}
-		nodeNative47, _ := jsonpath.Get("$[0].sink_event_store[0].event_store", v)
-		if nodeNative47 != nil && nodeNative47 != "" {
-			sinkEventStore["eventStore"] = nodeNative47
-		}
-		nodeNative48, _ := jsonpath.Get("$[0].sink_event_store[0].role_arn", v)
-		if nodeNative48 != nil && nodeNative48 != "" {
-			sinkEventStore["roleArn"] = nodeNative48
+		sendResolved1, _ := jsonpath.Get("$[0].send_resolved", v)
+		if sendResolved1 != nil && sendResolved1 != "" {
+			configuration["sendResolved"] = sendResolved1
 		}
 
-		objectDataLocalMap["sinkEventStore"] = sinkEventStore
-		sinkCms := make(map[string]interface{})
-		nodeNative49, _ := jsonpath.Get("$[0].sink_cms[0].enabled", v)
-		if nodeNative49 != nil && nodeNative49 != "" {
-			sinkCms["enabled"] = nodeNative49
-		}
-
-		objectDataLocalMap["sinkCms"] = sinkCms
-		sinkAlerthub := make(map[string]interface{})
-		nodeNative50, _ := jsonpath.Get("$[0].sink_alerthub[0].enabled", v)
-		if nodeNative50 != nil && nodeNative50 != "" {
-			sinkAlerthub["enabled"] = nodeNative50
-		}
-
-		objectDataLocalMap["sinkAlerthub"] = sinkAlerthub
-		nodeNative51, _ := jsonpath.Get("$[0].tags", d.Get("configuration"))
-		if nodeNative51 != nil && nodeNative51 != "" {
-			objectDataLocalMap["tags"] = nodeNative51
-		}
-
-		request["configuration"] = objectDataLocalMap
+		request["configuration"] = configuration
 	}
 
-	if d.HasChange("schedule") {
+	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
 	}
-	objectDataLocalMap1 := make(map[string]interface{})
-	if v := d.Get("schedule"); v != nil {
-		nodeNative52, _ := jsonpath.Get("$[0].type", v)
-		if nodeNative52 != nil && nodeNative52 != "" {
-			objectDataLocalMap1["type"] = nodeNative52
-		}
-		nodeNative53, _ := jsonpath.Get("$[0].cron_expression", v)
-		if nodeNative53 != nil && nodeNative53 != "" {
-			objectDataLocalMap1["cronExpression"] = nodeNative53
-		}
-		nodeNative54, _ := jsonpath.Get("$[0].run_immdiately", v)
-		if nodeNative54 != nil && nodeNative54 != "" {
-			objectDataLocalMap1["runImmediately"] = nodeNative54
-		}
-		nodeNative55, _ := jsonpath.Get("$[0].time_zone", v)
-		if nodeNative55 != nil && nodeNative55 != "" {
-			objectDataLocalMap1["timeZone"] = nodeNative55
-		}
-		nodeNative56, _ := jsonpath.Get("$[0].delay", v)
-		if nodeNative56 != nil && nodeNative56 != "" {
-			objectDataLocalMap1["delay"] = nodeNative56
-		}
-		nodeNative57, _ := jsonpath.Get("$[0].interval", v)
-		if nodeNative57 != nil && nodeNative57 != "" {
-			objectDataLocalMap1["interval"] = nodeNative57
-		}
-
-		request["schedule"] = objectDataLocalMap1
+	if v, ok := d.GetOk("description"); ok || d.HasChange("description") {
+		request["description"] = v
 	}
-
+	if !d.IsNewResource() && d.HasChange("display_name") {
+		update = true
+	}
+	request["displayName"] = d.Get("display_name")
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -1325,80 +1481,11 @@ func resourceAliCloudSlsAlertUpdate(d *schema.ResourceData, meta interface{}) er
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-	}
-
-	if d.HasChange("status") {
-		client := meta.(*connectivity.AliyunClient)
-		slsServiceV2 := SlsServiceV2{client}
-		object, err := slsServiceV2.DescribeSlsAlert(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
-
-		target := d.Get("status").(string)
-		if object["status"].(string) != target {
-			if target == "ENABLED" {
-				parts = strings.Split(d.Id(), ":")
-				alertName = parts[1]
-				action = fmt.Sprintf("/alerts/%s?action=enable", alertName)
-				request = make(map[string]interface{})
-				query = make(map[string]*string)
-				body = make(map[string]interface{})
-				hostMap := make(map[string]*string)
-				hostMap["project"] = StringPointer(parts[0])
-				body = request
-				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-					response, err = client.Do("Sls", roaParam("PUT", "2020-12-30", "EnableAlert", action), query, body, nil, hostMap, false)
-					if err != nil {
-						if NeedRetry(err) {
-							wait()
-							return resource.RetryableError(err)
-						}
-						return resource.NonRetryableError(err)
-					}
-					addDebug(action, response, request)
-					return nil
-				})
-				if err != nil {
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-				}
-
-			}
-			if target == "DISABLED" {
-				parts = strings.Split(d.Id(), ":")
-				alertName = parts[1]
-				action = fmt.Sprintf("/alerts/%s?action=disable", alertName)
-				request = make(map[string]interface{})
-				query = make(map[string]*string)
-				body = make(map[string]interface{})
-				hostMap := make(map[string]*string)
-				hostMap["project"] = StringPointer(parts[0])
-				body = request
-				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-					response, err = client.Do("Sls", roaParam("PUT", "2020-12-30", "DisableAlert", action), query, body, nil, hostMap, false)
-					if err != nil {
-						if NeedRetry(err) {
-							wait()
-							return resource.RetryableError(err)
-						}
-						return resource.NonRetryableError(err)
-					}
-					addDebug(action, response, request)
-					return nil
-				})
-				if err != nil {
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-				}
-
-			}
 		}
 	}
 
@@ -1414,16 +1501,14 @@ func resourceAliCloudSlsAlertDelete(d *schema.ResourceData, meta interface{}) er
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]*string)
-	body := make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
 	hostMap["project"] = StringPointer(parts[0])
 
-	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.Do("Sls", roaParam("DELETE", "2020-12-30", "DeleteAlert", action), query, body, nil, hostMap, false)
+		response, err = client.Do("Sls", roaParam("DELETE", "2020-12-30", "DeleteAlert", action), query, nil, nil, hostMap, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -1431,11 +1516,14 @@ func resourceAliCloudSlsAlertDelete(d *schema.ResourceData, meta interface{}) er
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 

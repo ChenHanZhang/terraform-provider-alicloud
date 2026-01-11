@@ -324,6 +324,7 @@ func (s *SlsServiceV2) DescribeSlsAlert(id string) (object map[string]interface{
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	alertName := parts[1]
 	request = make(map[string]interface{})
@@ -358,15 +359,18 @@ func (s *SlsServiceV2) DescribeSlsAlert(id string) (object map[string]interface{
 }
 
 func (s *SlsServiceV2) SlsAlertStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SlsAlertStateRefreshFuncWithApi(id, field, failStates, s.DescribeSlsAlert)
+}
+
+func (s *SlsServiceV2) SlsAlertStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSlsAlert(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
