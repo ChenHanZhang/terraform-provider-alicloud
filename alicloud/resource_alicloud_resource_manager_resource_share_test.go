@@ -351,6 +351,322 @@ func TestUnitAliCloudResourceManagerResourceShare(t *testing.T) {
 }
 
 // Test ResourceManager ResourceShare. >>> Resource test cases, automatically generated.
+// Case 全生命周期带资源组-依赖资源版本_20251205_resourceId 11973
+func TestAccAliCloudResourceManagerResourceShare_basic11973(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_resource_manager_resource_share.default"
+	ra := resourceAttrInit(resourceId, AlicloudResourceManagerResourceShareMap11973)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ResourceManagerServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeResourceManagerResourceShare")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccresourcemanager%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudResourceManagerResourceShareBasicDependence11973)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_share_name": name,
+					"resources": []map[string]interface{}{
+						{
+							"resource_type": "VSwitch",
+							"resource_id":   "${alicloud_vswitch.vs.id}",
+						},
+					},
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"allow_external_targets": "false",
+					"targets": []string{
+						"${alicloud_resource_manager_account.defaultEYqcDi.id}"},
+					"permission_names": []string{
+						"AliyunRSDefaultPermissionVSwitch"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_share_name":    name,
+						"resources.#":            "1",
+						"resource_group_id":      CHECKSET,
+						"allow_external_targets": "false",
+						"targets.#":              "1",
+						"permission_names.#":     "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_share_name":    name + "_update",
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"allow_external_targets": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_share_name":    name + "_update",
+						"resource_group_id":      CHECKSET,
+						"allow_external_targets": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
+			},
+		},
+	})
+}
+
+var AlicloudResourceManagerResourceShareMap11973 = map[string]string{
+	"status":               CHECKSET,
+	"create_time":          CHECKSET,
+	"resource_share_owner": CHECKSET,
+}
+
+func AlicloudResourceManagerResourceShareBasicDependence11973(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "vpc" {
+  vpc_name   = "tf01"
+  cidr_block = "192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "vs" {
+  vpc_id     = alicloud_vpc.vpc.id
+  zone_id    = "cn-shanghai-f"
+  cidr_block = "192.168.1.0/24"
+}
+
+resource "alicloud_resource_manager_account" "defaultEYqcDi" {
+  display_name = "1768187024"
+}
+
+
+`, name)
+}
+
+// Case 全生命周期带资源组-依赖资源版本_20251205_resourceArn 11974
+func TestAccAliCloudResourceManagerResourceShare_basic11974(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_resource_manager_resource_share.default"
+	ra := resourceAttrInit(resourceId, AlicloudResourceManagerResourceShareMap11974)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ResourceManagerServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeResourceManagerResourceShare")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccresourcemanager%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudResourceManagerResourceShareBasicDependence11974)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_share_name":    name,
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"allow_external_targets": "false",
+					"targets": []string{
+						"${alicloud_resource_manager_account.defaultEYqcDi.id}"},
+					"permission_names": []string{
+						"AliyunRSDefaultPermissionVSwitch"},
+					"resource_arns": []string{
+						"acs:vpc:cn-shanghai:${{ref(system, AccountId)}}:vswitch/${alicloud_vswitch.vs.}:vswitch/${{ref(resource, VPC::VSwitch::4.0.3.2.pre::vs.VSwitchId)}}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_share_name":    name,
+						"resource_group_id":      CHECKSET,
+						"allow_external_targets": "false",
+						"targets.#":              "1",
+						"permission_names.#":     "1",
+						"resource_arns.#":        "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_share_name":    name + "_update",
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"allow_external_targets": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_share_name":    name + "_update",
+						"resource_group_id":      CHECKSET,
+						"allow_external_targets": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
+			},
+		},
+	})
+}
+
+var AlicloudResourceManagerResourceShareMap11974 = map[string]string{
+	"status":               CHECKSET,
+	"create_time":          CHECKSET,
+	"resource_share_owner": CHECKSET,
+}
+
+func AlicloudResourceManagerResourceShareBasicDependence11974(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "vpc" {
+  vpc_name   = "tf01"
+  cidr_block = "192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "vs" {
+  vpc_id     = alicloud_vpc.vpc.id
+  zone_id    = "cn-shanghai-f"
+  cidr_block = "192.168.1.0/24"
+}
+
+resource "alicloud_resource_manager_account" "defaultEYqcDi" {
+  display_name = "1768187026"
+}
+
+
+`, name)
+}
+
 // Case 全生命周期带资源组-依赖资源版本_20250926 11575
 func TestAccAliCloudResourceManagerResourceShare_basic11575(t *testing.T) {
 	var v map[string]interface{}
@@ -472,7 +788,7 @@ func TestAccAliCloudResourceManagerResourceShare_basic11575(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permission_names", "resources", "targets"},
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
 			},
 		},
 	})
@@ -504,8 +820,7 @@ resource "alicloud_vswitch" "vs" {
 }
 
 resource "alicloud_resource_manager_account" "defaultEYqcDi" {
-  display_name = var.name
-  force_delete = true
+  display_name = "1768187029"
 }
 
 
@@ -633,7 +948,7 @@ func TestAccAliCloudResourceManagerResourceShare_basic11306(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permission_names", "resources", "targets"},
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
 			},
 		},
 	})
@@ -665,8 +980,7 @@ resource "alicloud_vswitch" "vs" {
 }
 
 resource "alicloud_resource_manager_account" "defaultEYqcDi" {
-  display_name = var.name
-  force_delete = true
+  display_name = "1768187032"
 }
 
 
@@ -794,7 +1108,7 @@ func TestAccAliCloudResourceManagerResourceShare_basic11273(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permission_names", "resources", "targets"},
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
 			},
 		},
 	})
@@ -826,8 +1140,7 @@ resource "alicloud_vswitch" "vs" {
 }
 
 resource "alicloud_resource_manager_account" "defaultEYqcDi" {
-  display_name = var.name
-  force_delete = true
+  display_name = "1768187034"
 }
 
 
@@ -955,7 +1268,7 @@ func TestAccAliCloudResourceManagerResourceShare_basic10573(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permission_names", "resources", "targets"},
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
 			},
 		},
 	})
@@ -987,8 +1300,7 @@ resource "alicloud_vswitch" "vs" {
 }
 
 resource "alicloud_resource_manager_account" "defaultEYqcDi" {
-  display_name = var.name
-  force_delete = true
+  display_name = "1768187037"
 }
 
 
@@ -1114,7 +1426,7 @@ func TestAccAliCloudResourceManagerResourceShare_basic8293(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permission_names", "resources", "targets"},
+				ImportStateVerifyIgnore: []string{"permission_names", "resource_arns", "resources", "targets"},
 			},
 		},
 	})

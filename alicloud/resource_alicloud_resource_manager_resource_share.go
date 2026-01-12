@@ -40,6 +40,11 @@ func resourceAliCloudResourceManagerResourceShare() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"resource_arns": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -121,6 +126,12 @@ func resourceAliCloudResourceManagerResourceShareCreate(d *schema.ResourceData, 
 		request = expandTagsToMap(request, tagsMap)
 	}
 
+	if v, ok := d.GetOk("resource_arns"); ok {
+		resourceArnsMapsArray := convertToInterfaceArray(v)
+
+		request["ResourceArns"] = resourceArnsMapsArray
+	}
+
 	if v, ok := d.GetOkExists("allow_external_targets"); ok {
 		request["AllowExternalTargets"] = v
 	}
@@ -158,7 +169,7 @@ func resourceAliCloudResourceManagerResourceShareCreate(d *schema.ResourceData, 
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAliCloudResourceManagerResourceShareUpdate(d, meta)
+	return resourceAliCloudResourceManagerResourceShareRead(d, meta)
 }
 
 func resourceAliCloudResourceManagerResourceShareRead(d *schema.ResourceData, meta interface{}) error {
@@ -202,12 +213,12 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 	query = make(map[string]interface{})
 	request["ResourceShareId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if !d.IsNewResource() && d.HasChange("allow_external_targets") {
+	if d.HasChange("allow_external_targets") {
 		update = true
 		request["AllowExternalTargets"] = d.Get("allow_external_targets")
 	}
 
-	if !d.IsNewResource() && d.HasChange("resource_share_name") {
+	if d.HasChange("resource_share_name") {
 		update = true
 	}
 	request["ResourceShareName"] = d.Get("resource_share_name")
@@ -240,7 +251,7 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
 	request["ResourceRegionId"] = client.RegionId
-	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
 		update = true
 	}
 	request["ResourceGroupId"] = d.Get("resource_group_id")
@@ -261,16 +272,11 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("resource_group_id"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceGroupId", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
 	}
 
 	if d.HasChange("tags") {
 		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		if err := resourceManagerServiceV2.SetResourceTagsForResourceSharing(d, "ResourceShare"); err != nil {
+		if err := resourceManagerServiceV2.SetResourceTags(d, "ResourceShare"); err != nil {
 			return WrapError(err)
 		}
 	}
@@ -312,7 +318,7 @@ func resourceAliCloudResourceManagerResourceShareDelete(d *schema.ResourceData, 
 	}
 
 	resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceShareStatus", []string{"Active"}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceShareStatus", []string{"Active"}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
