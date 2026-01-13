@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 type ResourceManagerServiceV2 struct {
@@ -785,77 +787,70 @@ func (s *ResourceManagerServiceV2) DescribeResourceManagerSharedResource(id stri
 	parts := strings.Split(id, ":")
 	if len(parts) != 3 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ResourceId"] = parts[1]
 	request["RegionId"] = client.RegionId
 	request["AssociationType"] = "Resource"
-	request["ResourceShareIds"] = []string{parts[0]}
-	request["MaxResults"] = PageSizeLarge
+	jsonString := convertObjectToJsonString(request)
+	jsonString, _ = sjson.Set(jsonString, "ResourceShareIds.0", parts[0])
+	_ = json.Unmarshal([]byte(jsonString), &request)
 
 	action := "ListResourceShareAssociations"
 
-	idExist := false
-	for {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-			response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
 		if err != nil {
-			return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-		}
-
-		resp, err := jsonpath.Get("$.ResourceShareAssociations", response)
-		if err != nil {
-			return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ResourceShareAssociations", response)
-		}
-
-		if v, ok := resp.([]interface{}); !ok || len(v) < 1 {
-			return object, WrapErrorf(NotFoundErr("SharedResource", id), NotFoundWithResponse, response)
-		}
-
-		for _, v := range resp.([]interface{}) {
-			if fmt.Sprint(v.(map[string]interface{})["ResourceShareId"]) == parts[0] && fmt.Sprint(v.(map[string]interface{})["EntityId"]) == parts[1] && fmt.Sprint(v.(map[string]interface{})["EntityType"]) == parts[2] {
-				idExist = true
-				return v.(map[string]interface{}), nil
+			if IsExpectedErrors(err, []string{"Throttling.User"}) || NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
 			}
+			return resource.NonRetryableError(err)
 		}
-
-		if nextToken, ok := response["NextToken"].(string); ok && nextToken != "" {
-			request["NextToken"] = nextToken
-		} else {
-			break
-		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	if !idExist {
-		return object, WrapErrorf(NotFoundErr("SharedResource", id), NotFoundWithResponse, response)
+	v, err := jsonpath.Get("$.ResourceShareAssociations[*]", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ResourceShareAssociations[*]", response)
 	}
 
-	return object, nil
+	if len(v.([]interface{})) == 0 {
+		return object, WrapErrorf(NotFoundErr("SharedResource", id), NotFoundMsg, response)
+	}
+
+	result, _ := v.([]interface{})
+	for _, v := range result {
+		item := v.(map[string]interface{})
+		if fmt.Sprint(item["EntityType"]) != parts[2] {
+			continue
+		}
+		return item, nil
+	}
+	return object, WrapErrorf(NotFoundErr("SharedResource", id), NotFoundMsg, response)
 }
 
 func (s *ResourceManagerServiceV2) ResourceManagerSharedResourceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ResourceManagerSharedResourceStateRefreshFuncWithApi(id, field, failStates, s.DescribeResourceManagerSharedResource)
+}
+
+func (s *ResourceManagerServiceV2) ResourceManagerSharedResourceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeResourceManagerSharedResource(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
