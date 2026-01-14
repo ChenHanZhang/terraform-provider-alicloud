@@ -315,13 +315,12 @@ func (s *ThreatDetectionServiceV2) DescribeThreatDetectionClientFileProtect(id s
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "GetFileProtectRule"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["Id"] = id
+	request["Id"] = id
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
+	action := "GetFileProtectRule"
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
@@ -333,10 +332,9 @@ func (s *ThreatDetectionServiceV2) DescribeThreatDetectionClientFileProtect(id s
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
-
+	addDebug(action, response, request)
 	if err != nil {
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
@@ -350,17 +348,28 @@ func (s *ThreatDetectionServiceV2) DescribeThreatDetectionClientFileProtect(id s
 }
 
 func (s *ThreatDetectionServiceV2) ThreatDetectionClientFileProtectStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ThreatDetectionClientFileProtectStateRefreshFuncWithApi(id, field, failStates, s.DescribeThreatDetectionClientFileProtect)
+}
+
+func (s *ThreatDetectionServiceV2) ThreatDetectionClientFileProtectStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeThreatDetectionClientFileProtect(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
 		for _, failState := range failStates {
 			if currentStatus == failState {
 				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))

@@ -41,6 +41,12 @@ func resourceAliCloudThreatDetectionClientFileProtect() *schema.Resource {
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"platform": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"windows", "linux"}, false),
+			},
 			"proc_paths": {
 				Type:     schema.TypeList,
 				Required: true,
@@ -80,40 +86,41 @@ func resourceAliCloudThreatDetectionClientFileProtectCreate(d *schema.ResourceDa
 	var err error
 	request = make(map[string]interface{})
 
-	request["RuleName"] = d.Get("rule_name")
 	if v, ok := d.GetOk("proc_paths"); ok {
-		procPathsMaps := v.([]interface{})
-		request["ProcPaths"] = procPathsMaps
+		procPathsMapsArray := convertToInterfaceArray(v)
+
+		request["ProcPaths"] = procPathsMapsArray
 	}
 
 	if v, ok := d.GetOk("file_paths"); ok {
-		filePathsMaps := v.([]interface{})
-		request["FilePaths"] = filePathsMaps
-	}
+		filePathsMapsArray := convertToInterfaceArray(v)
 
-	if v, ok := d.GetOk("file_ops"); ok {
-		fileOpsMaps := v.([]interface{})
-		request["FileOps"] = fileOpsMaps
+		request["FilePaths"] = filePathsMapsArray
 	}
 
 	request["RuleAction"] = d.Get("rule_action")
-	if v, ok := d.GetOk("alert_level"); ok {
+	if v, ok := d.GetOkExists("alert_level"); ok {
 		request["AlertLevel"] = v
-	} else {
-		request["AlertLevel"] = 0
+	}
+	if v, ok := d.GetOkExists("status"); ok {
+		request["Status"] = v
+	}
+	request["RuleName"] = d.Get("rule_name")
+	if v, ok := d.GetOk("platform"); ok {
+		request["Platform"] = v
 	}
 	if v, ok := d.GetOk("switch_id"); ok {
 		request["SwitchId"] = v
 	}
-	if v, ok := d.GetOk("status"); ok {
-		request["Status"] = v
-	} else {
-		request["Status"] = 0
+	if v, ok := d.GetOk("file_ops"); ok {
+		fileOpsMapsArray := convertToInterfaceArray(v)
+
+		request["FileOps"] = fileOpsMapsArray
 	}
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -121,9 +128,9 @@ func resourceAliCloudThreatDetectionClientFileProtectCreate(d *schema.ResourceDa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_threat_detection_client_file_protect", action, AlibabaCloudSdkGoERROR)
@@ -149,28 +156,30 @@ func resourceAliCloudThreatDetectionClientFileProtectRead(d *schema.ResourceData
 	}
 
 	d.Set("alert_level", objectRaw["AlertLevel"])
+	d.Set("platform", objectRaw["Platform"])
 	d.Set("rule_action", objectRaw["Action"])
 	d.Set("rule_name", objectRaw["RuleName"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("switch_id", objectRaw["SwitchId"])
-	fileOps1Raw := make([]interface{}, 0)
+
+	fileOpsRaw := make([]interface{}, 0)
 	if objectRaw["FileOps"] != nil {
-		fileOps1Raw = objectRaw["FileOps"].([]interface{})
+		fileOpsRaw = convertToInterfaceArray(objectRaw["FileOps"])
 	}
 
-	d.Set("file_ops", fileOps1Raw)
-	filePaths1Raw := make([]interface{}, 0)
+	d.Set("file_ops", fileOpsRaw)
+	filePathsRaw := make([]interface{}, 0)
 	if objectRaw["FilePaths"] != nil {
-		filePaths1Raw = objectRaw["FilePaths"].([]interface{})
+		filePathsRaw = convertToInterfaceArray(objectRaw["FilePaths"])
 	}
 
-	d.Set("file_paths", filePaths1Raw)
-	procPaths1Raw := make([]interface{}, 0)
+	d.Set("file_paths", filePathsRaw)
+	procPathsRaw := make([]interface{}, 0)
 	if objectRaw["ProcPaths"] != nil {
-		procPaths1Raw = objectRaw["ProcPaths"].([]interface{})
+		procPathsRaw = convertToInterfaceArray(objectRaw["ProcPaths"])
 	}
 
-	d.Set("proc_paths", procPaths1Raw)
+	d.Set("proc_paths", procPathsRaw)
 
 	return nil
 }
@@ -181,49 +190,29 @@ func resourceAliCloudThreatDetectionClientFileProtectUpdate(d *schema.ResourceDa
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "UpdateFileProtectRule"
+
 	var err error
+	action := "UpdateFileProtectRule"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["Id"] = d.Id()
-	if d.HasChange("rule_name") {
-		update = true
-	}
-	request["RuleName"] = d.Get("rule_name")
+	request["Id"] = d.Id()
+
 	if d.HasChange("proc_paths") {
 		update = true
-		if v, ok := d.GetOk("proc_paths"); ok {
-			procPathsMaps := v.([]interface{})
-			request["ProcPaths"] = procPathsMaps
-		}
 	}
-	if v, ok := d.GetOk("proc_paths"); ok {
-		procPathsMaps := v.([]interface{})
-		request["ProcPaths"] = procPathsMaps
+	if v, ok := d.GetOk("proc_paths"); ok || d.HasChange("proc_paths") {
+		procPathsMapsArray := convertToInterfaceArray(v)
+
+		request["ProcPaths"] = procPathsMapsArray
 	}
 
 	if d.HasChange("file_paths") {
 		update = true
-		if v, ok := d.GetOk("file_paths"); ok {
-			filePathsMaps := v.([]interface{})
-			request["FilePaths"] = filePathsMaps
-		}
 	}
-	if v, ok := d.GetOk("file_paths"); ok {
-		filePathsMaps := v.([]interface{})
-		request["FilePaths"] = filePathsMaps
-	}
+	if v, ok := d.GetOk("file_paths"); ok || d.HasChange("file_paths") {
+		filePathsMapsArray := convertToInterfaceArray(v)
 
-	if d.HasChange("file_ops") {
-		update = true
-		if v, ok := d.GetOk("file_ops"); ok {
-			fileOpsMaps := v.([]interface{})
-			request["FileOps"] = fileOpsMaps
-		}
-	}
-	if v, ok := d.GetOk("file_ops"); ok {
-		fileOpsMaps := v.([]interface{})
-		request["FileOps"] = fileOpsMaps
+		request["FilePaths"] = filePathsMapsArray
 	}
 
 	if d.HasChange("rule_action") {
@@ -234,27 +223,29 @@ func resourceAliCloudThreatDetectionClientFileProtectUpdate(d *schema.ResourceDa
 		update = true
 		request["AlertLevel"] = d.Get("alert_level")
 	}
-	if v, ok := d.GetOk("alert_level"); ok {
-		request["AlertLevel"] = v
-	} else {
-		request["AlertLevel"] = 0
-	}
 
 	if d.HasChange("status") {
 		update = true
 		request["Status"] = d.Get("status")
 	}
-	if v, ok := d.GetOk("status"); ok {
-		request["Status"] = v
-	} else {
-		request["Status"] = 0
+
+	if d.HasChange("rule_name") {
+		update = true
+	}
+	request["RuleName"] = d.Get("rule_name")
+	if d.HasChange("file_ops") {
+		update = true
+	}
+	if v, ok := d.GetOk("file_ops"); ok || d.HasChange("file_ops") {
+		fileOpsMapsArray := convertToInterfaceArray(v)
+
+		request["FileOps"] = fileOpsMapsArray
 	}
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
-
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -262,9 +253,9 @@ func resourceAliCloudThreatDetectionClientFileProtectUpdate(d *schema.ResourceDa
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -287,7 +278,6 @@ func resourceAliCloudThreatDetectionClientFileProtectDelete(d *schema.ResourceDa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -295,11 +285,14 @@ func resourceAliCloudThreatDetectionClientFileProtectDelete(d *schema.ResourceDa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 

@@ -10,19 +10,19 @@ import (
 )
 
 // Test ThreatDetection ClientFileProtect. >>> Resource test cases, automatically generated.
-// Case 4514
-func TestAccAliCloudThreatDetectionClientFileProtect_basic4514(t *testing.T) {
+// Case 核心文件规则Platformlinux 9094
+func TestAccAliCloudThreatDetectionClientFileProtect_basic9094(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_threat_detection_client_file_protect.default"
-	ra := resourceAttrInit(resourceId, AlicloudThreatDetectionClientFileProtectMap4514)
+	ra := resourceAttrInit(resourceId, AlicloudThreatDetectionClientFileProtectMap9094)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ThreatDetectionServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeThreatDetectionClientFileProtect")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sthreatdetectionclientfileprotect%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudThreatDetectionClientFileProtectBasicDependence4514)
+	name := fmt.Sprintf("tfaccthreatdetection%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudThreatDetectionClientFileProtectBasicDependence9094)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -33,7 +33,7 @@ func TestAccAliCloudThreatDetectionClientFileProtect_basic4514(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"alert_level": "0",
+					"status": "0",
 					"file_paths": []string{
 						"/usr/local"},
 					"file_ops": []string{
@@ -41,246 +41,69 @@ func TestAccAliCloudThreatDetectionClientFileProtect_basic4514(t *testing.T) {
 					"rule_action": "pass",
 					"proc_paths": []string{
 						"/usr/local"},
-					"rule_name": "ruleTest2_843",
-					"status":    "0",
-					"switch_id": "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
+					"alert_level": "0",
+					"switch_id":   "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
+					"rule_name":   "ruleTest2_685",
+					"platform":    "linux",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"alert_level":  "0",
+						"status":       "0",
 						"file_paths.#": "1",
 						"file_ops.#":   "1",
 						"rule_action":  "pass",
 						"proc_paths.#": "1",
-						"rule_name":    CHECKSET,
-						"status":       "0",
+						"alert_level":  "0",
 						"switch_id":    "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"proc_paths": []string{
-						"/usr/local"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"proc_paths.#": "1",
+						"rule_name":    CHECKSET,
+						"platform":     "linux",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"status": "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"status": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"alert_level": "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"alert_level": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"file_paths": []string{
-						"/usr/local"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
+						"/tmp", "/tmp1", "/tmp2"},
 					"file_ops": []string{
-						"CREATE"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_ops.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_action": "pass",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_action": "pass",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"proc_paths": []string{
-						"/usr/local"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"proc_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_name": "ruleTest2_662",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_name": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"file_paths": []string{
-						"/tmp"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"file_ops": []string{
-						"CHMOD"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_ops.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
+						"CHMOD", "CREATE", "UPDATE"},
 					"rule_action": "alert",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_action": "alert",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"proc_paths": []string{
-						"/tmp"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"proc_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
+						"/tmp", "/tmp2", "/tmp3"},
 					"alert_level": "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"alert_level": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_name": "ruleTest1_927",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_name": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"file_paths": []string{
-						"/tmp21"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"file_ops": []string{
-						"DELETE"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"file_ops.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_action": "pass",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_action": "pass",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"proc_paths": []string{
-						"/tmp12"},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"proc_paths.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_name": "ruleTest_206",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_name": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"status": "1",
-					"file_paths": []string{
-						"/usr/local"},
-					"file_ops": []string{
-						"CREATE"},
-					"rule_action": "pass",
-					"proc_paths": []string{
-						"/usr/local"},
-					"alert_level": "1",
-					"switch_id":   "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
-					"rule_name":   "ruleTest2_377",
+					"rule_name":   "ruleTest1_353",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"status":       "1",
+						"file_paths.#": "3",
+						"file_ops.#":   "3",
+						"rule_action":  "alert",
+						"proc_paths.#": "3",
+						"alert_level":  "1",
+						"rule_name":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "0",
+					"file_paths": []string{
+						"/tmp21"},
+					"file_ops": []string{
+						"DELETE"},
+					"rule_action": "pass",
+					"proc_paths": []string{
+						"/tmp12"},
+					"rule_name": "ruleTest_269",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status":       "0",
 						"file_paths.#": "1",
 						"file_ops.#":   "1",
 						"rule_action":  "pass",
 						"proc_paths.#": "1",
-						"alert_level":  "1",
-						"switch_id":    "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
 						"rule_name":    CHECKSET,
 					}),
 				),
@@ -295,11 +118,9 @@ func TestAccAliCloudThreatDetectionClientFileProtect_basic4514(t *testing.T) {
 	})
 }
 
-var AlicloudThreatDetectionClientFileProtectMap4514 = map[string]string{
-	"status": CHECKSET,
-}
+var AlicloudThreatDetectionClientFileProtectMap9094 = map[string]string{}
 
-func AlicloudThreatDetectionClientFileProtectBasicDependence4514(name string) string {
+func AlicloudThreatDetectionClientFileProtectBasicDependence9094(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
@@ -309,19 +130,19 @@ variable "name" {
 `, name)
 }
 
-// Case 4514  twin
-func TestAccAliCloudThreatDetectionClientFileProtect_basic4514_twin(t *testing.T) {
+// Case 核心文件规则Platformwindows 9095
+func TestAccAliCloudThreatDetectionClientFileProtect_basic9095(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_threat_detection_client_file_protect.default"
-	ra := resourceAttrInit(resourceId, AlicloudThreatDetectionClientFileProtectMap4514)
+	ra := resourceAttrInit(resourceId, AlicloudThreatDetectionClientFileProtectMap9095)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ThreatDetectionServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeThreatDetectionClientFileProtect")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sthreatdetectionclientfileprotect%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudThreatDetectionClientFileProtectBasicDependence4514)
+	name := fmt.Sprintf("tfaccthreatdetection%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudThreatDetectionClientFileProtectBasicDependence9095)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -332,27 +153,77 @@ func TestAccAliCloudThreatDetectionClientFileProtect_basic4514_twin(t *testing.T
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"status": "1",
+					"status": "0",
 					"file_paths": []string{
-						"/tmp21", "/tmp1", "/tmp2"},
+						"/usr/local"},
 					"file_ops": []string{
-						"DELETE", "CREATE", "UPDATE"},
+						"CREATE"},
 					"rule_action": "pass",
 					"proc_paths": []string{
-						"/tmp12", "/tmp2", "/tmp3"},
-					"alert_level": "1",
+						"/usr/local"},
+					"alert_level": "0",
 					"switch_id":   "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
-					"rule_name":   "ruleTest_772",
+					"rule_name":   "ruleTest2_314",
+					"platform":    "windows",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status":       "0",
+						"file_paths.#": "1",
+						"file_ops.#":   "1",
+						"rule_action":  "pass",
+						"proc_paths.#": "1",
+						"alert_level":  "0",
+						"switch_id":    "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
+						"rule_name":    CHECKSET,
+						"platform":     "windows",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "1",
+					"file_paths": []string{
+						"/tmp", "/tmp1", "/tmp2"},
+					"file_ops": []string{
+						"CHMOD", "CREATE", "UPDATE"},
+					"rule_action": "alert",
+					"proc_paths": []string{
+						"/tmp", "/tmp2", "/tmp3"},
+					"alert_level": "1",
+					"rule_name":   "ruleTest1_749",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"status":       "1",
 						"file_paths.#": "3",
 						"file_ops.#":   "3",
-						"rule_action":  "pass",
+						"rule_action":  "alert",
 						"proc_paths.#": "3",
 						"alert_level":  "1",
-						"switch_id":    "FILE_PROTECT_RULE_SWITCH_TYPE_1693474122929",
+						"rule_name":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "0",
+					"file_paths": []string{
+						"/tmp21"},
+					"file_ops": []string{
+						"DELETE"},
+					"rule_action": "pass",
+					"proc_paths": []string{
+						"/tmp12"},
+					"rule_name": "ruleTest_446",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status":       "0",
+						"file_paths.#": "1",
+						"file_ops.#":   "1",
+						"rule_action":  "pass",
+						"proc_paths.#": "1",
 						"rule_name":    CHECKSET,
 					}),
 				),
@@ -365,6 +236,18 @@ func TestAccAliCloudThreatDetectionClientFileProtect_basic4514_twin(t *testing.T
 			},
 		},
 	})
+}
+
+var AlicloudThreatDetectionClientFileProtectMap9095 = map[string]string{}
+
+func AlicloudThreatDetectionClientFileProtectBasicDependence9095(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
 }
 
 // Test ThreatDetection ClientFileProtect. <<< Resource test cases, automatically generated.
