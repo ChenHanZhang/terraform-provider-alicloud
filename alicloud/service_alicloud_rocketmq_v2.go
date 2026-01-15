@@ -22,16 +22,17 @@ func (s *RocketmqServiceV2) DescribeRocketmqInstance(id string) (object map[stri
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	instanceId := id
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["instanceId"] = id
+	header = make(map[string]*string)
 
 	action := fmt.Sprintf("/instances/%s", instanceId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("RocketMQ", "2022-08-01", action, query, nil, nil)
+		response, err = client.RoaGet("RocketMQ", "2022-08-01", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -55,96 +56,24 @@ func (s *RocketmqServiceV2) DescribeRocketmqInstance(id string) (object map[stri
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.data", response)
 	}
 
-	currentStatus := v.(map[string]interface{})["status"]
-	if currentStatus == "RELEASED" {
-		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
-	}
-
 	return v.(map[string]interface{}), nil
 }
-
-func (s *RocketmqServiceV2) DescribeGetInstanceAccount(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]*string
-	instanceId := id
-	action := fmt.Sprintf("/instances/%s/account", instanceId)
-	request = make(map[string]interface{})
-	query = make(map[string]*string)
-	request["instanceId"] = id
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("RocketMQ", "2022-08-01", action, query, nil, nil)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		addDebug(action, response, request)
-		return nil
-	})
-	if err != nil {
-		addDebug(action, response, request)
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	v, err := jsonpath.Get("$.data", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.data", response)
-	}
-
-	return v.(map[string]interface{}), nil
-}
-
-func (s *RocketmqServiceV2) RocketmqInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		object, err := s.DescribeRocketmqInstance(id)
-		if err != nil {
-			if NotFoundError(err) {
-				return nil, "", nil
-			}
-			return nil, "", WrapError(err)
-		}
-
-		v, err := jsonpath.Get(field, object)
-		currentStatus := fmt.Sprint(v)
-
-		if strings.HasPrefix(field, "#") {
-			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
-			if v != nil {
-				currentStatus = "#CHECKSET"
-			}
-		}
-
-		for _, failState := range failStates {
-			if currentStatus == failState {
-				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
-			}
-		}
-		return object, currentStatus, nil
-	}
-}
-
 func (s *RocketmqServiceV2) DescribeInstanceGetInstanceIpWhitelist(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	instanceId := id
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["instanceId"] = id
+	header = make(map[string]*string)
 
 	action := fmt.Sprintf("/instances/%s/ip/whitelists", instanceId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("RocketMQ", "2022-08-01", action, query, nil, nil)
+		response, err = client.RoaGet("RocketMQ", "2022-08-01", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -171,16 +100,49 @@ func (s *RocketmqServiceV2) DescribeInstanceGetInstanceIpWhitelist(id string) (o
 	return v.(map[string]interface{}), nil
 }
 
+func (s *RocketmqServiceV2) RocketmqInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.RocketmqInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeRocketmqInstance)
+}
+
+func (s *RocketmqServiceV2) RocketmqInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
 // DescribeRocketmqInstance >>> Encapsulated.
 
 // SetResourceTags <<< Encapsulated tag function for Rocketmq.
 func (s *RocketmqServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
+		header := make(map[string]*string)
 		query := make(map[string]*string)
 		body := make(map[string]interface{})
 
@@ -196,16 +158,14 @@ func (s *RocketmqServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			request = make(map[string]interface{})
 			query = make(map[string]*string)
 			body = make(map[string]interface{})
-			resourceIdString, _ := convertArrayObjectToJsonString(expandSingletonToList(d.Id()))
-			query["resourceId"] = StringPointer(resourceIdString)
+			query["resourceId"] = StringPointer(convertObjectToJsonString(expandSingletonToList(d.Id())))
 			query["regionId"] = StringPointer(client.RegionId)
 			query["tagKey"] = StringPointer(convertListToJsonString(convertListStringToListInterface(removedTagKeys)))
-
 			query["resourceType"] = StringPointer("instance")
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RoaDelete("RocketMQ", "2022-08-01", action, query, nil, body, false)
+				response, err = client.RoaDelete("RocketMQ", "2022-08-01", action, query, header, nil, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -213,9 +173,9 @@ func (s *RocketmqServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -227,26 +187,24 @@ func (s *RocketmqServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			request = make(map[string]interface{})
 			query = make(map[string]*string)
 			body = make(map[string]interface{})
-			resourceIdString, _ := convertArrayObjectToJsonString(expandSingletonToList(d.Id()))
-			query["resourceId"] = StringPointer(resourceIdString)
+			query["resourceId"] = StringPointer(convertObjectToJsonString(expandSingletonToList(d.Id())))
 			query["regionId"] = StringPointer(client.RegionId)
-			query["resourceType"] = StringPointer("instance")
 			count := 1
 			tagsMaps := make([]map[string]interface{}, 0)
 			for key, value := range added {
 				tagsMap := make(map[string]interface{})
-				tagsMap["key"] = key
 				tagsMap["value"] = value
+				tagsMap["key"] = key
 				tagsMaps = append(tagsMaps, tagsMap)
 				count++
 			}
-			tagsString, _ := convertArrayObjectToJsonString(tagsMaps)
-			query["tag"] = StringPointer(tagsString)
+			query["tag"] = StringPointer(convertObjectToJsonString(tagsMaps))
 
+			query["resourceType"] = StringPointer("instance")
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RoaPost("RocketMQ", "2022-08-01", action, query, nil, body, false)
+				response, err = client.RoaPost("RocketMQ", "2022-08-01", action, query, header, body, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -254,9 +212,9 @@ func (s *RocketmqServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
