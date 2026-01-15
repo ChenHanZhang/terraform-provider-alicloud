@@ -20,12 +20,6 @@ For information about WAFV3 Domain and how to use it, see [What is Domain](https
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_wafv3_domain&exampleId=6883cb3a-92e1-c272-f108-a9584d515b4ce2e50787&activeTab=example&spm=docs.r.wafv3_domain.0.6883cb3a92&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_wafv3_instances" "default" {}
 
@@ -80,8 +74,6 @@ resource "alicloud_wafv3_domain" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_wafv3_domain&spm=docs.r.wafv3_domain.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -92,10 +84,10 @@ share: CNAME record mode. This is the default value.
 
 * `domain` - (Required, ForceNew) The name of the domain name to query.
 * `instance_id` - (Required, ForceNew) The ID of the Web Application Firewall (WAF) instance.
-* `listen` - (Required, List) Configure listening information. See [`listen`](#listen) below.
-* `redirect` - (Required, List) Configure forwarding information. See [`redirect`](#redirect) below.
+* `listen` - (Required, Set) Configure listening information. See [`listen`](#listen) below.
+* `redirect` - (Required, Set) Configure forwarding information. See [`redirect`](#redirect) below.
 * `resource_manager_resource_group_id` - (Optional, ForceNew, Computed) The ID of the Alibaba Cloud resource group.
-* `tags` - (Optional, Map, Available since v1.257.0) The tags. You can specify up to 20 tags.
+* `tags` - (Optional, Map) The tags. You can specify up to 20 tags.
 
 ### `listen`
 
@@ -165,6 +157,8 @@ Value range: 1~3600. Default value: 5.
 
   - `true`
   - `false`
+* `http2_origin` - (Optional, Available since v1.269.0) HTTP2 back to source
+* `http2_origin_max_concurrency` - (Optional, Int, Available since v1.269.0) Number of HTTP2 concurrent back-to-source connections
 * `keepalive` - (Optional) Specifies whether to enable the persistent connection feature. Valid values:
 
   - `true` (default)
@@ -183,6 +177,7 @@ Value range: 1~3600. Default value: 5.
   - `iphash`
   - `roundRobin`
   - `leastTime`: This value is available only if you set `ProtectionResource` to `gslb`.
+* `max_body_size` - (Optional, Int, Available since v1.269.0) Maximum file size
 * `read_timeout` - (Optional, Int) The timeout period of write connections. Unit: seconds. Valid values: 1 to 3600. Default value: 120.
 * `request_headers` - (Optional, List) The traffic marking field and value of the domain name, which is used to mark the traffic processed by WAF.
 By specifying custom request header fields and corresponding values, when the access traffic of the domain name passes through WAF, WAF automatically adds the set custom field value to the request header as a traffic mark, which facilitates the statistics of back-end services. See [`request_headers`](#redirect-request_headers) below.
@@ -199,7 +194,7 @@ By specifying custom request header fields and corresponding values, when the ac
 -> **NOTE:**   This parameter is required only if you set `SniEnabled` to true.
 
 * `write_timeout` - (Optional, Int) The timeout period of write connections. Unit: seconds. Valid values: 1 to 3600. Default value: 120.
-* `xff_proto` - (Optional, Available since v1.257.0) Specifies whether to use the X-Forward-For-Proto header field to pass the protocol used by WAF to forward requests to the origin server. Valid values:
+* `xff_proto` - (Optional) Specifies whether to use the X-Forward-For-Proto header field to pass the protocol used by WAF to forward requests to the origin server. Valid values:
   - `true`  (default)
   - `false`
 
@@ -212,7 +207,7 @@ The redirect-request_headers supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<domain>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<domain>`.
 * `cname` - The CNAME assigned by WAF to the domain name.
 * `domain_id` - The domain ID.
 * `status` - The status of the domain name. 

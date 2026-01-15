@@ -332,11 +332,11 @@ locals {
 }
 
 // Test Wafv3 Domain. >>> Resource test cases, automatically generated.
-// Case 企业级能力 7652
-func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
+// Case 创建支持标签修改_资源组空 12369
+func TestAccAliCloudWafv3Domain_basic12369(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_wafv3_domain.default"
-	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap7652)
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap12369)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeWafv3Domain")
@@ -344,10 +344,9 @@ func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccwafv3%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence7652)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence12369)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -356,41 +355,43 @@ func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id": "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
 					"listen": []map[string]interface{}{
 						{
-							"http2_enabled":       "false",
-							"enable_tlsv3":        "false",
-							"ipv6_enabled":        "false",
 							"protection_resource": "share",
 							"http_ports": []string{
-								"80"},
+								"81"},
+							"https_ports":    []string{},
+							"xff_headers":    []string{},
+							"custom_ciphers": []string{},
+							"ipv6_enabled":   "false",
+							"exclusive_ip":   "false",
 						},
 					},
 					"redirect": []map[string]interface{}{
 						{
-							"loadbalance":        "iphash",
+							"loadbalance":        "roundRobin",
 							"focus_http_backend": "false",
-							"sni_enabled":        "false",
 							"backends": []string{
 								"1.1.1.1"},
 							"xff_proto":          "true",
 							"connect_timeout":    "5",
-							"read_timeout":       "5",
-							"write_timeout":      "5",
-							"keepalive":          "false",
-							"retry":              "false",
-							"keepalive_requests": "60",
+							"read_timeout":       "120",
+							"write_timeout":      "120",
+							"keepalive":          "true",
+							"retry":              "true",
+							"keepalive_requests": "1000",
 							"keepalive_timeout":  "15",
+							"max_body_size":      "2",
 						},
 					},
-					"domain":      "cwaf-zctest-0731.wafqax.top",
+					"domain":      "zctest_260115-removermcoretag-2.wafqax.top",
 					"access_type": "share",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"instance_id": CHECKSET,
-						"domain":      "cwaf-zctest-0731.wafqax.top",
+						"domain":      "zctest_260115-removermcoretag-2.wafqax.top",
 						"access_type": "share",
 					}),
 				),
@@ -401,18 +402,17 @@ func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
 						{
 							"ipv6_enabled":        "false",
 							"protection_resource": "share",
+							"https_ports":         []string{},
 							"http_ports": []string{
-								"81"},
-							"xff_header_mode": "1",
-							"http2_enabled":   "false",
-							"enable_tlsv3":    "false",
+								"80"},
+							"exclusive_ip": "false",
 						},
 					},
 					"redirect": []map[string]interface{}{
 						{
 							"backends": []string{
-								"123.56.107.188"},
-							"loadbalance":        "iphash",
+								"1.1.1.1"},
+							"loadbalance":        "roundRobin",
 							"focus_http_backend": "false",
 							"sni_enabled":        "false",
 							"xff_proto":          "true",
@@ -421,13 +421,56 @@ func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
 							"write_timeout":      "6",
 							"keepalive":          "true",
 							"retry":              "true",
-							"keepalive_requests": "100",
-							"keepalive_timeout":  "16",
+							"keepalive_requests": "1000",
+							"keepalive_timeout":  "15",
+							"max_body_size":      "2",
 						},
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
 				),
 			},
 			{
@@ -440,28 +483,32 @@ func TestAccAliCloudWafv3Domain_basic7652(t *testing.T) {
 	})
 }
 
-var AlicloudWafv3DomainMap7652 = map[string]string{
-	"status": CHECKSET,
+var AlicloudWafv3DomainMap12369 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
 }
 
-func AlicloudWafv3DomainBasicDependence7652(name string) string {
+func AlicloudWafv3DomainBasicDependence12369(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
-data "alicloud_wafv3_instances" "default" {
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
 }
 
 
 `, name)
 }
 
-// Case 更新Tags属性 9852
-func TestAccAliCloudWafv3Domain_basic9852(t *testing.T) {
+// Case 创建支持标签修改_资源组空 12367
+func TestAccAliCloudWafv3Domain_basic12367(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_wafv3_domain.default"
-	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap9852)
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap12367)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeWafv3Domain")
@@ -469,10 +516,9 @@ func TestAccAliCloudWafv3Domain_basic9852(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccwafv3%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence9852)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence12367)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -481,133 +527,7 @@ func TestAccAliCloudWafv3Domain_basic9852(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id": "${data.alicloud_wafv3_instances.default.ids.0}",
-					"listen": []map[string]interface{}{
-						{
-							"http2_enabled":       "false",
-							"enable_tlsv3":        "false",
-							"ipv6_enabled":        "false",
-							"protection_resource": "share",
-							"http_ports": []string{
-								"80"},
-						},
-					},
-					"redirect": []map[string]interface{}{
-						{
-							"loadbalance":        "iphash",
-							"focus_http_backend": "false",
-							"sni_enabled":        "false",
-							"backends": []string{
-								"1.1.1.1"},
-							"xff_proto":          "true",
-							"connect_timeout":    "5",
-							"read_timeout":       "5",
-							"write_timeout":      "5",
-							"keepalive":          "false",
-							"retry":              "false",
-							"keepalive_requests": "60",
-							"keepalive_timeout":  "15",
-						},
-					},
-					"domain":      "qiyezhili-1118.wafqax.top",
-					"access_type": "share",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"instance_id": CHECKSET,
-						"domain":      "qiyezhili-1118.wafqax.top",
-						"access_type": "share",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"listen": []map[string]interface{}{
-						{
-							"ipv6_enabled":        "false",
-							"protection_resource": "share",
-							"http_ports": []string{
-								"81"},
-							"xff_header_mode": "1",
-							"http2_enabled":   "false",
-							"enable_tlsv3":    "false",
-						},
-					},
-					"redirect": []map[string]interface{}{
-						{
-							"backends": []string{
-								"123.56.107.188"},
-							"loadbalance":        "iphash",
-							"focus_http_backend": "false",
-							"sni_enabled":        "false",
-							"xff_proto":          "true",
-							"connect_timeout":    "6",
-							"read_timeout":       "6",
-							"write_timeout":      "6",
-							"keepalive":          "true",
-							"retry":              "true",
-							"keepalive_requests": "100",
-							"keepalive_timeout":  "16",
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"access_type"},
-			},
-		},
-	})
-}
-
-var AlicloudWafv3DomainMap9852 = map[string]string{
-	"status": CHECKSET,
-	"cname":  CHECKSET,
-}
-
-func AlicloudWafv3DomainBasicDependence9852(name string) string {
-	return fmt.Sprintf(`
-variable "name" {
-    default = "%s"
-}
-
-data "alicloud_wafv3_instances" "default" {
-}
-
-
-`, name)
-}
-
-// Case 企业级能力qiyezhili-1118.wafqax.top账号_线上_换账号_测试通过_待发布 11009
-func TestAccAliCloudWafv3Domain_basic11009(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_wafv3_domain.default"
-	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11009)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeWafv3Domain")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccwafv3%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11009)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"instance_id": "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
 					"listen": []map[string]interface{}{
 						{
 							"protection_resource": "share",
@@ -650,16 +570,249 @@ func TestAccAliCloudWafv3Domain_basic11009(t *testing.T) {
 									"value": "value22",
 								},
 							},
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3"},
 						},
 					},
-					"domain":                             "qiyezhili-1118.wafqax.top",
+					"domain":      "zctest_260115-removeRmcoreTag.wafqax.top",
+					"access_type": "share",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id": CHECKSET,
+						"domain":      "zctest_260115-removeRmcoreTag.wafqax.top",
+						"access_type": "share",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"ipv6_enabled":        "false",
+							"protection_resource": "share",
+							"xff_header_mode":     "1",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+							"xff_headers":    []string{},
+							"custom_ciphers": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"backends": []string{
+								"123.56.107.188", "1.1.1.1"},
+							"loadbalance":        "leastTime",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"xff_proto":          "false",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"keepalive":          "true",
+							"retry":              "false",
+							"keepalive_requests": "100",
+							"keepalive_timeout":  "16",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testky1",
+									"value": "testvalue2",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "3.3.3.3"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"protection_resource": "gslb",
+							"ipv6_enabled":        "false",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "leastTime",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"keepalive":          "false",
+							"retry":              "false",
+							"xff_proto":          "false",
+							"backends": []string{
+								"1.1.1.1", "5.5.5.5"},
+							"backup_backends": []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_type"},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DomainMap12367 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
+}
+
+func AlicloudWafv3DomainBasicDependence12367(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
+}
+
+
+`, name)
+}
+
+// Case 创建支持标签修改_线上 11160
+func TestAccAliCloudWafv3Domain_basic11160(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_domain.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11160)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3Domain")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11160)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
+					"listen": []map[string]interface{}{
+						{
+							"protection_resource": "share",
+							"http_ports": []string{
+								"81", "82", "83"},
+							"https_ports":     []string{},
+							"xff_header_mode": "2",
+							"xff_headers": []string{
+								"testa", "testb", "testc"},
+							"custom_ciphers": []string{},
+							"ipv6_enabled":   "true",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"backends": []string{
+								"1.1.1.1", "3.3.3.3", "2.2.2.2"},
+							"xff_proto":          "true",
+							"connect_timeout":    "5",
+							"read_timeout":       "5",
+							"write_timeout":      "5",
+							"keepalive":          "true",
+							"retry":              "true",
+							"keepalive_requests": "1000",
+							"keepalive_timeout":  "15",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testkey1",
+									"value": "testValue1",
+								},
+								{
+									"key":   "key1",
+									"value": "value1",
+								},
+								{
+									"key":   "key22",
+									"value": "value22",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+						},
+					},
+					"domain":                             "zctest_250731_1.wafqax.top",
 					"access_type":                        "share",
-					"resource_manager_resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.groups.1.id}",
+					"resource_manager_resource_group_id": "${alicloud_resource_manager_resource_group.defaultZ7h7Zh.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"instance_id":                        CHECKSET,
-						"domain":                             "qiyezhili-1118.wafqax.top",
+						"domain":                             "zctest_250731_1.wafqax.top",
 						"access_type":                        "share",
 						"resource_manager_resource_group_id": CHECKSET,
 					}),
@@ -700,6 +853,8 @@ func TestAccAliCloudWafv3Domain_basic11009(t *testing.T) {
 									"value": "testvalue2",
 								},
 							},
+							"backup_backends": []string{
+								"1.1.1.1", "3.3.3.3"},
 						},
 					},
 				}),
@@ -732,11 +887,54 @@ func TestAccAliCloudWafv3Domain_basic11009(t *testing.T) {
 							"xff_proto":          "false",
 							"backends": []string{
 								"1.1.1.1", "5.5.5.5"},
+							"backup_backends": []string{},
 						},
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
 				),
 			},
 			{
@@ -749,12 +947,13 @@ func TestAccAliCloudWafv3Domain_basic11009(t *testing.T) {
 	})
 }
 
-var AlicloudWafv3DomainMap11009 = map[string]string{
+var AlicloudWafv3DomainMap11160 = map[string]string{
 	"status":    CHECKSET,
+	"cname":     CHECKSET,
 	"domain_id": CHECKSET,
 }
 
-func AlicloudWafv3DomainBasicDependence11009(name string) string {
+func AlicloudWafv3DomainBasicDependence11160(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
@@ -762,7 +961,1027 @@ variable "name" {
 
 data "alicloud_resource_manager_resource_groups" "default" {}
 
-data "alicloud_wafv3_instances" "default" {
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
+}
+
+
+`, name)
+}
+
+// Case 企业级能力_线上 11159
+func TestAccAliCloudWafv3Domain_basic11159(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_domain.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11159)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3Domain")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11159)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
+					"listen": []map[string]interface{}{
+						{
+							"protection_resource": "share",
+							"http_ports": []string{
+								"81", "82", "83"},
+							"https_ports":     []string{},
+							"xff_header_mode": "2",
+							"xff_headers": []string{
+								"testa", "testb", "testc"},
+							"custom_ciphers": []string{},
+							"ipv6_enabled":   "true",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"backends": []string{
+								"1.1.1.1", "3.3.3.3", "2.2.2.2"},
+							"xff_proto":          "true",
+							"connect_timeout":    "5",
+							"read_timeout":       "5",
+							"write_timeout":      "5",
+							"keepalive":          "true",
+							"retry":              "true",
+							"keepalive_requests": "1000",
+							"keepalive_timeout":  "15",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testkey1",
+									"value": "testValue1",
+								},
+								{
+									"key":   "key1",
+									"value": "value1",
+								},
+								{
+									"key":   "key22",
+									"value": "value22",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+						},
+					},
+					"domain":                             "zctest_251031.wafqax.top",
+					"access_type":                        "share",
+					"resource_manager_resource_group_id": "${alicloud_resource_manager_resource_group.defaultZ7h7Zh.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id":                        CHECKSET,
+						"domain":                             "zctest_251031.wafqax.top",
+						"access_type":                        "share",
+						"resource_manager_resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"ipv6_enabled":        "false",
+							"protection_resource": "share",
+							"xff_header_mode":     "1",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+							"xff_headers":    []string{},
+							"custom_ciphers": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"backends": []string{
+								"123.56.107.188", "1.1.1.1"},
+							"loadbalance":        "leastTime",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"xff_proto":          "false",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"keepalive":          "true",
+							"retry":              "false",
+							"keepalive_requests": "100",
+							"keepalive_timeout":  "16",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testky1",
+									"value": "testvalue2",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "3.3.3.3"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"protection_resource": "gslb",
+							"ipv6_enabled":        "false",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "leastTime",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"keepalive":          "false",
+							"retry":              "false",
+							"xff_proto":          "false",
+							"backends": []string{
+								"1.1.1.1", "5.5.5.5"},
+							"backup_backends": []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_type"},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DomainMap11159 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
+}
+
+func AlicloudWafv3DomainBasicDependence11159(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
+}
+
+
+`, name)
+}
+
+// Case 创建/修改支持打标签_备用回源创建为空_预发 11157
+func TestAccAliCloudWafv3Domain_basic11157(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_domain.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11157)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3Domain")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11157)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
+					"listen": []map[string]interface{}{
+						{
+							"protection_resource": "share",
+							"http_ports": []string{
+								"81", "82", "83"},
+							"https_ports":     []string{},
+							"xff_header_mode": "2",
+							"xff_headers": []string{
+								"testa", "testb", "testc"},
+							"custom_ciphers": []string{},
+							"ipv6_enabled":   "true",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"backends": []string{
+								"39.98.217.197"},
+							"xff_proto": "true",
+							"keepalive": "true",
+							"retry":     "true",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testkey1",
+									"value": "testValue1",
+								},
+								{
+									"key":   "key1",
+									"value": "value1",
+								},
+								{
+									"key":   "key22",
+									"value": "value22",
+								},
+							},
+							"backup_backends": []string{},
+						},
+					},
+					"domain":                             "pre_zctest_250804_1.wafqax.top",
+					"access_type":                        "share",
+					"resource_manager_resource_group_id": "${alicloud_resource_manager_resource_group.defaultZ7h7Zh.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id":                        CHECKSET,
+						"domain":                             "pre_zctest_250804_1.wafqax.top",
+						"access_type":                        "share",
+						"resource_manager_resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"ipv6_enabled":        "false",
+							"protection_resource": "share",
+							"xff_header_mode":     "1",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+							"xff_headers":    []string{},
+							"custom_ciphers": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"backends": []string{
+								"39.98.217.197"},
+							"loadbalance":        "leastTime",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"xff_proto":          "false",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"keepalive":          "true",
+							"retry":              "false",
+							"keepalive_requests": "100",
+							"keepalive_timeout":  "16",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testky1",
+									"value": "testvalue2",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "3.3.3.3", "2.2.2.2"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"protection_resource": "gslb",
+							"ipv6_enabled":        "false",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "leastTime",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"keepalive":          "false",
+							"retry":              "false",
+							"xff_proto":          "false",
+							"backends": []string{
+								"39.98.217.197"},
+							"backup_backends": []string{
+								"1.1.1.2", "3.3.3.4"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"protection_resource": "gslb",
+							"http_ports": []string{
+								"84", "86"},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance": "leastTime",
+							"backends": []string{
+								"39.98.217.197"},
+							"connect_timeout":    "7",
+							"read_timeout":       "7",
+							"write_timeout":      "7",
+							"keepalive_requests": "61",
+							"keepalive_timeout":  "15",
+							"backup_backends":    []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_type"},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DomainMap11157 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
+}
+
+func AlicloudWafv3DomainBasicDependence11157(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
+}
+
+
+`, name)
+}
+
+// Case 企业级能力_线上_副本 11162
+func TestAccAliCloudWafv3Domain_basic11162(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_domain.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11162)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3Domain")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11162)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
+					"listen": []map[string]interface{}{
+						{
+							"protection_resource": "share",
+							"http_ports": []string{
+								"81", "82", "83"},
+							"https_ports":     []string{},
+							"xff_header_mode": "2",
+							"xff_headers": []string{
+								"testa", "testb", "testc"},
+							"custom_ciphers": []string{},
+							"ipv6_enabled":   "true",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"backends": []string{
+								"1.1.1.1", "3.3.3.3", "2.2.2.2"},
+							"xff_proto":          "true",
+							"connect_timeout":    "5",
+							"read_timeout":       "5",
+							"write_timeout":      "5",
+							"keepalive":          "true",
+							"retry":              "true",
+							"keepalive_requests": "1000",
+							"keepalive_timeout":  "15",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testkey1",
+									"value": "testValue1",
+								},
+								{
+									"key":   "key1",
+									"value": "value1",
+								},
+								{
+									"key":   "key22",
+									"value": "value22",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+						},
+					},
+					"domain":                             "zctest_250805.wafqax.top",
+					"access_type":                        "share",
+					"resource_manager_resource_group_id": "${alicloud_resource_manager_resource_group.defaultZ7h7Zh.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id":                        CHECKSET,
+						"domain":                             "zctest_250805.wafqax.top",
+						"access_type":                        "share",
+						"resource_manager_resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"ipv6_enabled":        "false",
+							"protection_resource": "share",
+							"xff_header_mode":     "1",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+							"xff_headers":    []string{},
+							"custom_ciphers": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"backends": []string{
+								"123.56.107.188", "1.1.1.1"},
+							"loadbalance":        "leastTime",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"xff_proto":          "false",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"keepalive":          "true",
+							"retry":              "false",
+							"keepalive_requests": "100",
+							"keepalive_timeout":  "16",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testky1",
+									"value": "testvalue2",
+								},
+							},
+							"backup_backends": []string{
+								"1.1.1.1", "3.3.3.3"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"protection_resource": "gslb",
+							"ipv6_enabled":        "false",
+							"https_ports":         []string{},
+							"http_ports": []string{
+								"84", "86"},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "leastTime",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"keepalive":          "false",
+							"retry":              "false",
+							"xff_proto":          "false",
+							"backends": []string{
+								"1.1.1.1", "5.5.5.5"},
+							"backup_backends": []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_type"},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DomainMap11162 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
+}
+
+func AlicloudWafv3DomainBasicDependence11162(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
+}
+
+
+`, name)
+}
+
+// Case 企业级能力zctest250708-2.wafqax.top_116账号_预发_通过_不换账号 11008
+func TestAccAliCloudWafv3Domain_basic11008(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_domain.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DomainMap11008)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3Domain")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DomainBasicDependence11008)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id": "${alicloud_wafv3_instance.defaulttvQf5i.id}",
+					"listen": []map[string]interface{}{
+						{
+							"http2_enabled":       "true",
+							"protection_resource": "share",
+							"http_ports": []string{
+								"80", "801", "803"},
+							"https_ports": []string{
+								"443", "449", "480"},
+							"cert_id":         "19344389-cn-hangzhou",
+							"tls_version":     "tlsv1.2",
+							"cipher_suite":    "99",
+							"xff_header_mode": "2",
+							"xff_headers": []string{
+								"testa", "testb", "testc"},
+							"custom_ciphers": []string{
+								"ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-GCM-SHA384", "ECDHE-ECDSA-AES256-SHA384"},
+							"enable_tlsv3":    "true",
+							"sm2_cert_id":     "19344388-cn-hangzhou",
+							"sm2_enabled":     "true",
+							"sm2_access_only": "true",
+							"exclusive_ip":    "false",
+							"focus_https":     "false",
+							"ipv6_enabled":    "false",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "true",
+							"backends": []string{
+								"39.98.217.197"},
+							"xff_proto":          "true",
+							"connect_timeout":    "5",
+							"read_timeout":       "5",
+							"write_timeout":      "5",
+							"keepalive":          "true",
+							"retry":              "true",
+							"keepalive_requests": "1000",
+							"keepalive_timeout":  "15",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testkey1",
+									"value": "testValue1",
+								},
+								{
+									"key":   "key1",
+									"value": "value1",
+								},
+								{
+									"key":   "key22",
+									"value": "value22",
+								},
+							},
+							"sni_host": "www.aliyundemo.com",
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4"},
+						},
+					},
+					"domain":                             "zctest250708-2.wafqax.top",
+					"access_type":                        "share",
+					"resource_manager_resource_group_id": "${alicloud_resource_manager_resource_group.defaultZ7h7Zh.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id":                        CHECKSET,
+						"domain":                             "zctest250708-2.wafqax.top",
+						"access_type":                        "share",
+						"resource_manager_resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"ipv6_enabled":        "false",
+							"protection_resource": "share",
+							"xff_header_mode":     "1",
+							"http2_enabled":       "false",
+							"enable_tlsv3":        "false",
+							"cipher_suite":        "1",
+							"https_ports": []string{
+								"444", "449"},
+							"cert_id":         "19344397-cn-hangzhou",
+							"tls_version":     "tlsv1",
+							"sm2_cert_id":     "19344396-cn-hangzhou",
+							"sm2_enabled":     "false",
+							"http_ports":      []string{},
+							"xff_headers":     []string{},
+							"custom_ciphers":  []string{},
+							"exclusive_ip":    "false",
+							"sm2_access_only": "false",
+							"focus_https":     "false",
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"backends": []string{
+								"39.98.217.197"},
+							"loadbalance":        "leastTime",
+							"focus_http_backend": "true",
+							"sni_enabled":        "false",
+							"xff_proto":          "false",
+							"connect_timeout":    "6",
+							"read_timeout":       "6",
+							"write_timeout":      "6",
+							"keepalive":          "true",
+							"retry":              "false",
+							"keepalive_requests": "100",
+							"keepalive_timeout":  "16",
+							"sni_host":           "nice.aliyundoc.com",
+							"request_headers": []map[string]interface{}{
+								{
+									"key":   "testky1",
+									"value": "testvalue2",
+								},
+							},
+							"backup_backends": []string{
+								"2.2.2.2", "3.3.3.3", "4.4.4.4"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"xff_header_mode":     "1",
+							"ipv6_enabled":        "true",
+							"protection_resource": "share",
+							"http_ports": []string{
+								"81", "82"},
+							"https_ports": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"connect_timeout":    "7",
+							"read_timeout":       "7",
+							"write_timeout":      "7",
+							"keepalive":          "false",
+							"retry":              "true",
+							"xff_proto":          "true",
+							"backends": []string{
+								"39.98.217.197"},
+							"backup_backends": []string{
+								"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listen": []map[string]interface{}{
+						{
+							"cert_id":             "10289409-cn-hangzhou",
+							"cipher_suite":        "1",
+							"xff_header_mode":     "1",
+							"protection_resource": "share",
+							"http2_enabled":       "false",
+							"tls_version":         "tlsv1",
+							"enable_tlsv3":        "false",
+							"focus_https":         "true",
+							"ipv6_enabled":        "false",
+							"exclusive_ip":        "false",
+							"https_ports": []string{
+								"443"},
+							"http_ports": []string{},
+						},
+					},
+					"redirect": []map[string]interface{}{
+						{
+							"loadbalance":        "iphash",
+							"connect_timeout":    "5",
+							"read_timeout":       "120",
+							"write_timeout":      "120",
+							"focus_http_backend": "false",
+							"sni_enabled":        "false",
+							"keepalive":          "false",
+							"retry":              "true",
+							"xff_proto":          "true",
+							"backends": []string{
+								"39.98.217.197"},
+							"backup_backends": []string{},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_type"},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DomainMap11008 = map[string]string{
+	"status":    CHECKSET,
+	"cname":     CHECKSET,
+	"domain_id": CHECKSET,
+}
+
+func AlicloudWafv3DomainBasicDependence11008(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_wafv3_instance" "defaulttvQf5i" {
 }
 
 
