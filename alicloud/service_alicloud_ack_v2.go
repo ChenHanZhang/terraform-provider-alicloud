@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denverdino/aliyungo/cs"
+
 	"github.com/PaesslerAG/jsonpath"
 	cs "github.com/alibabacloud-go/cs-20151215/v5/client"
 	"github.com/alibabacloud-go/tea/tea"
