@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -240,10 +241,11 @@ func (s *ApiGatewayServiceV2) DescribeApiGatewayAccessControlList(id string) (ob
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeAccessControlListAttribute"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["AclId"] = id
+	request["AclId"] = id
+
+	action := "DescribeAccessControlListAttribute"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -256,99 +258,41 @@ func (s *ApiGatewayServiceV2) DescribeApiGatewayAccessControlList(id string) (ob
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"InvokeSlbApiFail"}) {
 			return object, WrapErrorf(NotFoundErr("AccessControlList", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	return response, nil
-}
-
-func (s *ApiGatewayServiceV2) DescribeApiGatewayAclEntryAttachmentAttribute(id string) (object map[string]interface{}, err error) {
-	parts, err := ParseResourceId(id, 2)
-	if err != nil {
-		return object, WrapError(err)
-	}
-
-	client := s.client
-	var response map[string]interface{}
-	action := "DescribeAccessControlListAttribute"
-	request := map[string]interface{}{
-		"AclId": parts[0],
-	}
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("CloudAPI", "2016-07-14", action, nil, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		addDebug(action, response, request)
-		return nil
-	})
-	if err != nil {
-		if IsExpectedErrors(err, []string{"InvokeSlbApiFail"}) {
-			return object, WrapErrorf(NotFoundErr("AclEntryAttachment", id), NotFoundMsg, response)
-		}
-		addDebug(action, response, request)
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	aclEntries, err := jsonpath.Get("$.AclEntrys.AclEntry", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.AclEntrys.AclEntry", response)
-	}
-	if len(aclEntries.([]interface{})) < 1 {
-		return object, WrapErrorf(NotFoundErr("AclEntryAttachment", id), NotFoundWithResponse, response)
-	}
-	for _, v := range aclEntries.([]interface{}) {
-		if fmt.Sprint(v.(map[string]interface{})["AclEntryIp"]) == parts[1] {
-			return v.(map[string]interface{}), nil
-		}
-	}
-	return object, WrapErrorf(NotFoundErr("AclEntryAttachment", id), NotFoundWithResponse, response)
-}
-
-func (s *ApiGatewayServiceV2) DescribeApiGatewayInstanceAclAttachmentAttribute(id string) (object map[string]interface{}, err error) {
-	parts, err := ParseResourceIds(id)
-	if err != nil {
-		return nil, WrapError(err)
-	}
-	instanceID := parts[0]
-	response, err := s.DescribeApiGatewayInstance(instanceID)
-	if err != nil {
-		return nil, WrapError(err)
-	}
-
-	if _, ok := response["AclId"].(string); !ok {
-		return nil, WrapErrorf(NotFoundErr("InstanceAclAttachment", id), NotFoundMsg, response)
-	}
 	return response, nil
 }
 
 func (s *ApiGatewayServiceV2) ApiGatewayAccessControlListStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ApiGatewayAccessControlListStateRefreshFuncWithApi(id, field, failStates, s.DescribeApiGatewayAccessControlList)
+}
+
+func (s *ApiGatewayServiceV2) ApiGatewayAccessControlListStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeApiGatewayAccessControlList(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {

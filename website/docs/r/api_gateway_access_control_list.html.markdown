@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_api_gateway_access_control_list
 
-Provides a Api Gateway Access Control List resource. Access control list.
+Provides a Api Gateway Access Control List resource.
+
+Access control list.
 
 For information about Api Gateway Access Control List and how to use it, see [What is Access Control List](https://www.alibabacloud.com/help/en/api-gateway/developer-reference/api-cloudapi-2016-07-14-createaccesscontrollist).
 
@@ -17,12 +19,6 @@ For information about Api Gateway Access Control List and how to use it, see [Wh
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_api_gateway_access_control_list&exampleId=118d82d0-f617-a50e-927d-660972288cf5a6442c79&activeTab=example&spm=docs.r.api_gateway_access_control_list.0.118d82d0f6&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -47,14 +43,11 @@ resource "alicloud_api_gateway_access_control_list" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_api_gateway_access_control_list&spm=docs.r.api_gateway_access_control_list.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_control_list_name` - (Required, ForceNew) Access control list name.
-* `acl_entrys` - (Optional, Deprecated from v1.228.0) Information list of access control policies. You can add at most 50 IP addresses or CIDR blocks to an ACL in each call. If the IP address or CIDR block that you want to add to an ACL already exists, the IP address or CIDR block is not added. The entries that you add must be CIDR blocks. See [`acl_entrys`](#acl_entrys) below.
-**NOTE:** Field 'acl_entrys' has been deprecated from provider version 1.228.0, and it will be removed in the future version. Please use the new resource 'alicloud_api_gateway_acl_entry_attachment'.
+* `access_control_list_name` - (Required, ForceNew) Access control list name
+* `acl_entrys` - (Optional, Computed, List) Information list of access control policies. You can add at most 50 IP addresses or CIDR blocks to an ACL in each call. If the IP address or CIDR block that you want to add to an ACL already exists, the IP address or CIDR block is not added. The entries that you add must be CIDR blocks. See [`acl_entrys`](#acl_entrys) below.
 * `address_ip_version` - (Optional, ForceNew, Computed) The IP version. Valid values: ipv4 and ipv6.
 
 ### `acl_entrys`
@@ -66,7 +59,7 @@ The acl_entrys supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
 
@@ -80,5 +73,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Api Gateway Access Control List can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_api_gateway_access_control_list.example <id>
+$ terraform import alicloud_api_gateway_access_control_list.example <acl_id>
 ```

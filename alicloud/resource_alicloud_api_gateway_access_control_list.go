@@ -4,11 +4,9 @@ package alicloud
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
-	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -30,17 +28,14 @@ func resourceAliCloudApiGatewayAccessControlList() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"access_control_list_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_-]+$"), "Access control list name"),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"acl_entrys": {
-				Type:       schema.TypeSet,
-				Optional:   true,
-				Sensitive:  true,
-				Computed:   true,
-				Deprecated: "Field 'acl_entrys' has been deprecated from provider version v1.228.0, and it will be removed in the future version. Please use the new resource 'alicloud_api_gateway_acl_entry_attachment'.",
+				Type:      schema.TypeSet,
+				Optional:  true,
+				Sensitive: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"acl_entry_comment": {
@@ -80,8 +75,6 @@ func resourceAliCloudApiGatewayAccessControlListCreate(d *schema.ResourceData, m
 	if v, ok := d.GetOk("address_ip_version"); ok {
 		request["AddressIPVersion"] = v
 	}
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("CloudAPI", "2016-07-14", action, query, request, true)
@@ -92,9 +85,9 @@ func resourceAliCloudApiGatewayAccessControlListCreate(d *schema.ResourceData, m
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_api_gateway_access_control_list", action, AlibabaCloudSdkGoERROR)
@@ -122,19 +115,21 @@ func resourceAliCloudApiGatewayAccessControlListRead(d *schema.ResourceData, met
 	d.Set("access_control_list_name", objectRaw["AclName"])
 	d.Set("address_ip_version", objectRaw["AddressIPVersion"])
 
-	aclEntry1Raw, _ := jsonpath.Get("$.AclEntrys.AclEntry", objectRaw)
+	aclEntryRaw, _ := jsonpath.Get("$.AclEntrys.AclEntry", objectRaw)
 	aclEntrysMaps := make([]map[string]interface{}, 0)
-	if aclEntry1Raw != nil {
-		for _, aclEntryChild1Raw := range aclEntry1Raw.([]interface{}) {
+	if aclEntryRaw != nil {
+		for _, aclEntryChildRaw := range convertToInterfaceArray(aclEntryRaw) {
 			aclEntrysMap := make(map[string]interface{})
-			aclEntryChild1Raw := aclEntryChild1Raw.(map[string]interface{})
-			aclEntrysMap["acl_entry_comment"] = aclEntryChild1Raw["AclEntryComment"]
-			aclEntrysMap["acl_entry_ip"] = aclEntryChild1Raw["AclEntryIp"]
+			aclEntryChildRaw := aclEntryChildRaw.(map[string]interface{})
+			aclEntrysMap["acl_entry_comment"] = aclEntryChildRaw["AclEntryComment"]
+			aclEntrysMap["acl_entry_ip"] = aclEntryChildRaw["AclEntryIp"]
 
 			aclEntrysMaps = append(aclEntrysMaps, aclEntrysMap)
 		}
 	}
-	d.Set("acl_entrys", aclEntrysMaps)
+	if err := d.Set("acl_entrys", aclEntrysMaps); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -144,7 +139,7 @@ func resourceAliCloudApiGatewayAccessControlListUpdate(d *schema.ResourceData, m
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	var err error
+
 	if d.HasChange("acl_entrys") {
 		oldEntry, newEntry := d.GetChange("acl_entrys")
 		oldEntrySet := oldEntry.(*schema.Set)
@@ -156,20 +151,19 @@ func resourceAliCloudApiGatewayAccessControlListUpdate(d *schema.ResourceData, m
 			action := "RemoveAccessControlListEntry"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			query["AclId"] = d.Id()
+			request["AclId"] = d.Id()
+
 			localData := removed.List()
-			aclEntrysMaps := make([]interface{}, 0)
+			aclEntrysMapsArray := make([]interface{}, 0)
 			for _, dataLoop := range localData {
 				dataLoopTmp := dataLoop.(map[string]interface{})
 				dataLoopMap := make(map[string]interface{})
 				dataLoopMap["Entry"] = dataLoopTmp["acl_entry_ip"]
 				dataLoopMap["Comment"] = dataLoopTmp["acl_entry_comment"]
-				aclEntrysMaps = append(aclEntrysMaps, dataLoopMap)
+				aclEntrysMapsArray = append(aclEntrysMapsArray, dataLoopMap)
 			}
-			request["AclEntrys"], _ = convertArrayObjectToJsonString(aclEntrysMaps)
+			request["AclEntrys"] = aclEntrysMapsArray
 
-			runtime := util.RuntimeOptions{}
-			runtime.SetAutoretry(true)
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("CloudAPI", "2016-07-14", action, query, request, true)
@@ -180,9 +174,9 @@ func resourceAliCloudApiGatewayAccessControlListUpdate(d *schema.ResourceData, m
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -193,20 +187,19 @@ func resourceAliCloudApiGatewayAccessControlListUpdate(d *schema.ResourceData, m
 			action := "AddAccessControlListEntry"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			query["AclId"] = d.Id()
+			request["AclId"] = d.Id()
+
 			localData := added.List()
-			aclEntrysMaps := make([]interface{}, 0)
+			aclEntrysMapsArray := make([]interface{}, 0)
 			for _, dataLoop := range localData {
 				dataLoopTmp := dataLoop.(map[string]interface{})
 				dataLoopMap := make(map[string]interface{})
 				dataLoopMap["Entry"] = dataLoopTmp["acl_entry_ip"]
 				dataLoopMap["Comment"] = dataLoopTmp["acl_entry_comment"]
-				aclEntrysMaps = append(aclEntrysMaps, dataLoopMap)
+				aclEntrysMapsArray = append(aclEntrysMapsArray, dataLoopMap)
 			}
-			request["AclEntrys"], _ = convertArrayObjectToJsonString(aclEntrysMaps)
+			request["AclEntrys"] = aclEntrysMapsArray
 
-			runtime := util.RuntimeOptions{}
-			runtime.SetAutoretry(true)
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("CloudAPI", "2016-07-14", action, query, request, true)
@@ -217,9 +210,9 @@ func resourceAliCloudApiGatewayAccessControlListUpdate(d *schema.ResourceData, m
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -239,14 +232,11 @@ func resourceAliCloudApiGatewayAccessControlListDelete(d *schema.ResourceData, m
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	query["AclId"] = d.Id()
+	request["AclId"] = d.Id()
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("CloudAPI", "2016-07-14", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -254,12 +244,12 @@ func resourceAliCloudApiGatewayAccessControlListDelete(d *schema.ResourceData, m
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"NotFoundAccessControlList"}) {
+		if IsExpectedErrors(err, []string{"NotFoundAccessControlList"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
