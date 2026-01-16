@@ -24,14 +24,17 @@ func (s *NasServiceV2) DescribeNasAccessRule(id string) (object map[string]inter
 	var response map[string]interface{}
 	var query map[string]interface{}
 	parts := strings.Split(id, ":")
-	action := "DescribeAccessRules"
+	if len(parts) != 3 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
+		return nil, err
+	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["AccessGroupName"] = parts[0]
-	query["AccessRuleId"] = parts[1]
-	if len(parts) == 3 {
-		query["FileSystemType"] = parts[2]
-	}
+	request["AccessGroupName"] = parts[0]
+	request["AccessRuleId"] = parts[2]
+	request["FileSystemType"] = parts[1]
+
+	action := "DescribeAccessRules"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -47,12 +50,10 @@ func (s *NasServiceV2) DescribeNasAccessRule(id string) (object map[string]inter
 		return nil
 	})
 	addDebug(action, response, request)
-
 	if err != nil {
 		if IsExpectedErrors(err, []string{"InvalidAccessRule.NotFound"}) {
 			return object, WrapErrorf(NotFoundErr("AccessRule", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -69,17 +70,27 @@ func (s *NasServiceV2) DescribeNasAccessRule(id string) (object map[string]inter
 }
 
 func (s *NasServiceV2) NasAccessRuleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NasAccessRuleStateRefreshFuncWithApi(id, field, failStates, s.DescribeNasAccessRule)
+}
+
+func (s *NasServiceV2) NasAccessRuleStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNasAccessRule(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
