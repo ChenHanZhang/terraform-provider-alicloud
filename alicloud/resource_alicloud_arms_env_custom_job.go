@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -55,6 +54,10 @@ func resourceAliCloudArmsEnvCustomJob() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"status": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -75,8 +78,12 @@ func resourceAliCloudArmsEnvCustomJobCreate(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	query["EnvironmentId"] = d.Get("environment_id")
-	query["CustomJobName"] = d.Get("env_custom_job_name")
+	if v, ok := d.GetOk("environment_id"); ok {
+		request["EnvironmentId"] = v
+	}
+	if v, ok := d.GetOk("env_custom_job_name"); ok {
+		request["CustomJobName"] = v
+	}
 	request["RegionId"] = client.RegionId
 
 	request["ConfigYaml"] = d.Get("config_yaml")
@@ -86,7 +93,6 @@ func resourceAliCloudArmsEnvCustomJobCreate(d *schema.ResourceData, meta interfa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ARMS", "2019-08-08", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -94,17 +100,15 @@ func resourceAliCloudArmsEnvCustomJobCreate(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_arms_env_custom_job", action, AlibabaCloudSdkGoERROR)
 	}
-	code, _ := jsonpath.Get("$.Code", response)
-	if fmt.Sprint(code) != "200" {
-		log.Printf("[DEBUG] Resource alicloud_arms_env_custom_job CreateEnvCustomJob Failed!!! %s", response)
-		return WrapErrorf(err, DefaultErrorMsg, "alicloud_arms_env_custom_job", action, AlibabaCloudSdkGoERROR, response)
+	if fmt.Sprint(response["Code"]) != "200" {
+		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
 	}
 
 	d.SetId(fmt.Sprintf("%v:%v", query["EnvironmentId"], response["Data"]))
@@ -127,6 +131,7 @@ func resourceAliCloudArmsEnvCustomJobRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("config_yaml", objectRaw["ConfigYaml"])
+	d.Set("region_id", objectRaw["RegionId"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("env_custom_job_name", objectRaw["CustomJobName"])
 	d.Set("environment_id", objectRaw["EnvironmentId"])
@@ -140,13 +145,14 @@ func resourceAliCloudArmsEnvCustomJobUpdate(d *schema.ResourceData, meta interfa
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+
+	var err error
 	parts := strings.Split(d.Id(), ":")
 	action := "UpdateEnvCustomJob"
-	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["EnvironmentId"] = parts[0]
-	query["CustomJobName"] = parts[1]
+	request["EnvironmentId"] = parts[0]
+	request["CustomJobName"] = parts[1]
 	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("config_yaml") {
 		update = true
@@ -164,7 +170,6 @@ func resourceAliCloudArmsEnvCustomJobUpdate(d *schema.ResourceData, meta interfa
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("ARMS", "2019-08-08", action, query, request, true)
-
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -172,9 +177,9 @@ func resourceAliCloudArmsEnvCustomJobUpdate(d *schema.ResourceData, meta interfa
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -193,14 +198,13 @@ func resourceAliCloudArmsEnvCustomJobDelete(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	query["EnvironmentId"] = parts[0]
-	query["CustomJobName"] = parts[1]
+	request["EnvironmentId"] = parts[0]
+	request["CustomJobName"] = parts[1]
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ARMS", "2019-08-08", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -208,12 +212,12 @@ func resourceAliCloudArmsEnvCustomJobDelete(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"404"}) {
+		if IsExpectedErrors(err, []string{"404"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)

@@ -659,13 +659,14 @@ func (s *ArmsServiceV2) DescribeArmsEnvCustomJob(id string) (object map[string]i
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
-	action := "DescribeEnvCustomJob"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["CustomJobName"] = parts[1]
-	query["EnvironmentId"] = parts[0]
+	request["CustomJobName"] = parts[1]
+	request["EnvironmentId"] = parts[0]
 	request["RegionId"] = client.RegionId
+	action := "DescribeEnvCustomJob"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -678,10 +679,9 @@ func (s *ArmsServiceV2) DescribeArmsEnvCustomJob(id string) (object map[string]i
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
-
+	addDebug(action, response, request)
 	code, _ := jsonpath.Get("$.Code", response)
 	if InArray(fmt.Sprint(code), []string{"404"}) {
 		return object, WrapErrorf(NotFoundErr("EnvCustomJob", id), NotFoundMsg, response)
@@ -696,17 +696,28 @@ func (s *ArmsServiceV2) DescribeArmsEnvCustomJob(id string) (object map[string]i
 }
 
 func (s *ArmsServiceV2) ArmsEnvCustomJobStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ArmsEnvCustomJobStateRefreshFuncWithApi(id, field, failStates, s.DescribeArmsEnvCustomJob)
+}
+
+func (s *ArmsServiceV2) ArmsEnvCustomJobStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeArmsEnvCustomJob(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
 		for _, failState := range failStates {
 			if currentStatus == failState {
 				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
