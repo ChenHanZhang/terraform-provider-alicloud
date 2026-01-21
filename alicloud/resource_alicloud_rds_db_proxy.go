@@ -1,157 +1,137 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
-	"encoding/json"
-	"strconv"
-	"strings"
+	"fmt"
+	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudRdsDBProxy() *schema.Resource {
+func resourceAliCloudRdsDbProxy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudRdsDBProxyCreate,
-		Read:   resourceAlicloudRdsDBProxyRead,
-		Update: resourceAlicloudRdsDBProxyUpdate,
-		Delete: resourceAlicloudRdsDBProxyDelete,
+		Create: resourceAliCloudRdsDbProxyCreate,
+		Read:   resourceAliCloudRdsDbProxyRead,
+		Update: resourceAliCloudRdsDbProxyUpdate,
+		Delete: resourceAliCloudRdsDbProxyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Minute),
-			Update: schema.DefaultTimeout(30 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
-
 		Schema: map[string]*schema.Schema{
-			"instance_id": {
+			"causal_consist_read_timeout": {
 				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Optional: true,
 			},
-			"db_proxy_instance_num": {
-				Type:         schema.TypeInt,
-				Required:     true,
-				ValidateFunc: validation.IntBetween(1, 60),
+			"config_db_proxy_features": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
-			"instance_network_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"VPC"}, false),
-			},
-			"vpc_id": {
+			"db_instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"vswitch_id": {
+			"db_proxy_connect_string": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			"db_proxy_connection_prefix": {
+			"db_proxy_connect_string_net_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-			},
-			"read_only_instance_distribution_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Standard", "Custom"}, false),
-			},
-			"db_proxy_instance_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"common", "exclusive"}, false),
-			},
-			"read_only_instance_weight": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"instance_id": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"weight": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-			},
-			"read_only_instance_max_delay_time": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-			},
-			"db_proxy_connection_string": {
-				Type:     schema.TypeString,
-				Computed: true,
+				ForceNew: true,
 			},
 			"db_proxy_connect_string_port": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"db_proxy_endpoint_id": {
 				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"db_proxy_instance_num": {
+				Type:     schema.TypeInt,
+				Optional: true,
 				Computed: true,
 			},
-			"net_type": {
+			"db_proxy_new_connect_string": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+			},
+			"db_endpoint_aliases": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_endpoint_min_slave_count": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_endpoint_operator": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_endpoint_read_write_mode": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"db_proxy_endpoint_aliases": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"db_proxy_endpoint_read_write_mode": {
+			"db_proxy_instance_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"db_proxy_features": {
+			"db_proxy_new_connect_string_port": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_proxy_ssl_enabled": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-			},
-			"effective_time": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Immediate", "MaintainTime", "SpecificTime"}, false),
 			},
 			"effective_specific_time": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"db_proxy_ssl_enabled": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Open", "Close", "Update"}, false),
+			"effective_time": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-			"upgrade_time": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Immediate", "MaintainTime", "SpecifyTime"}, false),
-			},
-			"switch_time": {
+			"persistent_connection_status": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"ssl_expired_time": {
+			"read_only_instance_distribution_type": {
 				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"read_only_instance_max_delay_time": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"read_only_instance_weight": {
+				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 			"resource_group_id": {
@@ -159,426 +139,430 @@ func resourceAlicloudRdsDBProxy() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"vswitch_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"vpc_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
 
-func resourceAlicloudRdsDBProxyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsDbProxyCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
+
 	action := "ModifyDBProxy"
-	request := map[string]interface{}{
-		"RegionId":             client.RegionId,
-		"DBInstanceId":         Trim(d.Get("instance_id").(string)),
-		"ConfigDBProxyService": "Startup",
-		"DBProxyInstanceNum":   d.Get("db_proxy_instance_num"),
-		"SourceIp":             client.SourceIp,
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("db_instance_id"); ok {
+		request["DBInstanceId"] = v
 	}
-	v, ok := d.GetOk("instance_network_type")
-	if ok && v.(string) != "" {
-		request["InstanceNetworkType"] = v
+	request["RegionId"] = client.RegionId
+
+	if v, ok := d.GetOk("db_proxy_instance_type"); ok {
+		request["DBProxyInstanceType"] = v
 	}
-	vpcId, ok := d.GetOk("vpc_id")
-	if ok && vpcId.(string) != "" {
-		request["VPCId"] = vpcId
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
 	}
-	vSwithId, ok := d.GetOk("vswitch_id")
-	if ok && vpcId.(string) != "" {
-		request["VSwitchId"] = vSwithId
+	request["ConfigDBProxyService"] = "Startup"
+	if v, ok := d.GetOk("vpc_id"); ok {
+		request["VPCId"] = v
 	}
-	dBProxyInstanceType, ok := d.GetOk("db_proxy_instance_type")
-	if ok && vpcId.(string) != "" {
-		request["DBProxyInstanceType"] = dBProxyInstanceType
+	if v, ok := d.GetOk("vswitch_id"); ok {
+		request["VSwitchId"] = v
 	}
-	resourceGroupId, ok := d.GetOk("resource_group_id")
-	if ok && vpcId.(string) != "" {
-		request["ResourceGroupId"] = resourceGroupId
+	if v, ok := d.GetOkExists("db_proxy_instance_num"); ok {
+		request["DBProxyInstanceNum"] = v
 	}
-	if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
+	request["InstanceNetworkType"] = "VPC"
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
+				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
-	}); err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_rds_db_proxy", action, AlibabaCloudSdkGoERROR)
 	}
-	d.SetId(request["DBInstanceId"].(string))
-	stateConf := BuildStateConf([]string{"Creating"}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(request["DBInstanceId"].(string), []string{"Deleting"}))
+
+	d.SetId(fmt.Sprint(request["DBInstanceId"]))
+
+	rdsServiceV2 := RdsServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, rdsServiceV2.RdsDbProxyStateRefreshFunc(d.Id(), "$.DBProxyInstanceStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
-	return resourceAlicloudRdsDBProxyUpdate(d, meta)
+
+	return resourceAliCloudRdsDbProxyUpdate(d, meta)
 }
 
-func resourceAlicloudRdsDBProxyRead(d *schema.ResourceData, meta interface{}) error {
-
+func resourceAliCloudRdsDbProxyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-	proxy, proxyErr := rdsService.DescribeDBProxy(d.Id())
-	if proxyErr != nil {
-		if NotFoundError(proxyErr) {
+	rdsServiceV2 := RdsServiceV2{client}
+
+	objectRaw, err := rdsServiceV2.DescribeRdsDbProxy(d.Id())
+	if err != nil {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_rds_db_proxy DescribeRdsDbProxy Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
-		return WrapError(proxyErr)
-	}
-	if _, ok := proxy["DBProxyInstanceStatus"]; !ok {
-		d.SetId("")
-		return nil
-	}
-
-	endpointInfo, endpointError := rdsService.DescribeRdsProxyEndpoint(d.Id())
-	if endpointError != nil {
-		if NotFoundError(endpointError) {
-			d.SetId("")
-			return nil
-		}
-		return WrapError(endpointError)
-	}
-	d.Set("instance_id", d.Id())
-	d.Set("db_proxy_instance_type", convertDBProxyInstanceTypeResponse(proxy["DBProxyInstanceType"]))
-	d.Set("db_proxy_instance_num", proxy["DBProxyInstanceNum"])
-	d.Set("vpc_id", proxy["DBProxyVpcId"])
-	d.Set("vswitch_id", proxy["DBProxyVswitchId"])
-	d.Set("instance_network_type", "VPC")
-	d.Set("db_proxy_endpoint_id", endpointInfo["DBProxyEndpointId"])
-	d.Set("db_proxy_connection_string", endpointInfo["DBProxyConnectString"])
-	d.Set("db_proxy_connection_prefix", strings.Split(endpointInfo["DBProxyConnectString"].(string), ".")[0])
-	d.Set("read_only_instance_distribution_type", endpointInfo["ReadOnlyInstanceDistributionType"])
-	d.Set("db_proxy_endpoint_aliases", endpointInfo["DbProxyEndpointAliases"])
-	d.Set("db_proxy_endpoint_read_write_mode", endpointInfo["DbProxyEndpointReadWriteMode"])
-	if dbProxyConnectStringPort, err := strconv.Atoi(endpointInfo["DBProxyConnectStringPort"].(string)); err == nil {
-		d.Set("db_proxy_connect_string_port", dbProxyConnectStringPort)
-
-	}
-	if d.Get("db_proxy_endpoint_read_write_mode") == "ReadWrite" {
-		if mdt, err := strconv.Atoi(endpointInfo["ReadOnlyInstanceMaxDelayTime"].(string)); err == nil {
-			d.Set("read_only_instance_max_delay_time", mdt)
-		}
-	} else {
-		d.Set("read_only_instance_max_delay_time", nil)
-	}
-	var weight []map[string]interface{}
-	rawData := []byte(endpointInfo["ReadOnlyInstanceWeight"].(string))
-	parseErr := json.Unmarshal(rawData, &weight)
-	if parseErr != nil {
-		return WrapError(parseErr)
-	}
-	readOnlyInstanceWeight := make([]map[string]interface{}, 0)
-	for _, val := range weight {
-		v := strconv.FormatFloat(val["Weight"].(float64), 'G', -1, 64)
-		readOnlyInstanceWeight = append(readOnlyInstanceWeight, map[string]interface{}{
-			"instance_id": val["DBInstanceId"],
-			"weight":      v,
-		})
-	}
-	if err := d.Set("read_only_instance_weight", readOnlyInstanceWeight); err != nil {
 		return WrapError(err)
 	}
-	proxySsl, proxySslError := rdsService.GetDbProxyInstanceSsl(d.Id())
-	if proxySslError != nil {
-		if NotFoundError(endpointError) {
-			d.SetId("")
-			return nil
-		}
-		return WrapError(endpointError)
+
+	d.Set("db_proxy_instance_num", objectRaw["DBProxyInstanceNum"])
+	d.Set("db_proxy_instance_type", convertRdsDbProxyDBProxyInstanceTypeResponse(objectRaw["DBProxyInstanceType"]))
+	d.Set("persistent_connection_status", objectRaw["DBProxyPersistentConnectionStatus"])
+	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
+
+	dBProxyConnectStringItemsRawArrayObj, _ := jsonpath.Get("$.DBProxyConnectStringItems.DBProxyConnectStringItems[*]", objectRaw)
+	dBProxyConnectStringItemsRawArray := make([]interface{}, 0)
+	if dBProxyConnectStringItemsRawArrayObj != nil {
+		dBProxyConnectStringItemsRawArray = convertToInterfaceArray(dBProxyConnectStringItemsRawArrayObj)
 	}
-	if proxySsl != nil {
-		d.Set("ssl_expired_time", proxySsl["SslExpiredTime"])
+	dBProxyConnectStringItemsRaw := make(map[string]interface{})
+	if len(dBProxyConnectStringItemsRawArray) > 0 {
+		dBProxyConnectStringItemsRaw = dBProxyConnectStringItemsRawArray[0].(map[string]interface{})
 	}
+
+	d.Set("db_proxy_connect_string", dBProxyConnectStringItemsRaw["DBProxyConnectString"])
+	d.Set("db_proxy_connect_string_net_type", dBProxyConnectStringItemsRaw["DBProxyConnectStringNetType"])
+	d.Set("db_proxy_connect_string_port", dBProxyConnectStringItemsRaw["DBProxyConnectStringPort"])
+	d.Set("db_proxy_endpoint_id", dBProxyConnectStringItemsRaw["DBProxyEndpointId"])
+
+	dbProxyEndpointItemsRawArrayObj, _ := jsonpath.Get("$.DbProxyEndpointItems.DbProxyEndpointItems[*]", objectRaw)
+	dbProxyEndpointItemsRawArray := make([]interface{}, 0)
+	if dbProxyEndpointItemsRawArrayObj != nil {
+		dbProxyEndpointItemsRawArray = convertToInterfaceArray(dbProxyEndpointItemsRawArrayObj)
+	}
+	dbProxyEndpointItemsRaw := make(map[string]interface{})
+	if len(dbProxyEndpointItemsRawArray) > 0 {
+		dbProxyEndpointItemsRaw = dbProxyEndpointItemsRawArray[0].(map[string]interface{})
+	}
+
+	d.Set("db_proxy_endpoint_aliases", dbProxyEndpointItemsRaw["DbProxyEndpointAliases"])
+
+	objectRaw, err = rdsServiceV2.DescribeDbProxyDescribeDBProxyEndpoint(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("db_proxy_connect_string", objectRaw["DBProxyConnectString"])
+	d.Set("db_proxy_connect_string_net_type", objectRaw["DBProxyConnectStringNetType"])
+	d.Set("db_proxy_connect_string_port", objectRaw["DBProxyConnectStringPort"])
+	d.Set("db_proxy_endpoint_id", objectRaw["DBProxyEndpointId"])
+	d.Set("db_proxy_endpoint_aliases", objectRaw["DbProxyEndpointAliases"])
+	d.Set("read_only_instance_max_delay_time", objectRaw["ReadOnlyInstanceMaxDelayTime"])
+	d.Set("causal_consist_read_timeout", objectRaw["CausalConsistReadTimeout"])
+	d.Set("read_only_instance_distribution_type", objectRaw["ReadOnlyInstanceDistributionType"])
+	d.Set("read_only_instance_weight", objectRaw["ReadOnlyInstanceWeight"])
+
+	d.Set("db_instance_id", d.Id())
+
 	return nil
 }
 
-func resourceAlicloudRdsDBProxyUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsDbProxyUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-	proxy, proxyErr := rdsService.DescribeDBProxy(d.Id())
-	if proxyErr != nil {
-		if NotFoundError(proxyErr) {
-			d.SetId("")
-			return nil
-		}
-		return WrapError(proxyErr)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
+	d.Partial(true)
+
+	var err error
+	action := "ModifyDBProxy"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ConfigDBProxyService"] = "Modify"
+	if d.HasChange("persistent_connection_status") {
+		update = true
+		request["PersistentConnectionStatus"] = d.Get("persistent_connection_status")
 	}
-	if _, ok := proxy["DBProxyInstanceStatus"]; !ok {
-		return nil
-	}
-	endpointInfo, endpointError := rdsService.DescribeRdsProxyEndpoint(d.Id())
-	if endpointError != nil {
-		return WrapError(endpointError)
-	}
-	if d.HasChanges("db_proxy_connection_prefix", "db_proxy_connect_string_port") && d.Get("instance_network_type") != "" {
-		action := "ModifyDBProxyEndpointAddress"
-		request := map[string]interface{}{
-			"RegionId":                    client.RegionId,
-			"DBInstanceId":                d.Id(),
-			"DBProxyEndpointId":           endpointInfo["DBProxyEndpointId"],
-			"DBProxyConnectStringNetType": d.Get("instance_network_type"),
-			"SourceIp":                    client.SourceIp,
-		}
-		portAddressUpdate := false
-		if v, ok := d.GetOk("db_proxy_connection_prefix"); ok {
-			request["DBProxyNewConnectString"] = v
-			portAddressUpdate = true
-		}
-		if v, ok := d.GetOk("db_proxy_connect_string_port"); ok {
-			request["DBProxyNewConnectStringPort"] = v
-			portAddressUpdate = true
-		}
-		if portAddressUpdate {
-			if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-				response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
-				if err != nil {
-					if NeedRetry(err) {
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				addDebug(action, response, request)
-				return nil
-			}); err != nil {
-				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-			}
-			// waiting state changes to running
-			stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleting"}))
-			if _, err := stateConf.WaitForState(); err != nil {
-				return WrapErrorf(err, IdMsg, d.Id())
-			}
-		}
-	}
-	endpointInfo, endpointError = rdsService.DescribeRdsProxyEndpoint(d.Id())
-	if endpointError != nil {
-		return WrapError(endpointError)
-	}
-	if !d.IsNewResource() && (d.HasChange("db_proxy_instance_num") || d.HasChange("db_proxy_instance_type")) {
-		action := "ModifyDBProxyInstance"
-		request := map[string]interface{}{
-			"RegionId":            client.RegionId,
-			"DBInstanceId":        d.Id(),
-			"DBProxyEndpointId":   endpointInfo["DBProxyEndpointId"],
-			"DBProxyInstanceNum":  d.Get("db_proxy_instance_num"),
-			"DBProxyInstanceType": d.Get("db_proxy_instance_type"),
-			"SourceIp":            client.SourceIp,
-		}
-		if d.HasChange("effective_time") {
-			request["EffectiveTime"] = d.Get("effective_time")
-		}
-		if d.HasChange("effective_specific_time") {
-			request["EffectiveSpecificTime"] = d.Get("effective_specific_time")
-		}
-		if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
-		}); err != nil {
+		})
+		addDebug(action, response, request)
+		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		// waiting state changes to running
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleting"}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-		d.SetPartial("effective_time")
-		d.SetPartial("effective_specific_time")
 	}
-	if d.HasChanges("db_proxy_endpoint_read_write_mode", "read_only_instance_max_delay_time", "read_only_instance_distribution_type", "db_proxy_features", "read_only_instance_weight") {
-		action := "ModifyDBProxyEndpoint"
-		request := map[string]interface{}{
-			"RegionId":          client.RegionId,
-			"DBInstanceId":      d.Id(),
-			"DBProxyEndpointId": endpointInfo["DBProxyEndpointId"],
-			"DbEndpointAliases": endpointInfo["DbProxyEndpointAliases"],
-			"SourceIp":          client.SourceIp,
-		}
-		if v, ok := d.GetOk("db_proxy_endpoint_read_write_mode"); ok {
-			request["DbEndpointReadWriteMode"] = v
-		}
-		if v, ok := d.GetOk("read_only_instance_max_delay_time"); ok {
-			request["ReadOnlyInstanceMaxDelayTime"] = v
-		}
-		if v, ok := d.GetOk("read_only_instance_distribution_type"); ok {
-			request["ReadOnlyInstanceDistributionType"] = v
-		}
-		if v, ok := d.GetOk("db_proxy_features"); ok {
-			request["ConfigDBProxyFeatures"] = v
-		}
-
-		if v, ok := d.GetOk("read_only_instance_weight"); ok {
-			list := v.(*schema.Set).List()
-			weightMap := map[string]interface{}{}
-			for _, v := range list {
-				v := v.(map[string]interface{})
-				weightMap[v["instance_id"].(string)] = v["weight"]
-			}
-			weightStr, _ := convertMaptoJsonString(weightMap)
-			request["ReadOnlyInstanceWeight"] = weightStr
-			//request["ReadOnlyInstanceWeight"] = v
-		}
-		if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
+	update = false
+	action = "ModifyDBProxyInstance"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if !d.IsNewResource() && d.HasChange("db_proxy_instance_type") {
+		update = true
+	}
+	request["DBProxyInstanceType"] = d.Get("db_proxy_instance_type")
+	if !d.IsNewResource() && d.HasChange("db_proxy_instance_num") {
+		update = true
+	}
+	request["DBProxyInstanceNum"] = d.Get("db_proxy_instance_num")
+	if v, ok := d.GetOk("effective_time"); ok {
+		request["EffectiveTime"] = v
+	}
+	if v, ok := d.GetOk("effective_specific_time"); ok {
+		request["EffectiveSpecificTime"] = v
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
-		}); err != nil {
+		})
+		addDebug(action, response, request)
+		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		// waiting state changes to running
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleting"}))
+		rdsServiceV2 := RdsServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, rdsServiceV2.RdsDbProxyStateRefreshFunc(d.Id(), "$.DBProxyInstanceStatus", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
+	update = false
+	action = "ModifyDBProxyEndpoint"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if v, ok := d.GetOk("read_only_instance_distribution_type"); ok {
+		request["ReadOnlyInstanceDistributionType"] = v
+	}
+	if v, ok := d.GetOk("causal_consist_read_timeout"); ok {
+		request["CausalConsistReadTimeout"] = v
+	}
+	if d.HasChange("read_only_instance_max_delay_time") {
+		update = true
+		request["ReadOnlyInstanceMaxDelayTime"] = d.Get("read_only_instance_max_delay_time")
+	}
 
+	if v, ok := d.GetOk("vswitch_id"); ok {
+		request["VSwitchId"] = v
+	}
+	if d.HasChange("db_proxy_endpoint_id") {
+		update = true
+		request["DBProxyEndpointId"] = d.Get("db_proxy_endpoint_id")
+	}
+
+	if v, ok := d.GetOk("db_endpoint_aliases"); ok {
+		request["DbEndpointAliases"] = v
+	}
+	if v, ok := d.GetOk("db_endpoint_min_slave_count"); ok {
+		request["DbEndpointMinSlaveCount"] = v
+	}
+	if v, ok := d.GetOk("effective_time"); ok {
+		request["EffectiveTime"] = v
+	}
+	if v, ok := d.GetOk("effective_specific_time"); ok {
+		request["EffectiveSpecificTime"] = v
+	}
+	if v, ok := d.GetOk("db_endpoint_read_write_mode"); ok {
+		request["DbEndpointReadWriteMode"] = v
+	}
+	if v, ok := d.GetOk("vpc_id"); ok {
+		request["VpcId"] = v
+	}
+	if v, ok := d.GetOk("config_db_proxy_features"); ok {
+		request["ConfigDBProxyFeatures"] = v
+	}
+	if v, ok := d.GetOk("db_endpoint_operator"); ok {
+		request["DbEndpointOperator"] = v
+	}
+	if v, ok := d.GetOk("read_only_instance_weight"); ok {
+		request["ReadOnlyInstanceWeight"] = v
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyDbProxyInstanceSsl"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DbInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
 	if d.HasChange("db_proxy_ssl_enabled") {
-		action := "ModifyDbProxyInstanceSsl"
-		request := map[string]interface{}{
-			"RegionId":          client.RegionId,
-			"DBInstanceId":      d.Id(),
-			"DBProxyEndpointId": endpointInfo["DBProxyEndpointId"],
-			"SourceIp":          client.SourceIp,
-		}
-		proxySsl := d.Get("db_proxy_ssl_enabled").(string)
-		if proxySsl == "Close" {
-			request["DbProxySslEnabled"] = 0
-		}
-		if proxySsl == "Open" {
-			request["DbProxySslEnabled"] = 1
-		}
-		if proxySsl == "Update" {
-			request["DbProxySslEnabled"] = 2
-		}
-		ProxyEndpoint, ProxyEndpointErr := rdsService.DescribeRdsProxyEndpoint(d.Id())
-		if ProxyEndpointErr != nil {
-			if NotFoundError(ProxyEndpointErr) {
-				d.SetId("")
-				return nil
-			}
-			return WrapError(proxyErr)
-		}
-		request["DbProxyConnectString"] = ProxyEndpoint["DBProxyConnectString"]
-		if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
+		update = true
+	}
+	request["DbProxySslEnabled"] = d.Get("db_proxy_ssl_enabled")
+	if d.HasChange("db_proxy_connect_string") {
+		update = true
+	}
+	request["DbProxyConnectString"] = d.Get("db_proxy_connect_string")
+	if d.HasChange("db_proxy_endpoint_id") {
+		update = true
+	}
+	request["DbProxyEndpointId"] = d.Get("db_proxy_endpoint_id")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
-		}); err != nil {
+		})
+		addDebug(action, response, request)
+		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		// waiting state changes to running
-		if err := rdsService.WaitForDBInstance(request["DBInstanceId"].(string), Running, 60*60); err != nil {
-			return WrapError(err)
-		}
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleting"}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
-	if d.HasChange("upgrade_time") {
-		action := "UpgradeDBProxyInstanceKernelVersion"
-		request := map[string]interface{}{
-			"RegionId":     client.RegionId,
-			"DBInstanceId": d.Id(),
-			"UpgradeTime":  d.Get("upgrade_time"),
-			"SourceIp":     client.SourceIp,
-		}
-		if d.Get("upgrade_time") == "SpecificTime" && d.HasChange("switch_time") {
-			request["SwitchTime"] = d.Get("switch_time")
-		}
-		if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) {
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			addDebug(action, response, request)
-			return nil
-		}); err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		if err := rdsService.WaitForDBInstance(request["DBInstanceId"].(string), Running, 60*60); err != nil {
-			return WrapError(err)
-		}
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleting"}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
+	update = false
+	action = "ModifyDBProxyEndpointAddress"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if d.HasChange("db_proxy_new_connect_string") {
+		update = true
+		request["DBProxyNewConnectString"] = d.Get("db_proxy_new_connect_string")
+	}
 
+	if d.HasChange("db_proxy_endpoint_id") {
+		update = true
 	}
-	return resourceAlicloudRdsDBProxyRead(d, meta)
+	request["DBProxyEndpointId"] = d.Get("db_proxy_endpoint_id")
+	if d.HasChange("db_proxy_connect_string_net_type") {
+		update = true
+		request["DBProxyConnectStringNetType"] = d.Get("db_proxy_connect_string_net_type")
+	}
+
+	if d.HasChange("db_proxy_new_connect_string_port") {
+		update = true
+		request["DBProxyNewConnectStringPort"] = d.Get("db_proxy_new_connect_string_port")
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	d.Partial(false)
+	return resourceAliCloudRdsDbProxyRead(d, meta)
 }
 
-func resourceAlicloudRdsDBProxyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsDbProxyDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-	if d.Id() == "" {
-		return nil
-	}
-	_, proxyErr := rdsService.DescribeDBProxy(d.Id())
-	if proxyErr != nil {
-		if NotFoundError(proxyErr) {
-			return nil
-		}
-		return WrapError(proxyErr)
-	}
 	action := "ModifyDBProxy"
-	request := map[string]interface{}{
-		"RegionId":             client.RegionId,
-		"DBInstanceId":         d.Id(),
-		"ConfigDBProxyService": "Shutdown",
-		"SourceIp":             client.SourceIp,
-	}
-	if err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	request["ConfigDBProxyService"] = "Shutdown"
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, OperationDeniedDBStatus) || NeedRetry(err) {
+			if NeedRetry(err) {
+				wait()
 				return resource.RetryableError(err)
-			}
-			if NotFoundError(err) {
-				return nil
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
-	}); err != nil {
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 3*time.Minute, rdsService.RdsDBProxyStateRefreshFunc(d.Id(), []string{"Deleted"}))
+
+	rdsServiceV2 := RdsServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, rdsServiceV2.RdsDbProxyStateRefreshFunc(d.Id(), "$.DBProxyInstanceStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
+
 	return nil
 }
 
-func convertDBProxyInstanceTypeResponse(source interface{}) interface{} {
+func convertRdsDbProxyDBProxyInstanceTypeResponse(source interface{}) interface{} {
+	source = fmt.Sprint(source)
 	switch source {
-	case "2":
-		return "exclusive"
 	case "3":
 		return "common"
+	case "2":
+		return "exclusive"
 	}
-	return ""
+	return source
 }

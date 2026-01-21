@@ -292,3 +292,114 @@ resource "alicloud_db_readonly_instance" "default" {
 
 `, name)
 }
+
+// Test Rds DbProxy. >>> Resource test cases, automatically generated.
+// Case RDS_DBPROXY_TEST 11914
+func TestAccAliCloudRdsDbProxy_basic11914(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_rds_db_proxy.default"
+	ra := resourceAttrInit(resourceId, AlicloudRdsDbProxyMap11914)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &RdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeRdsDbProxy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudRdsDbProxyBasicDependence11914)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_instance_id":         "rm-2zeglzriqaxx1k28e",
+					"db_proxy_instance_type": "exclusive",
+					"db_proxy_instance_num":  "4",
+					"vpc_id":                 "vpc-2ze7s2hfq6twcdwzs41e4",
+					"vswitch_id":             "vsw-2zeq5sk2uyrj7xa8lih3m",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_instance_id":         "rm-2zeglzriqaxx1k28e",
+						"db_proxy_instance_type": "exclusive",
+						"db_proxy_instance_num":  "4",
+						"vpc_id":                 "vpc-2ze7s2hfq6twcdwzs41e4",
+						"vswitch_id":             "vsw-2zeq5sk2uyrj7xa8lih3m",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"persistent_connection_status":         "Enabled",
+					"causal_consist_read_timeout":          " ",
+					"effective_time":                       "MaintainTime",
+					"db_endpoint_operator":                 "Modify",
+					"db_proxy_connect_string_net_type":     "vpc",
+					"db_endpoint_read_write_mode":          "ReadOnly",
+					"read_only_instance_distribution_type": "Standard",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"persistent_connection_status":         "Enabled",
+						"causal_consist_read_timeout":          " ",
+						"effective_time":                       "MaintainTime",
+						"db_endpoint_operator":                 "Modify",
+						"db_proxy_connect_string_net_type":     "vpc",
+						"db_endpoint_read_write_mode":          "ReadOnly",
+						"read_only_instance_distribution_type": "Standard",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_proxy_instance_type":      "common",
+					"causal_consist_read_timeout": "10",
+					"effective_time":              "Immediate",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_proxy_instance_type":      "common",
+						"causal_consist_read_timeout": CHECKSET,
+						"effective_time":              "Immediate",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"causal_consist_read_timeout", "config_db_proxy_features", "db_endpoint_aliases", "db_endpoint_min_slave_count", "db_endpoint_operator", "db_endpoint_read_write_mode", "effective_specific_time", "effective_time", "read_only_instance_distribution_type", "read_only_instance_weight", "vswitch_id", "vpc_id"},
+			},
+		},
+	})
+}
+
+var AlicloudRdsDbProxyMap11914 = map[string]string{
+	"db_proxy_endpoint_aliases":    CHECKSET,
+	"db_proxy_connect_string_port": CHECKSET,
+}
+
+func AlicloudRdsDbProxyBasicDependence11914(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "test_region_id" {
+  default = "cn-beijing"
+}
+
+variable "test_zone_id" {
+  default = "cn-beijing-l"
+}
+
+
+`, name)
+}
+
+// Test Rds DbProxy. <<< Resource test cases, automatically generated.
