@@ -2,28 +2,23 @@
 subcategory: "NAT Gateway"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_vpc_nat_ip"
-sidebar_current: "docs-alicloud-resource-vpc-nat-ip"
 description: |-
-  Provides a Alicloud VPC Nat Ip resource.
+  Provides a Alicloud N A T Gateway Nat Ip resource.
 ---
 
 # alicloud_vpc_nat_ip
 
-Provides a VPC Nat Ip resource.
+Provides a N A T Gateway Nat Ip resource.
 
-For information about VPC Nat Ip and how to use it, see [What is Nat Ip](https://www.alibabacloud.com/help/doc-detail/281976.htm).
+NAT IP address instance.
+
+For information about N A T Gateway Nat Ip and how to use it, see [What is Nat Ip](https://www.alibabacloud.com/help/doc-detail/281976.htm).
 
 -> **NOTE:** Available since v1.136.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_vpc_nat_ip&exampleId=4ada155c-b87d-bb11-dc6b-9edd006ac02a6b01dd02&activeTab=example&spm=docs.r.vpc_nat_ip.0.4ada155cb8&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 data "alicloud_zones" "example" {
@@ -69,38 +64,43 @@ resource "alicloud_vpc_nat_ip" "example" {
 
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_nat_ip&spm=docs.r.vpc_nat_ip.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `dry_run` - (Optional, Computed) Specifies whether to only precheck the request. Valid values:
+  - `true`: Sends a dry-run request without creating the NAT IP address. The check includes verifying the validity of the AccessKey, RAM user permissions, and whether all required parameters are provided. If the check fails, an error is returned. If the check passes, the error code `DryRunOperation` is returned.
+  - `false` (default): Sends a normal request. If the check passes, a 2xx HTTP status code is returned and the NAT IP address is created.
 
-* `dry_run` - (Optional, Computed) Specifies whether to check the validity of the request without actually making the request.
-* `nat_gateway_id` - (Required, ForceNew) The ID of the Virtual Private Cloud (VPC) NAT gateway for which you want to create the NAT IP address.
-* `nat_ip` - (Optional, ForceNew, Computed) The NAT IP address that you want to create. If you do not specify an IP address, the system selects a random IP address from the specified CIDR block.
-* `nat_ip_cidr` - (Optional, ForceNew) NAT IP ADDRESS of the address segment.
-* `nat_ip_cidr_id` - (Optional) The ID of the CIDR block to which the NAT IP address belongs.
-* `nat_ip_description` - (Optional) NAT IP ADDRESS description of information. Length is from `2` to `256` characters, must start with a letter or the Chinese at the beginning, but not at the` http://` Or `https://` at the beginning.
-* `nat_ip_name` - (Optional) NAT IP ADDRESS the name of the root directory. Length is from `2` to `128` characters, must start with a letter or the Chinese at the beginning can contain numbers, half a period (.), underscore (_) and dash (-). But do not start with `http://` or `https://` at the beginning.
+-> **NOTE:** This parameter only applies during resource creation, update or deletion. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `ipv4_prefix` - (Optional, ForceNew, Available since v1.269.0) The IPv4 prefix address block to be created.
+This IPv4 prefix address block must reside within the reserved CIDR block of the vSwitch where the NAT gateway is deployed, and the reserved CIDR block must not be occupied. The prefix mask must be /28.
+* `nat_gateway_id` - (Required, ForceNew) The ID of the VPC NAT gateway instance to which the queried NAT IP address belongs.
+* `nat_ip` - (Optional, ForceNew, Computed) The NAT IP address to be created.
+If you do not specify this IP address, the system randomly assigns an IP address from your NAT IP CIDR block.
+* `nat_ip_cidr` - (Required, ForceNew) The CIDR block of the NAT IP address to be queried.
+* `nat_ip_description` - (Optional) The description of the NAT IP address to be modified.
+The description must be 2 to 256 characters in length, start with a letter or Chinese character, and cannot start with `http://` or `https://`.
+* `nat_ip_name` - (Optional) The name of the NAT IP address to be modified.
+The name must be 2 to 128 characters in length and can contain letters, digits, periods (.), underscores (_), and hyphens (-). It must start with a letter or a Chinese character and cannot start with `http://` or `https://`.
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Nat Ip. The value formats as `<nat_gateway_id>:<nat_ip_id>`.
-* `nat_ip_id` - Ihe ID of the Nat Ip.
-* `status` - The status of the NAT IP address. Valid values: `Available`, `Deleting`, `Creating` and `Deleted`. 
+* `id` - The ID of the resource supplied above. The value is formulated as `<nat_gateway_id>:<nat_ip_id>`.
+* `nat_ip_id` - The ID of the NAT IP address instance to be queried. `N` ranges from `1` to `20`.
+* `status` - The status of the queried NAT IP address. 
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 1 mins) Used when create the Nat Ip.
-* `delete` - (Defaults to 1 mins) Used when delete the Nat Ip.
+* `create` - (Defaults to 5 mins) Used when create the Nat Ip.
+* `delete` - (Defaults to 5 mins) Used when delete the Nat Ip.
+* `update` - (Defaults to 5 mins) Used when update the Nat Ip.
 
 ## Import
 
-VPC Nat Ip can be imported using the id, e.g.
+N A T Gateway Nat Ip can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_vpc_nat_ip.example <nat_gateway_id>:<nat_ip_id>
