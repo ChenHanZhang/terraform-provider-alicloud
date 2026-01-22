@@ -3,12 +3,12 @@ subcategory: "Container Service for Kubernetes (ACK)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cs_kubernetes_node_pool"
 description: |-
-  Provides a Alicloud Container Service for Kubernetes (ACK) Nodepool resource.
+  Provides a Alicloud Container Service for Kubernetes (ACK) Node Pool resource.
 ---
 
 # alicloud_cs_kubernetes_node_pool
 
-Provides a Container Service for Kubernetes (ACK) Nodepool resource.
+Provides a Container Service for Kubernetes (ACK) Node Pool resource.
 
 This resource will help you to manage node pool in Kubernetes Cluster, see [What is kubernetes node pool](https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/developer-reference/api-create-node-pools). 
 
@@ -42,19 +42,13 @@ This resource will help you to manage node pool in Kubernetes Cluster, see [What
 
 -> **NOTE:** From version 1.185.0+, Field `rollout_policy` will be deprecated and please use field `rolling_policy` instead.
 
-For information about Container Service for Kubernetes (ACK) Nodepool and how to use it, see [What is Nodepool](https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/developer-reference/api-create-node-pools).
+For information about Container Service for Kubernetes (ACK) Node Pool and how to use it, see [What is Node Pool](https://www.alibabacloud.com/help/en/ack/ack-managed-and-ack-dedicated/developer-reference/api-create-node-pools).
 
 -> **NOTE:** Available since v1.97.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cs_kubernetes_node_pool&exampleId=b9abdd6c-849b-5331-23d3-42c7d815404ab1bc1d14&activeTab=example&spm=docs.r.cs_kubernetes_node_pool.0.b9abdd6c84&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 resource "random_integer" "default" {
@@ -307,440 +301,241 @@ resource "alicloud_cs_kubernetes_node_pool" "customized_kubelet" {
 }
 ```
 
-ACK Auto Mode NodePool:
-
-ACK nodepool with Auto Mode
-Nodepools enable Auto Mode can only be created in Auto Mode clusters. An Auto Mode cluster automatically creates a Auto Mode node pool when creating cluster, which you can import using terraform import. You can also create a new Auto Mode node pool using the following code.
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cs_kubernetes_node_pool&exampleId=d03fb6f4-3d1c-d82b-541e-bc5a8574038af972b703&activeTab=example&spm=docs.r.cs_kubernetes_node_pool.1.d03fb6f43d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
-```terraform
-provider "alicloud" {
-  region = var.region_id
-}
-
-variable "region_id" {
-  type    = string
-  default = "cn-hangzhou"
-}
-
-variable "cluster_spec" {
-  type        = string
-  description = "The cluster specifications of kubernetes cluster,which can be empty. Valid values:ack.standard : Standard managed clusters; ack.pro.small : Professional managed clusters."
-  default     = "ack.pro.small"
-}
-
-variable "availability_zone" {
-  description = "The availability zones of vswitches."
-  default     = ["cn-hangzhou-i", "cn-hangzhou-j", "cn-hangzhou-k"]
-}
-
-variable "node_vswitch_ids" {
-  description = "List of existing node vswitch ids for terway."
-  type        = list(string)
-  default     = []
-}
-
-variable "node_vswitch_cidrs" {
-  description = "List of cidr blocks used to create several new vswitches when 'node_vswitch_ids' is not specified."
-  type        = list(string)
-  default     = ["172.16.0.0/23", "172.16.2.0/23", "172.16.4.0/23"]
-}
-
-variable "terway_vswitch_ids" {
-  description = "List of existing pod vswitch ids for terway."
-  type        = list(string)
-  default     = []
-}
-
-variable "terway_vswitch_cidrs" {
-  description = "List of cidr blocks used to create several new vswitches when 'terway_vswitch_ids' is not specified."
-  type        = list(string)
-  default     = ["172.16.208.0/20", "172.16.224.0/20", "172.16.240.0/20"]
-}
-
-variable "cluster_addons" {
-  type = list(object({
-    name     = string
-    config   = optional(string)
-    disabled = optional(bool, false)
-  }))
-  default = [
-    { name = "metrics-server" },
-    { name = "managed-coredns" },
-    { name = "managed-security-inspector" },
-    { name = "ack-cost-exporter" },
-    {
-      name   = "terway-controlplane"
-      config = "{\"ENITrunking\":\"true\"}"
-    },
-    {
-      name   = "terway-eniip"
-      config = "{\"NetworkPolicy\":\"false\",\"ENITrunking\":\"true\",\"IPVlan\":\"false\"}"
-    },
-    { name = "csi-plugin" },
-    { name = "managed-csiprovisioner" },
-    {
-      name   = "storage-operator"
-      config = "{\"CnfsOssEnable\":\"false\",\"CnfsNasEnable\":\"false\"}"
-    },
-    {
-      name   = "loongcollector"
-      config = "{\"IngressDashboardEnabled\":\"true\"}"
-    },
-    {
-      name   = "ack-node-problem-detector"
-      config = "{\"sls_project_name\":\"\"}"
-    },
-    {
-      name     = "nginx-ingress-controller"
-      disabled = true
-    },
-    {
-      name   = "alb-ingress-controller"
-      config = "{\"albIngress\":{\"CreateDefaultALBConfig\":false}}"
-    },
-    {
-      name   = "arms-prometheus"
-      config = "{\"prometheusMode\":\"default\"}"
-    },
-    { name = "alicloud-monitor-controller" },
-    { name = "managed-aliyun-acr-credential-helper" },
-  ]
-}
-
-variable "k8s_name_prefix" {
-  description = "The name prefix used to create managed kubernetes cluster."
-  default     = "tf-ack-hangzhou"
-}
-
-locals {
-  k8s_name_terway = substr(join("-", [var.k8s_name_prefix, "terway"]), 0, 63)
-  new_vpc_name    = "tf-vpc-172-16"
-  nodepool_name   = "default-nodepool"
-}
-
-resource "alicloud_vpc" "default" {
-  vpc_name   = local.new_vpc_name
-  cidr_block = "172.16.0.0/12"
-}
-
-resource "alicloud_vswitch" "vswitches" {
-  count      = length(var.node_vswitch_ids) > 0 ? 0 : length(var.node_vswitch_cidrs)
-  vpc_id     = alicloud_vpc.default.id
-  cidr_block = element(var.node_vswitch_cidrs, count.index)
-  zone_id    = element(var.availability_zone, count.index)
-}
-
-resource "alicloud_vswitch" "terway_vswitches" {
-  count      = length(var.terway_vswitch_ids) > 0 ? 0 : length(var.terway_vswitch_cidrs)
-  vpc_id     = alicloud_vpc.default.id
-  cidr_block = element(var.terway_vswitch_cidrs, count.index)
-  zone_id    = element(var.availability_zone, count.index)
-}
-
-resource "alicloud_cs_managed_kubernetes" "default" {
-  name                         = local.k8s_name_terway
-  cluster_spec                 = var.cluster_spec
-  vswitch_ids                  = split(",", join(",", alicloud_vswitch.vswitches.*.id))
-  pod_vswitch_ids              = split(",", join(",", alicloud_vswitch.terway_vswitches.*.id))
-  new_nat_gateway              = true
-  service_cidr                 = "10.11.0.0/16"
-  slb_internet_enabled         = true
-  enable_rrsa                  = true
-  control_plane_log_components = ["apiserver", "kcm", "scheduler", "ccm"]
-  dynamic "addons" {
-    for_each = var.cluster_addons
-    content {
-      name     = lookup(addons.value, "name", var.cluster_addons)
-      config   = lookup(addons.value, "config", var.cluster_addons)
-      disabled = lookup(addons.value, "disabled", var.cluster_addons)
-    }
-  }
-
-  auto_mode {
-    enabled = true
-  }
-
-  maintenance_window {
-    duration         = "3h"
-    weekly_period    = "Monday"
-    enable           = true
-    maintenance_time = "2025-07-07T00:00:00.000+08:00"
-  }
-
-  operation_policy {
-    cluster_auto_upgrade {
-      channel = "stable"
-      enabled = true
-    }
-  }
-}
-
-resource "alicloud_cs_kubernetes_node_pool" "auto_mode_example" {
-  node_pool_name = local.nodepool_name
-  cluster_id     = alicloud_cs_managed_kubernetes.default.id
-  vswitch_ids    = split(",", join(",", alicloud_vswitch.vswitches.*.id))
-
-  auto_mode {
-    enabled = true
-  }
-
-  # Configure modifiable parameters
-  scaling_config {
-    max_size = 50
-    min_size = 0
-  }
-
-  # instance_types and instance_patterns are mutually exclusive - use only one of them
-  instance_patterns {
-    min_cpu_cores           = 4
-    max_cpu_cores           = 16
-    min_memory_size         = 8
-    max_memory_size         = 32
-    instance_family_level   = "EnterpriseLevel"
-    instance_type_families  = ["ecs.u1", "ecs.g6", "ecs.c6", "ecs.r6", "ecs.g7", "ecs.c7", "ecs.r7", "ecs.g8i", "ecs.c8i", "ecs.r8i"]
-    excluded_instance_types = ["ecs.c6t.*", "ecs.g6t.*", "ecs.t5.*", "ecs.t6.*", "ecs.vgn.*", "ecs.sgn.*"] # ACK not support instance families
-    instance_categories     = ["General-purpose"]
-    cpu_architectures       = ["X86"]
-  }
-
-  data_disks {
-    size      = 120
-    encrypted = "false"
-    category  = "cloud_essd"
-  }
-
-  labels {
-    key   = "example1"
-    value = "nodepool"
-  }
-  labels {
-    key   = "example2"
-    value = "nodepool"
-  }
-
-  taints {
-    key    = "tf"
-    effect = "NoSchedule"
-    value  = "example"
-  }
-  taints {
-    key    = "tf2"
-    effect = "NoSchedule"
-    value  = "example2"
-  }
-
-
-  # Alternative: use instance_types instead of instance_patterns
-  # instance_types = ["ecs.c6.large"]
-
-  # Ignore service-side default values to prevent configuration drift.
-  # In Auto Mode nodepools, the parameters in ignore_changes below are not supported and must not be specified. Please do not remove them from the ignore_changes list.
-  lifecycle {
-    ignore_changes = [
-      management,
-      install_cloud_monitor,
-      cpu_policy,
-      node_name_mode,
-      runtime_name,
-      runtime_version,
-      unschedulable,
-      user_data,
-      pre_user_data,
-      auto_renew,
-      auto_renew_period,
-      cis_enabled,
-      compensate_with_on_demand,
-      deployment_set_id,
-      image_id,
-      image_type,
-      instance_charge_type,
-      instance_metadata_options,
-      internet_charge_type,
-      internet_max_bandwidth_out,
-      key_name,
-      login_as_non_root,
-      password,
-      multi_az_policy,
-      on_demand_base_capacity,
-      on_demand_percentage_above_base_capacity,
-      period,
-      period_unit,
-      platform,
-      private_pool_options,
-      ram_role_name,
-      rds_instances,
-      scaling_policy,
-      security_group_id,
-      security_group_ids,
-      security_hardening_os,
-      soc_enabled,
-      spot_instance_pools,
-      spot_instance_remedy,
-      spot_price_limit,
-      spot_strategy,
-      system_disk_category,
-      system_disk_categories,
-      system_disk_size,
-      system_disk_bursting_enabled,
-      system_disk_performance_level,
-      system_disk_encrypted,
-      system_disk_kms_key,
-      system_disk_snapshot_policy_id,
-      system_disk_encrypt_algorithm,
-      system_disk_provisioned_iops,
-      tee_config,
-    ]
-  }
-}
-```
-
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cs_kubernetes_node_pool&spm=docs.r.cs_kubernetes_node_pool.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `auto_mode` - (Optional, ForceNew, Computed, List, Available since v1.266.0) Whether to enable auto mode. When enabled, the system will automatically manage the node pool with optimized default configurations. **Note:** When `auto_mode` is enabled, many parameters will be automatically set to default values and cannot be modified. See `auto_mode.enable` below for details. See [`auto_mode`](#auto_mode) below.
-* `auto_renew` - (Optional) Whether to enable automatic renewal for nodes in the node pool takes effect only when `instance_charge_type` is set to `PrePaid`. Default value: `false`. Valid values:
-  - `true`: Automatic renewal. 
-  - `false`: Do not renew automatically.
-* `auto_renew_period` - (Optional, Int) The automatic renewal period of nodes in the node pool takes effect only when you select Prepaid and Automatic Renewal, and is a required value. When `PeriodUnit = Month`, the value range is {1, 2, 3, 6, 12}. Default value: 1.
-* `cis_enabled` - (Optional, ForceNew, Deprecated since v1.223.1) Whether enable worker node to support cis security reinforcement, its valid value `true` or `false`. Default to `false` and apply to AliyunLinux series. Use `security_hardening_os` instead.
-* `cluster_id` - (Required, ForceNew) The id of kubernetes cluster.
-* `compensate_with_on_demand` - (Optional) Specifies whether to automatically create pay-as-you-go instances to meet the required number of ECS instances if preemptible instances cannot be created due to reasons such as cost or insufficient inventory. This parameter takes effect when you set `multi_az_policy` to `COST_OPTIMIZED`. Valid values: `true`: automatically creates pay-as-you-go instances to meet the required number of ECS instances if preemptible instances cannot be created. `false`: does not create pay-as-you-go instances to meet the required number of ECS instances if preemptible instances cannot be created.
-* `cpu_policy` - (Optional, Computed) Node CPU management policies. Default value: `none`. When the cluster version is 1.12.6 or later, the following two policies are supported:
-  - `static`: allows pods with certain resource characteristics on the node to enhance its CPU affinity and exclusivity.
-  - `none`: Enables the existing default CPU affinity scheme.
-* `data_disks` - (Optional, List) Configure the data disk of the node in the node pool. See [`data_disks`](#data_disks) below.
-* `deployment_set_id` - (Optional, ForceNew) The deployment set of node pool. Specify the deploymentSet to ensure that the nodes in the node pool can be distributed on different physical machines.
-* `desired_size` - (Optional) Number of expected nodes in the node pool.
-* `eflo_node_group` - (Optional, List, Available since v1.252.0) Lingjun node pool configuration. See [`eflo_node_group`](#eflo_node_group) below.
+* `auto_mode` - (Optional, ForceNew, Computed, Set, Available since v1.266.0) Specifies whether to enable intelligent managed mode. When enabled, the system automatically manages the node pool by using optimized default configurations. Note: When auto_mode is enabled, many parameters are automatically set to their default values and cannot be modified. For more information, see auto_mode.enable below. See [`auto_mode`](#auto_mode) below.
+* `auto_renew` - (Optional) Specifies whether auto-renewal is enabled for nodes in the node pool. This parameter takes effect only when `instance_charge_type` is set to `PrePaid`. Valid values:  
+  - `true`: Enables auto-renewal.  
+  - `false`: Disables auto-renewal.  
+
+Default value: `false`.  
+* `auto_renew_period` - (Optional, Int) The auto-renewal period for each renewal. Valid values:
+  - If PeriodUnit=Week: 1, 2, or 3.
+  - If PeriodUnit=Month: 1, 2, 3, 6, 12, 24, 36, 48, or 60.
+
+Default value: 1.
+* `cis_enabled` - (Optional, ForceNew, Deprecated since v1.223.1) [This field is deprecated.]
+Use the `security_hardening_os` parameter instead.
+* `cluster_id` - (Required, ForceNew) Cluster ID.
+* `compensate_with_on_demand` - (Optional) When `multi_az_policy` is set to `COST_OPTIMIZED`, specifies whether the system is allowed to automatically attempt to create pay-as-you-go instances to meet the required number of ECS instances if sufficient preemptible instances cannot be created due to price or inventory constraints. Valid values:  
+  - `true`: Allows automatic creation of pay-as-you-go instances to meet the required number of ECS instances.  
+  - `false`: Does not allow automatic creation of pay-as-you-go instances to meet the required number of ECS instances.  
+* `cpu_policy` - (Optional, Computed) The CPU management policy for nodes. When the cluster version is 1.12.6 or later, the following two policies are supported:
+  - `static`: Enables enhanced CPU affinity and exclusivity for Pods on the node that have specific resource characteristics.
+  - `none`: Uses the default CPU affinity scheme.
+
+Default value: `none`.
+* `data_disks` - (Optional, List) Data disk configuration for nodes in the node pool. See [`data_disks`](#data_disks) below.
+* `deployment_set_id` - (Optional, ForceNew) The deployment set ID. You can use a deployment set to distribute Elastic Compute Service (ECS) instances launched by the node pool across different physical servers, ensuring high availability and underlying disaster recovery capabilities for your workloads. When creating ECS instances within a deployment set, the instances are started across specified zones according to the predefined deployment policy.
+
+
+-> **NOTE:** After selecting a deployment set, the maximum number of nodes in the node pool becomes limited. By default, a deployment set supports a maximum of 20 × the number of zones (the number of zones is determined by the vSwitches). Choose carefully and ensure sufficient quota within the deployment set to avoid node provisioning failures.>
+
+* `desired_size` - (Optional) The desired number of nodes in the node pool.
+This is the total number of nodes the node pool should maintain. We recommend configuring at least two nodes to ensure proper operation of cluster components. You can scale the node pool in or out by adjusting this value.
+If you do not want to create nodes immediately, you can set this value to 0 and manually increase it later.
+* `eflo_node_group` - (Optional, Set, Available since v1.252.0) Lingjun node pool configuration. See [`eflo_node_group`](#eflo_node_group) below.
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
-* `force_delete` - (Optional) Whether to force deletion.
+* `force_delete` - (Optional) Specifies whether to forcibly delete the node pool.
+  - true: Forces deletion. If the node pool contains existing nodes, they will be forcibly deleted.
+  - false: Does not force deletion. If the node pool contains existing nodes, the node pool cannot be deleted, and the API call returns an error.
 
 -> **NOTE:** This parameter only takes effect when deletion is triggered.
 
-* `image_id` - (Optional, Computed) The custom image ID. The system-provided image is used by default.
-* `image_type` - (Optional, Computed, Available since v1.236.0) The operating system image type and the `platform` parameter can be selected from the following values:
-  - `AliyunLinux` : Alinux2 image.
-  - `AliyunLinux3` : Alinux3 image.
-  - `AliyunLinux3Arm64` : Alinux3 mirror ARM version.
-  - `AliyunLinuxUEFI` : Alinux2 Image UEFI version.
-  - `CentOS` : CentOS image.
-  - `Windows` : Windows image.
-  - `WindowsCore` : WindowsCore image.
-  - `ContainerOS` : container-optimized image.
-  - `Ubuntu`: Ubuntu image.
-  - `AliyunLinux3ContainerOptimized`: Alinux3 container-optimized image.
-  - `Custom`：Custom image.
-  - `AliyunLinux4ContainerOptimized`：Alinux4 container-optimized image.
-* `install_cloud_monitor` - (Optional) Whether to install cloud monitoring on the ECS node. After installation, you can view the monitoring information of the created ECS instance in the cloud monitoring console and recommend enable it. Default value: `false`. Valid values:
-  - `true` : install cloud monitoring on the ECS node.
-  - `false` : does not install cloud monitoring on the ECS node.
-* `instance_charge_type` - (Optional, Computed) Node payment type. Valid values: `PostPaid`, `PrePaid`, default is `PostPaid`. If value is `PrePaid`, the arguments `period`, `period_unit`, `auto_renew` and `auto_renew_period` are required.
-* `instance_metadata_options` - (Optional, ForceNew, Computed, List, Available since v1.266.0) ECS instance metadata access configuration. See [`instance_metadata_options`](#instance_metadata_options) below.
-* `instance_patterns` - (Optional, List, Available since v1.266.0) Instance property configuration. See [`instance_patterns`](#instance_patterns) below.
-* `instance_types` - (Optional, List) In the node instance specification list, you can select multiple instance specifications as alternatives. When each node is created, it will try to purchase from the first specification until it is created successfully. The final purchased instance specifications may vary with inventory changes.
-* `internet_charge_type` - (Optional) The billing method for network usage. Valid values `PayByBandwidth` and `PayByTraffic`. Conflict with `eip_internet_charge_type`, EIP and public network IP can only choose one. 
-* `internet_max_bandwidth_out` - (Optional, Int) The maximum bandwidth of the public IP address of the node. The unit is Mbps(Mega bit per second). The value range is:\[1,100\]
-* `key_name` - (Optional) The name of the key pair. When the node pool is a managed node pool, only `key_name` is supported.
-* `kubelet_configuration` - (Optional, List) Kubelet configuration parameters for worker nodes. See [`kubelet_configuration`](#kubelet_configuration) below. More information in [Kubelet Configuration](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/). See [`kubelet_configuration`](#kubelet_configuration) below.
-* `labels` - (Optional, List) A List of Kubernetes labels to assign to the nodes . Only labels that are applied with the ACK API are managed by this argument. Detailed below. More information in [Labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). See [`labels`](#labels) below.
-* `login_as_non_root` - (Optional, ForceNew) Whether the ECS instance is logged on as a ecs-user user. Valid value: `true` and `false`.
-* `management` - (Optional, Computed, List) Managed node pool configuration. See [`management`](#management) below.
-* `multi_az_policy` - (Optional, Computed) The scaling policy for ECS instances in a multi-zone scaling group. Valid value: `PRIORITY`, `COST_OPTIMIZED` and `BALANCE`. `PRIORITY`: scales the capacity according to the virtual switches you define (VSwitchIds.N). When an ECS instance cannot be created in the zone where the higher-priority vSwitch is located, the next-priority vSwitch is automatically used to create an ECS instance. `COST_OPTIMIZED`: try to create by vCPU unit price from low to high. When the scaling configuration is configured with multiple instances of preemptible billing, preemptible instances are created first. You can continue to use the `CompensateWithOnDemand` parameter to specify whether to automatically try to create a preemptible instance by paying for it. It takes effect only when the scaling configuration has multi-instance specifications or preemptible instances. `BALANCE`: distributes ECS instances evenly among the multi-zone specified by the scaling group. If the zones become unbalanced due to insufficient inventory, you can use the API [RebalanceInstances](~~ 71516 ~~) to balance resources.
-* `node_name_mode` - (Optional, ForceNew, Computed) Each node name consists of a prefix, its private network IP, and a suffix, separated by commas. The input format is `customized,,ip,`.
-  - The prefix and suffix can be composed of one or more parts separated by '.', each part can use lowercase letters, numbers and '-', and the beginning and end of the node name must be lowercase letters and numbers.
-  - The node IP address is the complete private IP address of the node.
-  - For example, if the string `customized,aliyun,ip,com` is passed in (where 'customized' and 'ip' are fixed strings, 'aliyun' is the prefix, and 'com' is the suffix), the name of the node is `aliyun192.168.xxx.xxxcom`.
-* `node_pool_name` - (Optional) The name of node pool.
-* `on_demand_base_capacity` - (Optional) The minimum number of pay-as-you-go instances that must be kept in the scaling group. Valid values: 0 to 1000. If the number of pay-as-you-go instances is less than the value of this parameter, Auto Scaling preferably creates pay-as-you-go instances.
-* `on_demand_percentage_above_base_capacity` - (Optional) The percentage of pay-as-you-go instances among the extra instances that exceed the number specified by `on_demand_base_capacity`. Valid values: 0 to 100.
-* `password` - (Optional) The password of ssh login. You have to specify one of `password` and `key_name` fields. The password rule is 8 to 30 characters and contains at least three items (upper and lower case letters, numbers, and special symbols).
-* `period` - (Optional, Int) Node payment period. Its valid value is one of {1, 2, 3, 6, 12}.
-* `period_unit` - (Optional) Node payment period unit, valid value: `Month`. Default is `Month`.
-* `platform` - (Optional, Computed, Deprecated since v1.145.0) Operating system release, using `image_type` instead.
-* `pre_user_data` - (Optional, Available since v1.232.0) Node pre custom data, base64-encoded, the script executed before the node is initialized. 
-* `private_pool_options` - (Optional, List) Private node pool configuration. See [`private_pool_options`](#private_pool_options) below.
-* `ram_role_name` - (Optional, ForceNew, Computed, Available since v1.242.0) The name of the Worker RAM role.
-* If it is empty, the default Worker RAM role created in the cluster will be used.
-* If the specified RAM role is not empty, the specified RAM role must be a **Common Service role**, and its **trusted service** configuration must be **cloud server**. For more information, see [Create a common service role](https://help.aliyun.com/document_detail/116800.html). If the specified RAM role is not the default Worker RAM role created in the cluster, the role name cannot start with 'KubernetesMasterRole-'or 'KubernetesWorkerRole.
+* `image_id` - (Optional, Computed) Custom image ID. You can use `DescribeKubernetesVersionMetadata` to query images supported by the system. By default, the latest system image is used.
+* `image_type` - (Optional, Computed, Available since v1.236.0) The operating system distribution type. We recommend that you use this field to specify the node operating system. Valid values:
+  - `AliyunLinux`: Alibaba Cloud Linux 2 image.
+  - `AliyunLinuxSecurity`: Alibaba Cloud Linux 2 UEFI image.
+  - `AliyunLinux3`: Alibaba Cloud Linux 3 image.
+  - `AliyunLinux3Arm64`: Alibaba Cloud Linux 3 ARM64 image.
+  - `AliyunLinux3Security`: Alibaba Cloud Linux 3 UEFI image.
+  - `CentOS`: CentOS image.
+  - `Windows`: Windows image.
+  - `WindowsCore`: Windows Core image.
+  - `ContainerOS`: Container-optimized OS image.
+  - `AliyunLinux3ContainerOptimized`: Alibaba Cloud Linux 3 container-optimized image.
+* `install_cloud_monitor` - (Optional) Specifies whether to install CloudMonitor on ECS nodes. After installation, you can view monitoring information for the created ECS instances in the CloudMonitor console. We recommend enabling this feature. Valid values:
+  - `true`: Install CloudMonitor on ECS nodes.
+  - `false`: Do not install CloudMonitor on ECS nodes.
 
--> **NOTE:**  This parameter is only supported for ACK-managed clusters of 1.22 or later versions.
+Default value: `false`.
+* `instance_charge_type` - (Optional, Computed) Billing method for nodes in the node pool. Valid values:
+  - `PrePaid`: Subscription instance.
+  - `PostPaid`: Pay-as-you-go instance.
 
-* `rds_instances` - (Optional, List) The list of RDS instances.
-* `resource_group_id` - (Optional, Computed) The ID of the resource group
-* `rolling_policy` - (Optional, List) Rotary configuration. See [`rolling_policy`](#rolling_policy) below.
+Default value: `PostPaid`.
+* `instance_metadata_options` - (Optional, ForceNew, Computed, Set, Available since v1.266.0) ECS instance metadata access configuration. See [`instance_metadata_options`](#instance_metadata_options) below.
+* `instance_patterns` - (Optional, List, Available since v1.266.0) Instance attribute configuration. See [`instance_patterns`](#instance_patterns) below.
+* `instance_types` - (Optional, List) A list of ECS instance types for nodes in the node pool. When scaling out, the system selects a suitable instance type from this list to create new nodes.
 
--> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+Supported number of instance types: [1, 10].
 
-* `runtime_name` - (Optional, Computed) The runtime name of containers. If not set, the cluster runtime will be used as the node pool runtime. If you select another container runtime, see [Comparison of Docker, containerd, and Sandboxed-Container](https://www.alibabacloud.com/help/doc-detail/160313.htm).
-* `runtime_version` - (Optional, Computed) The runtime version of containers. If not set, the cluster runtime will be used as the node pool runtime.
-* `scaling_config` - (Optional, Computed, List) Automatic scaling configuration. See [`scaling_config`](#scaling_config) below.
-* `scaling_policy` - (Optional, Computed) Scaling group mode, default value: `release`. Valid values:
-  - `release`: in the standard mode, scaling is performed by creating and releasing ECS instances based on the usage of the application resource value.
-  - `recycle`: in the speed mode, scaling is performed through creation, shutdown, and startup to increase the speed of scaling again (computing resources are not charged during shutdown, only storage fees are charged, except for local disk models).
-* `security_group_id` - (Optional, ForceNew, Computed, Deprecated since v1.145.0) The security group ID of the node pool. This field has been replaced by `security_group_ids`, please use the `security_group_ids` field instead.
-* `security_group_ids` - (Optional, ForceNew, Computed, Set) Multiple security groups can be configured for a node pool. If both `security_group_ids` and `security_group_id` are configured, `security_group_ids` takes effect. This field cannot be modified.
-* `security_hardening_os` - (Optional, ForceNew) Alibaba Cloud OS security reinforcement. Default value: `false`. Value:
-  -`true`: enable Alibaba Cloud OS security reinforcement.
-  -`false`: does not enable Alibaba Cloud OS security reinforcement.
-* `soc_enabled` - (Optional, ForceNew) Whether enable worker node to support soc security reinforcement, its valid value `true` or `false`. Default to `false` and apply to AliyunLinux series. See [SOC Reinforcement](https://help.aliyun.com/document_detail/196148.html).
+-> **NOTE:**  To ensure high availability, we recommend selecting multiple instance types.
 
--> **NOTE:**  It is forbidden to set both `security_hardening_os` and `soc_enabled` to `true` at the same time.
+* `internet_charge_type` - (Optional) The billing method for the node's public IP address.
+  - PayByBandwidth: billed based on fixed bandwidth.
+  - PayByTraffic: billed based on actual traffic usage.
+* `internet_max_bandwidth_out` - (Optional, Int) The maximum outbound bandwidth of the node's public IP address, measured in Mbps (megabits per second). Valid values: 1 to 100.
+* `key_name` - (Optional) The name of the key pair for password-free logon. Specify either this parameter or `login_password`.
 
-* `spot_instance_pools` - (Optional, Int) The number of instance types that are available. Auto Scaling creates preemptible instances of multiple instance types that are available at the lowest cost. Valid values: 1 to 10.
-* `spot_instance_remedy` - (Optional) Specifies whether to supplement preemptible instances when the number of preemptible instances drops below the specified minimum number. If you set the value to true, Auto Scaling attempts to create a new preemptible instance when the system notifies that an existing preemptible instance is about to be reclaimed. Valid values: `true`: enables the supplementation of preemptible instances. `false`: disables the supplementation of preemptible instances.
-* `spot_price_limit` - (Optional, List) The current single preemptible instance type market price range configuration. See [`spot_price_limit`](#spot_price_limit) below.
-* `spot_strategy` - (Optional, Computed) The preemptible instance type. Value:
-  - `NoSpot` : Non-preemptible instance.
-  - `SpotWithPriceLimit` : Set the upper limit of the preemptible instance price.
-  - `SpotAsPriceGo` : The system automatically bids, following the actual price of the current market.
-* `system_disk_bursting_enabled` - (Optional) Specifies whether to enable the burst feature for system disks. Valid values:`true`: enables the burst feature. `false`: disables the burst feature. This parameter is supported only when `system_disk_category` is set to `cloud_auto`.
-* `system_disk_categories` - (Optional, Computed, List) The multi-disk categories of the system disk. When a high-priority disk type cannot be used, Auto Scaling automatically tries to create a system disk with the next priority disk category. Valid values see `system_disk_category`.
-* `system_disk_category` - (Optional, Computed) The category of the system disk for nodes. Default value: `cloud_efficiency`. Valid values:
-  - `cloud`: basic disk.
-  - `cloud_efficiency`: ultra disk.
-  - `cloud_ssd`: standard SSD.
-  - `cloud_essd`: ESSD.
-  - `cloud_auto`: ESSD AutoPL disk.
-  - `cloud_essd_entry`: ESSD Entry disk.
-* `system_disk_encrypt_algorithm` - (Optional) The encryption algorithm used by the system disk. Value range: aes-256.
-* `system_disk_encrypted` - (Optional) Whether to encrypt the system disk. Value range: `true`: encryption. `false`: Do not encrypt.
-* `system_disk_kms_key` - (Optional) The ID of the KMS key used by the system disk.
-* `system_disk_performance_level` - (Optional) The system disk performance of the node takes effect only for the ESSD disk.
-  - `PL0`: maximum random read/write IOPS 10000 for a single disk.
-  - `PL1`: maximum random read/write IOPS 50000 for a single disk.
-  - `PL2`: highest random read/write IOPS 100000 for a single disk.
-  - `PL3`: maximum random read/write IOPS 1 million for a single disk.
-* `system_disk_provisioned_iops` - (Optional, Int) The predefined IOPS of a system disk. Valid values: 0 to min{50,000, 1,000 × Capacity - Baseline IOPS}. Baseline IOPS = min{1,800 + 50 × Capacity, 50,000}. This parameter is supported only when `system_disk_category` is set to `cloud_auto`.
-* `system_disk_size` - (Optional, Int) The size of the system disk. Unit: GiB. The value of this parameter must be at least 1 and greater than or equal to the image size. Default value: 40 or the size of the image, whichever is larger.
-  - Basic disk: 20 to 500.
-  - ESSD (cloud_essd): The valid values vary based on the performance level of the ESSD. PL0 ESSD: 1 to 2048. PL1 ESSD: 20 to 2048. PL2 ESSD: 461 to 2048. PL3 ESSD: 1261 to 2048.
-  - ESSD AutoPL disk (cloud_auto): 1 to 2048.
-  - Other disk categories: 20 to 2048.
-* `system_disk_snapshot_policy_id` - (Optional) The ID of the automatic snapshot policy used by the system disk.
-* `tags` - (Optional, Map) Add tags only for ECS instances. The maximum length of the tag key is 128 characters. The tag key and value cannot start with aliyun or acs:, or contain https:// or http://.
-* `taints` - (Optional, List) A List of Kubernetes taints to assign to the nodes. Detailed below. More information in [Taints and Toleration](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/). See [`taints`](#taints) below.
-* `tee_config` - (Optional, ForceNew, Computed, List) The configuration about confidential computing for the cluster. See [`tee_config`](#tee_config) below.
-* `type` - (Optional, ForceNew, Computed, Available since v1.252.0) Node pool type, value range:
-  -'ess': common node pool (including hosting function and auto scaling function).
-  -'lingjun': Lingjun node pool.
-* `unschedulable` - (Optional) Whether the node after expansion can be scheduled.
-* `update_nodes` - (Optional) Synchronously update node labels and taints.
+-> **NOTE:**  If the node pool uses the ContainerOS operating system, only `key_pair` is supported.
+
+* `kubelet_configuration` - (Optional, Set) Supported kubelet configurations. See [`kubelet_configuration`](#kubelet_configuration) below.
+* `labels` - (Optional, List) Node labels. See [`labels`](#labels) below.
+* `login_as_non_root` - (Optional, ForceNew) Specifies whether the created ECS instances log in as a non-root user.
+  - true: Log in as the non-root user (ecs-user).
+  - false: Log in as the root user.
+* `management` - (Optional, Computed, Set) Managed node pool configuration. See [`management`](#management) below.
+* `multi_az_policy` - (Optional, Computed) The ECS instance scaling policy for multi-zone scaling groups. Valid values:
+  - `PRIORITY`: Scales instances based on the virtual switches (VSwitchIds.N) you define. If ECS instances cannot be created in the zone of a higher-priority virtual switch, the system automatically uses the next-priority virtual switch to create ECS instances.
+  - `COST_OPTIMIZED`: Attempts to create instances in ascending order of vCPU unit price. When multiple instance types are specified in the scaling configuration with the preemptible billing method, preemptible instances are prioritized. You can further use the `CompensateWithOnDemand` parameter to specify whether to automatically attempt creating pay-as-you-go instances if preemptible instances cannot be created due to insufficient inventory or other reasons.
+
+  > `COST_OPTIMIZED` takes effect only when multiple instance types are configured in the scaling configuration or when preemptible instances are selected.
+  - `BALANCE`: Distributes ECS instances evenly across the multiple zones specified for the scaling group. If imbalance occurs between zones due to insufficient inventory or other reasons, you can call the [RebalanceInstances](~~71516~~) API to rebalance resources.
+
+Default value: `PRIORITY`.
+* `node_name_mode` - (Optional, ForceNew, Computed) Custom node naming. After enabling custom node naming, the node name, ECS instance name, and ECS instance hostname will all be changed accordingly.  
+
+-> **NOTE:**  For Windows instances with custom node naming enabled, the hostname is fixed as the IP address, where dots (.) in the IP address are replaced with hyphens (-), and no prefix or suffix is included.
+
+The node name consists of three parts: a prefix, the node's IP address, and a suffix:
+  - The total length must be 2–64 characters. The first and last characters must be lowercase letters or digits.
+  - The prefix and suffix may contain uppercase and lowercase letters, digits, hyphens (-), and periods (.). They must start with an uppercase or lowercase letter and cannot start or end with a hyphen (-) or period (.). Consecutive hyphens (-) or periods (.) are not allowed.
+  - The prefix is required (due to ECS restrictions), while the suffix is optional.
+  - The node IP address is the full private IP address of the node.
+
+Example: If the node IP address is 192.XX.YY.55, the prefix is specified as "aliyun.com", and the suffix is "test":
+  - For a Linux node, the node name, ECS instance name, and ECS instance hostname will all be "aliyun.com192.XX.YY.55test".
+  - For a Windows node, the ECS instance hostname will be "192-XX-YY-55", while the node name and ECS instance name will both be "aliyun.com192.XX.YY.55test".
+* `node_pool_name` - (Optional) The name of the node pool.
+Naming rules: The name can contain digits, Chinese characters, English letters, or hyphens (-), must be 1 to 63 characters in length, and cannot start with a hyphen (-).
+* `on_demand_base_capacity` - (Optional) The minimum number of pay-as-you-go instances required in the scaling group. Valid values: [0, 1000]. If the current number of pay-as-you-go instances is less than this value, pay-as-you-go instances are preferentially created.
+* `on_demand_percentage_above_base_capacity` - (Optional) The percentage of pay-as-you-go instances among the instances that exceed the minimum number of pay-as-you-go instances (`on_demand_base_capacity`) required by the scaling group. Valid values: [0, 100].  
+* `password` - (Optional) The SSH login password. You must specify either this parameter or `key_pair`. The password must be 8 to 30 characters in length and contain at least three of the following character types: uppercase letters, lowercase letters, digits, and special characters.
+For security reasons, the returned password is encrypted.
+* `period` - (Optional, Int) The subscription duration (in months or weeks) for nodes in the node pool. This parameter is required and takes effect only when `instance_charge_type` is set to `PrePaid`.
+  - When `period_unit=Week`, valid values for `period` are: {1, 2, 3, 4}.
+  - When `period_unit=Month`, valid values for `period` are: {1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 24, 36, 48, 60}.
+* `period_unit` - (Optional) The billing cycle for nodes in the node pool. This parameter takes effect only when `instance_charge_type` is set to `PrePaid` and is required in this case.
+  - `Month`: Billed on a monthly basis.
+  - `Week`: Billed on a weekly basis.
+
+Default value: `Month`.
+* `platform` - (Optional, Computed, Deprecated since v1.145.0) 【This field is deprecated.】Use the `image_type` parameter instead.
+
+Operating system distribution. Valid values:
+  - `CentOS`
+  - `AliyunLinux`
+  - `Windows`
+  - `WindowsCore`
+
+Default value: `AliyunLinux`.
+* `pre_user_data` - (Optional, Available since v1.232.0) Pre-custom data for the node pool, which refers to scripts executed before node initialization. For more information, see [Generate Instance Custom Data](~~49121~~).
+* `private_pool_options` - (Optional, Set) Private node pool configuration. See [`private_pool_options`](#private_pool_options) below.
+* `ram_role_name` - (Optional, ForceNew, Computed, Available since v1.242.0) Worker RAM role name.
+
+* If left empty, the default Worker RAM role created for the cluster will be used.
+* If specified, the RAM role must be a **general-purpose service role**, and its **trusted service** must be configured as **ECS (Elastic Compute Service)**. For more information, see [Create a general-purpose service role](~~116800~~). When the specified RAM role is not the default Worker RAM role created for the cluster, its name must not start with `KubernetesMasterRole-` or `KubernetesWorkerRole-`.
+
+-> **NOTE:** This parameter is supported only for ACK managed clusters of version 1.22 or later.
+
+* `rds_instances` - (Optional, List) A list of RDS instances.
+* `resource_group_id` - (Optional, Computed) The resource group ID of the node pool. Instances scaled out by the node pool belong to this resource group.
+Each resource can belong to only one resource group. Depending on your business scenario, you can map resource groups to projects, applications, organizations, or other logical groupings.
+* `rolling_policy` - (Optional, Set) Rolling update policy. See [`rolling_policy`](#rolling_policy) below.
 
 -> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
 
-* `user_data` - (Optional) Node custom data, base64-encoded.
-* `vswitch_ids` - (Optional, List) The vswitches used by node pool workers.
+* `runtime_name` - (Optional, Computed) Container runtime name. ACK supports the following three container runtimes:
+  - containerd: Recommended and supported by all cluster versions.
+  - Sandboxed-Container.runv: Secure sandboxed containers that provide higher isolation, supported in clusters of version 1.31 and earlier.
+  - docker: No longer maintained, supported only in clusters of version 1.22 and earlier.
+
+Default value: containerd.
+* `runtime_version` - (Optional, Computed) The container runtime version.
+* `scaling_config` - (Optional, Computed, Set) Auto scaling configuration. See [`scaling_config`](#scaling_config) below.
+* `scaling_policy` - (Optional, Computed) Scaling mode. Valid values:
+  - `release`: Standard mode. Scaling is performed by creating or releasing ECS instances based on resource usage.
+  - `recycle`: Rapid mode. Scaling is performed by creating, stopping, and starting instances to accelerate subsequent scaling operations. (When an instance is stopped, you are not charged for computing resources but only for storage, except for instances with local disks.)
+
+Default value: `release`.
+* `security_group_id` - (Optional, ForceNew, Computed, Deprecated since v1.145.0) [This field is deprecated.]
+Security group ID of the node pool. When multiple security groups are associated with the node pool, this value corresponds to the first entry in `security_group_ids`.
+* `security_group_ids` - (Optional, ForceNew, Computed, List) A list of security group IDs. You must specify either `security_group_id` or `security_group_ids`. We recommend that you use `security_group_ids`. If both `security_group_id` and `security_group_ids` are specified, `security_group_ids` takes precedence.
+* `security_hardening_os` - (Optional, ForceNew) Alibaba Cloud OS security hardening. Valid values:
+  - `true`: Enable Alibaba Cloud OS security hardening.
+  - `false`: Disable Alibaba Cloud OS security hardening.
+
+Default value: `false`.
+* `soc_enabled` - (Optional, ForceNew) Specifies whether to enable Classified Protection hardening. You can enable Classified Protection hardening for nodes only when Alibaba Cloud Linux 2 or Alibaba Cloud Linux 3 is selected as the system image. Alibaba Cloud provides baseline check standards and scanning tools compliant with the Classified Protection 2.0 Level 3 requirements for Alibaba Cloud Linux 2 and Alibaba Cloud Linux 3 images.
+* `spot_instance_pools` - (Optional, Int) Specify the number of available instance types. The auto scaling group creates preemptible instances evenly across the lowest-cost instance types. Valid values: [1, 10].
+* `spot_instance_remedy` - (Optional) Specifies whether to enable replenishment of preemptible instances. After this feature is enabled, when the system sends a notification that a preemptible instance will be reclaimed, the scaling group attempts to create a new instance to replace the instance that is about to be reclaimed. Valid values:
+  - `true`: Enables replenishment of preemptible instances.
+  - `false`: Disables replenishment of preemptible instances.
+* `spot_price_limit` - (Optional, List) Current price limit configuration for each spot instance type. See [`spot_price_limit`](#spot_price_limit) below.
+* `spot_strategy` - (Optional, Computed) The spot instance strategy. Valid values:
+  - `NoSpot`: Regular pay-as-you-go instance.
+  - `SpotWithPriceLimit`: Sets a maximum price for spot instances.
+  - `SpotAsPriceGo`: The system automatically bids based on the current market price.
+
+For more information, see [Spot Instances](~~165053~~).
+* `system_disk_bursting_enabled` - (Optional) Specifies whether to enable burst performance for the node system disk. Valid values:
+  - true: Enabled.
+  - false: Disabled.
+
+This parameter can be configured only when `system_disk_category` is set to `cloud_auto`. For more information, see [ESSD AutoPL Cloud Disks](~~368372~~).
+* `system_disk_categories` - (Optional, Computed, List) Multiple disk types for the system disk. If the system cannot use a higher-priority disk type, it automatically attempts to create the system disk using the next available disk type.
+* `system_disk_category` - (Optional, Computed) The system disk type for nodes. Valid values:
+  - `cloud_efficiency`: Ultra disk.
+  - `cloud_ssd`: SSD cloud disk.
+  - `cloud_essd`: ESSD cloud disk.
+  - `cloud_auto`: ESSD AutoPL cloud disk.
+  - `cloud_essd_entry`: ESSD Entry cloud disk.
+
+Default value: `cloud_efficiency`.
+* `system_disk_encrypt_algorithm` - (Optional) The encryption algorithm used for the system disk. Valid values: aes-256.
+* `system_disk_encrypted` - (Optional) Specifies whether to encrypt the system disk. Valid values:  
+  - true: Encrypts the system disk.  
+  - false: Does not encrypt the system disk.
+* `system_disk_kms_key` - (Optional) KMS key ID used for the system disk.
+* `system_disk_performance_level` - (Optional) Disk performance level for the node's system disk. This setting applies only to ESSD disks. The performance level is related to the disk size. For more information, see [ESSD Cloud Disks](~~122389~~).
+  - PL0: Medium concurrent I/O performance with relatively stable read/write latency.
+  - PL1: Medium concurrent I/O performance with relatively stable read/write latency.
+  - PL2: High concurrent I/O performance with stable read/write latency.
+  - PL3: Extremely high concurrent I/O performance with extremely stable read/write latency.
+* `system_disk_provisioned_iops` - (Optional, Int) Provisioned read/write IOPS for the node system disk. This parameter applies only when the disk type is cloud_auto.
+* `system_disk_size` - (Optional, Int) The size of the system disk for nodes, in GiB.  
+Valid values: [20, 2048].  
+The value must be greater than or equal to max{20, ImageSize}.  
+Default value: max{40, image size corresponding to the ImageId parameter}.  
+* `system_disk_snapshot_policy_id` - (Optional) Snapshot policy for the system disk.  
+* `tags` - (Optional, Map) Adds tags only to ECS instances.
+Tag keys must be unique and can be up to 128 characters in length. Neither tag keys nor tag values can start with "aliyun" or "acs:", or contain "https://" or "http://".
+* `taints` - (Optional, List) Node taint information. Taints and tolerations work together to prevent pods from being scheduled onto unsuitable nodes. For more information, see [taint-and-toleration](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/). See [`taints`](#taints) below.
+* `tee_config` - (Optional, ForceNew, Computed, Set) Confidential computing cluster configuration. See [`tee_config`](#tee_config) below.
+* `type` - (Optional, ForceNew, Computed, Available since v1.252.0) The node pool type. Valid values:
+  - `ess`: Standard node pool (supports managed features and auto scaling).
+  - `edge`: Edge node pool.
+  - `lingjun`: Lingjun node pool.
+* `unschedulable` - (Optional) Specifies whether newly scaled-out nodes are unschedulable.
+  - true: Unschedulable.
+  - false: Schedulable.
+* `update_nodes` - (Optional) Synchronize updates to node labels and taints.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `upgrade_policy` - (Optional, Set, Available since v1.269.0) Node pool upgrade policy See [`upgrade_policy`](#upgrade_policy) below.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `user_data` - (Optional) Custom data for the node pool, which refers to scripts executed after node initialization. For more information, see [Generate instance custom data](~~49121~~).  
+* `vswitch_ids` - (Optional, List) List of virtual switch IDs. The number of IDs must be in the range [1, 8].
+
+-> **NOTE:**  To ensure high availability, we recommend selecting virtual switches in different zones.
+
 
 * `kms_encrypted_password` - (Optional, Available since v1.177.0) An KMS encrypts password used to a cs kubernetes. You have to specify one of `password` `key_name` `kms_encrypted_password` fields.
 * `kms_encryption_context` - (Optional, Available since v1.177.0) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating a cs kubernetes with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set.
@@ -756,229 +551,298 @@ The following arguments will be discarded. Please use new fields as soon as poss
 ### `auto_mode`
 
 The auto_mode supports the following:
-* `enabled` - (Optional, ForceNew, Available since v1.266.0) Whether to enable auto mode. Valid values: 
-  - `true`: enables Smart Managed Configuration. 
-  - `false`: disables Smart Managed Configuration.
-
--> **NOTE:** When `auto_mode.enable` is set to `true`, the system will automatically manage the node pool with optimized default configurations. **All parameters except the following can be specified or modified:**
-
-**Parameters That Can Be Specified or Modified:**
-  - `scaling_config.max_size`: default `50`, can be specified during creation and modified afterward
-  - `scaling_config.min_size`: default `0`, can be specified during creation and modified afterward
-  - `instance_types`: can be specified during creation and modified afterward. **Note:** `instance_types` and `instance_patterns` are mutually exclusive - you can only specify one of them.
-  - `instance_patterns`: has default instance specification configuration (4-16 CPU cores, 8-32GB memory, etc.), can be specified during creation and modified afterward. **Note:** `instance_patterns` and `instance_types` are mutually exclusive - you can only specify one of them.
-  - `data_disks`: can be specified during creation and modified afterward. If not specified during creation, default data disk configuration will be used (120GB size, supports cloud_auto, cloud_essd, cloud_ssd types). When specified, can configure `size`, `category`, `categories`, `performance_level`, `provisioned_iops`, `bursting_enabled`
-  - `resource_group_id`: can be specified during creation and modified afterward
-  - `vswitch_ids`: can be modified during creation and modified afterward
-  - `tags`: can be modified during creation and modified afterward
-  - `labels`: can be specified during creation and modified afterward
-  - `taints`: can be specified during creation and modified afterward
-  - `kubelet_configuration`:  can be specified during creation and modified afterward
-
-**All Other Parameters:**
-
-All other parameters (including but not limited to `management`, `scaling_config.enable`, `scaling_config.type`, `install_cloud_monitor`, `cpu_policy`, `node_name_mode`, `runtime_name`, `runtime_version`, `unschedulable`, `user_data`, `pre_user_data`, `auto_renew`, `auto_renew_period`, `cis_enabled`, `compensate_with_on_demand`, `deployment_set_id`, `image_id`, `image_type`, `instance_charge_type`, `instance_metadata_options`, `internet_charge_type`, `internet_max_bandwidth_out`, `key_name`, `login_as_non_root`, `password`, `multi_az_policy`, `on_demand_base_capacity`, `on_demand_percentage_above_base_capacity`, `period`, `period_unit`, `platform`, `private_pool_options`, `ram_role_name`, `rds_instances`, `scaling_policy`, `security_group_id`, `security_group_ids`, `security_hardening_os`, `soc_enabled`, `spot_instance_pools`, `spot_instance_remedy`, `spot_price_limit`, `spot_strategy`, all `system_disk_*` parameters, `tee_config`, etc.) will be automatically set to default values during node pool creation (user-specified values will be ignored), and cannot be modified after creation.
+* `enabled` - (Optional, ForceNew) Specifies whether to enable intelligent managed mode.
 
 ### `data_disks`
 
 The data_disks supports the following:
-* `auto_format` - (Optional, Available since v1.229.0) Whether to automatically mount the data disk. Valid values: true and false.
-* `auto_snapshot_policy_id` - (Optional) The ID of the automatic snapshot policy that you want to apply to the system disk.
-* `bursting_enabled` - (Optional) Whether the data disk is enabled with Burst (performance Burst). This is configured when the disk type is cloud_auto.
-* `category` - (Optional) The type of data disk. Default value: `cloud_efficiency`. Valid values:
-  - `cloud`: basic disk.
-  - `cloud_efficiency`: ultra disk.
-  - `cloud_ssd`: standard SSD.
-  - `cloud_essd`: Enterprise SSD (ESSD).
-  - `cloud_auto`: ESSD AutoPL disk.
-  - `cloud_essd_entry`: ESSD Entry disk.
-  - `elastic_ephemeral_disk_premium`: premium elastic ephemeral disk.
-  - `elastic_ephemeral_disk_standard`: standard elastic ephemeral disk.
-* `device` - (Optional) The mount target of data disk N. Valid values of N: 1 to 16. If you do not specify this parameter, the system automatically assigns a mount target when Auto Scaling creates ECS instances. The name of the mount target ranges from /dev/xvdb to /dev/xvdz.
-* `encrypted` - (Optional) Specifies whether to encrypt data disks. Valid values: true and false. Default to `false`.
-* `file_system` - (Optional, Available since v1.229.0) The type of the mounted file system. Works when auto_format is true. Optional value: `ext4`, `xfs`.
-* `kms_key_id` - (Optional) The kms key id used to encrypt the data disk. It takes effect when `encrypted` is true.
-* `mount_target` - (Optional, Available since v1.229.0) The Mount path. Works when auto_format is true.
-* `name` - (Optional, Computed) The length is 2~128 English or Chinese characters. It must start with an uppercase or lowr letter or a Chinese character and cannot start with http:// or https. Can contain numbers, colons (:), underscores (_), or dashes (-). It will be overwritten if auto_format is set.
-* `performance_level` - (Optional) Worker node data disk performance level, when `category` values `cloud_essd`, the optional values are `PL0`, `PL1`, `PL2` or `PL3`, but the specific performance level is related to the disk capacity. For more information, see [Enhanced SSDs](https://www.alibabacloud.com/help/doc-detail/122389.htm). Default is `PL1`.
-* `provisioned_iops` - (Optional, Int) The read/write IOPS preconfigured for the data disk, which is configured when the disk type is cloud_auto.
-* `size` - (Optional, Int) The size of a data disk, Its valid value range [40~32768] in GB. Default to `40`.
-* `snapshot_id` - (Optional) The ID of the snapshot that you want to use to create data disk N. Valid values of N: 1 to 16. If you specify this parameter, DataDisk.N.Size is ignored. The size of the disk is the same as the size of the specified snapshot. If you specify a snapshot that is created on or before July 15, 2013, the operation fails and InvalidSnapshot.TooOld is returned.
+* `auto_format` - (Optional, Available since v1.229.0) Specifies whether to mount the data disk.
+* `auto_snapshot_policy_id` - (Optional) The automatic snapshot policy applied when disk backup is enabled.
+* `bursting_enabled` - (Optional) Specifies whether to enable burst performance (Burst) for the data disk. This parameter applies only when the disk type is `cloud_auto`.
+* `category` - (Optional) The type of data disk for nodes. Valid values:
+  - `cloud`: Basic cloud disk.
+  - `cloud_efficiency`: Ultra disk.
+  - `cloud_ssd`: SSD cloud disk.
+  - `cloud_essd`: ESSD cloud disk.
+  - `cloud_auto`: ESSD AutoPL cloud disk.
+  - `cloud_essd_entry`: ESSD Entry cloud disk.
+  - `elastic_ephemeral_disk_premium`: Premium elastic ephemeral disk.
+  - `elastic_ephemeral_disk_standard`: Standard elastic ephemeral disk.
+
+Default value: `cloud_efficiency`.
+* `device` - (Optional) If you do not specify this parameter, the system automatically assigns a device name when creating an ECS instance. The assignment starts from /dev/xvdb and ends at /dev/xvdz.
+* `encrypted` - (Optional) Specifies whether to encrypt the data disk.
+* `file_system` - (Optional, Available since v1.229.0) File system type to mount. This parameter takes effect only when auto_format is true. Valid values: [ext4, xfs].
+* `kms_key_id` - (Optional) The KMS key ID associated with the data disk.
+* `mount_target` - (Optional, Available since v1.229.0) The mount path. This parameter takes effect only when auto_format is set to true.
+* `name` - (Optional, Computed) The name must be 2 to 128 characters in length and can contain letters, Chinese characters, digits, colons (:), underscores (_), or hyphens (-). It must start with a letter or a Chinese character and cannot start with http:// or https://.
+* `performance_level` - (Optional) The performance level of the data disk. This parameter applies only to ESSD disks.
+* `provisioned_iops` - (Optional, Int) The provisioned read/write IOPS for the data disk, which is configured when the disk type is cloud_auto.
+* `size` - (Optional, Int) The size of the data disk. Valid values: 40 to 32767.
+* `snapshot_id` - (Optional) When this parameter is specified, the DataDisks.Size parameter is ignored, and the actual size of the created disk matches the size of the specified snapshot. If the snapshot was created on or before July 15, 2013, the request is rejected, and the response includes the error code InvalidSnapshot.TooOld.
 
 ### `eflo_node_group`
 
 The eflo_node_group supports the following:
-* `cluster_id` - (Optional, Available since v1.252.0) The ID of the associated Lingjun cluster is required when creating a Lingjun node pool.
-* `group_id` - (Optional) When creating a Lingjun node pool, you need the Lingjun group ID of the associated Lingjun cluster.
+* `cluster_id` - (Optional, Available since v1.252.0) The Lingjun cluster ID that must be associated when creating a Lingjun node pool.
+* `group_id` - (Optional) The Lingjun group ID of the Lingjun cluster that must be associated when creating a Lingjun node pool.
 
 ### `instance_metadata_options`
 
 The instance_metadata_options supports the following:
-* `http_tokens` - (Optional, ForceNew, Available since v1.266.0) ECS instance metadata access mode configuration. Value range:
+* `http_tokens` - (Optional, ForceNew) ECS instance metadata access mode configuration. Valid values:
 
-  - 'optional': Compatible with both normal mode and reinforced mode.
-  - 'required': Enables only hardening mode (IMDSv2). When enabled, applications in the node cannot access the ECS instance metadata in normal mode. Ensure that the component and operating system versions in the cluster meet the minimum version requirements. For more information, see [accessing ECS instance metadata in hardened mode only](https://www.alibabacloud.com/help/ack/ack-managed-and-ack-dedicated/security-and-compliance/secure-access-to-ecs-instance-metadata).
+  - `optional`: Compatible with both standard mode and hardened mode.
+  - `required`: Enables hardened mode only (IMDSv2). After this mode is enabled, applications on the node cannot access ECS instance metadata through standard mode. Before enabling this mode, ensure that components in the cluster and the operating system versions meet the minimum version requirements. For more information, see [Access ECS instance metadata in hardened mode only](https://www.alibabacloud.com/help/ack/ack-managed-and-ack-dedicated/security-and-compliance/secure-access-to-ecs-instance-metadata).
 
-Default value: 'optional '.
+Default value: `optional`.
 
- This parameter is only supported for ACK-managed clusters of 1.28 or later versions. 
+This parameter is supported only for ACK managed clusters of version 1.28 or later.
 
 ### `instance_patterns`
 
 The instance_patterns supports the following:
-* `cores` - (Optional, Int, Available since v1.266.0) The number of vCPU cores of the instance type. Example value: 8.
-* `cpu_architectures` - (Optional, List, Available since v1.266.0) The CPU architecture of the instance. Value range:
+* `cores` - (Optional, Int, Available since v1.266.0) The number of vCPU cores for the instance type. Example value: 8.
+* `cpu_architectures` - (Optional, List, Available since v1.266.0) The CPU architecture of the instance. Valid values:
   - X86
-  - ARM
-* `excluded_instance_types` - (Optional, List, Available since v1.266.0) Instance specifications to be excluded. You can exclude individual specifications or entire specification families by using the wildcard character (*). For example:
-  - ecs.c6.large: indicates that the ecs.c6.large instance type is excluded.
-  - ecs.c6. *: indicates that the instance specification of the entire c6 specification family is excluded.
-* `instance_categories` - (Optional, List, Available since v1.266.0) Instance classification. Value range:
-  - General-purpose: Universal.
-  - Compute-optimized: Compute type.
-  - Memory-optimized: Memory type.
-  - Big data: Big data type.
-  - Local SSDs: Local SSD type.
-  - High Clock Speed: High frequency type.
-  - Enhanced: Enhanced.
-  - Shared: Shared.
-  - ECS Bare Metal: elastic Bare Metal server.
-  - High Performance Compute: High Performance Compute.
-* `instance_family_level` - (Required, Available since v1.266.0) Instance specification family level, value range:
-  - EntryLevel: entry-level, that is, shared instance specifications. The cost is lower, but the stability of instance computing performance cannot be guaranteed. Applicable to business scenarios with low CPU usage. For more information, see Shared.
-  - EnterpriseLevel: Enterprise level. Stable performance and exclusive resources, suitable for business scenarios that require high stability. For more information, see Instance Specification Family.
-* `instance_type_families` - (Optional, List, Available since v1.266.0) Specifies the instance type family. Example values:["ecs.g8i","ecs.c8i"]
-* `max_cpu_cores` - (Optional, Int, Available since v1.266.0) The maximum number of vCPU cores of the instance type. Example value: 8. MaxCpuCores cannot exceed 4 times of MinCpuCores.
-* `max_memory_size` - (Optional, Float, Available since v1.266.0) The maximum memory of the instance type. Unit: GiB, example value: 8,MaxMemoryCores does not support more than 4 times MinMemoryCores.
-* `memory` - (Optional, Float, Available since v1.266.0) The memory size of the instance type, in GiB. Example value: 8.
-* `min_cpu_cores` - (Optional, Int, Available since v1.266.0) The minimum number of vCPU cores of the instance type. Example value: 4. MaxCpuCores cannot exceed 4 times of MinCpuCores.
-* `min_memory_size` - (Optional, Float, Available since v1.266.0) The minimum memory of the instance type. Unit: GiB, example value: 4,MaxMemoryCores does not support more than 4 times MinMemoryCores.
+  - ARM.
+* `excluded_instance_types` - (Optional, List, Available since v1.266.0) Instance types to exclude. You can use wildcards (*) to exclude a single instance type or an entire instance type family. Examples:
+  - ecs.c6.large: excludes the ecs.c6.large instance type.
+  - ecs.c6.*: excludes all instance types in the c6 instance family.
+* `instance_categories` - (Optional, List, Available since v1.266.0) Instance category. Valid values:
+  - General-purpose: general purpose instances.
+  - Compute-optimized: compute optimized instances.
+  - Memory-optimized: memory optimized instances.
+  - Big data: big data instances.
+  - Local SSDs: local SSD instances.
+  - High Clock Speed: high clock speed instances.
+  - Enhanced: enhanced instances.
+  - Shared: shared instances.
+  - ECS Bare Metal: Elastic Bare Metal instances.
+  - High Performance Compute: high performance computing instances.
+* `instance_family_level` - (Required, Available since v1.266.0) Instance family level. Valid values:
+  - EntryLevel: entry-level, which refers to shared instances. These offer lower costs but do not guarantee consistent compute performance. They are suitable for workloads with low average CPU utilization. For more information, see Shared instances.
+  - EnterpriseLevel: enterprise-level instances. These provide stable performance and dedicated resources, making them suitable for business scenarios that require high stability. For more information, see Instance families.
+* `instance_type_families` - (Optional, List, Available since v1.266.0) Specifies instance type families. Example value: ["ecs.g8i","ecs.c8i"].
+* `max_cpu_cores` - (Optional, Int, Available since v1.266.0) The maximum number of vCPU cores for the instance type. Example value: 8. The value of MaxCpuCores cannot exceed four times the value of MinCpuCores.
+* `max_memory_size` - (Optional, Float, Available since v1.266.0) The maximum memory of the instance type. Unit: GiB. Example value: 8. MaxMemorySize cannot exceed four times MinMemorySize.
+* `memory` - (Optional, Float, Available since v1.266.0) Memory size of the instance type, in GiB. Example value: 8.
+* `min_cpu_cores` - (Optional, Int, Available since v1.266.0) The minimum number of vCPU cores for the instance type. Example value: 4. MaxCpuCores cannot exceed four times MinCpuCores.
+* `min_memory_size` - (Optional, Float) The minimum memory of the instance type. Unit: GiB. Example value: 4. MaxMemorySize cannot exceed four times MinMemorySize.
 
 ### `kubelet_configuration`
 
 The kubelet_configuration supports the following:
-* `allowed_unsafe_sysctls` - (Optional, List) Allowed sysctl mode whitelist.
-* `cluster_dns` - (Optional, List, Available since v1.242.0) The list of IP addresses of the cluster DNS servers.
-* `container_log_max_files` - (Optional) The maximum number of log files that can exist in each container.
-* `container_log_max_size` - (Optional) The maximum size that can be reached before a log file is rotated.
+* `allowed_unsafe_sysctls` - (Optional, List) Allowlist of allowed sysctl patterns.
+* `cluster_dns` - (Optional, List, Available since v1.242.0) A list of IP addresses of the cluster DNS servers.
+* `container_log_max_files` - (Optional) The maximum number of log files allowed per container.  
+* `container_log_max_size` - (Optional) The maximum size a log file can reach before it is rotated.
 * `container_log_max_workers` - (Optional, Available since v1.242.0) Specifies the maximum number of concurrent workers required to perform log rotation operations.
-* `container_log_monitor_interval` - (Optional, Available since v1.242.0) Specifies the duration for which container logs are monitored for log rotation.
-* `cpu_cfs_quota` - (Optional, Available since v1.242.0) CPU CFS quota constraint switch.
-* `cpu_cfs_quota_period` - (Optional, Available since v1.242.0) CPU CFS quota period value.
-* `cpu_manager_policy` - (Optional) Same as cpuManagerPolicy. The name of the policy to use. Requires the CPUManager feature gate to be enabled. Valid value is `none` or `static`.
-* `event_burst` - (Optional) Same as eventBurst. The maximum size of a burst of event creations, temporarily allows event creations to burst to this number, while still not exceeding `event_record_qps`. It is only used when `event_record_qps` is greater than 0. Valid value is `[0-100]`.
-* `event_record_qps` - (Optional) Same as eventRecordQPS. The maximum event creations per second. If 0, there is no limit enforced. Valid value is `[0-50]`.
-* `eviction_hard` - (Optional, Map) Same as evictionHard. The map of signal names to quantities that defines hard eviction thresholds. For example: `{"memory.available" = "300Mi"}`.
-* `eviction_soft` - (Optional, Map) Same as evictionSoft. The map of signal names to quantities that defines soft eviction thresholds. For example: `{"memory.available" = "300Mi"}`.
-* `eviction_soft_grace_period` - (Optional, Map) Same as evictionSoftGracePeriod. The map of signal names to quantities that defines grace periods for each soft eviction signal. For example: `{"memory.available" = "30s"}`.
-* `feature_gates` - (Optional, Map) Feature switch to enable configuration of experimental features.
-* `image_gc_high_threshold_percent` - (Optional, Available since v1.242.0) If the image usage exceeds this threshold, image garbage collection will continue.
-* `image_gc_low_threshold_percent` - (Optional, Available since v1.242.0) Image garbage collection is not performed when the image usage is below this threshold.
-* `kube_api_burst` - (Optional) Same as kubeAPIBurst. The burst to allow while talking with kubernetes api-server. Valid value is `[0-100]`.
-* `kube_api_qps` - (Optional) Same as kubeAPIQPS. The QPS to use while talking with kubernetes api-server. Valid value is `[0-50]`.
-* `kube_reserved` - (Optional, Map) Same as kubeReserved. The set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs that describe resources reserved for kubernetes system components. Currently, cpu, memory and local storage for root file system are supported. See [compute resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for more details.
-* `max_pods` - (Optional) The maximum number of running pods.
-* `memory_manager_policy` - (Optional, Available since v1.242.0) The policy to be used by the memory manager.
-* `pod_pids_limit` - (Optional, Available since v1.242.0) The maximum number of PIDs that can be used in a Pod.
+* `container_log_monitor_interval` - (Optional, Available since v1.242.0) Specifies the duration for monitoring container logs to perform log rotation operations.
+* `cpu_cfs_quota` - (Optional, Available since v1.242.0) The switch for CPU CFS quota enforcement.
+* `cpu_cfs_quota_period` - (Optional, Available since v1.242.0) The CPU CFS quota period value.  
+* `cpu_manager_policy` - (Optional) CPU manager policy.
+* `event_burst` - (Optional) The upper limit on the burst count of event records.
+* `event_record_qps` - (Optional) The maximum number of events that can be generated per second.  
+* `eviction_hard` - (Optional, Map) A set of hard thresholds that trigger pod eviction.
+* `eviction_soft` - (Optional, Map) A set of soft eviction thresholds.  
+* `eviction_soft_grace_period` - (Optional, Map) Sets a set of eviction grace periods.
+* `feature_gates` - (Optional, Map) Feature gates used to enable experimental features.
+* `image_gc_high_threshold_percent` - (Optional, Available since v1.242.0) When image usage exceeds this threshold, image garbage collection continues to run.
+* `image_gc_low_threshold_percent` - (Optional, Available since v1.242.0) Image garbage collection is not performed when image usage falls below this threshold.
+* `kube_api_burst` - (Optional) The maximum number of burst requests per second sent to the API server.
+* `kube_api_qps` - (Optional) The number of queries per second for communication with the API Server.
+* `kube_reserved` - (Optional, Map) Resource configuration reserved for the Kubernetes system.  
+* `max_pods` - (Optional) The maximum number of pods that can run.  
+* `memory_manager_policy` - (Optional, Available since v1.242.0) The policy to be used by the memory manager.  
+* `pod_pids_limit` - (Optional, Available since v1.242.0) The maximum number of PIDs that can be used by a pod.
 * `read_only_port` - (Optional) Read-only port number.
-* `registry_burst` - (Optional) Same as registryBurst. The maximum size of burst pulls, temporarily allows pulls to burst to this number, while still not exceeding `registry_pull_qps`. Only used if `registry_pull_qps` is greater than 0. Valid value is `[0-100]`.
-* `registry_pull_qps` - (Optional) Same as registryPullQPS. The limit of registry pulls per second. Setting it to `0` means no limit. Valid value is `[0-50]`.
-* `reserved_memory` - (Optional, List, Available since v1.242.0) Reserve memory for NUMA nodes. See [`reserved_memory`](#kubelet_configuration-reserved_memory) below.
-* `serialize_image_pulls` - (Optional) Same as serializeImagePulls. When enabled, it tells the Kubelet to pull images one at a time. We recommend not changing the default value on nodes that run docker daemon with version < 1.9 or an Aufs storage backend. Valid value is `true` or `false`.
-* `server_tls_bootstrap` - (Optional, Available since v1.266.0) Used to enable the kubelet server certificate signing and rotation via CSR.
-* `system_reserved` - (Optional, Map) Same as systemReserved. The set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs that describe resources reserved for non-kubernetes components. Currently, only cpu and memory are supported. See [compute resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for more details.
-* `topology_manager_policy` - (Optional, Available since v1.242.0) Name of the Topology Manager policy used.
-* `tracing` - (Optional, List) OpenTelemetry tracks the configuration information for client settings versioning. See [`tracing`](#kubelet_configuration-tracing) below.
+* `registry_burst` - (Optional) Maximum number of burst image pulls.
+* `registry_pull_qps` - (Optional) QPS limit for image registry pulls.
+* `reserved_memory` - (Optional, List, Available since v1.242.0) Memory reserved for NUMA nodes. See [`reserved_memory`](#kubelet_configuration-reserved_memory) below.
+* `serialize_image_pulls` - (Optional) Whether to pull images one at a time.
+* `server_tls_bootstrap` - (Optional, Available since v1.266.0) Enables the kubelet server certificate issuance and rotation feature through Certificate Signing Requests (CSRs).
+* `system_reserved` - (Optional, Map) Resource configuration reserved for the system.
+* `topology_manager_policy` - (Optional, Available since v1.242.0) Name of the topology manager policy to use.
+* `tracing` - (Optional, Set) Versioned configuration information for the OpenTelemetry tracing client. See [`tracing`](#kubelet_configuration-tracing) below.
 
 ### `kubelet_configuration-reserved_memory`
 
 The kubelet_configuration-reserved_memory supports the following:
-* `limits` - (Optional, Map, Available since v1.242.0) Memory resource limit.
-* `numa_node` - (Optional, Int) The NUMA node.
+* `limits` - (Optional, Map, Available since v1.242.0) Memory resource limits.
+* `numa_node` - (Optional, Int) NUMA node.
 
 ### `kubelet_configuration-tracing`
 
 The kubelet_configuration-tracing supports the following:
 * `endpoint` - (Optional, Available since v1.242.0) The endpoint of the collector.
-* `sampling_rate_per_million` - (Optional) Number of samples to be collected per million span.
+* `sampling_rate_per_million` - (Optional) The number of samples to collect per million spans.
 
 ### `labels`
 
 The labels supports the following:
-* `key` - (Required) The label key.
-* `value` - (Optional) The label value.
+* `key` - (Required) Key.
+* `value` - (Optional) Value.
 
 ### `management`
 
 The management supports the following:
-* `auto_repair` - (Optional, Computed) Whether to enable automatic repair. Valid values: `true`: Automatic repair. `false`: not automatically repaired.
-* `auto_repair_policy` - (Optional, Computed, List) Automatic repair node policy. See [`auto_repair_policy`](#management-auto_repair_policy) below.
-* `auto_upgrade` - (Optional, Computed) Specifies whether to enable auto update. Valid values: `true`: enables auto update. `false`: disables auto update.
-* `auto_upgrade_policy` - (Optional, Computed, List) The auto update policy. See [`auto_upgrade_policy`](#management-auto_upgrade_policy) below.
-* `auto_vul_fix` - (Optional, Computed) Specifies whether to automatically patch CVE vulnerabilities. Valid values: `true`, `false`.
-* `auto_vul_fix_policy` - (Optional, Computed, List) The auto CVE patching policy. See [`auto_vul_fix_policy`](#management-auto_vul_fix_policy) below.
-* `enable` - (Optional, Computed) Specifies whether to enable the managed node pool feature. Valid values: `true`: enables the managed node pool feature. `false`: disables the managed node pool feature. Other parameters in this section take effect only when you specify enable=true.
-* `max_unavailable` - (Optional, Int) Maximum number of unavailable nodes. Default value: 1. Value range:\[1,1000\].
-* `surge` - (Optional, Int, Deprecated since v1.219.0) Number of additional nodes. You have to specify one of surge, surge_percentage.
-* `surge_percentage` - (Optional, Int, Deprecated since v1.219.0) Proportion of additional nodes. You have to specify one of surge, surge_percentage.
+* `auto_repair` - (Optional, Computed) Specifies whether to automatically repair nodes. This parameter takes effect only when `enable=true`.
+  - `true`: Enables automatic repair.
+  - `false`: Disables automatic repair.
+
+When `enable=true`, the default value is `true`. When `enable=false`, the default value is `false`.
+* `auto_repair_policy` - (Optional, Computed, Set) Automatic Node Repair Policy   See [`auto_repair_policy`](#management-auto_repair_policy) below.
+* `auto_upgrade` - (Optional, Computed) Specifies whether to automatically upgrade nodes. This parameter takes effect only when `enable=true`.
+  - `true`: Enables automatic upgrade.
+  - `false`: Disables automatic upgrade.
+
+When `enable=true`, the default value is `true`. When `enable=false`, the default value is `false`.
+* `auto_upgrade_policy` - (Optional, Computed, Set) Auto upgrade policy. See [`auto_upgrade_policy`](#management-auto_upgrade_policy) below.
+* `auto_vul_fix` - (Optional, Computed) Specifies whether to automatically fix CVEs. This parameter takes effect only when `enable=true`.  
+  - `true`: Allows automatic CVE fixes.  
+  - `false`: Disallows automatic CVE fixes.  
+* `auto_vul_fix_policy` - (Optional, Computed, Set) Automatic CVE Fix Policy See [`auto_vul_fix_policy`](#management-auto_vul_fix_policy) below.
+* `enable` - (Optional, Computed) Specifies whether to enable the managed node pool. Valid values:  
+  - `true`: Enables the managed node pool.  
+  - `false`: Disables the managed node pool. Other related configurations take effect only when `enable=true`.  
+
+Default value: `false`.  
+* `max_unavailable` - (Optional, Int) The maximum number of unavailable nodes.
+Value range: [1, 1000].
+Default value: 1.
+* `surge` - (Optional, Int, Deprecated since v1.219.0) The number of additional nodes. You must specify either this parameter or `surge_percentage`.
+
+Nodes become unavailable during upgrades. You can create additional nodes to compensate for the cluster workload.
+
+-> **NOTE:**  We recommend that the number of additional nodes does not exceed the current number of nodes.
+
+* `surge_percentage` - (Optional, Int, Deprecated since v1.219.0) The percentage of additional nodes. You must specify either this parameter or `surge`.
+Number of additional nodes = Surge percentage × Number of existing nodes. For example, if you set the surge percentage to 50% and there are 6 existing nodes, the number of additional nodes will be 50% × 6, which equals 3 additional nodes.
 
 ### `management-auto_repair_policy`
 
 The management-auto_repair_policy supports the following:
-* `restart_node` - (Optional, Computed) Whether to allow node restart.
+* `restart_node` - (Optional, Computed) Specifies whether to allow node restarts. This parameter takes effect only when `auto_repair=true`.  
+  - `true`: Allows node restarts.  
+  - `false`: Disallows node restarts.  
 
 ### `management-auto_upgrade_policy`
 
 The management-auto_upgrade_policy supports the following:
-* `auto_upgrade_kubelet` - (Optional, Computed) Specifies whether  to automatically update the kubelet. Valid values: `true`: yes; `false`: no.
+* `auto_upgrade_kubelet` - (Optional, Computed) Specifies whether to allow automatic kubelet upgrades. This parameter takes effect only when `auto_upgrade=true`. Valid values:
+  - `true`: Allows automatic kubelet upgrades.
+  - `false`: Disallows automatic kubelet upgrades.
+
+When `auto_upgrade=true`, the default value is `true`. When `auto_upgrade=false`, the default value is `false`.
 
 ### `management-auto_vul_fix_policy`
 
 The management-auto_vul_fix_policy supports the following:
-* `restart_node` - (Optional, Computed) Specifies whether to automatically restart nodes after patching CVE vulnerabilities. Valid values: `true`, `false`.
-* `vul_level` - (Optional, Computed) The severity levels of vulnerabilities that is allowed to automatically patch. Multiple severity levels are separated by commas (,).
+* `restart_node` - (Optional, Computed) Specifies whether to allow node restarts. This parameter takes effect only when `auto_vul_fix=true`. Valid values:  
+  - `true`: Allows node restarts.  
+  - `false`: Disallows node restarts.  
+
+When `auto_vul_fix=true`, the default value is `false`. When `auto_vul_fix=false`, the default value is also `false`.  
+* `vul_level` - (Optional, Computed) The vulnerability severity levels that are allowed for automatic repair, separated by commas.  
+  - `asap`: High  
+  - `later`: Medium  
+  - `nntf`: Low  
 
 ### `private_pool_options`
 
 The private_pool_options supports the following:
-* `private_pool_options_id` - (Optional) The ID of the private node pool.
-* `private_pool_options_match_criteria` - (Optional) The type of private node pool. This parameter specifies the type of the private pool that you want to use to create instances. A private node pool is generated when an elasticity assurance or a capacity reservation service takes effect. The system selects a private node pool to launch instances. Valid values: `Open`: specifies an open private node pool. The system selects an open private node pool to launch instances. If no matching open private node pool is available, the resources in the public node pool are used. `Target`: specifies a private node pool. The system uses the resources of the specified private node pool to launch instances. If the specified private node pool is unavailable, instances cannot be started. `None`: no private node pool is used. The resources of private node pools are not used to launch the instances.
+* `private_pool_options_id` - (Optional) Private node pool ID. When `match_criteria` is set to `Target`, you must further specify the private pool ID.
+* `private_pool_options_match_criteria` - (Optional) Private node pool type, which specifies the private pool capacity option for instance launch. After an elasticity assurance or capacity reservation takes effect, it generates private pool capacity that can be selected when launching instances. Valid values:
+  - `Open`: Open mode. Automatically matches open-type private pool capacity. If no matching private pool capacity is available, the instance is launched using public pool resources.
+  - `Target`: Targeted mode. Launches the instance using the specified private pool capacity. If the specified private pool capacity is unavailable, the instance launch fails.
+  - `None`: Disabled mode. The instance launch does not use any private pool capacity.
 
 ### `rolling_policy`
 
 The rolling_policy supports the following:
-* `max_parallelism` - (Optional, Int) The maximum number of unusable nodes.
+* `batch_interval` - (Optional, Available since v1.269.0) Time interval between upgrade batches.
+* `max_parallelism` - (Optional, Int) Node updates in a node pool are performed in batches. This parameter defines the maximum number of nodes that can be updated in parallel per batch.
+Valid range: [1, 10].
+Default value: 10.
+* `node_names` - (Optional, List, Available since v1.269.0) List of specific nodes to upgrade.
+* `pause_policy` - (Optional, Available since v1.269.0) Automatic pause policy during node upgrades.
 
 ### `scaling_config`
 
 The scaling_config supports the following:
-* `eip_bandwidth` - (Optional, Int) Peak EIP bandwidth. Its valid value range [1~500] in Mbps. It works if `is_bond_eip=true`. Default to `5`.
-* `eip_internet_charge_type` - (Optional) EIP billing type. `PayByBandwidth`: Charged at fixed bandwidth. `PayByTraffic`: Billed as used traffic. Default: `PayByBandwidth`. It works if `is_bond_eip=true`, conflict with `internet_charge_type`. EIP and public network IP can only choose one.
-* `enable` - (Optional) Whether to enable automatic scaling. Value:
-  - `true`: enables the node pool auto-scaling function.
-  - `false`: Auto scaling is not enabled. When the value is false, other `auto_scaling` configuration parameters do not take effect.
-* `is_bond_eip` - (Optional) Whether to bind EIP for an instance. Default: `false`.
-* `max_size` - (Optional, Int) Max number of instances in a auto scaling group, its valid value range [0~1000]. `max_size` has to be greater than `min_size`.
-* `min_size` - (Optional, Int) Min number of instances in a auto scaling group, its valid value range [0~1000].
-* `type` - (Optional) Instance classification, not required. Vaild value: `cpu`, `gpu`, `gpushare` and `spot`. Default: `cpu`. The actual instance type is determined by `instance_types`.
+* `eip_bandwidth` - (Optional, Int) [This field is deprecated.] Use `internet_charge_type` and `internet_max_bandwidth_out` instead.  
+Peak bandwidth of the EIP.
+Valid range: [1, 100]. Unit: Mbps.
+* `eip_internet_charge_type` - (Optional) [This field is deprecated.] Use `internet_charge_type` and `internet_max_bandwidth_out` instead.
+
+Billing method for the EIP. Valid values:
+  - `PayByBandwidth`: billed based on fixed bandwidth.
+  - `PayByTraffic`: billed based on actual traffic usage.
+
+Default value: `PayByBandwidth`.
+* `enable` - (Optional) Specifies whether to enable auto scaling. Valid values:
+  - `true`: Enables auto scaling for the node pool. When the cluster capacity is insufficient to schedule application pods, ACK automatically scales the node resources based on the configured minimum and maximum instance counts. For clusters of version 1.24 or later, instant node elasticity is enabled by default. For clusters earlier than version 1.24, auto scaling is enabled by default. For more information, see [Node Auto Scaling](~~2746785~~).
+  - `false`: Disables auto scaling. ACK adjusts the number of nodes in the node pool to match the desired node count and maintains this number consistently.
+
+When this parameter is set to `false`, other parameters within `auto_scaling` do not take effect.
+
+Default value: `false`.
+* `is_bond_eip` - (Optional) [This field is deprecated.] Use `internet_charge_type` and `internet_max_bandwidth_out` instead.  
+Whether to bind an EIP. Valid values:
+  - `true`: Bind an EIP.
+  - `false`: Do not bind an EIP.
+
+Default value: `false`.
+* `max_size` - (Optional, Int) The maximum number of instances that can be added through scaling in the node pool, excluding existing instances. This parameter takes effect only when `enable=true`.
+Valid range: [min_instances, 2000]. Default value: 0.
+* `min_size` - (Optional, Int) The minimum number of scalable instances in the node pool, excluding your existing instances. This parameter takes effect only when `enable=true`.
+
+Valid range: [0, max_instances]. Default value: 0.
+
+-> **NOTE:**  - If the minimum number of instances is greater than 0, the specified number of ECS instances will be automatically created after the scaling group takes effect.
+
+-> **NOTE:**  - We recommend that the maximum number of instances not be set lower than the current number of nodes in the node pool. Otherwise, enabling auto scaling will immediately trigger scale-in of the node pool.
+
+* `type` - (Optional) Instance type for auto scaling. This parameter takes effect only when `enable=true`. Valid values:
+  - `cpu`: General-purpose instance.
+  - `gpu`: GPU instance.
+  - `gpushare`: Shared GPU instance.
+  - `spot`: Spot instance.
+
+Default value: `cpu`.
+
+-> **NOTE:** You cannot modify this field after the node pool is created.>
+
 
 ### `spot_price_limit`
 
 The spot_price_limit supports the following:
-* `instance_type` - (Optional) The type of the preemptible instance.
-* `price_limit` - (Optional) The maximum price of a single instance.
+* `instance_type` - (Optional) Spot instance type.
+* `price_limit` - (Optional) Maximum price per instance.
 
 ### `taints`
 
 The taints supports the following:
-* `effect` - (Optional) The scheduling policy.
-* `key` - (Required) The key of a taint.
-* `value` - (Optional) The value of a taint.
+* `effect` - (Optional) The taint effect policy.
+* `key` - (Required) The key.
+* `value` - (Optional) The value.
 
 ### `tee_config`
 
 The tee_config supports the following:
-* `tee_enable` - (Optional, ForceNew) Specifies whether to enable confidential computing for the cluster.
+* `tee_enable` - (Optional, ForceNew) Specifies whether to enable confidential computing.
+  - true: Enables confidential computing.
+  - false: Disables confidential computing.
+
+### `upgrade_policy`
+
+The upgrade_policy supports the following:
+* `image_id` - (Optional, Available since v1.269.0) System image ID of the node
+* `kubernetes_version` - (Optional, Available since v1.269.0) Kubernetes version of the node
+* `runtime` - (Optional, Available since v1.269.0) Runtime type of the node
+* `runtime_version` - (Optional, Available since v1.269.0) Runtime version of the node
+* `use_replace` - (Optional, Available since v1.269.0) Specifies whether to use disk replacement for upgrades.
 
 ### `rollout_policy`
 
@@ -988,20 +852,20 @@ The rollout_policy mapping supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<cluster_id>:<node_pool_id>`.
-* `node_pool_id` - The first ID of the resource.
+* `id` - The ID of the resource supplied above. The value is formulated as `<cluster_id>:<node_pool_id>`.
+* `node_pool_id` - The node pool ID.
 * `scaling_group_id` - The ID of the scaling group.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 90 mins) Used when create the Nodepool.
-* `delete` - (Defaults to 60 mins) Used when delete the Nodepool.
-* `update` - (Defaults to 60 mins) Used when update the Nodepool.
+* `create` - (Defaults to 5 mins) Used when create the Node Pool.
+* `delete` - (Defaults to 5 mins) Used when delete the Node Pool.
+* `update` - (Defaults to 15 mins) Used when update the Node Pool.
 
 ## Import
 
-Container Service for Kubernetes (ACK) Nodepool can be imported using the id, e.g.
+Container Service for Kubernetes (ACK) Node Pool can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_cs_kubernetes_node_pool.example <cluster_id>:<node_pool_id>
