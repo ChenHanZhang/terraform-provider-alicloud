@@ -915,8 +915,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_alikafka_scheduled_scaling_rule":                      resourceAliCloudAlikafkaScheduledScalingRule(),
-			"alicloud_cloud_firewall_instance_v2":                           resourceAliCloudCloudFirewallInstanceV2(),
 			"alicloud_cloud_firewall_vpc_firewall_ips_config":               resourceAliCloudCloudFirewallVpcFirewallIpsConfig(),
 			"alicloud_rds_ai_instance":                                      resourceAliCloudRdsAiInstance(),
 			"alicloud_threat_detection_check_config":                        resourceAliCloudThreatDetectionCheckConfig(),
@@ -1314,7 +1312,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ess_alb_server_group_attachment":                      resourceAlicloudEssAlbServerGroupAttachment(),
 			"alicloud_ess_server_group_attachment":                          resourceAliCloudEssServerGroupAttachment(),
 			"alicloud_vpc":                                                  resourceAliCloudVpcVpc(),
-			"alicloud_nat_gateway":                                          resourceAliCloudNatGateway(),
+			"alicloud_nat_gateway":                                          resourceAliCloudNATGatewayNatGateway(),
 			"alicloud_nas_file_system":                                      resourceAliCloudNasFileSystem(),
 			"alicloud_nas_mount_target":                                     resourceAliCloudNasMountTarget(),
 			"alicloud_nas_access_group":                                     resourceAliCloudNasAccessGroup(),
