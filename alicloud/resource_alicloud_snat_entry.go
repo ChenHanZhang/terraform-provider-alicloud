@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -32,6 +31,10 @@ func resourceAliCloudNATGatewaySnatEntry() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"network_interface_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"snat_entry_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -42,7 +45,7 @@ func resourceAliCloudNATGatewaySnatEntry() *schema.Resource {
 			},
 			"snat_ip": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"snat_table_id": {
 				Type:     schema.TypeString,
@@ -50,18 +53,16 @@ func resourceAliCloudNATGatewaySnatEntry() *schema.Resource {
 				ForceNew: true,
 			},
 			"source_cidr": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Computed:      true,
-				ConflictsWith: strings.Fields("source_vswitch_id"),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"source_vswitch_id": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Computed:      true,
-				ConflictsWith: strings.Fields("source_cidr"),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
@@ -81,13 +82,17 @@ func resourceAliCloudNATGatewaySnatEntryCreate(d *schema.ResourceData, meta inte
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["SnatTableId"] = d.Get("snat_table_id")
-	request["SnatIp"] = d.Get("snat_ip")
+	if v, ok := d.GetOk("snat_table_id"); ok {
+		request["SnatTableId"] = v
+	}
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
 	if v, ok := d.GetOk("source_vswitch_id"); ok {
 		request["SourceVSwitchId"] = v
+	}
+	if v, ok := d.GetOkExists("eip_affinity"); ok {
+		request["EipAffinity"] = v
 	}
 	if v, ok := d.GetOk("snat_entry_name"); ok {
 		request["SnatEntryName"] = v
@@ -95,14 +100,17 @@ func resourceAliCloudNATGatewaySnatEntryCreate(d *schema.ResourceData, meta inte
 	if v, ok := d.GetOk("source_cidr"); ok {
 		request["SourceCIDR"] = v
 	}
-	if v, ok := d.GetOkExists("eip_affinity"); ok {
-		request["EipAffinity"] = v
+	if v, ok := d.GetOk("snat_ip"); ok {
+		request["SnatIp"] = v
+	}
+	if v, ok := d.GetOk("network_interface_id"); ok {
+		request["NetworkInterfaceId"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"EIP_NOT_IN_GATEWAY", "OperationUnsupported.EipNatBWPCheck", "OperationUnsupported.EipInBinding", "InternalError", "IncorrectStatus.NATGW", "OperationConflict", "OperationUnsupported.EipNatGWCheck"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"IncorrectStatus.NATGW", "OperationConflict", "EIP_NOT_IN_GATEWAY", "OperationUnsupported.EipInBinding", "OperationUnsupported.EipNatBWPCheck", "InternalError"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -131,11 +139,6 @@ func resourceAliCloudNATGatewaySnatEntryRead(d *schema.ResourceData, meta interf
 	client := meta.(*connectivity.AliyunClient)
 	nATGatewayServiceV2 := NATGatewayServiceV2{client}
 
-	// compatible with previous id which in under 1.37.0
-	if strings.HasPrefix(d.Id(), "snat-") {
-		d.SetId(fmt.Sprintf("%s%s%s", d.Get("snat_table_id").(string), COLON_SEPARATED, d.Id()))
-	}
-
 	objectRaw, err := nATGatewayServiceV2.DescribeNATGatewaySnatEntry(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
@@ -146,30 +149,15 @@ func resourceAliCloudNATGatewaySnatEntryRead(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 
-	if objectRaw["EipAffinity"] != nil {
-		d.Set("eip_affinity", formatInt(objectRaw["EipAffinity"]))
-	}
-	if objectRaw["SnatEntryName"] != nil {
-		d.Set("snat_entry_name", objectRaw["SnatEntryName"])
-	}
-	if objectRaw["SnatIp"] != nil {
-		d.Set("snat_ip", objectRaw["SnatIp"])
-	}
-	if objectRaw["SourceCIDR"] != nil {
-		d.Set("source_cidr", objectRaw["SourceCIDR"])
-	}
-	if objectRaw["SourceVSwitchId"] != nil {
-		d.Set("source_vswitch_id", objectRaw["SourceVSwitchId"])
-	}
-	if objectRaw["Status"] != nil {
-		d.Set("status", objectRaw["Status"])
-	}
-	if objectRaw["SnatEntryId"] != nil {
-		d.Set("snat_entry_id", objectRaw["SnatEntryId"])
-	}
-	if objectRaw["SnatTableId"] != nil {
-		d.Set("snat_table_id", objectRaw["SnatTableId"])
-	}
+	d.Set("eip_affinity", formatInt(objectRaw["EipAffinity"]))
+	d.Set("network_interface_id", objectRaw["NetworkInterfaceId"])
+	d.Set("snat_entry_name", objectRaw["SnatEntryName"])
+	d.Set("snat_ip", objectRaw["SnatIp"])
+	d.Set("source_cidr", objectRaw["SourceCIDR"])
+	d.Set("source_vswitch_id", objectRaw["SourceVSwitchId"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("snat_entry_id", objectRaw["SnatEntryId"])
+	d.Set("snat_table_id", objectRaw["SnatTableId"])
 
 	return nil
 }
@@ -181,45 +169,36 @@ func resourceAliCloudNATGatewaySnatEntryUpdate(d *schema.ResourceData, meta inte
 	var query map[string]interface{}
 	update := false
 
-	// compatible with previous id which in under 1.37.0
-	if strings.HasPrefix(d.Id(), "snat-") {
-		d.SetId(fmt.Sprintf("%s%s%s", d.Get("snat_table_id").(string), COLON_SEPARATED, d.Id()))
-	}
-
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
+	var err error
+	parts := strings.Split(d.Id(), ":")
 	action := "ModifySnatEntry"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["SnatTableId"] = parts[0]
 	request["SnatEntryId"] = parts[1]
+	request["SnatTableId"] = parts[0]
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("eip_affinity") {
+		update = true
+		request["EipAffinity"] = d.Get("eip_affinity")
+	}
+
 	if d.HasChange("snat_entry_name") {
 		update = true
-	}
-	if v, ok := d.GetOk("snat_entry_name"); ok {
-		request["SnatEntryName"] = v
+		request["SnatEntryName"] = d.Get("snat_entry_name")
 	}
 
 	if d.HasChange("snat_ip") {
 		update = true
+		request["SnatIp"] = d.Get("snat_ip")
 	}
-	request["SnatIp"] = d.Get("snat_ip")
 
-	if d.HasChange("eip_affinity") {
+	if d.HasChange("network_interface_id") {
 		update = true
-
-		if v, ok := d.GetOkExists("eip_affinity"); ok {
-			request["EipAffinity"] = v
-		}
+		request["NetworkInterfaceId"] = d.Get("network_interface_id")
 	}
 
 	if update {
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
@@ -249,32 +228,23 @@ func resourceAliCloudNATGatewaySnatEntryUpdate(d *schema.ResourceData, meta inte
 func resourceAliCloudNATGatewaySnatEntryDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
-	// compatible with previous id which in under 1.37.0
-	if strings.HasPrefix(d.Id(), "snat-") {
-		d.SetId(fmt.Sprintf("%s%s%s", d.Get("snat_table_id").(string), COLON_SEPARATED, d.Id()))
-	}
-
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
+	parts := strings.Split(d.Id(), ":")
 	action := "DeleteSnatEntry"
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]interface{})
+	var err error
 	request = make(map[string]interface{})
-	request["SnatTableId"] = parts[0]
 	request["SnatEntryId"] = parts[1]
+	request["SnatTableId"] = parts[0]
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
-
 		if err != nil {
-			if IsExpectedErrors(err, []string{"IncorretSnatEntryStatus", "IncorrectStatus.NATGW", "OperationConflict"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"IncorrectStatus.NATGW", "IncorretSnatEntryStatus", "OperationConflict"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
