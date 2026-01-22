@@ -1315,7 +1315,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ess_alb_server_group_attachment":                      resourceAlicloudEssAlbServerGroupAttachment(),
 			"alicloud_ess_server_group_attachment":                          resourceAliCloudEssServerGroupAttachment(),
 			"alicloud_vpc":                                                  resourceAliCloudVpcVpc(),
-			"alicloud_nat_gateway":                                          resourceAliCloudNatGateway(),
+			"alicloud_nat_gateway":                                          resourceAliCloudNATGatewayNatGateway(),
 			"alicloud_nas_file_system":                                      resourceAliCloudNasFileSystem(),
 			"alicloud_nas_mount_target":                                     resourceAliCloudNasMountTarget(),
 			"alicloud_nas_access_group":                                     resourceAliCloudNasAccessGroup(),
