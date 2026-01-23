@@ -1323,3 +1323,77 @@ func (s *ThreatDetectionServiceV2) ThreatDetectionCheckConfigStateRefreshFuncWit
 }
 
 // DescribeThreatDetectionCheckConfig >>> Encapsulated.
+// DescribeThreatDetectionGlobalConfig <<< Encapsulated get interface for ThreatDetection GlobalConfig.
+
+func (s *ThreatDetectionServiceV2) DescribeThreatDetectionGlobalConfig(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	action := "GetGlobalConfig"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("cloud-siem", "2024-12-12", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"IdempotentParameterMismatch"}) {
+			return object, WrapErrorf(NotFoundErr("GlobalConfig", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.GlobalConfig", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.GlobalConfig", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *ThreatDetectionServiceV2) ThreatDetectionGlobalConfigStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ThreatDetectionGlobalConfigStateRefreshFuncWithApi(id, field, failStates, s.DescribeThreatDetectionGlobalConfig)
+}
+
+func (s *ThreatDetectionServiceV2) ThreatDetectionGlobalConfigStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeThreatDetectionGlobalConfig >>> Encapsulated.
