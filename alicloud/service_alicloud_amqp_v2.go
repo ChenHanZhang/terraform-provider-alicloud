@@ -8,6 +8,7 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 type AmqpServiceV2 struct {
@@ -41,7 +42,6 @@ func (s *AmqpServiceV2) DescribeAmqpInstance(id string) (object map[string]inter
 		return nil
 	})
 	addDebug(action, response, request)
-
 	if err != nil {
 		if IsExpectedErrors(err, []string{"ResourceNotFound"}) {
 			return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
@@ -54,37 +54,39 @@ func (s *AmqpServiceV2) DescribeAmqpInstance(id string) (object map[string]inter
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Data", response)
 	}
 
-	currentStatus := v.(map[string]interface{})["Status"]
-	if currentStatus == "" {
-		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
-	}
-
 	return v.(map[string]interface{}), nil
 }
-func (s *AmqpServiceV2) DescribeInstanceQueryAvailableInstances(id string) (object map[string]interface{}, err error) {
+func (s *AmqpServiceV2) DescribeInstanceQueryAvailableInstances(d *schema.ResourceData) (object map[string]interface{}, err error) {
 	client := s.client
+	id := d.Id()
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["InstanceIDs"] = id
+	request["InstanceIDs"] = id
 	request["Region"] = client.RegionId
 	request["ProductCode"] = "ons"
 	var endpoint string
-
+	request["ProductCode"] = ""
+	request["ProductType"] = ""
+	if client.IsInternationalAccount() {
+		request["ProductType"] = ""
+	}
 	action := "QueryAvailableInstances"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
-			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
-				request["ProductType"] = "ons_onsproxy_public_intl"
+			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{""}) {
+				request["ProductCode"] = ""
+				request["ProductType"] = ""
 				endpoint = connectivity.BssOpenAPIEndpointInternational
 				return resource.RetryableError(err)
 			}
@@ -110,15 +112,19 @@ func (s *AmqpServiceV2) DescribeInstanceQueryAvailableInstances(id string) (obje
 }
 
 func (s *AmqpServiceV2) AmqpInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.AmqpInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeAmqpInstance)
+}
+
+func (s *AmqpServiceV2) AmqpInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeAmqpInstance(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
+		object["InstanceType"] = convertAmqpInstanceDataInstanceTypeResponse(object["InstanceType"])
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
