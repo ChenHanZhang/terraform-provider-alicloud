@@ -144,7 +144,7 @@ func resourceAliCloudCenTrafficMarkingPolicyCreate(d *schema.ResourceData, meta 
 
 	if v, ok := d.GetOk("traffic_match_rules"); ok {
 		trafficMatchRulesMapsArray := make([]interface{}, 0)
-		for _, dataLoop := range v.(*schema.Set).List() {
+		for _, dataLoop := range convertToInterfaceArray(v) {
 			dataLoopTmp := dataLoop.(map[string]interface{})
 			dataLoopMap := make(map[string]interface{})
 			dataLoopMap["SrcPortRange"] = dataLoopTmp["src_port_range"]
@@ -226,7 +226,7 @@ func resourceAliCloudCenTrafficMarkingPolicyRead(d *schema.ResourceData, meta in
 	trafficMatchRulesRaw := objectRaw["TrafficMatchRules"]
 	trafficMatchRulesMaps := make([]map[string]interface{}, 0)
 	if trafficMatchRulesRaw != nil {
-		for _, trafficMatchRulesChildRaw := range trafficMatchRulesRaw.([]interface{}) {
+		for _, trafficMatchRulesChildRaw := range convertToInterfaceArray(trafficMatchRulesRaw) {
 			trafficMatchRulesMap := make(map[string]interface{})
 			trafficMatchRulesChildRaw := trafficMatchRulesChildRaw.(map[string]interface{})
 			trafficMatchRulesMap["address_family"] = trafficMatchRulesChildRaw["AddressFamily"]
@@ -239,13 +239,13 @@ func resourceAliCloudCenTrafficMarkingPolicyRead(d *schema.ResourceData, meta in
 
 			dstPortRangeRaw := make([]interface{}, 0)
 			if trafficMatchRulesChildRaw["DstPortRange"] != nil {
-				dstPortRangeRaw = trafficMatchRulesChildRaw["DstPortRange"].([]interface{})
+				dstPortRangeRaw = convertToInterfaceArray(trafficMatchRulesChildRaw["DstPortRange"])
 			}
 
 			trafficMatchRulesMap["dst_port_range"] = dstPortRangeRaw
 			srcPortRangeRaw := make([]interface{}, 0)
 			if trafficMatchRulesChildRaw["SrcPortRange"] != nil {
-				srcPortRangeRaw = trafficMatchRulesChildRaw["SrcPortRange"].([]interface{})
+				srcPortRangeRaw = convertToInterfaceArray(trafficMatchRulesChildRaw["SrcPortRange"])
 			}
 
 			trafficMatchRulesMap["src_port_range"] = srcPortRangeRaw
@@ -439,8 +439,6 @@ func resourceAliCloudCenTrafficMarkingPolicyDelete(d *schema.ResourceData, meta 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
 		if err != nil {
 			if IsExpectedErrors(err, []string{"Operation.Blocking", "Throttling.User"}) || NeedRetry(err) {
 				wait()

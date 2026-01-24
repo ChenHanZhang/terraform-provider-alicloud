@@ -20,12 +20,6 @@ For information about Cloud Enterprise Network (CEN) Traffic Marking Policy and 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cen_traffic_marking_policy&exampleId=be3b43ec-5051-f623-1c57-7ba6b0cb90ba131caf90&activeTab=example&spm=docs.r.cen_traffic_marking_policy.0.be3b43ec50&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 resource "alicloud_cen_instance" "example" {
   cen_instance_name = "tf_example"
@@ -45,8 +39,6 @@ resource "alicloud_cen_traffic_marking_policy" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cen_traffic_marking_policy&spm=docs.r.cen_traffic_marking_policy.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -54,13 +46,19 @@ The following arguments are supported:
 * `dry_run` - (Optional) Whether to PreCheck only this request. Value:
   - `true`: The check request is sent without creating a traffic marking policy. Check items include whether required parameters, request format, and business restrictions are filled in. If the check does not pass, the corresponding error is returned. If the check passes, the error code 'DryRunOperation' is returned '.
   - `false` (default): A normal request is sent, and a traffic marking policy is directly created after the check is passed.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
 * `force` - (Optional, Available since v1.248.0) Whether to forcibly delete the traffic marker policy. Valid values:
   - `false` (default value): Before deleting a traffic marking policy, check whether a traffic classification rule exists under the policy. If a flow classification rule exists, deletion is not allowed and the corresponding error is returned.
   - `true`: When you delete a traffic marking policy, all traffic classification rules under the policy are deleted by default.
+
+-> **NOTE:** This parameter only takes effect when deletion is triggered.
+
 * `marking_dscp` - (Required, ForceNew, Int) MarkingDscp
 * `priority` - (Required, ForceNew, Int) Priority
 * `traffic_marking_policy_name` - (Optional) TrafficMarkingPolicyName
-* `traffic_match_rules` - (Optional, Set, Available since v1.230.1) List of stream classification rules.
+* `traffic_match_rules` - (Optional, List, Available since v1.230.1) List of stream classification rules.
 You can add up to 50 stream classification rules at a time. See [`traffic_match_rules`](#traffic_match_rules) below.
 * `transit_router_id` - (Required, ForceNew) TransitRouterId
 
@@ -104,7 +102,7 @@ The name must be 2 to 128 characters in length and can contain numbers, dashes (
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<transit_router_id>:<traffic_marking_policy_id>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<transit_router_id>:<traffic_marking_policy_id>`.
 * `status` - The status of the resource
 * `traffic_marking_policy_id` - The first ID of the resource
 
