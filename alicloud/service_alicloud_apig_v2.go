@@ -568,6 +568,7 @@ func (s *ApigServiceV2) ApigPluginStateRefreshFunc(id string, field string, fail
 }
 
 // DescribeApigPlugin >>> Encapsulated.
+
 // DescribeApigPluginClass <<< Encapsulated get interface for Apig PluginClass.
 
 func (s *ApigServiceV2) DescribeApigPluginClass(id string) (object map[string]interface{}, err error) {
@@ -575,15 +576,17 @@ func (s *ApigServiceV2) DescribeApigPluginClass(id string) (object map[string]in
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	pluginClassId := id
-	action := fmt.Sprintf("/v1/plugin-classes/%s", pluginClassId)
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["pluginClassId"] = id
+	header = make(map[string]*string)
+
+	action := fmt.Sprintf("/v1/plugin-classes/%s", pluginClassId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("APIG", "2024-03-27", action, query, nil, nil)
+		response, err = client.RoaGet("APIG", "2024-03-27", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -595,11 +598,12 @@ func (s *ApigServiceV2) DescribeApigPluginClass(id string) (object map[string]in
 		return nil
 	})
 	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"DatabaseError.RecordNotFound"}) {
-			return object, WrapErrorf(NotFoundErr("PluginClass", id), NotFoundMsg, err)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	if response == nil {
+		return object, WrapErrorf(NotFoundErr("PluginClass", id), NotFoundMsg, response)
+	}
+	code, _ := jsonpath.Get("$.code", response)
+	if InArray(fmt.Sprint(code), []string{"DatabaseError.RecordNotFound"}) {
+		return object, WrapErrorf(NotFoundErr("PluginClass", id), NotFoundMsg, response)
 	}
 
 	v, err := jsonpath.Get("$.data", response)
@@ -611,15 +615,18 @@ func (s *ApigServiceV2) DescribeApigPluginClass(id string) (object map[string]in
 }
 
 func (s *ApigServiceV2) ApigPluginClassStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ApigPluginClassStateRefreshFuncWithApi(id, field, failStates, s.DescribeApigPluginClass)
+}
+
+func (s *ApigServiceV2) ApigPluginClassStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeApigPluginClass(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
