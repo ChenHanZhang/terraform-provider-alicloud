@@ -188,7 +188,6 @@ func resourceAliCloudCloudPhoneKeyPairDelete(d *schema.ResourceData, meta interf
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("eds-aic", "2023-09-30", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

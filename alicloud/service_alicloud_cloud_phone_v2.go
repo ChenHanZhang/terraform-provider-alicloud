@@ -234,6 +234,7 @@ func (s *CloudPhoneServiceV2) CloudPhoneInstanceStateRefreshFunc(id string, fiel
 }
 
 // DescribeCloudPhoneInstance >>> Encapsulated.
+
 // DescribeCloudPhoneKeyPair <<< Encapsulated get interface for CloudPhone KeyPair.
 
 func (s *CloudPhoneServiceV2) DescribeCloudPhoneKeyPair(id string) (object map[string]interface{}, err error) {
@@ -278,15 +279,18 @@ func (s *CloudPhoneServiceV2) DescribeCloudPhoneKeyPair(id string) (object map[s
 }
 
 func (s *CloudPhoneServiceV2) CloudPhoneKeyPairStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.CloudPhoneKeyPairStateRefreshFuncWithApi(id, field, failStates, s.DescribeCloudPhoneKeyPair)
+}
+
+func (s *CloudPhoneServiceV2) CloudPhoneKeyPairStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeCloudPhoneKeyPair(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
