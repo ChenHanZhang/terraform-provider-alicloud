@@ -150,3 +150,186 @@ resource "alicloud_cloud_sso_access_configuration" "default" {
 }
 `, name)
 }
+
+// Test CloudSso AccessConfigurationProvisioning. >>> Resource test cases, automatically generated.
+// Case AccessConfigurationProvisioning 10020
+func TestAccAliCloudCloudSsoAccessConfigurationProvisioning_basic10020(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_sso_access_configuration_provisioning.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudSsoAccessConfigurationProvisioningMap10020)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudSSOServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudSsoAccessConfigurationProvisioning")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudsso%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudSsoAccessConfigurationProvisioningBasicDependence10020)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"directory_id":            "${alicloud_cloud_sso_directory.defaultcqnaUh.id}",
+					"target_type":             "RD-Account",
+					"access_configuration_id": "${alicloud_cloud_sso_access_configuration.default4eot5T.access_configuration_id}",
+					"target_id":               "1511928242963727",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"directory_id":            CHECKSET,
+						"target_type":             "RD-Account",
+						"access_configuration_id": CHECKSET,
+						"target_id":               CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudSsoAccessConfigurationProvisioningMap10020 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudCloudSsoAccessConfigurationProvisioningBasicDependence10020(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "directory_name" {
+  default = "rtforacpdnprod"
+}
+
+variable "access_configuration_name" {
+  default = "rtforacpacnprod"
+}
+
+resource "alicloud_cloud_sso_directory" "defaultcqnaUh" {
+  directory_global_access_status = "Disabled"
+  password_policy {
+    min_password_length          = "8"
+    min_password_different_chars = "8"
+    max_password_age             = "90"
+    password_reuse_prevention    = "1"
+    max_login_attempts           = "5"
+    max_password_length          = "32"
+  }
+  directory_name = var.directory_name
+}
+
+resource "alicloud_cloud_sso_access_configuration" "default4eot5T" {
+  access_configuration_name = var.access_configuration_name
+  session_duration          = "3600"
+  directory_id              = alicloud_cloud_sso_directory.defaultcqnaUh.id
+}
+
+
+`, name)
+}
+
+// Case AccessConfigurationProvisioning_online 10388
+func TestAccAliCloudCloudSsoAccessConfigurationProvisioning_basic10388(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_sso_access_configuration_provisioning.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudSsoAccessConfigurationProvisioningMap10388)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudSSOServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudSsoAccessConfigurationProvisioning")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudsso%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudSsoAccessConfigurationProvisioningBasicDependence10388)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"directory_id":            "${alicloud_cloud_sso_directory.defaultcqnaUh.id}",
+					"target_type":             "RD-Account",
+					"access_configuration_id": "${alicloud_cloud_sso_access_configuration.default4eot5T.access_configuration_id}",
+					"target_id":               "1511928242963727",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"directory_id":            CHECKSET,
+						"target_type":             "RD-Account",
+						"access_configuration_id": CHECKSET,
+						"target_id":               CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudSsoAccessConfigurationProvisioningMap10388 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudCloudSsoAccessConfigurationProvisioningBasicDependence10388(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "directory_name" {
+  default = "rtforacpdnonline"
+}
+
+variable "access_configuration_name" {
+  default = "rtforacpacnprod"
+}
+
+resource "alicloud_cloud_sso_directory" "defaultcqnaUh" {
+  directory_global_access_status = "Disabled"
+  password_policy {
+    min_password_length          = "8"
+    min_password_different_chars = "8"
+    max_password_age             = "90"
+    password_reuse_prevention    = "1"
+    max_login_attempts           = "5"
+    max_password_length          = "32"
+  }
+  directory_name = var.directory_name
+}
+
+resource "alicloud_cloud_sso_access_configuration" "default4eot5T" {
+  access_configuration_name = var.access_configuration_name
+  session_duration          = "3600"
+  directory_id              = alicloud_cloud_sso_directory.defaultcqnaUh.id
+}
+
+
+`, name)
+}
+
+// Test CloudSso AccessConfigurationProvisioning. <<< Resource test cases, automatically generated.

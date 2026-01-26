@@ -1,25 +1,29 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudCloudSsoAccessConfigurationProvisioning() *schema.Resource {
+func resourceAliCloudCloudSsoAccessConfigurationProvisioning() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudCloudSsoAccessConfigurationProvisioningCreate,
-		Read:   resourceAlicloudCloudSsoAccessConfigurationProvisioningRead,
-		Update: resourceAlicloudCloudSsoAccessConfigurationProvisioningUpdate,
-		Delete: resourceAlicloudCloudSsoAccessConfigurationProvisioningDelete,
+		Create: resourceAliCloudCloudSsoAccessConfigurationProvisioningCreate,
+		Read:   resourceAliCloudCloudSsoAccessConfigurationProvisioningRead,
+		Delete: resourceAliCloudCloudSsoAccessConfigurationProvisioningDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_configuration_id": {
@@ -27,10 +31,18 @@ func resourceAlicloudCloudSsoAccessConfigurationProvisioning() *schema.Resource 
 				Required: true,
 				ForceNew: true,
 			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"directory_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"target_id": {
 				Type:     schema.TypeString,
@@ -41,99 +53,40 @@ func resourceAlicloudCloudSsoAccessConfigurationProvisioning() *schema.Resource 
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"RD-Account"}, false),
-			},
-			"status": {
-				Type:         schema.TypeString,
-				Computed:     true,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Provisioned"}, false),
+				ValidateFunc: StringInSlice([]string{"RD-Account"}, false),
 			},
 		},
 	}
 }
 
-func resourceAlicloudCloudSsoAccessConfigurationProvisioningCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudSsoAccessConfigurationProvisioningCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	cloudssoService := CloudssoService{client}
-	err := cloudssoService.CloudssoServicAccessConfigurationProvisioning(fmt.Sprint(d.Get("directory_id")), fmt.Sprint(d.Get("access_configuration_id")), fmt.Sprint(d.Get("target_type")), fmt.Sprint(d.Get("target_id")))
-	if err != nil {
-		return WrapError(err)
-	}
-	d.SetId(fmt.Sprint(d.Get("directory_id"), ":", d.Get("access_configuration_id"), ":", d.Get("target_type"), ":", d.Get("target_id")))
-	return resourceAlicloudCloudSsoAccessConfigurationProvisioningRead(d, meta)
-}
-func resourceAlicloudCloudSsoAccessConfigurationProvisioningRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	cloudssoService := CloudssoService{client}
-	object, err := cloudssoService.DescribeCloudSsoAccessConfigurationProvisioning(d.Id())
-	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_cloud_sso_access_configuration_provisioning cloudssoService.DescribeCloudSsoAccessConfigurationProvisioning Failed!!! %s", err)
-			d.SetId("")
-			return nil
-		}
-		return WrapError(err)
-	}
 
-	parts, err := ParseResourceId(d.Id(), 4)
-	if err != nil {
-		return WrapError(err)
-	}
-
-	d.Set("access_configuration_id", parts[1])
-	d.Set("directory_id", parts[0])
-	d.Set("target_id", parts[3])
-	d.Set("target_type", parts[2])
-	d.Set("status", object["Status"])
-	return nil
-}
-func resourceAlicloudCloudSsoAccessConfigurationProvisioningUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	cloudssoService := CloudssoService{client}
-
-	if d.HasChange("status") {
-		object, err := cloudssoService.DescribeCloudSsoAccessConfigurationProvisioning(d.Id())
-		if err != nil && !NotFoundError(err) {
-			return WrapError(err)
-		}
-
-		parts, err := ParseResourceId(d.Id(), 4)
-		if err != nil {
-			return WrapError(err)
-		}
-
-		if v, ok := object["Status"]; !ok || fmt.Sprint(v) != "Provisioned" {
-			cloudssoService := CloudssoService{client}
-			err := cloudssoService.CloudssoServicAccessConfigurationProvisioning(fmt.Sprint(parts[0]), fmt.Sprint(parts[1]), fmt.Sprint(parts[2]), fmt.Sprint(parts[3]))
-			if err != nil {
-				return WrapError(err)
-			}
-		}
-	}
-
-	return resourceAlicloudCloudSsoAccessConfigurationProvisioningRead(d, meta)
-}
-func resourceAlicloudCloudSsoAccessConfigurationProvisioningDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	parts, err := ParseResourceId(d.Id(), 4)
-	if err != nil {
-		return WrapError(err)
-	}
-	action := "DeprovisionAccessConfiguration"
+	action := "ProvisionAccessConfiguration"
+	var request map[string]interface{}
 	var response map[string]interface{}
-	request := map[string]interface{}{
-		"AccessConfigurationId": parts[1],
-		"DirectoryId":           parts[0],
-		"TargetId":              parts[3],
-		"TargetType":            parts[2],
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("target_type"); ok {
+		request["TargetType"] = v
+	}
+	if v, ok := d.GetOk("target_id"); ok {
+		request["TargetId"] = v
+	}
+	if v, ok := d.GetOk("directory_id"); ok {
+		request["DirectoryId"] = v
+	}
+	if v, ok := d.GetOk("access_configuration_id"); ok {
+		request["AccessConfigurationId"] = v
 	}
 
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("cloudsso", "2021-05-15", action, nil, request, false)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict.Task", "DeletionConflict.AccessConfigurationProvisioning.AccessAssignment"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -142,28 +95,92 @@ func resourceAlicloudCloudSsoAccessConfigurationProvisioningDelete(d *schema.Res
 		return nil
 	})
 	addDebug(action, response, request)
+
 	if err != nil {
-		if IsExpectedErrors(err, []string{"EntityNotExists.AccessConfigurationProvisioning"}) {
-			return nil
-		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_sso_access_configuration_provisioning", action, AlibabaCloudSdkGoERROR)
 	}
-	v, err := jsonpath.Get("$.Tasks", response)
-	if err != nil || len(v.([]interface{})) < 1 {
-		return WrapErrorf(err, IdMsg, d.Id())
+
+	TasksAccessConfigurationIdVar, _ := jsonpath.Get("$.Tasks[0].AccessConfigurationId", response)
+	TasksTargetTypeVar, _ := jsonpath.Get("$.Tasks[0].TargetType", response)
+	TasksTargetIdVar, _ := jsonpath.Get("$.Tasks[0].TargetId", response)
+	d.SetId(fmt.Sprintf("%v:%v:%v:%v", request["DirectoryId"], TasksAccessConfigurationIdVar, TasksTargetTypeVar, TasksTargetIdVar))
+
+	cloudSSOServiceV2 := CloudSSOServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Success"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, cloudSSOServiceV2.DescribeAsyncCloudSsoAccessConfigurationProvisioningStateRefreshFunc(d, response, "TaskStatus.Status", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
-	response = v.([]interface{})[0].(map[string]interface{})
-	cloudssoService := CloudssoService{client}
-	_, err = cloudssoService.GetTaskStatus(fmt.Sprint(request["DirectoryId"]), fmt.Sprint(response["TaskId"]))
+
+	return resourceAliCloudCloudSsoAccessConfigurationProvisioningRead(d, meta)
+}
+
+func resourceAliCloudCloudSsoAccessConfigurationProvisioningRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.AliyunClient)
+	cloudSSOServiceV2 := CloudSSOServiceV2{client}
+
+	objectRaw, err := cloudSSOServiceV2.DescribeCloudSsoAccessConfigurationProvisioning(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_cloud_sso_access_configuration_provisioning DescribeCloudSsoAccessConfigurationProvisioning Failed!!! %s", err)
+			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	stateConf := BuildStateConf([]string{}, []string{"Success"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cloudssoService.CloudssoServiceAccessConfigurationProvisioningStateRefreshFunc(fmt.Sprint(request["DirectoryId"]), fmt.Sprint(response["TaskId"]), []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("access_configuration_id", objectRaw["AccessConfigurationId"])
+	d.Set("target_id", objectRaw["TargetId"])
+	d.Set("target_type", objectRaw["TargetType"])
+
+	parts := strings.Split(d.Id(), ":")
+	d.Set("directory_id", parts[0])
+
+	return nil
+}
+
+func resourceAliCloudCloudSsoAccessConfigurationProvisioningDelete(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+	parts := strings.Split(d.Id(), ":")
+	action := "DeprovisionAccessConfiguration"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["AccessConfigurationId"] = parts[1]
+	request["TargetType"] = parts[2]
+	request["TargetId"] = parts[3]
+	request["DirectoryId"] = parts[0]
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+
+	cloudSSOServiceV2 := CloudSSOServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Success"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cloudSSOServiceV2.DescribeAsyncCloudSsoAccessConfigurationProvisioningStateRefreshFunc(d, response, "TaskStatus.Status", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
+	}
+
 	return nil
 }
