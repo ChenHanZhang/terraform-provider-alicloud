@@ -14,17 +14,11 @@ Provides a Log Service (SLS) Index resource.
 
 For information about Log Service (SLS) Index and how to use it, see [What is Index](https://next.api.alibabacloud.com/document/Sls/2020-12-30/CreateIndex).
 
--> **NOTE:** Available since v1.260.0.
+-> **NOTE:** Available since v1.269.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_sls_index&exampleId=e68b5aa6-d6b3-6332-9382-e22ad463e1716d0ef37d&activeTab=example&spm=docs.r.sls_index.0.e68b5aa6d6&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -105,33 +99,35 @@ resource "alicloud_sls_index" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_sls_index&spm=docs.r.sls_index.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `keys` - (Optional, Map) Field index
-* `line` - (Optional, List) Full-text index See [`line`](#line) below.
-* `log_reduce` - (Optional) Whether log clustering is enabled
-* `log_reduce_black_list` - (Optional, List) The blacklist of the cluster fields of log clustering is filtered only when log clustering is enabled.
-* `log_reduce_white_list` - (Optional, List) The whitelist of the cluster fields for log clustering. This filter is valid only when log clustering is enabled.
-* `logstore_name` - (Required, ForceNew) Logstore name
-* `max_text_len` - (Optional, Int) Maximum length of statistical field
-* `project_name` - (Required, ForceNew) Project name
+* `keys` - (Optional, Map) Field index configuration. The key is the field name, and the value is the index configuration.
+* `line` - (Optional, Set) Full-text index. See [`line`](#line) below.
+* `log_reduce` - (Optional) Specifies whether to enable log clustering.
+* `log_reduce_black_list` - (Optional, List) A blacklist for filtering log clustering fields. This setting takes effect only when log clustering is enabled.
+* `log_reduce_white_list` - (Optional, List) A whitelist for filtering log clustering fields. This setting takes effect only when log clustering is enabled.
+* `logstore_name` - (Required, ForceNew) The name of the Logstore.
+* `max_text_len` - (Optional, Int) The maximum length of a default field value in Log Service is 2048 bytes (2 KB). If you need to modify the maximum length of field values, you can configure the maximum length for statistical text fields, with a valid range of 64 to 16384 bytes.
+* `project_name` - (Required, ForceNew) Project name.
 
 ### `line`
 
 The line supports the following:
-* `case_sensitive` - (Required) Is case sensitive
-* `chn` - (Required) Does it include Chinese
-* `exclude_keys` - (Optional, List) List of excluded fields
-* `include_keys` - (Optional, List) Include field list
-* `token` - (Required, List) Delimiter
+* `case_sensitive` - (Required) Specifies whether the index is case-sensitive.
+  - true: Case-sensitive.
+  - false: Case-insensitive.
+* `chn` - (Required) Specifies whether Chinese text is included.
+  - true: Chinese text is included.
+  - false: Chinese text is not included.
+* `exclude_keys` - (Optional, List) List of excluded fields.
+* `include_keys` - (Optional, List) List of included fields.
+* `token` - (Required, List) Tokenizer.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<project_name>:<logstore_name>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<project_name>:<logstore_name>`.
 
 ## Timeouts
 

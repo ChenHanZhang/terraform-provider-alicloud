@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -28,11 +29,42 @@ func resourceAliCloudSlsIndex() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"keys": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeMap,
 				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					equal, _ := compareJsonTemplateAreEquivalent(old, new)
-					return equal
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"chn": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+						"case_sensitive": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+						"token": {
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"alias": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"doc_value": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
 				},
 			},
 			"line": {
@@ -114,31 +146,31 @@ func resourceAliCloudSlsIndexCreate(d *schema.ResourceData, meta interface{}) er
 	request = make(map[string]interface{})
 	hostMap["project"] = StringPointer(d.Get("project_name").(string))
 
-	dataList := make(map[string]interface{})
+	line := make(map[string]interface{})
 
 	if v := d.Get("line"); !IsNil(v) {
 		chn1, _ := jsonpath.Get("$[0].chn", v)
 		if chn1 != nil && chn1 != "" {
-			dataList["chn"] = chn1
+			line["chn"] = chn1
 		}
 		caseSensitive1, _ := jsonpath.Get("$[0].case_sensitive", v)
 		if caseSensitive1 != nil && caseSensitive1 != "" {
-			dataList["caseSensitive"] = caseSensitive1
+			line["caseSensitive"] = caseSensitive1
 		}
 		token1, _ := jsonpath.Get("$[0].token", v)
 		if token1 != nil && token1 != "" {
-			dataList["token"] = token1
+			line["token"] = token1
 		}
 		excludeKeys, _ := jsonpath.Get("$[0].exclude_keys", v)
-		if excludeKeys != nil && excludeKeys != "" && len(excludeKeys.([]interface{})) > 0 {
-			dataList["exclude_keys"] = excludeKeys
+		if excludeKeys != nil && excludeKeys != "" {
+			line["exclude_keys"] = excludeKeys
 		}
 		includeKeys, _ := jsonpath.Get("$[0].include_keys", v)
-		if includeKeys != nil && includeKeys != "" && len(includeKeys.([]interface{})) > 0 {
-			dataList["include_keys"] = includeKeys
+		if includeKeys != nil && includeKeys != "" {
+			line["include_keys"] = includeKeys
 		}
 
-		request["line"] = dataList
+		request["line"] = line
 	}
 
 	if v, ok := d.GetOkExists("log_reduce"); ok {
@@ -148,17 +180,19 @@ func resourceAliCloudSlsIndexCreate(d *schema.ResourceData, meta interface{}) er
 		request["max_text_len"] = v
 	}
 	if v, ok := d.GetOk("log_reduce_white_list"); ok {
-		log_reduce_white_listMapsArray := v.([]interface{})
+		log_reduce_white_listMapsArray := convertToInterfaceArray(v)
+
 		request["log_reduce_white_list"] = log_reduce_white_listMapsArray
 	}
 
 	if v, ok := d.GetOk("log_reduce_black_list"); ok {
-		log_reduce_black_listMapsArray := v.([]interface{})
+		log_reduce_black_listMapsArray := convertToInterfaceArray(v)
+
 		request["log_reduce_black_list"] = log_reduce_black_listMapsArray
 	}
 
 	if v, ok := d.GetOk("keys"); ok {
-		request["keys"] = NormalizeMap(convertJsonStringToObject(v))
+		request["keys"] = v
 	}
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -198,13 +232,7 @@ func resourceAliCloudSlsIndexRead(d *schema.ResourceData, meta interface{}) erro
 		return WrapError(err)
 	}
 
-	if objectRaw["keys"] != nil {
-		keys, err := convertToJsonWithoutEscapeHTML(objectRaw["keys"].(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-		d.Set("keys", keys)
-	}
+	d.Set("keys", objectRaw["keys"])
 	d.Set("log_reduce", objectRaw["log_reduce"])
 	d.Set("max_text_len", objectRaw["max_text_len"])
 
@@ -220,19 +248,19 @@ func resourceAliCloudSlsIndexRead(d *schema.ResourceData, meta interface{}) erro
 
 		exclude_keysRaw := make([]interface{}, 0)
 		if lineRaw["exclude_keys"] != nil {
-			exclude_keysRaw = lineRaw["exclude_keys"].([]interface{})
+			exclude_keysRaw = convertToInterfaceArray(lineRaw["exclude_keys"])
 		}
 
 		lineMap["exclude_keys"] = exclude_keysRaw
 		include_keysRaw := make([]interface{}, 0)
 		if lineRaw["include_keys"] != nil {
-			include_keysRaw = lineRaw["include_keys"].([]interface{})
+			include_keysRaw = convertToInterfaceArray(lineRaw["include_keys"])
 		}
 
 		lineMap["include_keys"] = include_keysRaw
 		tokenRaw := make([]interface{}, 0)
 		if lineRaw["token"] != nil {
-			tokenRaw = lineRaw["token"].([]interface{})
+			tokenRaw = convertToInterfaceArray(lineRaw["token"])
 		}
 
 		lineMap["token"] = tokenRaw
@@ -243,13 +271,13 @@ func resourceAliCloudSlsIndexRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	log_reduce_black_listRaw := make([]interface{}, 0)
 	if objectRaw["log_reduce_black_list"] != nil {
-		log_reduce_black_listRaw = objectRaw["log_reduce_black_list"].([]interface{})
+		log_reduce_black_listRaw = convertToInterfaceArray(objectRaw["log_reduce_black_list"])
 	}
 
 	d.Set("log_reduce_black_list", log_reduce_black_listRaw)
 	log_reduce_white_listRaw := make([]interface{}, 0)
 	if objectRaw["log_reduce_white_list"] != nil {
-		log_reduce_white_listRaw = objectRaw["log_reduce_white_list"].([]interface{})
+		log_reduce_white_listRaw = convertToInterfaceArray(objectRaw["log_reduce_white_list"])
 	}
 
 	d.Set("log_reduce_white_list", log_reduce_white_listRaw)
@@ -265,6 +293,7 @@ func resourceAliCloudSlsIndexUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
@@ -282,50 +311,51 @@ func resourceAliCloudSlsIndexUpdate(d *schema.ResourceData, meta interface{}) er
 	if !d.IsNewResource() && d.HasChange("line") {
 		update = true
 	}
-	dataList := make(map[string]interface{})
+	line := make(map[string]interface{})
 
-	if v := d.Get("line"); v != nil {
+	if v := d.Get("line"); !IsNil(v) || d.HasChange("line") {
 		chn1, _ := jsonpath.Get("$[0].chn", v)
-		if chn1 != nil && (d.HasChange("line.0.chn") || chn1 != "") {
-			dataList["chn"] = chn1
+		if chn1 != nil && chn1 != "" {
+			line["chn"] = chn1
 		}
 		caseSensitive1, _ := jsonpath.Get("$[0].case_sensitive", v)
-		if caseSensitive1 != nil && (d.HasChange("line.0.case_sensitive") || caseSensitive1 != "") {
-			dataList["caseSensitive"] = caseSensitive1
+		if caseSensitive1 != nil && caseSensitive1 != "" {
+			line["caseSensitive"] = caseSensitive1
 		}
-		token1, _ := jsonpath.Get("$[0].token", d.Get("line"))
-		if token1 != nil && (d.HasChange("line.0.token") || token1 != "") {
-			dataList["token"] = token1
+		token1, _ := jsonpath.Get("$[0].token", v)
+		if token1 != nil && token1 != "" {
+			line["token"] = token1
 		}
-		excludeKeys, _ := jsonpath.Get("$[0].exclude_keys", d.Get("line"))
-		if excludeKeys != nil && excludeKeys != "" && len(excludeKeys.([]interface{})) > 0 {
-			dataList["exclude_keys"] = excludeKeys
+		excludeKeys, _ := jsonpath.Get("$[0].exclude_keys", v)
+		if excludeKeys != nil && excludeKeys != "" {
+			line["exclude_keys"] = excludeKeys
 		}
-		includeKeys, _ := jsonpath.Get("$[0].include_keys", d.Get("line"))
-		if includeKeys != nil && includeKeys != "" && len(includeKeys.([]interface{})) > 0 {
-			dataList["include_keys"] = includeKeys
+		includeKeys, _ := jsonpath.Get("$[0].include_keys", v)
+		if includeKeys != nil && includeKeys != "" {
+			line["include_keys"] = includeKeys
 		}
 
-		request["line"] = dataList
+		request["line"] = line
 	}
 
 	if !d.IsNewResource() && d.HasChange("max_text_len") {
 		update = true
 	}
-	if v, ok := d.GetOk("max_text_len"); ok || d.HasChange("max_text_len") {
+	if v, ok := d.GetOkExists("max_text_len"); ok || d.HasChange("max_text_len") {
 		request["max_text_len"] = v
 	}
 	if !d.IsNewResource() && d.HasChange("log_reduce") {
 		update = true
 	}
-	if v, ok := d.GetOk("log_reduce"); ok || d.HasChange("log_reduce") {
+	if v, ok := d.GetOkExists("log_reduce"); ok || d.HasChange("log_reduce") {
 		request["log_reduce"] = v
 	}
 	if !d.IsNewResource() && d.HasChange("log_reduce_white_list") {
 		update = true
 	}
 	if v, ok := d.GetOk("log_reduce_white_list"); ok || d.HasChange("log_reduce_white_list") {
-		log_reduce_white_listMapsArray := v.([]interface{})
+		log_reduce_white_listMapsArray := convertToInterfaceArray(v)
+
 		request["log_reduce_white_list"] = log_reduce_white_listMapsArray
 	}
 
@@ -333,7 +363,8 @@ func resourceAliCloudSlsIndexUpdate(d *schema.ResourceData, meta interface{}) er
 		update = true
 	}
 	if v, ok := d.GetOk("log_reduce_black_list"); ok || d.HasChange("log_reduce_black_list") {
-		log_reduce_black_listMapsArray := v.([]interface{})
+		log_reduce_black_listMapsArray := convertToInterfaceArray(v)
+
 		request["log_reduce_black_list"] = log_reduce_black_listMapsArray
 	}
 
@@ -341,7 +372,7 @@ func resourceAliCloudSlsIndexUpdate(d *schema.ResourceData, meta interface{}) er
 		update = true
 	}
 	if v, ok := d.GetOk("keys"); ok || d.HasChange("keys") {
-		request["keys"] = NormalizeMap(convertJsonStringToObject(v))
+		request["keys"] = v
 	}
 	body = request
 	if update {
@@ -383,7 +414,6 @@ func resourceAliCloudSlsIndexDelete(d *schema.ResourceData, meta interface{}) er
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.Do("Sls", roaParam("DELETE", "2020-12-30", "DeleteIndex", action), query, nil, nil, hostMap, false)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
