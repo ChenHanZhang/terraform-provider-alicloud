@@ -680,13 +680,16 @@ func (s *SlsServiceV2) DescribeSlsLogtailConfig(id string) (object map[string]in
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	configName := parts[1]
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["project"] = StringPointer(parts[0])
 
@@ -717,15 +720,18 @@ func (s *SlsServiceV2) DescribeSlsLogtailConfig(id string) (object map[string]in
 }
 
 func (s *SlsServiceV2) SlsLogtailConfigStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SlsLogtailConfigStateRefreshFuncWithApi(id, field, failStates, s.DescribeSlsLogtailConfig)
+}
+
+func (s *SlsServiceV2) SlsLogtailConfigStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSlsLogtailConfig(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

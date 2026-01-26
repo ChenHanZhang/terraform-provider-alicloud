@@ -26,7 +26,7 @@ func TestAccAliCloudSlsLogtailConfig_basic10828(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudSlsLogtailConfigBasicDependence10828)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-nanjing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -37,30 +37,29 @@ func TestAccAliCloudSlsLogtailConfig_basic10828(t *testing.T) {
 				Config: testAccConfig(map[string]interface{}{
 					"logtail_config_name": name,
 					"input_type":          "file",
-					"project_name":        "${alicloud_log_project.defaultuA28zS.project_name}",
+					"project_name":        "${var.project_name}",
 					"output_detail": []map[string]interface{}{
 						{
-							"endpoint":      "cn-hangzhou-intranet.log.aliyuncs.com",
-							"region":        "cn-hangzhou",
+							"endpoint":      "cn-nanjing-intranet.log.aliyuncs.com",
+							"region":        "cn-nanjing",
 							"logstore_name": "test",
 						},
 					},
-					"output_type":  "LogService",
-					"input_detail": "{\\\"adjustTimezone\\\":false,\\\"delayAlarmBytes\\\":0,\\\"delaySkipBytes\\\":0,\\\"discardNonUtf8\\\":false,\\\"discardUnmatch\\\":true,\\\"dockerFile\\\":false,\\\"enableRawLog\\\":false,\\\"enableTag\\\":false,\\\"fileEncoding\\\":\\\"utf8\\\",\\\"filePattern\\\":\\\"access*.log\\\",\\\"filterKey\\\":[\\\"key1\\\"],\\\"filterRegex\\\":[\\\"regex1\\\"],\\\"key\\\":[\\\"key1\\\",\\\"key2\\\"],\\\"localStorage\\\":true,\\\"logBeginRegex\\\":\\\".*\\\",\\\"logPath\\\":\\\"/var/log/httpd\\\",\\\"logTimezone\\\":\\\"\\\",\\\"logType\\\":\\\"common_reg_log\\\",\\\"maxDepth\\\":1000,\\\"maxSendRate\\\":-1,\\\"mergeType\\\":\\\"topic\\\",\\\"preserve\\\":true,\\\"preserveDepth\\\":0,\\\"priority\\\":0,\\\"regex\\\":\\\"(w+)(s+)\\\",\\\"sendRateExpire\\\":0,\\\"sensitive_keys\\\":[],\\\"tailExisted\\\":false,\\\"timeFormat\\\":\\\"%Y/%m/%d %H:%M:%S\\\",\\\"timeKey\\\":\\\"time\\\",\\\"topicFormat\\\":\\\"none\\\"}",
-					//"input_detail": map[string]interface{}{
-					//	"\"logType\"":       "common_reg_log",
-					//	"\"logPath\"":       "/var/log/httpd",
-					//	"\"filePattern\"":   "access*.log",
-					//	"\"localStorage\"":  true,
-					//	"\"timeFormat\"":    "%Y/%m/%d %H:%M:%S",
-					//	"\"logBeginRegex\"": ".*",
-					//	"\"regex\"":         "(w+)(s+)",
-					//	"\"key\"":           "[\\\"key1\\\",\\\"key2\\\"]",
-					//	"\"filterKey\"":     "[\\\"key1\\\"]",
-					//	"\"filterRegex\"":   "[\\\"regex1\\\"]",
-					//	"\"fileEncoding\"":  "utf8",
-					//	"\"topicFormat\"":   "none",
-					//},
+					"output_type": "LogService",
+					"input_detail": map[string]interface{}{
+						"\"logType\"":       "common_reg_log",
+						"\"logPath\"":       "/var/log/httpd",
+						"\"filePattern\"":   "access*.log",
+						"\"localStorage\"":  "true",
+						"\"timeFormat\"":    "%Y/%m/%d %H:%M:%S",
+						"\"logBeginRegex\"": ".*",
+						"\"regex\"":         "(w+)(s+)",
+						"\"key\"":           "[\\\"key1\\\",\\\"key2\\\"]",
+						"\"filterKey\"":     "[\\\"key1\\\"]",
+						"\"filterRegex\"":   "[\\\"regex1\\\"]",
+						"\"fileEncoding\"":  "utf8",
+						"\"topicFormat\"":   "none",
+					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{

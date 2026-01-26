@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -28,17 +29,12 @@ func resourceAliCloudSlsLogtailConfig() *schema.Resource {
 			"create_time": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 			"input_detail": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					equal, _ := compareArrayJsonTemplateAreEquivalent(old, new)
-					return equal
-				},
 			},
 			"input_type": {
 				Type:         schema.TypeString,
@@ -123,29 +119,28 @@ func resourceAliCloudSlsLogtailConfigCreate(d *schema.ResourceData, meta interfa
 		request["logSample"] = v
 	}
 	request["inputType"] = d.Get("input_type")
-	inputDetail := d.Get("input_detail").(string)
-	request["inputDetail"] = NormalizeMap(convertJsonStringToObject(inputDetail))
+	request["inputDetail"] = d.Get("input_detail")
 	request["outputType"] = d.Get("output_type")
 	if v, ok := d.GetOk("create_time"); ok {
 		request["createTime"] = v
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	outputDetail := make(map[string]interface{})
 
 	if v := d.Get("output_detail"); v != nil {
 		endpoint1, _ := jsonpath.Get("$[0].endpoint", v)
 		if endpoint1 != nil && endpoint1 != "" {
-			objectDataLocalMap["endpoint"] = endpoint1
+			outputDetail["endpoint"] = endpoint1
 		}
 		region1, _ := jsonpath.Get("$[0].region", v)
 		if region1 != nil && region1 != "" {
-			objectDataLocalMap["region"] = region1
+			outputDetail["region"] = region1
 		}
 		logstoreName1, _ := jsonpath.Get("$[0].logstore_name", v)
 		if logstoreName1 != nil && logstoreName1 != "" {
-			objectDataLocalMap["logstoreName"] = logstoreName1
+			outputDetail["logstoreName"] = logstoreName1
 		}
 
-		request["outputDetail"] = objectDataLocalMap
+		request["outputDetail"] = outputDetail
 	}
 
 	if v, ok := d.GetOkExists("last_modify_time"); ok {
@@ -190,9 +185,7 @@ func resourceAliCloudSlsLogtailConfigRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("create_time", objectRaw["createTime"])
-	if objectRaw["inputDetail"] != nil {
-		d.Set("input_detail", convertMapToJsonStringIgnoreError(objectRaw["inputDetail"].(map[string]interface{})))
-	}
+	d.Set("input_detail", objectRaw["inputDetail"])
 	d.Set("input_type", objectRaw["inputType"])
 	d.Set("last_modify_time", objectRaw["lastModifyTime"])
 	d.Set("log_sample", objectRaw["logSample"])
@@ -239,7 +232,6 @@ func resourceAliCloudSlsLogtailConfigDelete(d *schema.ResourceData, meta interfa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.Do("Sls", roaParam("DELETE", "2020-12-30", "DeleteConfig", action), query, nil, nil, hostMap, false)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
