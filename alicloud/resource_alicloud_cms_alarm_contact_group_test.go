@@ -184,3 +184,226 @@ resource "alicloud_cms_alarm_contact" "default0" {
 }
 `, name)
 }
+
+// Test CloudMonitorService AlarmContactGroup. >>> Resource test cases, automatically generated.
+// Case AlarmContactGroup资源用例_副本1694769992264 4570
+func TestAccAliCloudCloudMonitorServiceAlarmContactGroup_basic4570(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_alarm_contact_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceAlarmContactGroupMap4570)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceAlarmContactGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceAlarmContactGroupBasicDependence4570)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"alarm_contact_group_name": name,
+					"enable_subscribed":        "true",
+					"contact_names": []string{
+						"${alicloud_cms_alarm_contact.defaultContact.id}"},
+					"describe": "Describe",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"alarm_contact_group_name": name,
+						"enable_subscribed":        "true",
+						"contact_names.#":          "1",
+						"describe":                 "Describe",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"enable_subscribed": "false",
+					"contact_names": []string{
+						"${alicloud_cms_alarm_contact.defaultWESknD.id}", "${alicloud_cms_alarm_contact.defaultwNY3m3.id}", "${alicloud_cms_alarm_contact.defaultdDTgGF.id}"},
+					"describe": "Describe33",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"enable_subscribed": "false",
+						"contact_names.#":   "3",
+						"describe":          "Describe33",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_names": []string{},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_names.#": "0",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceAlarmContactGroupMap4570 = map[string]string{}
+
+func AlicloudCloudMonitorServiceAlarmContactGroupBasicDependence4570(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultContact" {
+  describe           = "Describe486"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname24"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultWESknD" {
+  describe           = "Describe200"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname779"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultwNY3m3" {
+  describe           = "Describe432"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname9"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultdDTgGF" {
+  describe           = "Describe288"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname261"
+}
+
+
+`, name)
+}
+
+// Case AlarmContactGroup资源用例 3694
+func TestAccAliCloudCloudMonitorServiceAlarmContactGroup_basic3694(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_alarm_contact_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceAlarmContactGroupMap3694)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceAlarmContactGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceAlarmContactGroupBasicDependence3694)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"alarm_contact_group_name": name,
+					"enable_subscribed":        "true",
+					"contact_names": []string{
+						"${alicloud_cms_alarm_contact.defaultContact.id}"},
+					"describe": "Describe",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"alarm_contact_group_name": name,
+						"enable_subscribed":        "true",
+						"contact_names.#":          "1",
+						"describe":                 "Describe",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"enable_subscribed": "false",
+					"contact_names": []string{
+						"${alicloud_cms_alarm_contact.defaultWESknD.id}", "${alicloud_cms_alarm_contact.defaultwNY3m3.id}", "${alicloud_cms_alarm_contact.defaultdDTgGF.id}"},
+					"describe": "Describe33",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"enable_subscribed": "false",
+						"contact_names.#":   "3",
+						"describe":          "Describe33",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_names": []string{},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_names.#": "0",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceAlarmContactGroupMap3694 = map[string]string{}
+
+func AlicloudCloudMonitorServiceAlarmContactGroupBasicDependence3694(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultContact" {
+  describe           = "Describe50"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname258"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultWESknD" {
+  describe           = "Describe312"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname228"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultwNY3m3" {
+  describe           = "Describe611"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname732"
+}
+
+resource "alicloud_cms_alarm_contact" "defaultdDTgGF" {
+  describe           = "Describe942"
+  lang               = "zh-cn"
+  alarm_contact_name = "rdktestname906"
+}
+
+
+`, name)
+}
+
+// Test CloudMonitorService AlarmContactGroup. <<< Resource test cases, automatically generated.

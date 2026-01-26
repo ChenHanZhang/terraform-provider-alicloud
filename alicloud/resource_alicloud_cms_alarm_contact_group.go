@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -5,21 +6,25 @@ import (
 	"log"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAlicloudCmsAlarmContactGroup() *schema.Resource {
+func resourceAliCloudCloudMonitorServiceAlarmContactGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudCmsAlarmContactGroupCreate,
-		Read:   resourceAlicloudCmsAlarmContactGroupRead,
-		Update: resourceAlicloudCmsAlarmContactGroupUpdate,
-		Delete: resourceAlicloudCmsAlarmContactGroupDelete,
+		Create: resourceAliCloudCloudMonitorServiceAlarmContactGroupCreate,
+		Read:   resourceAliCloudCloudMonitorServiceAlarmContactGroupRead,
+		Update: resourceAliCloudCloudMonitorServiceAlarmContactGroupUpdate,
+		Delete: resourceAliCloudCloudMonitorServiceAlarmContactGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"alarm_contact_group_name": {
@@ -27,12 +32,10 @@ func resourceAlicloudCmsAlarmContactGroup() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"contacts": {
-				Type:     schema.TypeSet,
+			"contact_names": {
+				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"describe": {
 				Type:     schema.TypeString,
@@ -47,29 +50,35 @@ func resourceAlicloudCmsAlarmContactGroup() *schema.Resource {
 	}
 }
 
-func resourceAlicloudCmsAlarmContactGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudMonitorServiceAlarmContactGroupCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 
-	request := cms.CreatePutContactGroupRequest()
-	request.ContactGroupName = d.Get("alarm_contact_group_name").(string)
-	if v, ok := d.GetOk("contacts"); ok {
-		contactNames := expandStringList(v.(*schema.Set).List())
-		request.ContactNames = &contactNames
+	action := "PutContactGroup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("alarm_contact_group_name"); ok {
+		request["ContactGroupName"] = v
 	}
 
 	if v, ok := d.GetOk("describe"); ok {
-		request.Describe = v.(string)
+		request["Describe"] = v
+	}
+	if v, ok := d.GetOkExists("enable_subscribed"); ok {
+		request["EnableSubscribed"] = v
+	}
+	if v, ok := d.GetOk("contact_names"); ok {
+		contactNamesMapsArray := convertToInterfaceArray(v)
+
+		request["ContactNames"] = contactNamesMapsArray
 	}
 
-	if v, ok := d.GetOkExists("enable_subscribed"); ok {
-		request.EnableSubscribed = requests.NewBoolean(v.(bool))
-	}
-	var response *cms.PutContactGroupResponse
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		raw, err := client.WithCmsClient(func(cmsClient *cms.Client) (interface{}, error) {
-			return cmsClient.PutContactGroup(request)
-		})
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -77,66 +86,81 @@ func resourceAlicloudCmsAlarmContactGroupCreate(d *schema.ResourceData, meta int
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(request.GetActionName(), raw)
-		response, _ = raw.(*cms.PutContactGroupResponse)
 		return nil
 	})
+	addDebug(action, response, request)
+
 	if err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cms_alarm_contact_group", request.GetActionName(), AlibabaCloudSdkGoERROR)
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cms_alarm_contact_group", action, AlibabaCloudSdkGoERROR)
 	}
 
-	if response.Code != "200" {
-		return WrapError(Error("PutContactGroup failed for %s", response.Message))
-	}
-	d.SetId(fmt.Sprintf("%v", request.ContactGroupName))
+	d.SetId(fmt.Sprint(request["ContactGroupName"]))
 
-	return resourceAlicloudCmsAlarmContactGroupRead(d, meta)
+	return resourceAliCloudCloudMonitorServiceAlarmContactGroupRead(d, meta)
 }
-func resourceAlicloudCmsAlarmContactGroupRead(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudCloudMonitorServiceAlarmContactGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	cmsService := CmsService{client}
-	object, err := cmsService.DescribeCmsAlarmContactGroup(d.Id())
+	cloudMonitorServiceServiceV2 := CloudMonitorServiceServiceV2{client}
+
+	objectRaw, err := cloudMonitorServiceServiceV2.DescribeCloudMonitorServiceAlarmContactGroup(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_cloud_monitor_service_alarm_contact_group cmsService.DescribeCmsAlarmContactGroup Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_cms_alarm_contact_group DescribeCloudMonitorServiceAlarmContactGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
+	d.Set("describe", objectRaw["Describe"])
+	d.Set("enable_subscribed", objectRaw["EnableSubscribed"])
+	d.Set("alarm_contact_group_name", objectRaw["Name"])
+
+	contactRaw, _ := jsonpath.Get("$.Contacts.Contact", objectRaw)
+	d.Set("contact_names", contactRaw)
+
 	d.Set("alarm_contact_group_name", d.Id())
-	d.Set("contacts", object.Contacts.Contact)
-	d.Set("describe", object.Describe)
-	d.Set("enable_subscribed", object.EnableSubscribed)
+
 	return nil
 }
-func resourceAlicloudCmsAlarmContactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	update := false
-	request := cms.CreatePutContactGroupRequest()
-	request.ContactGroupName = d.Id()
-	if d.HasChange("contacts") {
-		update = true
-		contactNames := expandStringList(d.Get("contacts").(*schema.Set).List())
-		request.ContactNames = &contactNames
 
-	}
+func resourceAliCloudCloudMonitorServiceAlarmContactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.AliyunClient)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
+
+	var err error
+	action := "PutContactGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ContactGroupName"] = d.Id()
+
 	if d.HasChange("describe") {
 		update = true
-		request.Describe = d.Get("describe").(string)
+		request["Describe"] = d.Get("describe")
 	}
+
 	if d.HasChange("enable_subscribed") {
 		update = true
-		request.EnableSubscribed = requests.NewBoolean(d.Get("enable_subscribed").(bool))
+		request["EnableSubscribed"] = d.Get("enable_subscribed")
 	}
+
+	if d.HasChange("contact_names") {
+		update = true
+		if v, ok := d.GetOk("contact_names"); ok || d.HasChange("contact_names") {
+			contactNamesMapsArray := convertToInterfaceArray(v)
+
+			request["ContactNames"] = contactNamesMapsArray
+		}
+	}
+
 	if update {
-		var response *cms.PutContactGroupResponse
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-			raw, err := client.WithCmsClient(func(cmsClient *cms.Client) (interface{}, error) {
-				return cmsClient.PutContactGroup(request)
-			})
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -144,30 +168,31 @@ func resourceAlicloudCmsAlarmContactGroupUpdate(d *schema.ResourceData, meta int
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(request.GetActionName(), raw)
-			response, _ = raw.(*cms.PutContactGroupResponse)
 			return nil
 		})
-
-		if response.Code != "200" {
-			return WrapError(Error("PutContactGroup failed for %s", response.Message))
-		}
+		addDebug(action, response, request)
 		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
-	return resourceAlicloudCmsAlarmContactGroupRead(d, meta)
+
+	return resourceAliCloudCloudMonitorServiceAlarmContactGroupRead(d, meta)
 }
-func resourceAlicloudCmsAlarmContactGroupDelete(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudCloudMonitorServiceAlarmContactGroupDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	request := cms.CreateDeleteContactGroupRequest()
-	request.ContactGroupName = d.Id()
-	var response *cms.DeleteContactGroupResponse
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		raw, err := client.WithCmsClient(func(cmsClient *cms.Client) (interface{}, error) {
-			return cmsClient.DeleteContactGroup(request)
-		})
+	action := "DeleteContactGroup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["ContactGroupName"] = d.Id()
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -175,19 +200,16 @@ func resourceAlicloudCmsAlarmContactGroupDelete(d *schema.ResourceData, meta int
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(request.GetActionName(), raw)
-		response, _ = raw.(*cms.DeleteContactGroupResponse)
 		return nil
 	})
+	addDebug(action, response, request)
 
-	if response.Code != "200" {
-		return WrapError(Error("DeleteContactGroup failed for %s", response.Message))
-	}
 	if err != nil {
-		if IsExpectedErrors(err, []string{"400", "403", "404", "ContactNotExists"}) {
+		if IsExpectedErrors(err, []string{"400", "403", "404"}) || NotFoundError(err) {
 			return nil
 		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+
 	return nil
 }
