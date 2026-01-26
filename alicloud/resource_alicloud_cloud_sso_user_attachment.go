@@ -12,11 +12,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudCloudSSOUserAttachment() *schema.Resource {
+func resourceAliCloudCloudSsoUserAttachment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudCloudSSOUserAttachmentCreate,
-		Read:   resourceAliCloudCloudSSOUserAttachmentRead,
-		Delete: resourceAliCloudCloudSSOUserAttachmentDelete,
+		Create: resourceAliCloudCloudSsoUserAttachmentCreate,
+		Read:   resourceAliCloudCloudSsoUserAttachmentRead,
+		Delete: resourceAliCloudCloudSsoUserAttachmentDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -44,7 +44,7 @@ func resourceAliCloudCloudSSOUserAttachment() *schema.Resource {
 	}
 }
 
-func resourceAliCloudCloudSSOUserAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudSsoUserAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -54,9 +54,15 @@ func resourceAliCloudCloudSSOUserAttachmentCreate(d *schema.ResourceData, meta i
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["GroupId"] = d.Get("group_id")
-	request["UserId"] = d.Get("user_id")
-	request["DirectoryId"] = d.Get("directory_id")
+	if v, ok := d.GetOk("group_id"); ok {
+		request["GroupId"] = v
+	}
+	if v, ok := d.GetOk("user_id"); ok {
+		request["UserId"] = v
+	}
+	if v, ok := d.GetOk("directory_id"); ok {
+		request["DirectoryId"] = v
+	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -78,17 +84,17 @@ func resourceAliCloudCloudSSOUserAttachmentCreate(d *schema.ResourceData, meta i
 
 	d.SetId(fmt.Sprintf("%v:%v:%v", request["DirectoryId"], request["GroupId"], request["UserId"]))
 
-	return resourceAliCloudCloudSSOUserAttachmentRead(d, meta)
+	return resourceAliCloudCloudSsoUserAttachmentRead(d, meta)
 }
 
-func resourceAliCloudCloudSSOUserAttachmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudSsoUserAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	cloudSSOServiceV2 := CloudSSOServiceV2{client}
 
-	objectRaw, err := cloudSSOServiceV2.DescribeCloudSSOUserAttachment(d.Id())
+	objectRaw, err := cloudSSOServiceV2.DescribeCloudSsoUserAttachment(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_cloud_sso_user_attachment DescribeCloudSSOUserAttachment Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_cloud_sso_user_attachment DescribeCloudSsoUserAttachment Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -104,7 +110,7 @@ func resourceAliCloudCloudSSOUserAttachmentRead(d *schema.ResourceData, meta int
 	return nil
 }
 
-func resourceAliCloudCloudSSOUserAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudSsoUserAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")
@@ -121,7 +127,6 @@ func resourceAliCloudCloudSSOUserAttachmentDelete(d *schema.ResourceData, meta i
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
