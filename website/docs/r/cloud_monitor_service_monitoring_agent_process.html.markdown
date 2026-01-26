@@ -8,21 +8,17 @@ description: |-
 
 # alicloud_cloud_monitor_service_monitoring_agent_process
 
-Provides a Cloud Monitor Service Monitoring Agent Process resource. 
+Provides a Cloud Monitor Service Monitoring Agent Process resource.
 
-For information about Cloud Monitor Service Monitoring Agent Process and how to use it, see [What is Monitoring Agent Process](https://www.alibabacloud.com/help/en/cms/developer-reference/api-cms-2019-01-01-createmonitoragentprocess).
 
--> **NOTE:** Available since v1.212.0.
+
+For information about Cloud Monitor Service Monitoring Agent Process and how to use it, see [What is Monitoring Agent Process](https://next.api.alibabacloud.com/document/Cms/2019-01-01/CreateMonitorAgentProcess).
+
+-> **NOTE:** Available since v1.269.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_monitor_service_monitoring_agent_process&exampleId=5e968322-9e29-65a4-ff79-eaa1bf67af8bc5e88868&activeTab=example&spm=docs.r.cloud_monitor_service_monitoring_agent_process.0.5e9683229e&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -82,27 +78,22 @@ resource "alicloud_cloud_monitor_service_monitoring_agent_process" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_monitor_service_monitoring_agent_process&spm=docs.r.cloud_monitor_service_monitoring_agent_process.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-
-* `instance_id` - (Required, ForceNew) The ID of the instance.
-* `process_name` - (Required, ForceNew) The name of the process.
-* `process_user` - (Optional, ForceNew) The user who launches the process.
+* `instance_id` - (Required, ForceNew) InstanceId
+* `process_name` - (Required, ForceNew) ProcessName
+* `process_user` - (Optional, ForceNew) ProcessUser
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Monitoring Agent Process. It formats as `<instance_id>:<process_id>`.
-* `process_id` - The ID of the process.
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<process_id>`.
+* `process_id` - ProcessId.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Monitoring Agent Process.
 * `delete` - (Defaults to 5 mins) Used when delete the Monitoring Agent Process.
 

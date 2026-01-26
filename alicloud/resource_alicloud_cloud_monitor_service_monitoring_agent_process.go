@@ -1,11 +1,12 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
-	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -29,6 +30,10 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcess() *schema.Resourc
 				Required: true,
 				ForceNew: true,
 			},
+			"process_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"process_name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -39,33 +44,31 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcess() *schema.Resourc
 				Optional: true,
 				ForceNew: true,
 			},
-			"process_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
 
 func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "CreateMonitorAgentProcess"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceId"] = v
+	}
 
-	request["InstanceId"] = d.Get("instance_id")
 	request["ProcessName"] = d.Get("process_name")
-
 	if v, ok := d.GetOk("process_user"); ok {
 		request["ProcessUser"] = v
 	}
-
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = client.RpcPost("Cms", "2019-01-01", action, nil, request, false)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -81,10 +84,6 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessCreate(d *schema.R
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_monitor_service_monitoring_agent_process", action, AlibabaCloudSdkGoERROR)
 	}
 
-	if fmt.Sprint(response["Success"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-	}
-
 	d.SetId(fmt.Sprintf("%v:%v", request["InstanceId"], response["Id"]))
 
 	return resourceAliCloudCloudMonitorServiceMonitoringAgentProcessRead(d, meta)
@@ -94,7 +93,7 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessRead(d *schema.Res
 	client := meta.(*connectivity.AliyunClient)
 	cloudMonitorServiceServiceV2 := CloudMonitorServiceServiceV2{client}
 
-	object, err := cloudMonitorServiceServiceV2.DescribeCloudMonitorServiceMonitoringAgentProcess(d.Id())
+	objectRaw, err := cloudMonitorServiceServiceV2.DescribeCloudMonitorServiceMonitoringAgentProcess(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
 			log.Printf("[DEBUG] Resource alicloud_cloud_monitor_service_monitoring_agent_process DescribeCloudMonitorServiceMonitoringAgentProcess Failed!!! %s", err)
@@ -104,36 +103,31 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessRead(d *schema.Res
 		return WrapError(err)
 	}
 
-	d.Set("instance_id", object["InstanceId"])
-	d.Set("process_id", object["ProcessId"])
-	d.Set("process_name", object["ProcessName"])
-	d.Set("process_user", object["ProcessUser"])
+	d.Set("process_name", objectRaw["ProcessName"])
+	d.Set("process_user", objectRaw["ProcessUser"])
+	d.Set("instance_id", objectRaw["InstanceId"])
+	d.Set("process_id", objectRaw["ProcessId"])
 
 	return nil
 }
 
 func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
+	parts := strings.Split(d.Id(), ":")
 	action := "DeleteMonitoringAgentProcess"
+	var request map[string]interface{}
 	var response map[string]interface{}
-
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	request["InstanceId"] = parts[0]
+	request["ProcessId"] = parts[1]
 
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
-
-	request := map[string]interface{}{
-		"InstanceId": parts[0],
-		"ProcessId":  parts[1],
-	}
-
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
+	request["ProcessName"] = d.Get("process_name")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = client.RpcPost("Cms", "2019-01-01", action, nil, request, false)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -150,10 +144,6 @@ func resourceAliCloudCloudMonitorServiceMonitoringAgentProcessDelete(d *schema.R
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
-
-	if fmt.Sprint(response["Success"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
 	}
 
 	return nil

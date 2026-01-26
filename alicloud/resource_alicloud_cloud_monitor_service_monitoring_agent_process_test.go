@@ -150,3 +150,186 @@ func AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence0(name stri
 	}
 `, name)
 }
+
+// Test CloudMonitorService MonitoringAgentProcess. >>> Resource test cases, automatically generated.
+// Case MonitoringAgentProcess资源用例_副本1687758154615_副本1697079153930 4792
+func TestAccAliCloudCloudMonitorServiceMonitoringAgentProcess_basic4792(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_monitor_service_monitoring_agent_process.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceMonitoringAgentProcessMap4792)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceMonitoringAgentProcess")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence4792)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"process_name": "saposcol",
+					"instance_id":  "i-bp11lgn8z7syr0kktcus",
+					"process_user": "root",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"process_name": "saposcol",
+						"instance_id":  "i-bp11lgn8z7syr0kktcus",
+						"process_user": "root",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceMonitoringAgentProcessMap4792 = map[string]string{
+	"process_id": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence4792(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case MonitoringAgentProcess资源用例_副本1687758154615 3482
+func TestAccAliCloudCloudMonitorServiceMonitoringAgentProcess_basic3482(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_monitor_service_monitoring_agent_process.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceMonitoringAgentProcessMap3482)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceMonitoringAgentProcess")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence3482)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"process_name": "saposcol",
+					"instance_id":  "i-bp16nxdu7n2u9t1qqmga",
+					"process_user": "root",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"process_name": "saposcol",
+						"instance_id":  "i-bp16nxdu7n2u9t1qqmga",
+						"process_user": "root",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceMonitoringAgentProcessMap3482 = map[string]string{
+	"process_id": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence3482(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case MonitoringAgentProcess资源用例 2756
+func TestAccAliCloudCloudMonitorServiceMonitoringAgentProcess_basic2756(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_monitor_service_monitoring_agent_process.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceMonitoringAgentProcessMap2756)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceMonitoringAgentProcess")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence2756)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"process_name": "saposcol",
+					"instance_id":  "i-bp16nxdu7n2u9t1qqmga",
+					"process_user": "root",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"process_name": "saposcol",
+						"instance_id":  "i-bp16nxdu7n2u9t1qqmga",
+						"process_user": "root",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceMonitoringAgentProcessMap2756 = map[string]string{
+	"process_id": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceMonitoringAgentProcessBasicDependence2756(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test CloudMonitorService MonitoringAgentProcess. <<< Resource test cases, automatically generated.
