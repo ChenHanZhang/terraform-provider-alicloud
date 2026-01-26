@@ -445,3 +445,160 @@ func TestUnitAliCloudCmsDynamicTagGroup(t *testing.T) {
 	}
 
 }
+
+// Test CloudMonitorService DynamicTagGroup. >>> Resource test cases, automatically generated.
+// Case DynamicTagGroup资源用例 2263
+func TestAccAliCloudCloudMonitorServiceDynamicTagGroup_basic2263(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_dynamic_tag_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceDynamicTagGroupMap2263)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceDynamicTagGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceDynamicTagGroupBasicDependence2263)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_group_list": []string{
+						"云账号报警联系人"},
+					"match_express_filter_relation": "or",
+					"enable_subscribe_event":        "false",
+					"template_id_list": []string{
+						"1135981"},
+					"enable_install_agent": "false",
+					"tag_key":              "TagKey11",
+					"match_express": []map[string]interface{}{
+						{
+							"tag_value_match_function": "equals",
+							"tag_value":                "TagValue11",
+							"tag_name":                 "appname",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_group_list.#":          "1",
+						"match_express_filter_relation": "or",
+						"enable_subscribe_event":        CHECKSET,
+						"template_id_list.#":            "1",
+						"enable_install_agent":          CHECKSET,
+						"tag_key":                       "TagKey11",
+						"match_express.#":               "1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"enable_install_agent", "enable_subscribe_event"},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceDynamicTagGroupMap2263 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceDynamicTagGroupBasicDependence2263(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case DynamicTagGroup资源用例_副本1703663715848 5630
+func TestAccAliCloudCloudMonitorServiceDynamicTagGroup_basic5630(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cms_dynamic_tag_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudMonitorServiceDynamicTagGroupMap5630)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudMonitorServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudMonitorServiceDynamicTagGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudmonitorservice%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudMonitorServiceDynamicTagGroupBasicDependence5630)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"contact_group_list": []string{
+						"云账号报警联系人"},
+					"match_express_filter_relation": "or",
+					"enable_subscribe_event":        "false",
+					"template_id_list": []string{
+						"1135981"},
+					"enable_install_agent": "false",
+					"tag_key":              "TagKey11",
+					"match_express": []map[string]interface{}{
+						{
+							"tag_value_match_function": "equals",
+							"tag_value":                "TagValue11",
+							"tag_name":                 "appname",
+						},
+					},
+					"tag_region_id": "cn-hangzhou",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"contact_group_list.#":          "1",
+						"match_express_filter_relation": "or",
+						"enable_subscribe_event":        CHECKSET,
+						"template_id_list.#":            "1",
+						"enable_install_agent":          CHECKSET,
+						"tag_key":                       "TagKey11",
+						"match_express.#":               "1",
+						"tag_region_id":                 "cn-hangzhou",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"enable_install_agent", "enable_subscribe_event"},
+			},
+		},
+	})
+}
+
+var AlicloudCloudMonitorServiceDynamicTagGroupMap5630 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudCloudMonitorServiceDynamicTagGroupBasicDependence5630(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test CloudMonitorService DynamicTagGroup. <<< Resource test cases, automatically generated.

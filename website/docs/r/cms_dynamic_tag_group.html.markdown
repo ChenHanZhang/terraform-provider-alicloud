@@ -2,7 +2,6 @@
 subcategory: "Cloud Monitor Service"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cms_dynamic_tag_group"
-sidebar_current: "docs-alicloud-resource-cms-dynamic-tag-group"
 description: |-
   Provides a Alicloud Cloud Monitor Service Dynamic Tag Group resource.
 ---
@@ -11,6 +10,8 @@ description: |-
 
 Provides a Cloud Monitor Service Dynamic Tag Group resource.
 
+
+
 For information about Cloud Monitor Service Dynamic Tag Group and how to use it, see [What is Dynamic Tag Group](https://www.alibabacloud.com/help/en/cloudmonitor/latest/createdynamictaggroup).
 
 -> **NOTE:** Available since v1.142.0.
@@ -18,12 +19,6 @@ For information about Cloud Monitor Service Dynamic Tag Group and how to use it,
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cms_dynamic_tag_group&exampleId=a79c7aa3-0bc8-4e94-fab4-8976e8c52dead2436476&activeTab=example&spm=docs.r.cms_dynamic_tag_group.0.a79c7aa30b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -44,36 +39,73 @@ resource "alicloud_cms_dynamic_tag_group" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cms_dynamic_tag_group&spm=docs.r.cms_dynamic_tag_group.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `contact_group_list` - (Required, ForceNew, List) Alarm contact group. The value range of N is 1~100. The alarm notification of the application group is sent to the alarm contact in the alarm contact group.
 
-* `tag_key` - (Required, ForceNew) The tag keys of the cloud resources.
-* `match_express_filter_relation` - (Optional, ForceNew) The relationship between the conditional expressions for the tag values of the cloud resources. Valid values: `and`, `or`.
-* `contact_group_list` - (Required, ForceNew, List) The alert contact groups. The alert notifications of the application group are sent to the alert contacts that belong to the specified alert contact groups.
-* `template_id_list` - (Optional, ForceNew, List) The IDs of the alert templates.
-* `match_express` - (Required, ForceNew, Set) The conditional expressions used to create an application group based on the tag. See [`match_express`](#match_express) below.
+-> **NOTE:**  An alarm Contact Group is a group of alarm contacts that can contain one or more alarm contacts. For more information about how to create alarm contacts and alarm contact groups, see [PutContact](~~ 114923 ~~) and [PutContactGroup](~~ 114929 ~~).
+
+* `enable_install_agent` - (Optional, Available since v1.269.0) Whether the application Group is enabled to automatically install the cloud monitoring plug-in. CloudMonitor automatically installs the CloudMonitor plug-in for hosts in the application Group. Value:
+  - true: on.
+  - false (default): Off.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `enable_subscribe_event` - (Optional, Available since v1.269.0) Whether the application group turns on automatic subscription event notification. CloudMonitor sends alarm notifications when serious and warning-level events occur in resources in the application Group. Value:
+  - true: on.
+  - false (default): Off.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `match_express` - (Required, ForceNew, List) The label generates a matching expression that applies the grouping. See [`match_express`](#match_express) below.
+* `match_express_filter_relation` - (Optional, ForceNew, Computed) The relationship between conditional expressions. The value is:
+  -'and': Relationship
+  -'or': or relationship
+
+-> **NOTE:**  currently, only one combination condition is supported, and Alibaba Cloud will support multiple combination conditions in the future.
+
+* `tag_key` - (Required, ForceNew) Label key.
+* `tag_region_id` - (Optional, ForceNew, Available since v1.269.0) The ID of the region to which the tag belongs.
+* `template_id_list` - (Optional, ForceNew, List) Alarm template ID list
 
 ### `match_express`
 
-The match_express supports the following: 
+The match_express supports the following:
+* `tag_name` - (Optional, ForceNew, Available since v1.269.0) The Key of the Tag used to create the group. If there are multiple resources containing this Key, the matching resources will be added to the same group according to the filtering conditions according to the same Key-Value.
+* `tag_value` - (Optional, ForceNew) Resource label value. The value of N is 1.
 
-* `tag_value` - (Required, ForceNew) The tag values of the cloud resources.
-* `tag_value_match_function` - (Required, ForceNew) The method that is used to match the tag values of the cloud resources. Valid values: `all`, `startWith`, `endWith`, `contains`, `notContains`, `equals`.
+-> **NOTE:**  parameters' matchexpress. N.TagValueMatchFunction' and'matchexpress. N.TagValue' must be set at the same time.
+
+* `tag_value_match_function` - (Optional, ForceNew) The matching method of the resource label value. The value of N is 1. Value:
+  - contains: contains.
+  - startWith: prefix.
+  - endWith: suffix.
+  - notContains: not included.
+  - equals: equal.
+  - all: all.
+
+-> **NOTE:**  parameters' matchexpress. N.TagValueMatchFunction' and'matchexpress. N.TagValue' must be set at the same time.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `status` - The status of the resource.
 
-* `id` - The resource ID in terraform of Dynamic Tag Group.
-* `status` - The status of the Dynamic Tag Group.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 10 mins) Used when create the Dynamic Tag Group.
+* `delete` - (Defaults to 5 mins) Used when delete the Dynamic Tag Group.
 
 ## Import
 
 Cloud Monitor Service Dynamic Tag Group can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cms_dynamic_tag_group.example <id>
+$ terraform import alicloud_cms_dynamic_tag_group.example <dynamic_tag_rule_id>
 ```

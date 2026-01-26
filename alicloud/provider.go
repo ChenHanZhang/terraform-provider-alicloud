@@ -172,7 +172,6 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"alicloud_cs_clusters":                                dataSourceAliCloudAckClusters(),
 			"alicloud_threat_detection_check_item_configs":        dataSourceAliCloudThreatDetectionCheckItemConfigs(),
 			"alicloud_threat_detection_check_structures":          dataSourceAliCloudThreatDetectionCheckStructures(),
 			"alicloud_fcv3_functions":                             dataSourceAliCloudFcv3Functions(),
@@ -916,10 +915,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_alikafka_scheduled_scaling_rule":                      resourceAliCloudAlikafkaScheduledScalingRule(),
-			"alicloud_event_bridge_event_source_v2":                         resourceAliCloudEventBridgeEventSourceV2(),
-			"alicloud_cloud_firewall_vpc_firewall_acl_engine_mode":          resourceAliCloudCloudFirewallVpcFirewallAclEngineMode(),
-			"alicloud_cloud_firewall_instance_v2":                           resourceAliCloudCloudFirewallInstanceV2(),
 			"alicloud_cloud_firewall_vpc_firewall_ips_config":               resourceAliCloudCloudFirewallVpcFirewallIpsConfig(),
 			"alicloud_rds_ai_instance":                                      resourceAliCloudRdsAiInstance(),
 			"alicloud_threat_detection_check_config":                        resourceAliCloudThreatDetectionCheckConfig(),
@@ -1768,7 +1763,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipv6_gateway":                                      resourceAliCloudVpcIpv6Gateway(),
 			"alicloud_vpc_ipv6_egress_rule":                                  resourceAliCloudVpcIpv6EgressRule(),
 			"alicloud_hbr_server_backup_plan":                                resourceAlicloudHbrServerBackupPlan(),
-			"alicloud_cms_dynamic_tag_group":                                 resourceAliCloudCmsDynamicTagGroup(),
+			"alicloud_cms_dynamic_tag_group":                                 resourceAliCloudCloudMonitorServiceDynamicTagGroup(),
 			"alicloud_ecd_network_package":                                   resourceAlicloudEcdNetworkPackage(),
 			"alicloud_cloud_storage_gateway_gateway_smb_user":                resourceAlicloudCloudStorageGatewayGatewaySmbUser(),
 			"alicloud_vpc_ipv6_internet_bandwidth":                           resourceAliCloudVpcIpv6InternetBandwidth(),
