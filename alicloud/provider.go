@@ -2026,7 +2026,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_event_bridge_api_destination":                          resourceAliCloudEventBridgeApiDestination(),
 			"alicloud_cloud_monitor_service_monitoring_agent_process":        resourceAliCloudCloudMonitorServiceMonitoringAgentProcess(),
 			"alicloud_cloud_monitor_service_group_monitoring_agent_process":  resourceAliCloudCloudMonitorServiceGroupMonitoringAgentProcess(),
-			"alicloud_polardb_zonal_db_cluster":                              resourceAliCloudPolarDbZonalCluster(),
+			"alicloud_polardb_zonal_db_cluster":                              resourceAliCloudPolardbZonalDbCluster(),
 			"alicloud_polardb_zonal_endpoint":                                resourceAlicloudPolarDBZonalEndpoint(),
 			"alicloud_polardb_zonal_account":                                 resourceAlicloudPolarDBZonalAccount(),
 		},
