@@ -20,12 +20,6 @@ For information about AnalyticDB for PostgreSQL (GPDB) Supabase Project and how 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_gpdb_supabase_project&exampleId=58149365-9e76-fd96-a75e-3f54eed136f19e4b5ab8&activeTab=example&spm=docs.r.gpdb_supabase_project.0.581493659e&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 provider "alicloud" {
   region = "cn-hangzhou"
@@ -53,9 +47,6 @@ resource "alicloud_gpdb_supabase_project" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_gpdb_supabase_project&spm=docs.r.gpdb_supabase_project.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,24 +54,31 @@ The following arguments are supported:
   - Consists of three or more of uppercase letters, lowercase letters, numbers, and special characters.
   - Support for special characters:! @#$%^& *()_+-=
   - Length is 8~32 characters.
-* `disk_performance_level` - (Optional, ForceNew) cloud disk performance level
+* `disk_performance_level` - (Optional, ForceNew, Computed) cloud disk performance level
 * `project_name` - (Required, ForceNew) The project name. The naming rules are as follows:
   - 1~128 characters in length.
   - Can only contain English letters, numbers, dashes (-) and underscores (_).
   - Must begin with an English letter or an underscore (_).
 * `project_spec` - (Required, ForceNew) The performance level of the Supabase instance.
-* `security_ip_list` - (Required, List) The IP address whitelist.
-* `storage_size` - (Optional, ForceNew, Int) The storage capacity of the instance. Unit: GB.
+* `security_ip_list` - (Required, List) IP whitelist.
+* `storage_size` - (Optional, ForceNew, Computed, Int) The storage capacity of the instance. Unit: GB.
 * `vswitch_id` - (Required, ForceNew) The vSwitch ID.
+
+-> **NOTE:** >
+
+-> **NOTE:**  - vSwitchId required.
+
+-> **NOTE:**  - The zone where the vSwitch is located must be consistent with the ZoneId.
+
 * `vpc_id` - (Required, ForceNew) The VPC ID.
-* `zone_id` - (Required, ForceNew) The Zone ID.
+* `zone_id` - (Required, ForceNew) Zone ID
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - The creation time of the resource
-* `region_id` - The region ID.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the resource.
+* `region_id` - The region ID of the cluster.
 * `status` - The status of the Supabase instance.
 
 ## Timeouts
@@ -95,5 +93,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 AnalyticDB for PostgreSQL (GPDB) Supabase Project can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_gpdb_supabase_project.example <id>
+$ terraform import alicloud_gpdb_supabase_project.example <project_id>
 ```

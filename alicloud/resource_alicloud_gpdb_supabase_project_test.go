@@ -11,11 +11,11 @@ import (
 )
 
 // Test Gpdb SupabaseProject. >>> Resource test cases, automatically generated.
-// Case supabase资源测试 11921
+// Case supabase资源测试1215 11921
 func TestAccAliCloudGpdbSupabaseProject_basic11921(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_gpdb_supabase_project.default"
-	ra := resourceAttrInit(resourceId, AliCloudGpdbSupabaseProjectMap11921)
+	ra := resourceAttrInit(resourceId, AlicloudGpdbSupabaseProjectMap11921)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &GpdbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeGpdbSupabaseProject")
@@ -23,10 +23,9 @@ func TestAccAliCloudGpdbSupabaseProject_basic11921(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccgpdb%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudGpdbSupabaseProjectBasicDependence11921)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudGpdbSupabaseProjectBasicDependence11921)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -35,23 +34,41 @@ func TestAccAliCloudGpdbSupabaseProject_basic11921(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"account_password": "YourPassword123!",
-					"project_name":     name,
-					"project_spec":     "1C2G",
+					"project_spec": "1C2G",
+					"zone_id":      "cn-beijing-i",
+					"vpc_id":       "${alicloud_vpc.defaultaUf3B6.id}",
+					"project_name": "supabase_test",
 					"security_ip_list": []string{
 						"127.0.0.1"},
-					"zone_id":    "cn-hangzhou-j",
-					"vpc_id":     "${data.alicloud_vpcs.default.ids.0}",
-					"vswitch_id": "${data.alicloud_vswitches.default.ids.0}",
+					"vswitch_id":             "${alicloud_vswitch.default3BTNtz.id}",
+					"disk_performance_level": "PL0",
+					"storage_size":           "1",
+					"account_password":       "Aa123456",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"project_name":       name,
-						"project_spec":       "1C2G",
+						"project_spec":           "1C2G",
+						"zone_id":                "cn-beijing-i",
+						"vpc_id":                 CHECKSET,
+						"project_name":           "supabase_test",
+						"security_ip_list.#":     "1",
+						"vswitch_id":             CHECKSET,
+						"disk_performance_level": "PL0",
+						"storage_size":           "1",
+						"account_password":       "Aa123456",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"security_ip_list": []string{
+						"0.0.0.0/0"},
+					"account_password": "123456Aa",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
 						"security_ip_list.#": "1",
-						"zone_id":            CHECKSET,
-						"vpc_id":             CHECKSET,
-						"vswitch_id":         CHECKSET,
+						"account_password":   "123456Aa",
 					}),
 				),
 			},
@@ -67,14 +84,6 @@ func TestAccAliCloudGpdbSupabaseProject_basic11921(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"account_password": "YourPassword123!update",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -84,85 +93,30 @@ func TestAccAliCloudGpdbSupabaseProject_basic11921(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudGpdbSupabaseProject_basic11921_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_gpdb_supabase_project.default"
-	ra := resourceAttrInit(resourceId, AliCloudGpdbSupabaseProjectMap11921)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &GpdbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeGpdbSupabaseProject")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccgpdb%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudGpdbSupabaseProjectBasicDependence11921)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"account_password": "YourPassword123!",
-					"project_name":     name,
-					"project_spec":     "1C2G",
-					"security_ip_list": []string{
-						"127.0.0.1", "0.0.0.0/0", "140.205.11.0/24", "140.205.11.11"},
-					"zone_id":                "cn-hangzhou-j",
-					"vpc_id":                 "${data.alicloud_vpcs.default.ids.0}",
-					"vswitch_id":             "${data.alicloud_vswitches.default.ids.0}",
-					"disk_performance_level": "PL0",
-					"storage_size":           "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"project_name":           name,
-						"project_spec":           "1C2G",
-						"security_ip_list.#":     "4",
-						"zone_id":                CHECKSET,
-						"vpc_id":                 CHECKSET,
-						"vswitch_id":             CHECKSET,
-						"disk_performance_level": "PL0",
-						"storage_size":           "1",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"account_password"},
-			},
-		},
-	})
+var AlicloudGpdbSupabaseProjectMap11921 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
 }
 
-var AliCloudGpdbSupabaseProjectMap11921 = map[string]string{
-	"disk_performance_level": CHECKSET,
-	"storage_size":           CHECKSET,
-	"create_time":            CHECKSET,
-	"region_id":              CHECKSET,
-	"status":                 CHECKSET,
-}
-
-func AliCloudGpdbSupabaseProjectBasicDependence11921(name string) string {
+func AlicloudGpdbSupabaseProjectBasicDependence11921(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
-	data "alicloud_vpcs" "default" {
-  		name_regex = "^default-NODELETING$"
-	}
+resource "alicloud_vpc" "defaultaUf3B6" {
+  vpc_name = "vpc_test"
+}
 
-	data "alicloud_vswitches" "default" {
-  		vpc_id  = data.alicloud_vpcs.default.ids.0
-  		zone_id = "cn-hangzhou-j"
-	}
+resource "alicloud_vswitch" "default3BTNtz" {
+  vpc_id       = alicloud_vpc.defaultaUf3B6.id
+  cidr_block   = "172.16.18.0/24"
+  vswitch_name = "vswitch_test"
+  zone_id      = "cn-beijing-i"
+}
+
+
 `, name)
 }
 

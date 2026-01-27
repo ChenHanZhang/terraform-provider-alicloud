@@ -40,8 +40,8 @@ func resourceAliCloudGpdbSupabaseProject() *schema.Resource {
 			"disk_performance_level": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+				ForceNew: true,
 			},
 			"project_name": {
 				Type:     schema.TypeString,
@@ -69,8 +69,8 @@ func resourceAliCloudGpdbSupabaseProject() *schema.Resource {
 			"storage_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+				ForceNew: true,
 			},
 			"vswitch_id": {
 				Type:     schema.TypeString,
@@ -112,6 +112,7 @@ func resourceAliCloudGpdbSupabaseProjectCreate(d *schema.ResourceData, meta inte
 	if err == nil {
 		request["SecurityIPList"] = convertListToCommaSeparate(convertToInterfaceArray(securityIpListJsonPath))
 	}
+
 	if v, ok := d.GetOkExists("storage_size"); ok {
 		request["StorageSize"] = v
 	}
@@ -141,7 +142,7 @@ func resourceAliCloudGpdbSupabaseProjectCreate(d *schema.ResourceData, meta inte
 	d.SetId(fmt.Sprint(response["ProjectId"]))
 
 	gpdbServiceV2 := GpdbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"running"}, d.Timeout(schema.TimeoutCreate), 5*time.Minute, gpdbServiceV2.GpdbSupabaseProjectStateRefreshFunc(d.Id(), "$.Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"running"}, d.Timeout(schema.TimeoutCreate), 5*time.Minute, gpdbServiceV2.DescribeAsyncGpdbSupabaseProjectStateRefreshFunc(d, response, "$.Status", []string{}))
 	if jobDetail, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
@@ -174,7 +175,7 @@ func resourceAliCloudGpdbSupabaseProjectRead(d *schema.ResourceData, meta interf
 	d.Set("zone_id", objectRaw["ZoneId"])
 	d.Set("status", objectRaw["Status"])
 
-	e := jsonata.MustCompile("$split($.SecurityIpList, \",\")")
+	e := jsonata.MustCompile("$split($.SecurityIpList, ',')")
 	evaluation, _ := e.Eval(objectRaw)
 	d.Set("security_ip_list", evaluation)
 

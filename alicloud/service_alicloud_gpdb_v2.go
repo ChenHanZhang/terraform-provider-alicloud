@@ -9,6 +9,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/blues/jsonata-go"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 type GpdbServiceV2 struct {
@@ -983,6 +984,11 @@ func (s *GpdbServiceV2) GpdbSupabaseProjectStateRefreshFuncWithApi(id string, fi
 		}
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+		if field == "$.SecurityIpList" {
+			e := jsonata.MustCompile("$split($.SecurityIpList, ',')")
+			v, _ = e.Eval(object)
+			currentStatus = fmt.Sprint(v)
+		}
 
 		if strings.HasPrefix(field, "#") {
 			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
@@ -1000,4 +1006,74 @@ func (s *GpdbServiceV2) GpdbSupabaseProjectStateRefreshFuncWithApi(id string, fi
 	}
 }
 
+func (s *GpdbServiceV2) DescribeAsyncGpdbSupabaseProjectStateRefreshFunc(d *schema.ResourceData, res map[string]interface{}, field string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeAsyncGetSupabaseProject(d, res)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+		if field == "$.SecurityIpList" {
+			e := jsonata.MustCompile("$split($.SecurityIpList, ',')")
+			v, _ = e.Eval(object)
+			currentStatus = fmt.Sprint(v)
+		}
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				if _err, ok := object["error"]; ok {
+					return _err, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+				}
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
 // DescribeGpdbSupabaseProject >>> Encapsulated.
+// DescribeAsyncGetSupabaseProject <<< Encapsulated for Gpdb.
+func (s *GpdbServiceV2) DescribeAsyncGetSupabaseProject(d *schema.ResourceData, res map[string]interface{}) (object map[string]interface{}, err error) {
+	client := s.client
+	id := d.Id()
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ProjectId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	action := "GetSupabaseProject"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("gpdb", "2016-05-03", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return response, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+// DescribeAsyncGetSupabaseProject >>> Encapsulated.
