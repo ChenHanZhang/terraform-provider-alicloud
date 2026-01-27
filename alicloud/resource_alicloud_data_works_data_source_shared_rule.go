@@ -67,7 +67,9 @@ func resourceAliCloudDataWorksDataSourceSharedRuleCreate(d *schema.ResourceData,
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["DataSourceId"] = d.Get("data_source_id")
+	if v, ok := d.GetOk("data_source_id"); ok {
+		request["DataSourceId"] = v
+	}
 	request["RegionId"] = client.RegionId
 
 	request["TargetProjectId"] = d.Get("target_project_id")
@@ -112,24 +114,12 @@ func resourceAliCloudDataWorksDataSourceSharedRuleRead(d *schema.ResourceData, m
 		return WrapError(err)
 	}
 
-	if objectRaw["CreateTime"] != nil {
-		d.Set("create_time", objectRaw["CreateTime"])
-	}
-	if objectRaw["EnvType"] != nil {
-		d.Set("env_type", objectRaw["EnvType"])
-	}
-	if objectRaw["SharedUser"] != nil {
-		d.Set("shared_user", objectRaw["SharedUser"])
-	}
-	if objectRaw["TargetProjectId"] != nil {
-		d.Set("target_project_id", objectRaw["TargetProjectId"])
-	}
-	if objectRaw["DataSourceId"] != nil {
-		d.Set("data_source_id", objectRaw["DataSourceId"])
-	}
-	if objectRaw["Id"] != nil {
-		d.Set("data_source_shared_rule_id", objectRaw["Id"])
-	}
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("env_type", objectRaw["EnvType"])
+	d.Set("shared_user", objectRaw["SharedUser"])
+	d.Set("target_project_id", objectRaw["TargetProjectId"])
+	d.Set("data_source_id", objectRaw["DataSourceId"])
+	d.Set("data_source_shared_rule_id", objectRaw["Id"])
 
 	return nil
 }
@@ -150,7 +140,6 @@ func resourceAliCloudDataWorksDataSourceSharedRuleDelete(d *schema.ResourceData,
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("dataworks-public", "2024-05-18", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
