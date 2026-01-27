@@ -1,352 +1,433 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
-	"strings"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudDBBackupPolicy() *schema.Resource {
+func resourceAliCloudRdsBackupPolicy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudDBBackupPolicyCreate,
-		Read:   resourceAlicloudDBBackupPolicyRead,
-		Update: resourceAlicloudDBBackupPolicyUpdate,
-		Delete: resourceAlicloudDBBackupPolicyDelete,
+		Create: resourceAliCloudRdsBackupPolicyCreate,
+		Read:   resourceAliCloudRdsBackupPolicyRead,
+		Update: resourceAliCloudRdsBackupPolicyUpdate,
+		Delete: resourceAliCloudRdsBackupPolicyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
-			"instance_id": {
+			"archive_backup_keep_count": {
 				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
-			},
-
-			"backup_period": {
-				Type:       schema.TypeSet,
-				Elem:       &schema.Schema{Type: schema.TypeString},
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Attribute 'backup_period' has been deprecated from version 1.69.0. Use `preferred_backup_period` instead",
-			},
-
-			"preferred_backup_period": {
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{Type: schema.TypeString},
-				// terraform does not support ValidateFunc of TypeList attr
-				// ValidateFunc: validateAllowedStringValue([]string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}),
 				Optional: true,
 				Computed: true,
 			},
-
-			"backup_time": {
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringInSlice(BACKUP_TIME, false),
-				Optional:     true,
-				Computed:     true,
-				Deprecated:   "Attribute 'backup_time' has been deprecated from version 1.69.0. Use `preferred_backup_time` instead",
+			"archive_backup_keep_policy": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-
-			"preferred_backup_time": {
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringInSlice(BACKUP_TIME, false),
-				Optional:     true,
-				Default:      "02:00Z-03:00Z",
+			"archive_backup_retention_period": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-
-			"retention_period": {
-				Type:       schema.TypeInt,
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Attribute 'retention_period' has been deprecated from version 1.69.0. Use `backup_retention_period` instead",
+			"backup_interval": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-
+			"backup_log": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"backup_method": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"backup_policy_mode": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"backup_priority": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"backup_retention_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  7,
-			},
-
-			"log_backup": {
-				Type:       schema.TypeBool,
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Attribute 'log_backup' has been deprecated from version 1.68.0. Use `enable_backup_log` instead",
-			},
-
-			"enable_backup_log": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Optional: true,
-			},
-
-			"log_retention_period": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				Computed:         true,
-				DiffSuppressFunc: logRetentionPeriodDiffSuppressFunc,
-				Deprecated:       "Attribute 'log_retention_period' has been deprecated from version 1.69.0. Use `log_backup_retention_period` instead",
-			},
-
-			"log_backup_retention_period": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				Computed:         true,
-				DiffSuppressFunc: logRetentionPeriodDiffSuppressFunc,
-			},
-
-			"local_log_retention_hours": {
-				Type:             schema.TypeInt,
-				ValidateFunc:     validation.IntBetween(0, 7*24),
-				Computed:         true,
-				Optional:         true,
-				DiffSuppressFunc: enableBackupLogDiffSuppressFunc,
-			},
-
-			"local_log_retention_space": {
-				Type:             schema.TypeInt,
-				ValidateFunc:     validation.IntBetween(0, 50),
-				Computed:         true,
-				Optional:         true,
-				DiffSuppressFunc: enableBackupLogDiffSuppressFunc,
-			},
-
-			"high_space_usage_protection": {
-				Type:             schema.TypeString,
-				ValidateFunc:     validation.StringInSlice([]string{"Enable", "Disable"}, false),
-				Default:          "Enable",
-				Optional:         true,
-				DiffSuppressFunc: enableBackupLogDiffSuppressFunc,
-			},
-
-			"log_backup_frequency": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
-
-			"compress_type": {
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringInSlice([]string{"1", "4", "8"}, false),
-				Computed:     true,
-				Optional:     true,
-			},
-
-			"archive_backup_retention_period": {
-				Type:             schema.TypeInt,
-				Computed:         true,
-				Optional:         true,
-				DiffSuppressFunc: archiveBackupPeriodDiffSuppressFunc,
-			},
-
-			"archive_backup_keep_count": {
-				Type:             schema.TypeInt,
-				ValidateFunc:     validation.IntBetween(1, 31),
-				Computed:         true,
-				Optional:         true,
-				DiffSuppressFunc: enableBackupLogDiffSuppressFunc,
-			},
-
-			"archive_backup_keep_policy": {
-				Type:             schema.TypeString,
-				ValidateFunc:     validation.StringInSlice([]string{"ByMonth", "ByWeek", "KeepAll"}, false),
-				Computed:         true,
-				Optional:         true,
-				DiffSuppressFunc: enableBackupLogDiffSuppressFunc,
-			},
-			"released_keep_policy": {
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringInSlice([]string{"None", "Lastest", "All"}, false),
-				Optional:     true,
-				Computed:     true,
 			},
 			"category": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Flash", "Standard"}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-			"backup_interval": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.StringInSlice([]string{"-1", "15", "30", "60", "120", "180", "240", "360", "480", "720"}, false),
+			"compress_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
-			"backup_priority": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntBetween(1, 2),
+			"db_instance_id": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
-
+			"enable_backup_log": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"enable_increment_data_backup": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"log_backup_local_retention_number": {
-				Type:         schema.TypeInt,
-				Computed:     true,
-				ValidateFunc: validation.Any(IntBetween(6, 100), IntInSlice([]int{-1})),
-				Optional:     true,
+			"high_space_usage_protection": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
-			"backup_method": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"Physical", "Snapshot"}, false),
+			"local_log_retention_hours": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"local_log_retention_space": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"log_backup_frequency": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"log_backup_local_retention_number": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"log_backup_retention_period": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"preferred_backup_period": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"preferred_backup_time": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"released_keep_policy": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 		},
 	}
 }
 
-func resourceAlicloudDBBackupPolicyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsBackupPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 
-	d.SetId(d.Get("instance_id").(string))
+	client := meta.(*connectivity.AliyunClient)
 
-	return resourceAlicloudDBBackupPolicyUpdate(d, meta)
+	action := "ModifyBackupPolicy"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("db_instance_id"); ok {
+		request["DBInstanceId"] = v
+	}
+	request["RegionId"] = client.RegionId
+
+	if v, ok := d.GetOkExists("backup_priority"); ok {
+		request["BackupPriority"] = v
+	}
+	if v, ok := d.GetOkExists("enable_increment_data_backup"); ok {
+		request["EnableIncrementDataBackup"] = v
+	}
+	if v, ok := d.GetOk("archive_backup_retention_period"); ok {
+		request["ArchiveBackupRetentionPeriod"] = v
+	}
+	if v, ok := d.GetOk("preferred_backup_time"); ok {
+		request["PreferredBackupTime"] = v
+	}
+	if v, ok := d.GetOk("compress_type"); ok {
+		request["CompressType"] = v
+	}
+	if v, ok := d.GetOk("archive_backup_keep_count"); ok {
+		request["ArchiveBackupKeepCount"] = v
+	}
+	if v, ok := d.GetOkExists("log_backup_retention_period"); ok {
+		request["LogBackupRetentionPeriod"] = v
+	}
+	if v, ok := d.GetOkExists("log_backup_local_retention_number"); ok {
+		request["LogBackupLocalRetentionNumber"] = v
+	}
+	if v, ok := d.GetOk("preferred_backup_period"); ok {
+		request["PreferredBackupPeriod"] = v
+	}
+	if v, ok := d.GetOk("backup_log"); ok {
+		request["BackupLog"] = v
+	}
+	if v, ok := d.GetOk("released_keep_policy"); ok {
+		request["ReleasedKeepPolicy"] = v
+	}
+	if v, ok := d.GetOk("backup_method"); ok {
+		request["BackupMethod"] = v
+	}
+	if v, ok := d.GetOkExists("backup_retention_period"); ok {
+		request["BackupRetentionPeriod"] = v
+	}
+	if v, ok := d.GetOk("category"); ok {
+		request["Category"] = v
+	}
+	if v, ok := d.GetOk("enable_backup_log"); ok {
+		request["EnableBackupLog"] = v
+	}
+	if v, ok := d.GetOkExists("local_log_retention_hours"); ok {
+		request["LocalLogRetentionHours"] = v
+	}
+	if v, ok := d.GetOk("local_log_retention_space"); ok {
+		request["LocalLogRetentionSpace"] = v
+	}
+	if v, ok := d.GetOk("backup_policy_mode"); ok {
+		request["BackupPolicyMode"] = v
+	}
+	if v, ok := d.GetOk("high_space_usage_protection"); ok {
+		request["HighSpaceUsageProtection"] = v
+	}
+	if v, ok := d.GetOk("log_backup_frequency"); ok {
+		request["LogBackupFrequency"] = v
+	}
+	if v, ok := d.GetOk("backup_interval"); ok {
+		request["BackupInterval"] = v
+	}
+	if v, ok := d.GetOk("archive_backup_keep_policy"); ok {
+		request["ArchiveBackupKeepPolicy"] = v
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_db_backup_policy", action, AlibabaCloudSdkGoERROR)
+	}
+
+	d.SetId(fmt.Sprint(response["DBInstanceID"]))
+
+	return resourceAliCloudRdsBackupPolicyRead(d, meta)
 }
 
-func resourceAlicloudDBBackupPolicyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsBackupPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-	object, err := rdsService.DescribeBackupPolicy(d.Id())
+	rdsServiceV2 := RdsServiceV2{client}
+
+	objectRaw, err := rdsServiceV2.DescribeRdsBackupPolicy(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_db_backup_policy DescribeRdsBackupPolicy Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("instance_id", d.Id())
-	d.Set("backup_time", object["PreferredBackupTime"])
-	d.Set("backup_period", strings.Split(object["PreferredBackupPeriod"].(string), ","))
-	d.Set("retention_period", formatInt(object["BackupRetentionPeriod"]))
-	d.Set("preferred_backup_time", object["PreferredBackupTime"])
-	d.Set("preferred_backup_period", strings.Split(object["PreferredBackupPeriod"].(string), ","))
-	d.Set("backup_retention_period", formatInt(object["BackupRetentionPeriod"]))
-	d.Set("log_backup", object["BackupLog"] == "Enable")
-	d.Set("enable_backup_log", object["EnableBackupLog"] == "1")
-	d.Set("log_retention_period", formatInt(object["LogBackupRetentionPeriod"]))
-	d.Set("log_backup_retention_period", formatInt(object["LogBackupRetentionPeriod"]))
-	d.Set("local_log_retention_hours", formatInt(object["LocalLogRetentionHours"]))
-	d.Set("local_log_retention_space", formatInt(object["LocalLogRetentionSpace"]))
-	d.Set("released_keep_policy", object["ReleasedKeepPolicy"])
-	d.Set("category", object["Category"])
-	d.Set("enable_increment_data_backup", object["EnableIncrementDataBackup"].(bool))
-	d.Set("log_backup_local_retention_number", object["LogBackupLocalRetentionNumber"])
-	instance, err := rdsService.DescribeDBInstance(d.Id())
-	if err != nil {
-		if NotFoundError(err) {
-			d.SetId("")
-			return nil
-		}
-		return WrapError(err)
-	}
-	// At present, the sql server database does not support setting high_space_usage_protection and it`s has default value
-	if instance["Engine"] == "SQLServer" {
-		d.Set("high_space_usage_protection", "Enable")
-		d.Set("backup_method", object["BackupMethod"])
-	} else {
-		d.Set("high_space_usage_protection", object["HighSpaceUsageProtection"])
-		d.Set("backup_interval", object["BackupInterval"])
-	}
-	if instance["Engine"] == "SQLServer" && instance["Category"] == "AlwaysOn" {
-		d.Set("backup_priority", formatInt(object["BackupPriority"]))
-	}
-	d.Set("log_backup_frequency", object["LogBackupFrequency"])
-	d.Set("compress_type", object["CompressType"])
-	d.Set("archive_backup_retention_period", formatInt(object["ArchiveBackupRetentionPeriod"]))
-	d.Set("archive_backup_keep_count", formatInt(object["ArchiveBackupKeepCount"]))
-	d.Set("archive_backup_keep_policy", object["ArchiveBackupKeepPolicy"])
+
+	d.Set("archive_backup_keep_count", objectRaw["ArchiveBackupKeepCount"])
+	d.Set("archive_backup_keep_policy", objectRaw["ArchiveBackupKeepPolicy"])
+	d.Set("archive_backup_retention_period", objectRaw["ArchiveBackupRetentionPeriod"])
+	d.Set("backup_interval", objectRaw["BackupInterval"])
+	d.Set("backup_log", objectRaw["BackupLog"])
+	d.Set("backup_method", objectRaw["BackupMethod"])
+	d.Set("backup_priority", objectRaw["BackupPriority"])
+	d.Set("backup_retention_period", objectRaw["BackupRetentionPeriod"])
+	d.Set("category", objectRaw["Category"])
+	d.Set("compress_type", objectRaw["CompressType"])
+	d.Set("enable_backup_log", objectRaw["EnableBackupLog"])
+	d.Set("enable_increment_data_backup", objectRaw["EnableIncrementDataBackup"])
+	d.Set("high_space_usage_protection", objectRaw["HighSpaceUsageProtection"])
+	d.Set("local_log_retention_hours", objectRaw["LocalLogRetentionHours"])
+	d.Set("local_log_retention_space", objectRaw["LocalLogRetentionSpace"])
+	d.Set("log_backup_frequency", objectRaw["LogBackupFrequency"])
+	d.Set("log_backup_local_retention_number", objectRaw["LogBackupLocalRetentionNumber"])
+	d.Set("log_backup_retention_period", objectRaw["LogBackupRetentionPeriod"])
+	d.Set("preferred_backup_period", objectRaw["PreferredBackupPeriod"])
+	d.Set("preferred_backup_time", objectRaw["PreferredBackupTime"])
+	d.Set("released_keep_policy", objectRaw["ReleasedKeepPolicy"])
+
+	d.Set("db_instance_id", d.Id())
+
 	return nil
 }
 
-func resourceAlicloudDBBackupPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudRdsBackupPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-	updateForData := false
-	updateForLog := false
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
 
-	if d.HasChanges("backup_period", "backup_time", "retention_period", "preferred_backup_period", "preferred_backup_time",
-		"backup_retention_period", "compress_type", "log_backup_frequency", "archive_backup_retention_period", "archive_backup_keep_count",
-		"archive_backup_keep_policy", "released_keep_policy", "category", "backup_interval", "backup_priority", "backup_method",
-		"enable_increment_data_backup") {
-		updateForData = true
+	var err error
+	action := "ModifyBackupPolicy"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if d.HasChange("backup_priority") {
+		update = true
+		request["BackupPriority"] = d.Get("backup_priority")
 	}
 
-	if d.HasChanges("log_backup", "enable_backup_log", "log_backup_retention_period", "log_retention_period", "local_log_retention_hours",
-		"local_log_retention_space", "high_space_usage_protection", "log_backup_local_retention_number") {
-		updateForLog = true
+	if d.HasChange("enable_increment_data_backup") {
+		update = true
+		request["EnableIncrementDataBackup"] = d.Get("enable_increment_data_backup")
 	}
 
-	if _, ok := d.GetOkExists("enable_backup_log"); ok {
-		updateForLog = true
+	if d.HasChange("archive_backup_retention_period") {
+		update = true
+		request["ArchiveBackupRetentionPeriod"] = d.Get("archive_backup_retention_period")
 	}
-	if updateForData || updateForLog {
-		// wait instance running before modifying
-		if err := rdsService.WaitForDBInstance(d.Id(), Running, DefaultTimeoutMedium); err != nil {
-			return WrapError(err)
-		}
-		if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-			if err := rdsService.ModifyDBBackupPolicy(d, updateForData, updateForLog); err != nil {
-				if IsExpectedErrors(err, OperationDeniedDBStatus) || NeedRetry(err) {
+
+	if d.HasChange("preferred_backup_time") {
+		update = true
+		request["PreferredBackupTime"] = d.Get("preferred_backup_time")
+	}
+
+	if d.HasChange("compress_type") {
+		update = true
+		request["CompressType"] = d.Get("compress_type")
+	}
+
+	if d.HasChange("archive_backup_keep_count") {
+		update = true
+		request["ArchiveBackupKeepCount"] = d.Get("archive_backup_keep_count")
+	}
+
+	if d.HasChange("log_backup_retention_period") {
+		update = true
+		request["LogBackupRetentionPeriod"] = d.Get("log_backup_retention_period")
+	}
+
+	if d.HasChange("log_backup_local_retention_number") {
+		update = true
+		request["LogBackupLocalRetentionNumber"] = d.Get("log_backup_local_retention_number")
+	}
+
+	if d.HasChange("preferred_backup_period") {
+		update = true
+		request["PreferredBackupPeriod"] = d.Get("preferred_backup_period")
+	}
+
+	if d.HasChange("backup_log") {
+		update = true
+		request["BackupLog"] = d.Get("backup_log")
+	}
+
+	if d.HasChange("released_keep_policy") {
+		update = true
+		request["ReleasedKeepPolicy"] = d.Get("released_keep_policy")
+	}
+
+	if d.HasChange("backup_method") {
+		update = true
+		request["BackupMethod"] = d.Get("backup_method")
+	}
+
+	if d.HasChange("backup_retention_period") {
+		update = true
+		request["BackupRetentionPeriod"] = d.Get("backup_retention_period")
+	}
+
+	if d.HasChange("category") {
+		update = true
+		request["Category"] = d.Get("category")
+	}
+
+	if d.HasChange("enable_backup_log") {
+		update = true
+		request["EnableBackupLog"] = d.Get("enable_backup_log")
+	}
+
+	if d.HasChange("local_log_retention_hours") {
+		update = true
+		request["LocalLogRetentionHours"] = d.Get("local_log_retention_hours")
+	}
+
+	if d.HasChange("local_log_retention_space") {
+		update = true
+		request["LocalLogRetentionSpace"] = d.Get("local_log_retention_space")
+	}
+
+	if v, ok := d.GetOk("backup_policy_mode"); ok {
+		request["BackupPolicyMode"] = v
+	}
+	if d.HasChange("high_space_usage_protection") {
+		update = true
+		request["HighSpaceUsageProtection"] = d.Get("high_space_usage_protection")
+	}
+
+	if d.HasChange("log_backup_frequency") {
+		update = true
+		request["LogBackupFrequency"] = d.Get("log_backup_frequency")
+	}
+
+	if d.HasChange("backup_interval") {
+		update = true
+		request["BackupInterval"] = d.Get("backup_interval")
+	}
+
+	if d.HasChange("archive_backup_keep_policy") {
+		update = true
+		request["ArchiveBackupKeepPolicy"] = d.Get("archive_backup_keep_policy")
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
 			return nil
-		}); err != nil {
-			return WrapError(err)
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
 
-	return resourceAlicloudDBBackupPolicyRead(d, meta)
+	return resourceAliCloudRdsBackupPolicyRead(d, meta)
 }
 
-func resourceAlicloudDBBackupPolicyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
-
-	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, rdsService.RdsDBInstanceStateRefreshFunc(d.Id(), []string{"Deleting"}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
-	}
-
-	var err error
-	action := "ModifyBackupPolicy"
-	request := map[string]interface{}{
-		"RegionId":              client.RegionId,
-		"DBInstanceId":          d.Id(),
-		"PreferredBackupPeriod": "Tuesday,Thursday,Saturday",
-		"BackupRetentionPeriod": "7",
-		"PreferredBackupTime":   "02:00Z-03:00Z",
-		"EnableBackupLog":       "1",
-		"SourceIp":              client.SourceIp,
-	}
-	instance, err := rdsService.DescribeDBInstance(d.Id())
-	if err != nil {
-		if NotFoundError(err) {
-			return nil
-		}
-		return WrapError(err)
-	}
-	if instance["Engine"] != "SQLServer" {
-		request["LogBackupRetentionPeriod"] = "7"
-	}
-	if instance["Engine"] == "MySQL" && instance["DBInstanceStorageType"] == "local_ssd" {
-		request["ArchiveBackupRetentionPeriod"] = "0"
-		request["ArchiveBackupKeepCount"] = "1"
-		request["ArchiveBackupKeepPolicy"] = "ByMonth"
-	}
-	response, err := client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
-	if err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
-	addDebug(action, response, request)
-	return rdsService.WaitForDBInstance(d.Id(), Running, DefaultTimeoutMedium)
+func resourceAliCloudRdsBackupPolicyDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[WARN] Cannot destroy resource AliCloud Resource Backup Policy. Terraform will remove this resource from the state file, however resources may remain.")
+	return nil
 }
