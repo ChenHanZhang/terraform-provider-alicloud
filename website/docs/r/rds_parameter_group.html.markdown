@@ -2,7 +2,6 @@
 subcategory: "RDS"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_rds_parameter_group"
-sidebar_current: "docs-alicloud-resource-rds-parameter-group"
 description: |-
   Provides a Alicloud RDS Parameter Group resource.
 ---
@@ -11,19 +10,15 @@ description: |-
 
 Provides a RDS Parameter Group resource.
 
-For information about RDS Parameter Group and how to use it, see [What is Parameter Group](https://www.alibabacloud.com/help/en/doc-detail/144839.htm).
+Used to batch manage database parameters.
 
--> **NOTE:** Available since v1.119.0.
+For information about RDS Parameter Group and how to use it, see [What is Parameter Group](https://next.api.alibabacloud.com/document/Rds/2014-08-15/CreateParameterGroup).
+
+-> **NOTE:** Available since v1.270.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_rds_parameter_group&exampleId=ecba00a3-4705-c617-8963-76bd9ed57d6d16e9a7fb&activeTab=example&spm=docs.r.rds_parameter_group.0.ecba00a347&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -46,30 +41,53 @@ resource "alicloud_rds_parameter_group" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_rds_parameter_group&spm=docs.r.rds_parameter_group.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `engine` - (Required, ForceNew) The database engine. Valid values: 
+  - `mysql` 
+  - `PostgreSQL`
+* `engine_version` - (Required, ForceNew) The database engine version of the instance. 
+  - If the instance runs MySQL, the instance must run one of the following MySQL versions: * **5.6** * **5.7** * **8.0** 
+  - If the instance runs PostgreSQL, the instance must run one of the following PostgreSQL versions: * **10.0** * **11.0** * **12.0** * **13.0** * **14.0** * **15.0** 
+* `modify_mode` - (Optional) The modification mode of the parameter template. Value:
+`Collectivity` (default): Add or change.
 
-* `engine` - (Required, ForceNew) The database engine. Valid values: `mysql`, `mariadb`, `PostgreSQL`.
-* `engine_version` - (Required, ForceNew) The version of the database engine. Valid values: mysql: `5.1`, `5.5`, `5.6`, `5.7`, `8.0`; mariadb: `10.3`; PostgreSQL: `10.0`, `11.0`, `12.0`, `13.0`, `14.0`, `15.0`.
-* `param_detail` - (Required) Parameter list. See [`param_detail`](#param_detail) below.
-* `parameter_group_desc` - (Optional) The description of the parameter template.
-* `parameter_group_name` - (Required) The name of the parameter template.
+-> **NOTE:**  Add the content passed in the `Parameters` parameter to the current parameter template, or change existing Parameters in the current parameter Template. Other Parameters in the current parameter template are not affected.
 
-### `param_detail`
+`Individual`: Overwrite.
 
-The param_detail supports the following: 
+-> **NOTE:**  Replace the content in the current parameter template with the content specified in the `Parameters` parameter.
 
-* `param_name` - (Required) The name of a parameter.
-* `param_value` - (Required) The value of a parameter.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `parameter_detail` - (Required, List) A list of parameters. See [`parameter_detail`](#parameter_detail) below.
+* `parameter_group_desc` - (Optional) The description of the parameter template. The value can be up to 200 characters in length.
+* `parameter_group_name` - (Required) The parameter template name. * The name can contain letters, digits, periods (.), and underscores (\_). It must start with a letter. * It can be 8 to 64 characters in length. &gt; If you do not specify this parameter, the original name of the parameter template is retained.
+* `resource_group_id` - (Optional, Computed) The ID of the resource group. Callable DescribeDBInstanceAttribute to get.
+
+-> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+
+### `parameter_detail`
+
+The parameter_detail supports the following:
+* `param_name` - (Optional) The parameter name.
+* `param_value` - (Optional) The parameter value.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `create_time` - CreateTime.
 
-* `id` - The resource ID in terraform of Parameter Group.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Parameter Group.
+* `delete` - (Defaults to 5 mins) Used when delete the Parameter Group.
+* `update` - (Defaults to 5 mins) Used when update the Parameter Group.
 
 ## Import
 
