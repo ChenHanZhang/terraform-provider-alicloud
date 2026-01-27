@@ -20,12 +20,6 @@ For information about Data Works Data Source and how to use it, see [What is Dat
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_data_works_data_source&exampleId=88d802af-c4dc-6f5f-a816-b2ad347199691912c1b5&activeTab=example&spm=docs.r.data_works_data_source.0.88d802afc4&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "tf_example"
@@ -63,8 +57,6 @@ resource "alicloud_data_works_data_source" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_data_works_data_source&spm=docs.r.data_works_data_source.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -78,13 +70,13 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<project_id>:<data_source_id>`.
-* `create_time` - The creation time of the resource
-* `create_user` - Creator of the data source
-* `data_source_id` - The first ID of the resource
-* `modify_time` - Modification time
-* `modify_user` - Modifier of the data source
-* `qualified_name` - Business Unique Key of Data Source
+* `id` - The ID of the resource supplied above. The value is formulated as `<project_id>:<data_source_id>`.
+* `create_time` - The creation time of the resource.
+* `create_user` - Creator of the data source.
+* `data_source_id` - The first ID of the resource.
+* `modify_time` - Modification time.
+* `modify_user` - Modifier of the data source.
+* `qualified_name` - Business Unique Key of Data Source.
 
 ## Timeouts
 

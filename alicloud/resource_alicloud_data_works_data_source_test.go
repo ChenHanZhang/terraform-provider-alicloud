@@ -10,22 +10,22 @@ import (
 )
 
 // Test DataWorks DataSource. >>> Resource test cases, automatically generated.
-// Case DataSource资源测试_成都 8927
-func TestAccAliCloudDataWorksDataSource_basic8927(t *testing.T) {
+// Case DataSource资源测试_正式副本 8162
+func TestAccAliCloudDataWorksDataSource_basic8162(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_data_works_data_source.default"
-	ra := resourceAttrInit(resourceId, AlicloudDataWorksDataSourceMap8927)
+	ra := resourceAttrInit(resourceId, AlicloudDataWorksDataSourceMap8162)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &DataWorksServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeDataWorksDataSource")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf_testacc_dwpt%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudDataWorksDataSourceBasicDependence8927)
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudDataWorksDataSourceBasicDependence8162)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			//testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-chengdu"})
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -45,7 +45,7 @@ func TestAccAliCloudDataWorksDataSource_basic8927(t *testing.T) {
 					testAccCheck(map[string]string{
 						"type":                       "hive",
 						"data_source_name":           name,
-						"connection_properties":      "{   \"address\": [     {       \"host\": \"127.0.0.1\",       \"port\": \"1234\"     }   ],   \"database\": \"hive_database\",   \"metaType\": \"HiveMetastore\",   \"metastoreUris\": \"thrift://123:123\",   \"version\": \"2.3.9\",   \"loginMode\": \"Anonymous\",   \"securityProtocol\": \"authTypeNone\",   \"envType\": \"Prod\",   \"properties\": {     \"key1\": \"value1\"   } }",
+						"connection_properties":      CHECKSET,
 						"connection_properties_mode": "UrlMode",
 						"project_id":                 CHECKSET,
 						"description":                "描述信息-初始状态",
@@ -60,7 +60,7 @@ func TestAccAliCloudDataWorksDataSource_basic8927(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"connection_properties":      "{     \"clusterIdentifier\": \"cdh_cluster\",     \"database\": \"hive_database\",     \"loginMode\": \"Anonymous\",     \"securityProtocol\": \"authTypeNone\",     \"envType\": \"Prod\" }",
+						"connection_properties":      CHECKSET,
 						"connection_properties_mode": "CdhMode",
 						"description":                "描述信息-状态1",
 					}),
@@ -74,7 +74,7 @@ func TestAccAliCloudDataWorksDataSource_basic8927(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"connection_properties":      "{   \"address\": [     {       \"host\": \"127.0.0.1\",       \"port\": \"1234\"     }   ],   \"database\": \"hive_database\",   \"metaType\": \"HiveMetastore\",   \"metastoreUris\": \"thrift://123:123\",   \"version\": \"2.3.9\",   \"loginMode\": \"Anonymous\",   \"securityProtocol\": \"authTypeNone\",   \"envType\": \"Prod\",   \"properties\": {     \"key1\": \"value1\"   } }",
+						"connection_properties":      CHECKSET,
 						"connection_properties_mode": "UrlMode",
 						"description":                "描述信息-最终状态",
 					}),
@@ -90,22 +90,26 @@ func TestAccAliCloudDataWorksDataSource_basic8927(t *testing.T) {
 	})
 }
 
-var AlicloudDataWorksDataSourceMap8927 = map[string]string{
+var AlicloudDataWorksDataSourceMap8162 = map[string]string{
+	"modify_time":    CHECKSET,
+	"modify_user":    CHECKSET,
 	"create_time":    CHECKSET,
+	"qualified_name": CHECKSET,
+	"create_user":    CHECKSET,
 	"data_source_id": CHECKSET,
 }
 
-func AlicloudDataWorksDataSourceBasicDependence8927(name string) string {
+func AlicloudDataWorksDataSourceBasicDependence8162(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
 resource "alicloud_data_works_project" "defaultkguw4R" {
-  description  = "匠承测试"
-  project_name = var.name
-  display_name = "jiangcheng_terraform_test2"
-  pai_task_enabled = true
+  description      = "匠承测试"
+  project_name     = "jiangcheng_terraform_test2"
+  pai_task_enabled = false
+  display_name     = "jiangcheng_terraform_test2"
 }
 
 

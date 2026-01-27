@@ -255,16 +255,17 @@ func (s *DataWorksServiceV2) DescribeDataWorksDataSource(id string) (object map[
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
-	action := "GetDataSource"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["Id"] = parts[1]
 	query["RegionId"] = client.RegionId
+	action := "GetDataSource"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, nil)
+		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -292,15 +293,18 @@ func (s *DataWorksServiceV2) DescribeDataWorksDataSource(id string) (object map[
 }
 
 func (s *DataWorksServiceV2) DataWorksDataSourceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DataWorksDataSourceStateRefreshFuncWithApi(id, field, failStates, s.DescribeDataWorksDataSource)
+}
+
+func (s *DataWorksServiceV2) DataWorksDataSourceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeDataWorksDataSource(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

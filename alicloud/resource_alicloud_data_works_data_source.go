@@ -32,7 +32,7 @@ func resourceAliCloudDataWorksDataSource() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Sensitive:    true,
-				ValidateFunc: validation.StringIsJSON,
+				ValidateFunc: validation.ValidateJsonString,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					equal, _ := compareJsonTemplateAreEquivalent(old, new)
 					return equal
@@ -99,7 +99,9 @@ func resourceAliCloudDataWorksDataSourceCreate(d *schema.ResourceData, meta inte
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["ProjectId"] = d.Get("project_id")
+	if v, ok := d.GetOk("project_id"); ok {
+		request["ProjectId"] = v
+	}
 	request["RegionId"] = client.RegionId
 
 	request["Type"] = d.Get("type")
@@ -146,42 +148,18 @@ func resourceAliCloudDataWorksDataSourceRead(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 
-	if objectRaw["ConnectionProperties"] != nil {
-		d.Set("connection_properties", objectRaw["ConnectionProperties"])
-	}
-	if objectRaw["ConnectionPropertiesMode"] != nil {
-		d.Set("connection_properties_mode", objectRaw["ConnectionPropertiesMode"])
-	}
-	if objectRaw["CreateTime"] != nil {
-		d.Set("create_time", objectRaw["CreateTime"])
-	}
-	if objectRaw["CreateUser"] != nil {
-		d.Set("create_user", objectRaw["CreateUser"])
-	}
-	if objectRaw["Name"] != nil {
-		d.Set("data_source_name", objectRaw["Name"])
-	}
-	if objectRaw["Description"] != nil {
-		d.Set("description", objectRaw["Description"])
-	}
-	if objectRaw["ModifyTime"] != nil {
-		d.Set("modify_time", objectRaw["ModifyTime"])
-	}
-	if objectRaw["ModifyUser"] != nil {
-		d.Set("modify_user", objectRaw["ModifyUser"])
-	}
-	if objectRaw["QualifiedName"] != nil {
-		d.Set("qualified_name", objectRaw["QualifiedName"])
-	}
-	if objectRaw["Type"] != nil {
-		d.Set("type", objectRaw["Type"])
-	}
-	if objectRaw["Id"] != nil {
-		d.Set("data_source_id", objectRaw["Id"])
-	}
-	if objectRaw["ProjectId"] != nil {
-		d.Set("project_id", objectRaw["ProjectId"])
-	}
+	d.Set("connection_properties", objectRaw["ConnectionProperties"])
+	d.Set("connection_properties_mode", objectRaw["ConnectionPropertiesMode"])
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("create_user", objectRaw["CreateUser"])
+	d.Set("data_source_name", objectRaw["Name"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("modify_time", objectRaw["ModifyTime"])
+	d.Set("modify_user", objectRaw["ModifyUser"])
+	d.Set("qualified_name", objectRaw["QualifiedName"])
+	d.Set("type", objectRaw["Type"])
+	d.Set("data_source_id", objectRaw["Id"])
+	d.Set("project_id", objectRaw["ProjectId"])
 
 	return nil
 }
@@ -193,9 +171,9 @@ func resourceAliCloudDataWorksDataSourceUpdate(d *schema.ResourceData, meta inte
 	var query map[string]interface{}
 	update := false
 
+	var err error
 	parts := strings.Split(d.Id(), ":")
 	action := "UpdateDataSource"
-	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ProjectId"] = parts[0]
@@ -252,7 +230,6 @@ func resourceAliCloudDataWorksDataSourceDelete(d *schema.ResourceData, meta inte
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
