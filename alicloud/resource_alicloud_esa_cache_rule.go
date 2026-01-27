@@ -71,7 +71,7 @@ func resourceAliCloudEsaCacheRule() *schema.Resource {
 			"edge_cache_mode": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"follow_origin", "no_cache", "override_origin", "follow_origin_bypass"}, false),
+				ValidateFunc: StringInSlice([]string{"follow_origin", "no_cache", "override_origin", "follow_origin_bypass", "follow_origin_override"}, false),
 			},
 			"edge_cache_ttl": {
 				Type:     schema.TypeString,
@@ -248,7 +248,7 @@ func resourceAliCloudEsaCacheRuleCreate(d *schema.ResourceData, meta interface{}
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"LockFailed"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
