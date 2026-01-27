@@ -675,3 +675,160 @@ func AliCloudNatGatewayBasicDependence1(name string) string {
 	}
 `, name)
 }
+
+// Test NATGateway NatGateway. >>> Resource test cases, automatically generated.
+// Case 全生命周期_公网NAT 10649
+func TestAccAliCloudNATGatewayNatGateway_basic10649(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nat_gateway.default"
+	ra := resourceAttrInit(resourceId, AlicloudNATGatewayNatGatewayMap10649)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNATGatewayNatGateway")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnatgateway%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNATGatewayNatGatewayBasicDependence10649)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vpc_id":           "${alicloud_vpc.vpc.id}",
+					"nat_type":         "Enhanced",
+					"description":      "terraform test create nat case",
+					"nat_gateway_name": name,
+					"eip_bind_mode":    "MULTI_BINDED",
+					"network_type":     "internet",
+					"nat_gateway_private_info": []map[string]interface{}{
+						{
+							"vswitch_id": "${alicloud_vswitch.VSwitch.id}",
+						},
+					},
+					"private_link_enabled":        "false",
+					"security_protection_enabled": "false",
+					"auto_pay":                    "false",
+					"icmp_reply_enabled":          "false",
+					"payment_type":                "PayAsYouGo",
+					"internet_charge_type":        "PayByLcu",
+					"enable_session_log":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vpc_id":                      CHECKSET,
+						"nat_type":                    "Enhanced",
+						"description":                 "terraform test create nat case",
+						"nat_gateway_name":            name,
+						"eip_bind_mode":               "MULTI_BINDED",
+						"network_type":                "internet",
+						"private_link_enabled":        "false",
+						"security_protection_enabled": "false",
+						"auto_pay":                    "false",
+						"icmp_reply_enabled":          "false",
+						"payment_type":                "PayAsYouGo",
+						"internet_charge_type":        "PayByLcu",
+						"enable_session_log":          "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":        "terraform test open icmpReplyEnabled",
+					"nat_gateway_name":   name + "_update",
+					"icmp_reply_enabled": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":        "terraform test open icmpReplyEnabled",
+						"nat_gateway_name":   name + "_update",
+						"icmp_reply_enabled": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":        "terraform test open sessionLog",
+					"icmp_reply_enabled": "false",
+					"enable_session_log": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":        "terraform test open sessionLog",
+						"icmp_reply_enabled": "false",
+						"enable_session_log": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":        "terraform test close sessionLog",
+					"enable_session_log": "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":        "terraform test close sessionLog",
+						"enable_session_log": "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":   "terraform test update eipBindMode",
+					"eip_bind_mode": "NAT",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":   "terraform test update eipBindMode",
+						"eip_bind_mode": "NAT",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_mode", "log_delivery", "private_link_enabled", "security_protection_enabled"},
+			},
+		},
+	})
+}
+
+var AlicloudNATGatewayNatGatewayMap10649 = map[string]string{
+	"status":              CHECKSET,
+	"create_time":         CHECKSET,
+	"forward_table_ids.#": CHECKSET,
+	"deletion_protection": CHECKSET,
+	"snat_table_ids.#":    CHECKSET,
+	"region_id":           CHECKSET,
+}
+
+func AlicloudNATGatewayNatGatewayBasicDependence10649(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "vpc" {
+  description = "terraform-test"
+  cidr_block  = "172.16.0.0/16"
+  vpc_name    = "tf-test-natgw-vpc"
+}
+
+resource "alicloud_vswitch" "VSwitch" {
+  vpc_id       = alicloud_vpc.vpc.id
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "tf-test-natgw-vsw"
+  zone_id      = "eu-central-1b"
+}
+
+
+`, name)
+}
+
+// Test NATGateway NatGateway. <<< Resource test cases, automatically generated.
