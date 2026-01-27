@@ -22,7 +22,7 @@ func resourceAliCloudDataWorksDwResourceGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(7 * time.Minute),
 			Update: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
@@ -167,30 +167,14 @@ func resourceAliCloudDataWorksDwResourceGroupRead(d *schema.ResourceData, meta i
 		return WrapError(err)
 	}
 
-	if objectRaw["CreateTime"] != nil {
-		d.Set("create_time", objectRaw["CreateTime"])
-	}
-	if objectRaw["DefaultVpcId"] != nil {
-		d.Set("default_vpc_id", objectRaw["DefaultVpcId"])
-	}
-	if objectRaw["DefaultVswitchId"] != nil {
-		d.Set("default_vswitch_id", objectRaw["DefaultVswitchId"])
-	}
-	if objectRaw["PaymentType"] != nil {
-		d.Set("payment_type", objectRaw["PaymentType"])
-	}
-	if objectRaw["Remark"] != nil {
-		d.Set("remark", objectRaw["Remark"])
-	}
-	if objectRaw["AliyunResourceGroupId"] != nil {
-		d.Set("resource_group_id", objectRaw["AliyunResourceGroupId"])
-	}
-	if objectRaw["Name"] != nil {
-		d.Set("resource_group_name", objectRaw["Name"])
-	}
-	if objectRaw["Status"] != nil {
-		d.Set("status", objectRaw["Status"])
-	}
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("default_vpc_id", objectRaw["DefaultVpcId"])
+	d.Set("default_vswitch_id", objectRaw["DefaultVswitchId"])
+	d.Set("payment_type", objectRaw["PaymentType"])
+	d.Set("remark", objectRaw["Remark"])
+	d.Set("resource_group_id", objectRaw["AliyunResourceGroupId"])
+	d.Set("resource_group_name", objectRaw["Name"])
+	d.Set("status", objectRaw["Status"])
 
 	tagsMaps := objectRaw["AliyunResourceTags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -205,8 +189,8 @@ func resourceAliCloudDataWorksDwResourceGroupUpdate(d *schema.ResourceData, meta
 	var query map[string]interface{}
 	update := false
 
-	action := "UpdateResourceGroup"
 	var err error
+	action := "UpdateResourceGroup"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Id"] = d.Id()
@@ -268,7 +252,6 @@ func resourceAliCloudDataWorksDwResourceGroupDelete(d *schema.ResourceData, meta
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("dataworks-public", "2024-05-18", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

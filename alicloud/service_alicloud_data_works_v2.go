@@ -86,8 +86,8 @@ func (s *DataWorksServiceV2) DataWorksProjectStateRefreshFunc(id string, field s
 // SetResourceTags <<< Encapsulated tag function for DataWorks.
 func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -110,9 +110,10 @@ func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceTyp
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, false)
+				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -142,9 +143,10 @@ func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceTyp
 				request[fmt.Sprintf("Tag.%d.Value", count)] = value
 				count++
 			}
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, false)
+				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -656,17 +658,17 @@ func (s *DataWorksServiceV2) DescribeDataWorksDwResourceGroup(id string) (object
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "GetResourceGroup"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["Id"] = id
 	query["RegionId"] = client.RegionId
+	action := "GetResourceGroup"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, nil)
+		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
 
-		if err != nil || IsExpectedErrors(err, []string{"9990040003"}) {
+		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
@@ -694,15 +696,18 @@ func (s *DataWorksServiceV2) DescribeDataWorksDwResourceGroup(id string) (object
 }
 
 func (s *DataWorksServiceV2) DataWorksDwResourceGroupStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DataWorksDwResourceGroupStateRefreshFuncWithApi(id, field, failStates, s.DescribeDataWorksDwResourceGroup)
+}
+
+func (s *DataWorksServiceV2) DataWorksDwResourceGroupStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeDataWorksDwResourceGroup(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
