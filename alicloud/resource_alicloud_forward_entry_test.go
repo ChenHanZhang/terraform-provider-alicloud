@@ -707,3 +707,139 @@ func TestUnitAlicloudVPCForwardEntry(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+// Test NATGateway ForwardEntry. >>> Resource test cases, automatically generated.
+// Case 全生命周期_ForwardEntry_1.0.1 9600
+func TestAccAliCloudNATGatewayForwardEntry_basic9600(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_forward_entry.default"
+	ra := resourceAttrInit(resourceId, AlicloudNATGatewayForwardEntryMap9600)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNATGatewayForwardEntry")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnatgateway%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNATGatewayForwardEntryBasicDependence9600)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_port":      "80",
+					"external_ip":        "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
+					"ip_protocol":        "tcp",
+					"internal_port":      "8080",
+					"internal_ip":        "172.16.0.115",
+					"forward_table_id":   "${alicloud_nat_gateway.NATGateway.forward_table_ids[0]}",
+					"forward_entry_name": name,
+					"port_break":         "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_port":      CHECKSET,
+						"external_ip":        CHECKSET,
+						"ip_protocol":        "tcp",
+						"internal_port":      CHECKSET,
+						"internal_ip":        "172.16.0.115",
+						"forward_table_id":   CHECKSET,
+						"forward_entry_name": name,
+						"port_break":         "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_port":      "90",
+					"external_ip":        "${alicloud_vpc_nat_ip.NatIp2.nat_ip}",
+					"ip_protocol":        "udp",
+					"internal_port":      "9090",
+					"internal_ip":        "172.16.0.55",
+					"forward_entry_name": name + "_update",
+					"port_break":         "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_port":      CHECKSET,
+						"external_ip":        CHECKSET,
+						"ip_protocol":        "udp",
+						"internal_port":      CHECKSET,
+						"internal_ip":        "172.16.0.55",
+						"forward_entry_name": name + "_update",
+						"port_break":         "true",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"port_break"},
+			},
+		},
+	})
+}
+
+var AlicloudNATGatewayForwardEntryMap9600 = map[string]string{
+	"status":           CHECKSET,
+	"forward_entry_id": CHECKSET,
+}
+
+func AlicloudNATGatewayForwardEntryBasicDependence9600(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "vpc" {
+  cidr_block = "172.16.0.0/12"
+  vpc_name   = "tf-test-nat-forward-entry"
+}
+
+resource "alicloud_vswitch" "VSwitch" {
+  vpc_id       = alicloud_vpc.vpc.id
+  zone_id      = "eu-central-1b"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "tf-test-nat-forward-entry-vsw"
+}
+
+resource "alicloud_nat_gateway" "NATGateway" {
+  nat_gateway_name            = "tf-test-nat-forward-entry"
+  security_protection_enabled = false
+  auto_pay                    = false
+  nat_type                    = "Enhanced"
+  nat_gateway_private_info {
+    iz_no      = "eu-central-1b"
+    vswitch_id = alicloud_vswitch.VSwitch.id
+  }
+  vpc_id             = alicloud_vpc.vpc.id
+  network_type       = "intranet"
+  icmp_reply_enabled = false
+  payment_type       = "PayAsYouGo"
+}
+
+resource "alicloud_vpc_nat_ip" "NatIp1" {
+  nat_ip         = "172.16.0.66"
+  nat_ip_name    = "tf-test-dnat-natip1"
+  nat_gateway_id = alicloud_nat_gateway.NATGateway.id
+  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
+}
+
+resource "alicloud_vpc_nat_ip" "NatIp2" {
+  nat_ip         = "172.16.0.88"
+  nat_ip_name    = "tf-test-dnat-natip2"
+  nat_gateway_id = alicloud_nat_gateway.NATGateway.id
+  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
+}
+
+
+`, name)
+}
+
+// Test NATGateway ForwardEntry. <<< Resource test cases, automatically generated.
