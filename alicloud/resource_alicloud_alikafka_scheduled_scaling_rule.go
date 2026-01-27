@@ -201,11 +201,8 @@ func resourceAliCloudAlikafkaScheduledScalingRuleUpdate(d *schema.ResourceData, 
 	request["RegionId"] = client.RegionId
 	if d.HasChange("enable") {
 		update = true
-
-		if v, ok := d.GetOkExists("enable"); ok {
-			request["Enable"] = v
-		}
 	}
+	request["Enable"] = d.Get("enable")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {

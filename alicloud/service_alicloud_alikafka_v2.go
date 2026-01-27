@@ -389,7 +389,6 @@ func (s *AlikafkaServiceV2) AliKafkaConsumerGroupStateRefreshFuncWithApi(id stri
 }
 
 // DescribeAliKafkaConsumerGroup >>> Encapsulated.
-
 // DescribeAlikafkaScheduledScalingRule <<< Encapsulated get interface for Alikafka ScheduledScalingRule.
 
 func (s *AlikafkaServiceV2) DescribeAlikafkaScheduledScalingRule(id string) (object map[string]interface{}, err error) {

@@ -17,8 +17,9 @@ import (
 	"github.com/aliyun/credentials-go/credentials"
 	"github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/aliyun/terraform-provider-alicloud/alicloud/helper"
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -171,7 +172,6 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"alicloud_cs_clusters":                                dataSourceAliCloudAckClusters(),
 			"alicloud_threat_detection_check_item_configs":        dataSourceAliCloudThreatDetectionCheckItemConfigs(),
 			"alicloud_threat_detection_check_structures":          dataSourceAliCloudThreatDetectionCheckStructures(),
 			"alicloud_fcv3_functions":                             dataSourceAliCloudFcv3Functions(),
@@ -915,11 +915,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_cloud_monitor_service_agent_config":                   resourceAliCloudCloudMonitorServiceAgentConfig(),
 			"alicloud_alikafka_scheduled_scaling_rule":                      resourceAliCloudAlikafkaScheduledScalingRule(),
-			"alicloud_event_bridge_event_source_v2":                         resourceAliCloudEventBridgeEventSourceV2(),
-			"alicloud_cloud_firewall_vpc_firewall_acl_engine_mode":          resourceAliCloudCloudFirewallVpcFirewallAclEngineMode(),
-			"alicloud_cloud_firewall_instance_v2":                           resourceAliCloudCloudFirewallInstanceV2(),
 			"alicloud_cloud_firewall_vpc_firewall_ips_config":               resourceAliCloudCloudFirewallVpcFirewallIpsConfig(),
 			"alicloud_rds_ai_instance":                                      resourceAliCloudRdsAiInstance(),
 			"alicloud_threat_detection_check_config":                        resourceAliCloudThreatDetectionCheckConfig(),
@@ -2426,6 +2422,9 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 
 	return client, nil
 }
+
+// This is a global MutexKV for use within this plugin.
+var alicloudMutexKV = mutexkv.NewMutexKV()
 
 var descriptions map[string]string
 
@@ -4014,7 +4013,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["oceanbase"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["beebot"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["computenest"].(string)))
-	return helper.Hashcode(buf.String())
+	return hashcode.String(buf.String())
 }
 
 // deprecatedEndpointMap is used to map old service name to new service name,
