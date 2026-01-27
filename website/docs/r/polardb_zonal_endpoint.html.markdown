@@ -2,25 +2,23 @@
 subcategory: "PolarDB"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_polardb_zonal_endpoint"
-sidebar_current: "docs-alicloud-resource-poalrdb-on-ens-endpoint"
 description: |-
-  Provides a PolarDB Zonal instance endpoint resource.
+  Provides a Alicloud Polardb Zonal Endpoint resource.
 ---
 
 # alicloud_polardb_zonal_endpoint
 
-Provides a PolarDB Zonal endpoint resource to manage custom endpoint of PolarDB cluster.
+Provides a Polardb Zonal Endpoint resource.
 
--> **NOTE:** Available since v1.262.0.
--> **NOTE:** The primary endpoint and the default cluster endpoint can not be created or deleted manually.
+PolarDB cluster link address resource on MyBase.
+
+For information about Polardb Zonal Endpoint and how to use it, see [What is Zonal Endpoint](https://next.api.alibabacloud.com/document/polardb/2017-08-01/CreateDBClusterEndpointZonal).
+
+-> **NOTE:** Available since v1.270.0.
 
 ## Example Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_zonal_endpoint&exampleId=da04e972-ae13-6644-30f0-a1f75e7c5cf10829ffad&activeTab=example&spm=docs.r.polardb_zonal_endpoint.0.da04e972ae&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "db_cluster_nodes_configs" {
@@ -80,38 +78,50 @@ resource "alicloud_polardb_zonal_endpoint" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_polardb_zonal_endpoint&spm=docs.r.polardb_zonal_endpoint.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `auto_add_new_nodes` - (Optional, ForceNew) Whether a new node is automatically added to this address, the value range is as follows:
+  - `Enable`: new nodes are automatically added to this address.
+  - `Disable`: new nodes are not automatically added to this address.
 
-* `db_cluster_id` - (Required, ForceNew) The Id of cluster that can run database.
-* `endpoint_type` - (Optional, Computed, ForceNew) Type of the endpoint. Valid values are `Custom`, `Cluster`, `Primary`, default to `Custom`. However when creating a new endpoint, it also only can be `Custom`. 
-* `read_write_mode` - (Optional) Read or write mode. Valid values are `ReadWrite`, `ReadOnly`. When creating a new custom endpoint, default to `ReadOnly`.
-* `nodes` - (Computed) Node id list for endpoint configuration.
-* `db_cluster_nodes_ids` - (Required) referenced from the db_cluster_nodes_ids attribute of alicloud_polardb_zonal_db_cluster.. 
-* `nodes_key` - (Optional) The list of backend nodes for the endpoint, with the attribute values derived from the map key of db_cluster_nodes_ids.
-* `auto_add_new_nodes` - (Optional, Computed) Whether the new node automatically joins the default cluster address. Valid values are `Enable`, `Disable`. When creating a new custom endpoint, default to `Enable`.
-* `endpoint_config` - (Optional) The advanced settings of the endpoint of Apsara PolarDB clusters are in JSON format. Including the settings of consistency level, transaction splitting, connection pool, and offload reads from primary node. For more details, see the [description of EndpointConfig in the Request parameters table for details](https://www.alibabacloud.com/help/doc-detail/116593.htm).
-* `connection_prefix` - (Computed) Prefix of the specified endpoint. The prefix must be 6 to 30 characters in length, and can contain lowercase letters, digits, and hyphens (-), must start with a letter and end with a digit or letter.
-* `net_type` - (Optional, Computed, ForceNew) The network type of the endpoint address.
-* `db_endpoint_description` - (Optional) The name of the endpoint.
-* `port` - (Computed) Port of the specified endpoint. Valid values: 3000 to 5999.
-* `vpc_id` - (Optional, ForceNew, Computed) The ID of ENS VPC where to use the DB.  
-* `vswitch_id` - (Optional, ForceNew, Computed) The ID of ENS virtual switch where to use the DB.
+The default value is **Disable * *.
+* `db_cluster_id` - (Required, ForceNew) DBClusterId
+* `db_endpoint_description` - (Optional) Custom cluster address name.
+* `endpoint_config` - (Optional) The advanced configuration of the cluster address. The format is JSON. Currently, you can set the consistency level, transaction splitting, read-free primary database, and connection pooling.
+* `endpoint_type` - (Required, ForceNew) Custom cluster address type. The value is fixed to **Custom * *.
+* `nodes` - (Optional) The read load nodes that are added to the target address. Separate multiple nodes with English commas (,). The default value is all nodes.
+
+-> **NOTE:**  * the PolarDB MySQL engine needs to pass in the node ID.
+* The PolarDB PostgreSQL engine and PolarDB O engine need to pass in the node role name, such as "writer, Reader1,Reader2 '.
+If the value of `ReadWriteMode` is `ReadOnly`, you can mount only one node. However, when this node fails, the address may be unavailable for up to 1 hour. Do not use it in a production environment. Therefore, it is recommended to select at least 2 nodes to improve availability.
+If the value of `ReadWriteMode` is `ReadWrite`, at least two nodes must be selected.
+* The PolarDB MySQL engine supports selecting any two nodes. When both nodes are read-only nodes, write requests are sent to the primary node.
+* The PolarDB PostgreSQL engine and PolarDB O engine must contain the primary node.
+* `read_write_mode` - (Optional) Read/write mode, the range of values is as follows:
+  - `ReadWrite`: Readable and writable (automatic read/write splitting).
+  - `ReadOnly`: Read-only.
+
+The default value is **ReadOnly * *.
+* `resource_group_id` - (Optional, Computed) The ID of the resource group
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. The value is formulated as `<db_cluster_id>:<db_endpoint_id>`.
+* `db_endpoint_id` - The first ID of the resource.
 
-* `id` - The current instance connection resource ID. Composed of instance ID and connection string with format `<db_cluster_id>:<db_endpoint_id>`.
-* `db_endpoint_id` - The ID of the cluster endpoint.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Zonal Endpoint.
+* `delete` - (Defaults to 5 mins) Used when delete the Zonal Endpoint.
+* `update` - (Defaults to 5 mins) Used when update the Zonal Endpoint.
 
 ## Import
 
-PolarDB Zonal endpoint can be imported using the id, e.g.
+Polardb Zonal Endpoint can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_polardb_zonal_endpoint.example pc-abc123456:pe-abc123456
+$ terraform import alicloud_polardb_zonal_endpoint.example <db_cluster_id>:<db_endpoint_id>
 ```
