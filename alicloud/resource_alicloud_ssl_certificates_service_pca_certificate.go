@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -35,6 +36,10 @@ func resourceAliCloudSslCertificatesServicePcaCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"certificate_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"common_name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -48,6 +53,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificate() *schema.Resource {
 			"crl_day": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"enable_crl": {
@@ -103,12 +109,6 @@ func resourceAliCloudSslCertificatesServicePcaCertificate() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"certificate_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -116,6 +116,58 @@ func resourceAliCloudSslCertificatesServicePcaCertificate() *schema.Resource {
 func resourceAliCloudSslCertificatesServicePcaCertificateCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
+	if v, ok := d.GetOk("certificate_type"); ok && InArray(fmt.Sprint(v), []string{"ROOT"}) {
+		action := "CreateRootCACertificate"
+		var request map[string]interface{}
+		var response map[string]interface{}
+		query := make(map[string]interface{})
+		var err error
+		request = make(map[string]interface{})
+
+		request["ClientToken"] = buildClientToken(action)
+
+		request["State"] = d.Get("state")
+		if v, ok := d.GetOk("country_code"); ok {
+			request["CountryCode"] = v
+		}
+		if v, ok := d.GetOk("tags"); ok {
+			tagsMap := ConvertTags(v.(map[string]interface{}))
+			request = expandTagsToMap(request, tagsMap)
+		}
+
+		if v, ok := d.GetOk("resource_group_id"); ok {
+			request["ResourceGroupId"] = v
+		}
+		request["OrganizationUnit"] = d.Get("organization_unit")
+		request["Locality"] = d.Get("locality")
+		request["Organization"] = d.Get("organization")
+		request["Years"] = d.Get("years")
+		if v, ok := d.GetOk("algorithm"); ok {
+			request["Algorithm"] = v
+		}
+		request["CommonName"] = d.Get("common_name")
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+			response, err = client.RpcPost("cas", "2020-06-30", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "alicloud_ssl_certificates_service_pca_certificate", action, AlibabaCloudSdkGoERROR)
+		}
+
+		d.SetId(fmt.Sprint(response["Identifier"]))
+
+	}
+
 	if v, ok := d.GetOk("certificate_type"); ok && InArray(fmt.Sprint(v), []string{"SUB_ROOT"}) {
 		action := "CreateSubCACertificate"
 		var request map[string]interface{}
@@ -135,7 +187,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateCreate(d *schema.Resour
 		}
 		if v, ok := d.GetOk("tags"); ok {
 			tagsMap := ConvertTags(v.(map[string]interface{}))
-			request = expandTagsToMapWithTags(request, tagsMap)
+			request = expandTagsToMap(request, tagsMap)
 		}
 
 		if v, ok := d.GetOkExists("path_len_constraint"); ok {
@@ -182,58 +234,9 @@ func resourceAliCloudSslCertificatesServicePcaCertificateCreate(d *schema.Resour
 
 		d.SetId(fmt.Sprint(response["Identifier"]))
 
-	} else {
-		action := "CreateRootCACertificate"
-		var request map[string]interface{}
-		var response map[string]interface{}
-		query := make(map[string]interface{})
-		var err error
-		request = make(map[string]interface{})
-
-		request["ClientToken"] = buildClientToken(action)
-
-		request["State"] = d.Get("state")
-		if v, ok := d.GetOk("country_code"); ok {
-			request["CountryCode"] = v
-		}
-		if v, ok := d.GetOk("tags"); ok {
-			tagsMap := ConvertTags(v.(map[string]interface{}))
-			request = expandTagsToMapWithTags(request, tagsMap)
-		}
-
-		if v, ok := d.GetOk("resource_group_id"); ok {
-			request["ResourceGroupId"] = v
-		}
-		request["OrganizationUnit"] = d.Get("organization_unit")
-		request["Locality"] = d.Get("locality")
-		request["Organization"] = d.Get("organization")
-		request["Years"] = d.Get("years")
-		if v, ok := d.GetOk("algorithm"); ok {
-			request["Algorithm"] = v
-		}
-		request["CommonName"] = d.Get("common_name")
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-			response, err = client.RpcPost("cas", "2020-06-30", action, query, request, true)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, "alicloud_ssl_certificates_service_pca_certificate", action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetId(fmt.Sprint(response["Identifier"]))
 	}
 
-	return resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d, meta)
+	return resourceAliCloudSslCertificatesServicePcaCertificateRead(d, meta)
 }
 
 func resourceAliCloudSslCertificatesServicePcaCertificateRead(d *schema.ResourceData, meta interface{}) error {
@@ -251,6 +254,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateRead(d *schema.Resource
 	}
 
 	d.Set("algorithm", objectRaw["FullAlgorithm"])
+	d.Set("certificate_type", objectRaw["CertificateType"])
 	d.Set("common_name", objectRaw["CommonName"])
 	d.Set("country_code", objectRaw["CountryCode"])
 	d.Set("crl_day", objectRaw["CrlDay"])
@@ -262,7 +266,6 @@ func resourceAliCloudSslCertificatesServicePcaCertificateRead(d *schema.Resource
 	d.Set("state", objectRaw["State"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("years", objectRaw["Years"])
-	d.Set("certificate_type", objectRaw["CertificateType"])
 
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -284,7 +287,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
 		update = true
 	}
 	request["ResourceGroupId"] = d.Get("resource_group_id")
@@ -314,11 +317,8 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 	request["Identifier"] = d.Id()
 
 	request["ClientToken"] = buildClientToken(action)
-	if d.HasChange("alias_name") {
-		update = true
-		if v, ok := d.GetOk("alias_name"); ok {
-			request["AliasName"] = v
-		}
+	if v, ok := d.GetOk("alias_name"); ok {
+		request["AliasName"] = v
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -339,7 +339,7 @@ func resourceAliCloudSslCertificatesServicePcaCertificateUpdate(d *schema.Resour
 		}
 	}
 
-	if !d.IsNewResource() && d.HasChange("tags") {
+	if d.HasChange("tags") {
 		sslCertificatesServiceServiceV2 := SslCertificatesServiceServiceV2{client}
 		if err := sslCertificatesServiceServiceV2.SetResourceTags(d, "PcaCertificate"); err != nil {
 			return WrapError(err)
