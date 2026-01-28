@@ -3,28 +3,22 @@ subcategory: "NAT Gateway"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_snat_entry"
 description: |-
-  Provides a Alicloud snat resource.
+  Provides a Alicloud N A T Gateway Snat Entry resource.
 ---
 
 # alicloud_snat_entry
 
-Provides a NAT Gateway Snat Entry resource.
+Provides a N A T Gateway Snat Entry resource.
 
 
 
-For information about NAT Gateway Snat Entry and how to use it, see [What is Snat Entry](https://www.alibabacloud.com/help/en/nat-gateway/developer-reference/api-vpc-2016-04-28-createsnatentry-natgws).
+For information about N A T Gateway Snat Entry and how to use it, see [What is Snat Entry](https://www.alibabacloud.com/help/en/nat-gateway/developer-reference/api-vpc-2016-04-28-createsnatentry-natgws).
 
 -> **NOTE:** Available since v1.119.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_snat_entry&exampleId=0ee2670a-299c-0151-3574-c354b106850f08ca1a7c&activeTab=example&spm=docs.r.snat_entry.0.0ee2670a29&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -71,31 +65,66 @@ resource "alicloud_snat_entry" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_snat_entry&spm=docs.r.snat_entry.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `eip_affinity` - (Optional, Int, Available since v1.241.0) Specifies whether to enable EIP affinity. Default value: `0`. Valid values:
-  - `0`: Disable.
-  - `1`: Enable.
-* `snat_entry_name` - (Optional, Available since v1.71.2) The name of the SNAT entry. The name must be `2` to `128` characters in length. It must start with a letter but cannot start with `http://` or `https://`.
-* `snat_ip` - (Required) The IP of a SNAT entry. Separate multiple EIP or NAT IP addresses with commas (,). **NOTE:** From version 1.241.0, `snat_ip` can be modified.
-* `snat_table_id` - (Required, ForceNew) The ID of the SNAT table.
-* `source_cidr` - (Optional, ForceNew, Available since v1.71.1) The source CIDR block specified in the SNAT entry.
-* `source_vswitch_id` - (Optional, ForceNew) The ID of the vSwitch.
+* `eip_affinity` - (Optional, Int, Available since v1.241.0) Specifies whether to enable IP affinity. Valid values:
+  - `0` (default): IP affinity is disabled.
+  - `1`: IP affinity is enabled.
+
+-> **NOTE:**  After IP affinity is enabled, if the SNAT entry is associated with multiple EIPs or NAT IPs, the same client accessing the same destination IP uses the same EIP or NAT IP. Otherwise, the client randomly selects an EIP or NAT IP from those associated with the SNAT entry for access.
+
+* `network_interface_id` - (Optional, Available since v1.270.0) The ID of the elastic network interface (ENI).
+
+-> **NOTE:**  The IPv4 addresses of the ENI will be used as the SNAT addresses.
+
+* `snat_entry_name` - (Optional, Available since v1.71.2) The name of the SNAT entry.
+The name must be 2 to 128 characters in length, and can contain letters, digits, underscores (_), and hyphens (-). It must start with a letter or a Chinese character, and cannot start with `http://` or `https://`.
+* `snat_ip` - (Optional) When adding an SNAT entry for a public NAT gateway:
+
+* The SnatIp parameter is required.
+
+* This parameter specifies the EIPs in the SNAT entry. Separate multiple EIPs with commas (,).
+
+* If SnatIp specifies only one public IP address, ECS instances use this specified public IP address to access the Internet.
+
+* If SnatIp specifies multiple public IP addresses, ECS instances randomly use one of the public IP addresses in SnatIp to access the Internet.
+
+-> **NOTE:**  When you specify multiple EIPs to configure an SNAT IP address pool, business connections are distributed across the EIPs using a hash algorithm. Because traffic volume varies per connection, traffic distribution among the EIPs might be uneven. We recommend that you add all EIPs to the same shared bandwidth plan to prevent service degradation caused by any single EIP reaching its bandwidth limit.
+
+When adding an SNAT entry for a VPC NAT gateway:
+
+* This parameter specifies the NAT IP addresses in the SNAT entry. Separate multiple NAT IP addresses with commas (,).
+
+* You must specify either the SnatIp parameter or the NetworkInterfaceId parameter, but not both.
+* `snat_table_id` - (Required, ForceNew) The ID of the SNAT table to which the SNAT entry belongs.
+* `source_cidr` - (Optional, ForceNew, Computed, Available since v1.71.1) Enter the CIDR block of a VPC, vSwitch, or ECS instance, or enter any custom CIDR block.
+
+SNAT entries support the following granularities:
+  - VPC granularity: The CIDR block of the VPC where the NAT gateway is deployed. All ECS instances in this VPC can access the Internet or external networks through the SNAT rule.
+  - vSwitch granularity: The CIDR block of a specified vSwitch (for example, 192.168.1.0/24). All ECS instances in this vSwitch can access the Internet or external networks through the SNAT rule.
+  - ECS granularity: The IP address of a specified ECS instance (for example, 192.168.1.1/32). This ECS instance can access the Internet or external networks through the SNAT rule.
+  - Any custom CIDR block: All ECS instances within this CIDR block can access the Internet or external networks through the SNAT service.
+
+-> **NOTE:**  You must specify either the `SourceCIDR` parameter or the `SourceVSwitchId` parameter, but not both.
+
+* `source_vswitch_id` - (Optional, ForceNew, Computed) The ID of the vSwitch.
+
+* When you add a SNAT entry for an Internet NAT gateway, this parameter indicates that all ECS instances in this vSwitch can access the Internet through the SNAT rule. If you configure multiple EIPs to form a SNAT IP address pool, service connections are distributed across these EIPs using a hash algorithm. Because traffic volume varies per connection, uneven traffic distribution among the EIPs may occur. We recommend that you add all EIPs to the same shared bandwidth plan to prevent service degradation caused by any single EIP reaching its bandwidth limit.
+
+* When you add a SNAT entry for a VPC NAT gateway, this parameter indicates that all ECS instances in this vSwitch can access external networks through the SNAT rule.
+
+-> **NOTE:**  You must specify either the `SourceCIDR` parameter or the `SourceVSwitchId` parameter, but not both.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The resource ID in terraform of Snat Entry. It formats as `<snat_table_id>:<snat_entry_id>`.
--> **NOTE:** Before provider version 1.37.0, it formats as `<snat_entry_id>`
-* `snat_entry_id` - The id of the snat entry on the server.
-* `status` - (Available since v1.119.1) The ID of the SNAT entry.
+* `id` - The ID of the resource supplied above. The value is formulated as `<snat_table_id>:<snat_entry_id>`.
+* `snat_entry_id` - The ID of the SNAT entry to be modified.
+* `status` - Status.
 
 ## Timeouts
-
--> **NOTE:** Available since v1.119.0.
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 5 mins) Used when create the Snat Entry.
@@ -104,14 +133,8 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-NAT Gateway Snat Entry can be imported using the id, e.g.
+N A T Gateway Snat Entry can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_snat_entry.example <snat_table_id>:<snat_entry_id>
-```
-
-**NOTE:** Before provider version 1.37.0, NAT Gateway Snat Entry can be imported using the id, e.g.
-
-```shell
-$ terraform import alicloud_snat_entry.example <snat_entry_id>
 ```

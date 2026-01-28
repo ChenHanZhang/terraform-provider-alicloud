@@ -24,13 +24,14 @@ func (s *NATGatewayServiceV2) DescribeNATGatewaySnatEntry(id string) (object map
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
-	action := "DescribeSnatTableEntries"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["SnatEntryId"] = parts[1]
 	request["SnatTableId"] = parts[0]
 	request["RegionId"] = client.RegionId
+	action := "DescribeSnatTableEntries"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -66,15 +67,18 @@ func (s *NATGatewayServiceV2) DescribeNATGatewaySnatEntry(id string) (object map
 }
 
 func (s *NATGatewayServiceV2) NATGatewaySnatEntryStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NATGatewaySnatEntryStateRefreshFuncWithApi(id, field, failStates, s.DescribeNATGatewaySnatEntry)
+}
+
+func (s *NATGatewayServiceV2) NATGatewaySnatEntryStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNATGatewaySnatEntry(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
