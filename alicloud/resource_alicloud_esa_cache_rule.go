@@ -71,7 +71,7 @@ func resourceAliCloudEsaCacheRule() *schema.Resource {
 			"edge_cache_mode": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"follow_origin", "no_cache", "override_origin", "follow_origin_bypass"}, false),
+				ValidateFunc: StringInSlice([]string{"follow_origin", "no_cache", "override_origin", "follow_origin_bypass", "follow_origin_override"}, false),
 			},
 			"edge_cache_ttl": {
 				Type:     schema.TypeString,
