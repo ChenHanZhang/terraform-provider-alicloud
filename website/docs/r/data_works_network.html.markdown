@@ -20,12 +20,6 @@ For information about Data Works Network and how to use it, see [What is Network
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_data_works_network&exampleId=70cb3a95-6fdb-8c77-c084-609d6e55725652561828&activeTab=example&spm=docs.r.data_works_network.0.70cb3a956f&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -81,8 +75,6 @@ resource "alicloud_data_works_network" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_data_works_network&spm=docs.r.data_works_network.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -93,9 +85,9 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - Time when the network resource was created
-* `status` - Network Resource Status
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Time when the network resource was created.
+* `status` - Network Resource Status.
 
 ## Timeouts
 
@@ -108,5 +100,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Data Works Network can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_data_works_network.example <id>
+$ terraform import alicloud_data_works_network.example <network_id>
 ```

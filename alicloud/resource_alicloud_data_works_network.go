@@ -104,21 +104,11 @@ func resourceAliCloudDataWorksNetworkRead(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 
-	if objectRaw["CreateTime"] != nil {
-		d.Set("create_time", objectRaw["CreateTime"])
-	}
-	if objectRaw["ResourceGroupId"] != nil {
-		d.Set("dw_resource_group_id", objectRaw["ResourceGroupId"])
-	}
-	if objectRaw["Status"] != nil {
-		d.Set("status", objectRaw["Status"])
-	}
-	if objectRaw["VswitchId"] != nil {
-		d.Set("vswitch_id", objectRaw["VswitchId"])
-	}
-	if objectRaw["VpcId"] != nil {
-		d.Set("vpc_id", objectRaw["VpcId"])
-	}
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("dw_resource_group_id", objectRaw["ResourceGroupId"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("vswitch_id", objectRaw["VswitchId"])
+	d.Set("vpc_id", objectRaw["VpcId"])
 
 	return nil
 }
@@ -138,7 +128,6 @@ func resourceAliCloudDataWorksNetworkDelete(d *schema.ResourceData, meta interfa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("dataworks-public", "2024-05-18", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

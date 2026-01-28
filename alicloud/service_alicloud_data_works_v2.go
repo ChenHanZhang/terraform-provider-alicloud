@@ -581,15 +581,15 @@ func (s *DataWorksServiceV2) DescribeDataWorksNetwork(id string) (object map[str
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "GetNetwork"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["Id"] = id
 	query["RegionId"] = client.RegionId
+	action := "GetNetwork"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, nil)
+		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -619,15 +619,18 @@ func (s *DataWorksServiceV2) DescribeDataWorksNetwork(id string) (object map[str
 }
 
 func (s *DataWorksServiceV2) DataWorksNetworkStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DataWorksNetworkStateRefreshFuncWithApi(id, field, failStates, s.DescribeDataWorksNetwork)
+}
+
+func (s *DataWorksServiceV2) DataWorksNetworkStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeDataWorksNetwork(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
