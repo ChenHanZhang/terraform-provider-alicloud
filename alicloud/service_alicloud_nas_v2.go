@@ -946,6 +946,7 @@ func (s *NasServiceV2) NasProtocolServiceStateRefreshFuncWithApi(id string, fiel
 }
 
 // DescribeNasProtocolService >>> Encapsulated.
+
 // DescribeNasProtocolMountTarget <<< Encapsulated get interface for Nas ProtocolMountTarget.
 
 func (s *NasServiceV2) DescribeNasProtocolMountTarget(id string) (object map[string]interface{}, err error) {

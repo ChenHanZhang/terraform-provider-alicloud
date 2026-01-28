@@ -20,12 +20,6 @@ For information about File Storage (NAS) Protocol Mount Target and how to use it
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_protocol_mount_target&exampleId=2a808cbc-fe91-9557-53c4-917fa18144f423b24a31&activeTab=example&spm=docs.r.nas_protocol_mount_target.0.2a808cbcfe&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -89,9 +83,6 @@ resource "alicloud_nas_protocol_mount_target" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_protocol_mount_target&spm=docs.r.nas_protocol_mount_target.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -114,7 +105,7 @@ Limitations:
   - The Fileset must already exist.
   - A Fileset allows only one export directory to be created.
   - Fileset and Path can and must specify only one.
-* `path` - (Optional, ForceNew) The path of the CPFS directory to be mounted.
+* `path` - (Optional, ForceNew, Computed) The path of the CPFS directory to be mounted.
 
 Limitations:
   - The directory must be an existing directory on the CPFS.
@@ -134,16 +125,16 @@ When the storage redundancy type of the file system is ZRS, if VpcId is set, the
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<protocol_service_id>:<export_id>`.
-* `create_time` - The creation time of the resource
-* `export_id` - Protocol Service Mount Target ID
-* `status` - Status
+* `id` - The ID of the resource supplied above. The value is formulated as `<file_system_id>:<protocol_service_id>:<export_id>`.
+* `create_time` - The creation time of the resource.
+* `export_id` - Protocol Service Mount Target ID.
+* `status` - Status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 5 mins) Used when create the Protocol Mount Target.
-* `delete` - (Defaults to 5 mins) Used when delete the Protocol Mount Target.
+* `delete` - (Defaults to 10 mins) Used when delete the Protocol Mount Target.
 * `update` - (Defaults to 5 mins) Used when update the Protocol Mount Target.
 
 ## Import
