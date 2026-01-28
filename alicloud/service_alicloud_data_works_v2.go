@@ -22,18 +22,18 @@ func (s *DataWorksServiceV2) DescribeDataWorksProject(id string) (object map[str
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "GetProject"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["Id"] = id
 	query["RegionId"] = client.RegionId
+	action := "GetProject"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, nil)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
 
 		if err != nil {
-			if NeedRetry(err) || IsExpectedErrors(err, []string{"9990020002", "9990040003"}) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -43,7 +43,7 @@ func (s *DataWorksServiceV2) DescribeDataWorksProject(id string) (object map[str
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"1101080008", "9990040003"}) {
+		if IsExpectedErrors(err, []string{"1101080008"}) {
 			return object, WrapErrorf(NotFoundErr("Project", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
@@ -53,15 +53,18 @@ func (s *DataWorksServiceV2) DescribeDataWorksProject(id string) (object map[str
 }
 
 func (s *DataWorksServiceV2) DataWorksProjectStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DataWorksProjectStateRefreshFuncWithApi(id, field, failStates, s.DescribeDataWorksProject)
+}
+
+func (s *DataWorksServiceV2) DataWorksProjectStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeDataWorksProject(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -86,8 +89,8 @@ func (s *DataWorksServiceV2) DataWorksProjectStateRefreshFunc(id string, field s
 // SetResourceTags <<< Encapsulated tag function for DataWorks.
 func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -110,9 +113,10 @@ func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceTyp
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, false)
+				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -142,9 +146,10 @@ func (s *DataWorksServiceV2) SetResourceTags(d *schema.ResourceData, resourceTyp
 				request[fmt.Sprintf("Tag.%d.Value", count)] = value
 				count++
 			}
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, false)
+				response, err = client.RpcPost("dataworks-public", "2020-05-18", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()

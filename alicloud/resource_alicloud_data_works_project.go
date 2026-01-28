@@ -109,7 +109,7 @@ func resourceAliCloudDataWorksProjectCreate(d *schema.ResourceData, meta interfa
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("dataworks-public", "2024-05-18", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"9990020002", "9990040003"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -123,7 +123,7 @@ func resourceAliCloudDataWorksProjectCreate(d *schema.ResourceData, meta interfa
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_data_works_project", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprint(response["ProjectId"]))
+	d.SetId(fmt.Sprint(response["Id"]))
 
 	dataWorksServiceV2 := DataWorksServiceV2{client}
 	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, dataWorksServiceV2.DataWorksProjectStateRefreshFunc(d.Id(), "$.Project.Status", []string{}))
@@ -148,35 +148,19 @@ func resourceAliCloudDataWorksProjectRead(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 
-	project1RawObj, _ := jsonpath.Get("$.Project", objectRaw)
-	project1Raw := make(map[string]interface{})
-	if project1RawObj != nil {
-		project1Raw = project1RawObj.(map[string]interface{})
+	projectRawObj, _ := jsonpath.Get("$.Project", objectRaw)
+	projectRaw := make(map[string]interface{})
+	if projectRawObj != nil {
+		projectRaw = projectRawObj.(map[string]interface{})
 	}
-	if project1Raw["Description"] != nil {
-		d.Set("description", project1Raw["Description"])
-	}
-	if project1Raw["DevEnvironmentEnabled"] != nil {
-		d.Set("dev_environment_enabled", project1Raw["DevEnvironmentEnabled"])
-	}
-	if project1Raw["DevRoleDisabled"] != nil {
-		d.Set("dev_role_disabled", project1Raw["DevRoleDisabled"])
-	}
-	if project1Raw["DisplayName"] != nil {
-		d.Set("display_name", project1Raw["DisplayName"])
-	}
-	if project1Raw["PaiTaskEnabled"] != nil {
-		d.Set("pai_task_enabled", project1Raw["PaiTaskEnabled"])
-	}
-	if project1Raw["Name"] != nil {
-		d.Set("project_name", project1Raw["Name"])
-	}
-	if project1Raw["AliyunResourceGroupId"] != nil {
-		d.Set("resource_group_id", project1Raw["AliyunResourceGroupId"])
-	}
-	if project1Raw["Status"] != nil {
-		d.Set("status", project1Raw["Status"])
-	}
+	d.Set("description", projectRaw["Description"])
+	d.Set("dev_environment_enabled", projectRaw["DevEnvironmentEnabled"])
+	d.Set("dev_role_disabled", projectRaw["DevRoleDisabled"])
+	d.Set("display_name", projectRaw["DisplayName"])
+	d.Set("pai_task_enabled", projectRaw["PaiTaskEnabled"])
+	d.Set("project_name", projectRaw["Name"])
+	d.Set("resource_group_id", projectRaw["AliyunResourceGroupId"])
+	d.Set("status", projectRaw["Status"])
 
 	tagsMaps, _ := jsonpath.Get("$.Project.AliyunResourceTags", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -192,8 +176,8 @@ func resourceAliCloudDataWorksProjectUpdate(d *schema.ResourceData, meta interfa
 	update := false
 	d.Partial(true)
 
-	action := "ChangeResourceManagerResourceGroup"
 	var err error
+	action := "ChangeResourceManagerResourceGroup"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
@@ -304,7 +288,6 @@ func resourceAliCloudDataWorksProjectDelete(d *schema.ResourceData, meta interfa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("dataworks-public", "2024-05-18", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -324,7 +307,7 @@ func resourceAliCloudDataWorksProjectDelete(d *schema.ResourceData, meta interfa
 	}
 
 	dataWorksServiceV2 := DataWorksServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 10*time.Second, dataWorksServiceV2.DataWorksProjectStateRefreshFunc(d.Id(), "$.Project.Id", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 10*time.Second, dataWorksServiceV2.DataWorksProjectStateRefreshFunc(d.Id(), "$.Project.Id", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

@@ -20,12 +20,6 @@ For information about Data Works Project and how to use it, see [What is Project
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_data_works_project&exampleId=090310a5-16b0-0567-1731-6cc93058c3b703a3c8bb&activeTab=example&spm=docs.r.data_works_project.0.090310a516&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "tf_example"
@@ -50,8 +44,6 @@ resource "alicloud_data_works_project" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_data_works_project&spm=docs.r.data_works_project.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,12 +55,12 @@ The following arguments are supported:
 * `project_name` - (Required, ForceNew) Workspace Name
 * `resource_group_id` - (Optional, Computed, Available since v1.237.0) Aliyun Resource Group Id
 * `status` - (Optional, Computed) Workspace Status
-* `tags` - (Optional, Map, Available since v1.237.0) Aliyun Resource Tag
+* `tags` - (Optional, Map) Aliyun Resource Tag
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
 
@@ -82,5 +74,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Data Works Project can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_data_works_project.example <id>
+$ terraform import alicloud_data_works_project.example <project_id>
 ```
