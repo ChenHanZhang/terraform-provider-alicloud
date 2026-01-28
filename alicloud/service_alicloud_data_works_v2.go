@@ -723,3 +723,80 @@ func (s *DataWorksServiceV2) DataWorksDwResourceGroupStateRefreshFunc(id string,
 }
 
 // DescribeDataWorksDwResourceGroup >>> Encapsulated.
+// DescribeDataWorksRoute <<< Encapsulated get interface for DataWorks Route.
+
+func (s *DataWorksServiceV2) DescribeDataWorksRoute(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	query["Id"] = id
+	query["RegionId"] = client.RegionId
+	action := "GetRoute"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcGet("dataworks-public", "2024-05-18", action, query, request)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.Route", response)
+	if err != nil {
+		return object, WrapErrorf(NotFoundErr("Route", id), NotFoundMsg, response)
+	}
+
+	currentStatus := v.(map[string]interface{})["Id"]
+	if currentStatus == nil {
+		return object, WrapErrorf(NotFoundErr("Route", id), NotFoundMsg, response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *DataWorksServiceV2) DataWorksRouteStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DataWorksRouteStateRefreshFuncWithApi(id, field, failStates, s.DescribeDataWorksRoute)
+}
+
+func (s *DataWorksServiceV2) DataWorksRouteStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeDataWorksRoute >>> Encapsulated.
