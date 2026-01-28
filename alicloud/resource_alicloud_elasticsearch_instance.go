@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -188,18 +189,16 @@ func resourceAliCloudElasticsearchInstance() *schema.Resource {
 				Optional: true,
 			},
 			"kibana_private_whitelist": {
-				Type:             schema.TypeSet,
-				Optional:         true,
-				Computed:         true,
-				Elem:             &schema.Schema{Type: schema.TypeString},
-				DiffSuppressFunc: elasticsearchEnableKibanaPrivateDiffSuppressFunc,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"kibana_whitelist": {
-				Type:             schema.TypeSet,
-				Optional:         true,
-				Computed:         true,
-				Elem:             &schema.Schema{Type: schema.TypeString},
-				DiffSuppressFunc: elasticsearchEnableKibanaPublicDiffSuppressFunc,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"master_configuration": {
 				Type:     schema.TypeList,
@@ -270,11 +269,10 @@ func resourceAliCloudElasticsearchInstance() *schema.Resource {
 				Computed: true,
 			},
 			"public_whitelist": {
-				Type:             schema.TypeSet,
-				Optional:         true,
-				Computed:         true,
-				Elem:             &schema.Schema{Type: schema.TypeString},
-				DiffSuppressFunc: elasticsearchEnablePublicDiffSuppressFunc,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"renew_status": {
 				Type:     schema.TypeString,
@@ -307,10 +305,9 @@ func resourceAliCloudElasticsearchInstance() *schema.Resource {
 				Optional: true,
 			},
 			"version": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: esVersionDiffSuppressFunc,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"warm_node_configuration": {
 				Type:     schema.TypeList,
@@ -382,10 +379,6 @@ func resourceAliCloudElasticsearchInstance() *schema.Resource {
 				ValidateFunc: IntInSlice([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 24, 36}),
 				Optional:     true,
 				Computed:     true,
-			},
-			"port": {
-				Type:     schema.TypeInt,
-				Computed: true,
 			},
 			"kibana_node_spec": {
 				Type:       schema.TypeString,
@@ -785,7 +778,7 @@ func resourceAliCloudElasticsearchInstanceCreate(d *schema.ResourceData, meta in
 	d.SetId(fmt.Sprint(id))
 
 	elasticsearchServiceV2 := ElasticsearchServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"active"}, d.Timeout(schema.TimeoutCreate), 60*time.Second, elasticsearchServiceV2.ElasticsearchInstanceStateRefreshFunc(d.Id(), "status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"true"}, d.Timeout(schema.TimeoutCreate), 60*time.Second, elasticsearchServiceV2.ElasticsearchInstanceStateRefreshFunc(d.Id(), "$.inited", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -848,7 +841,6 @@ func resourceAliCloudElasticsearchInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("protocol", objectRaw["protocol"])
 	d.Set("public_domain", objectRaw["publicDomain"])
 	d.Set("public_port", objectRaw["publicPort"])
-	d.Set("port", objectRaw["port"])
 	d.Set("resource_group_id", objectRaw["resourceGroupId"])
 	d.Set("setting_config", objectRaw["esConfig"])
 	d.Set("status", objectRaw["status"])
@@ -1705,20 +1697,8 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 	if !d.IsNewResource() && d.HasChange("password") {
 		update = true
 	}
-	password := d.Get("password").(string)
-	kmsPassword := d.Get("kms_encrypted_password").(string)
-	if password == "" && kmsPassword == "" {
-		return WrapError(Error("One of the 'password' and 'kms_encrypted_password' should be set."))
-	}
-	if password != "" {
-		request["esAdminPassword"] = password
-	} else {
-		kmsService := KmsService{meta.(*connectivity.AliyunClient)}
-		decryptResp, err := kmsService.Decrypt(kmsPassword, d.Get("kms_encryption_context").(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-		request["esAdminPassword"] = decryptResp
+	if v, ok := d.GetOk("password"); ok || d.HasChange("password") {
+		request["esAdminPassword"] = v
 	}
 
 	body = request
@@ -1824,7 +1804,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RoaPost("elasticsearch", "2017-06-13", action, query, header, body, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceDuplicateScheduledTask", "ServiceUnavailable", "InstanceStatusNotSupportCurrentAction"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -1833,7 +1813,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 			return nil
 		})
 		addDebug(action, response, request)
-		if err != nil && !IsExpectedErrors(err, []string{"MustChangeOneResource", "CssCheckUpdowngradeError"}) {
+		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		elasticsearchServiceV2 := ElasticsearchServiceV2{client}
