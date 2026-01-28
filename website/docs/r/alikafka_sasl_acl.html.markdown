@@ -2,29 +2,23 @@
 subcategory: "AliKafka"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_alikafka_sasl_acl"
-sidebar_current: "docs-alicloud-resource-alikafka-sasl_acl"
 description: |-
   Provides a Alicloud Alikafka Sasl Acl resource.
 ---
 
 # alicloud_alikafka_sasl_acl
 
-Provides an ALIKAFKA sasl acl resource, see [What is alikafka sasl acl](https://www.alibabacloud.com/help/en/message-queue-for-apache-kafka/latest/api-alikafka-2019-09-16-createacl).
+Provides a Alikafka Sasl Acl resource.
+
+Kafka access control.
+
+For information about Alikafka Sasl Acl and how to use it, see [What is Sasl Acl](https://next.api.alibabacloud.com/document/alikafka/2019-09-16/CreateAcl).
 
 -> **NOTE:** Available since v1.66.0.
-
--> **NOTE:**  Only the following regions support create alikafka sasl user.
-[`cn-hangzhou`,`cn-beijing`,`cn-shenzhen`,`cn-shanghai`,`cn-qingdao`,`cn-hongkong`,`cn-huhehaote`,`cn-zhangjiakou`,`cn-chengdu`,`cn-heyuan`,`ap-southeast-1`,`ap-southeast-3`,`ap-southeast-5`,`ap-northeast-1`,`eu-central-1`,`eu-west-1`,`us-west-1`,`us-east-1`]
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_alikafka_sasl_acl&exampleId=f5bd67e8-ea17-613c-1911-008df8d1de584edf1b34&activeTab=example&spm=docs.r.alikafka_sasl_acl.0.f5bd67e8ea&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -91,30 +85,67 @@ resource "alicloud_alikafka_sasl_acl" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_alikafka_sasl_acl&spm=docs.r.alikafka_sasl_acl.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `acl_operation_type` - (Required, ForceNew) Operation type. Valid values:
+  - `Write`: write
+  - `Read`: read
+  - `Describe`: read TransactionalId
+  - `IdempotentWrite`: idempotent write to Cluster
+  - `IDEMPOTENT_WRITE`: idempotent write to Cluster, only available for Serverless instances.
+  - `DESCRIBE_CONFIGS`: query configuration, only available for Serverless instances.
+* `acl_operation_types` - (Optional, Available since v1.270.0) Batch authorization operation types. Multiple operations are separated by commas (,).
 
-* `instance_id` - (Required, ForceNew) ID of the ALIKAFKA Instance that owns the groups.
-* `username` - (Required, ForceNew) Username for the sasl user. The length should between 1 to 64 characters. The user should be an existed sasl user.
-* `acl_resource_type` - (Required, ForceNew) Resource type for this acl. The resource type can only be "Topic", "Group". Since version 1.247.0, the resource type support "Cluster" and "TransactionalId".
-* `acl_resource_name` - (Required, ForceNew) Resource name for this acl. The resource name should be a topic or consumer group name.
-* `acl_resource_pattern_type` - (Required, ForceNew) Resource pattern type for this acl. The resource pattern support two types "LITERAL" and "PREFIXED". "LITERAL": A literal name defines the full name of a resource. The special wildcard character "*" can be used to represent a resource with any name. "PREFIXED": A prefixed name defines a prefix for a resource.
-* `acl_operation_type` - (Required, ForceNew) Operation type for this acl. The operation type can only be "Write" and "Read".
+Valid values:
+  - `Write`: write
+  - `Read`: read
+  - `Describe`: read TransactionalId
+  - `IdempotentWrite`: idempotent write to Cluster
+  - `IDEMPOTENT_WRITE`: idempotent write to Cluster, only available for Serverless instances.
+  - `DESCRIBE_CONFIGS`: query configuration, only available for Serverless instances.
+
+-> **NOTE:**  This parameter is only supported for Serverless instances.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `acl_permission_type` - (Optional, ForceNew, Computed, Available since v1.270.0) Authorization method. Value:
+  - DENY: refuse
+  - ALLOW: ALLOW
+
+-> **NOTE:**  This field only supports Serverless instances.
+
+* `acl_resource_name` - (Required, ForceNew) The resource name.
+  - Name of the Topic or Consumer Group.
+  - Supports the use of an asterisk (*) to indicate the names of all topics or Conusmer groups.
+* `acl_resource_pattern_type` - (Required, ForceNew) Match the pattern. Value:
+  - `LITERAL`: Full match
+  - `PREFIXED`: prefix matching
+* `acl_resource_type` - (Required, ForceNew) The resource type. Value:
+  - `Topic`: the message Topic.
+  - `Group`: consumer Group.
+  - `Cluster`: the instance.
+  - `TransactionalId`: transaction ID.
+* `host` - (Optional, ForceNew, Computed) Host.
+* `instance_id` - (Required, ForceNew) The instance ID.
+* `username` - (Required, ForceNew) The user name.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<username>:<acl_resource_type>:<acl_resource_name>:<acl_resource_pattern_type>:<acl_operation_type>`.
 
-* `id` - The `key` of the resource supplied above. The value is formulated as `<instance_id>:<username>:<acl_resource_type>:<acl_resource_name>:<acl_resource_pattern_type>:<acl_operation_type>`.
-* `host` - The host of the acl.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Sasl Acl.
+* `delete` - (Defaults to 5 mins) Used when delete the Sasl Acl.
 
 ## Import
 
-ALIKAFKA GROUP can be imported using the id, e.g.
+Alikafka Sasl Acl can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_alikafka_sasl_acl.acl alikafka_post-cn-123455abc:username:Topic:test-topic:LITERAL:Write
+$ terraform import alicloud_alikafka_sasl_acl.example <instance_id>:<username>:<acl_resource_type>:<acl_resource_name>:<acl_resource_pattern_type>:<acl_operation_type>
 ```
