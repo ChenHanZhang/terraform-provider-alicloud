@@ -14,17 +14,11 @@ VPC boundary firewall engine mode.
 
 For information about Cloud Firewall Vpc Firewall Acl Engine Mode and how to use it, see [What is Vpc Firewall Acl Engine Mode](https://next.api.alibabacloud.com/document/Cloudfw/2017-12-07/ModifyVpcFirewallAclEngineMode).
 
--> **NOTE:** Available since v1.269.0.
+-> **NOTE:** Available since v1.270.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_vpc_firewall_acl_engine_mode&exampleId=3d937d60-52eb-324c-219e-8316bd94d4f455f39947&activeTab=example&spm=docs.r.cloud_firewall_vpc_firewall_acl_engine_mode.0.3d937d6052&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -90,15 +84,12 @@ resource "alicloud_cloud_firewall_vpc_firewall_acl_engine_mode" "default" {
 
 Terraform cannot destroy resource `alicloud_cloud_firewall_vpc_firewall_acl_engine_mode`. Terraform will remove this resource from the state file, however resources may remain.
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_vpc_firewall_acl_engine_mode&spm=docs.r.cloud_firewall_vpc_firewall_acl_engine_mode.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `strict_mode` - (Required, Int) The mode of the ACL engine. Possible values are `0`, `1`.
-* `vpc_firewall_id` - (Required, ForceNew) The ID of the VPC firewall.
-* `member_uid` - (Optional, ForceNew) The ID of member account.
+* `member_uid` - (Optional, ForceNew) Member account
+* `strict_mode` - (Required, Int) The name of the resource
+* `vpc_firewall_id` - (Required, ForceNew) The first ID of the resource
 
 ## Attributes Reference
 

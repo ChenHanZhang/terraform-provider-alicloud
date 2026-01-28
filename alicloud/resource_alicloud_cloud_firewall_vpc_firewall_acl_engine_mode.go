@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -9,7 +10,6 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceAliCloudCloudFirewallVpcFirewallAclEngineMode() *schema.Resource {
@@ -27,19 +27,18 @@ func resourceAliCloudCloudFirewallVpcFirewallAclEngineMode() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"member_uid": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"strict_mode": {
-				Type:         schema.TypeInt,
-				Required:     true,
-				ValidateFunc: validation.IntInSlice([]int{0, 1}),
+				Type:     schema.TypeInt,
+				Required: true,
 			},
 			"vpc_firewall_id": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
-			},
-			"member_uid": {
-				Type:     schema.TypeString,
-				Optional: true,
 				ForceNew: true,
 			},
 		},
@@ -47,21 +46,23 @@ func resourceAliCloudCloudFirewallVpcFirewallAclEngineMode() *schema.Resource {
 }
 
 func resourceAliCloudCloudFirewallVpcFirewallAclEngineModeCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 
 	action := "ModifyVpcFirewallAclEngineMode"
+	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
-
-	request := map[string]interface{}{
-		"VpcFirewallId": d.Get("vpc_firewall_id"),
-		"StrictMode":    d.Get("strict_mode"),
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("vpc_firewall_id"); ok {
+		request["VpcFirewallId"] = v
 	}
+
 	if v, ok := d.GetOk("member_uid"); ok {
 		request["MemberUid"] = v
 	}
-
+	request["StrictMode"] = d.Get("strict_mode")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
@@ -108,6 +109,9 @@ func resourceAliCloudCloudFirewallVpcFirewallAclEngineModeRead(d *schema.Resourc
 		aclConfigRaw = aclConfigRawObj.(map[string]interface{})
 	}
 	d.Set("strict_mode", aclConfigRaw["StrictMode"])
+
+	d.Set("vpc_firewall_id", d.Id())
+
 	return nil
 }
 
@@ -126,9 +130,8 @@ func resourceAliCloudCloudFirewallVpcFirewallAclEngineModeUpdate(d *schema.Resou
 
 	if d.HasChange("strict_mode") {
 		update = true
-		request["StrictMode"] = d.Get("strict_mode")
 	}
-
+	request["StrictMode"] = d.Get("strict_mode")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
