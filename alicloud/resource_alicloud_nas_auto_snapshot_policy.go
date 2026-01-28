@@ -44,6 +44,10 @@ func resourceAliCloudNasAutoSnapshotPolicy() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"extreme"}, false),
 			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"repeat_weekdays": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -79,26 +83,23 @@ func resourceAliCloudNasAutoSnapshotPolicyCreate(d *schema.ResourceData, meta in
 	var err error
 	request = make(map[string]interface{})
 
-	if v, ok := d.GetOk("retention_days"); ok {
-		request["RetentionDays"] = v
-	}
 	if v, ok := d.GetOk("auto_snapshot_policy_name"); ok {
 		request["AutoSnapshotPolicyName"] = v
 	}
-	request["FileSystemType"] = "extreme"
-	if v, ok := d.GetOk("file_system_type"); ok {
-		request["FileSystemType"] = v
-	}
-	jsonPathResult3, err := jsonpath.Get("$", d.Get("repeat_weekdays"))
+	repeatWeekdaysJsonPath, err := jsonpath.Get("$", d.Get("repeat_weekdays"))
 	if err == nil {
-		request["RepeatWeekdays"] = convertListToCommaSeparate(jsonPathResult3.(*schema.Set).List())
+		request["RepeatWeekdays"] = convertListToCommaSeparate(convertToInterfaceArray(repeatWeekdaysJsonPath))
 	}
 
-	jsonPathResult4, err := jsonpath.Get("$", d.Get("time_points"))
+	request["FileSystemType"] = d.Get("file_system_type")
+	timePointsJsonPath, err := jsonpath.Get("$", d.Get("time_points"))
 	if err == nil {
-		request["TimePoints"] = convertListToCommaSeparate(jsonPathResult4.(*schema.Set).List())
+		request["TimePoints"] = convertListToCommaSeparate(convertToInterfaceArray(timePointsJsonPath))
 	}
 
+	if v, ok := d.GetOkExists("retention_days"); ok && v.(int) > 0 {
+		request["RetentionDays"] = v
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
@@ -109,9 +110,9 @@ func resourceAliCloudNasAutoSnapshotPolicyCreate(d *schema.ResourceData, meta in
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_nas_auto_snapshot_policy", action, AlibabaCloudSdkGoERROR)
@@ -145,6 +146,7 @@ func resourceAliCloudNasAutoSnapshotPolicyRead(d *schema.ResourceData, meta inte
 	d.Set("auto_snapshot_policy_name", objectRaw["AutoSnapshotPolicyName"])
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("file_system_type", objectRaw["FileSystemType"])
+	d.Set("region_id", objectRaw["RegionId"])
 	d.Set("retention_days", objectRaw["RetentionDays"])
 	d.Set("status", objectRaw["Status"])
 
@@ -164,35 +166,37 @@ func resourceAliCloudNasAutoSnapshotPolicyUpdate(d *schema.ResourceData, meta in
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "ModifyAutoSnapshotPolicy"
+
 	var err error
+	action := "ModifyAutoSnapshotPolicy"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["AutoSnapshotPolicyId"] = d.Id()
+	request["AutoSnapshotPolicyId"] = d.Id()
+
 	if d.HasChange("auto_snapshot_policy_name") {
 		update = true
 		request["AutoSnapshotPolicyName"] = d.Get("auto_snapshot_policy_name")
 	}
 
-	if d.HasChange("retention_days") {
-		update = true
-		request["RetentionDays"] = d.Get("retention_days")
-	}
-
 	if d.HasChange("repeat_weekdays") {
 		update = true
 	}
-	jsonPathResult2, err := jsonpath.Get("$", d.Get("repeat_weekdays"))
+	repeatWeekdaysJsonPath, err := jsonpath.Get("$", d.Get("repeat_weekdays"))
 	if err == nil {
-		request["RepeatWeekdays"] = convertListToCommaSeparate(jsonPathResult2.(*schema.Set).List())
+		request["RepeatWeekdays"] = convertListToCommaSeparate(convertToInterfaceArray(repeatWeekdaysJsonPath))
 	}
 
 	if d.HasChange("time_points") {
 		update = true
 	}
-	jsonPathResult3, err := jsonpath.Get("$", d.Get("time_points"))
+	timePointsJsonPath, err := jsonpath.Get("$", d.Get("time_points"))
 	if err == nil {
-		request["TimePoints"] = convertListToCommaSeparate(jsonPathResult3.(*schema.Set).List())
+		request["TimePoints"] = convertListToCommaSeparate(convertToInterfaceArray(timePointsJsonPath))
+	}
+
+	if d.HasChange("retention_days") {
+		update = true
+		request["RetentionDays"] = d.Get("retention_days")
 	}
 
 	if update {
@@ -206,9 +210,9 @@ func resourceAliCloudNasAutoSnapshotPolicyUpdate(d *schema.ResourceData, meta in
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -231,12 +235,11 @@ func resourceAliCloudNasAutoSnapshotPolicyDelete(d *schema.ResourceData, meta in
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	query["AutoSnapshotPolicyId"] = d.Id()
+	request["AutoSnapshotPolicyId"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -244,12 +247,12 @@ func resourceAliCloudNasAutoSnapshotPolicyDelete(d *schema.ResourceData, meta in
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidLifecyclePolicy.NotFound"}) {
+		if IsExpectedErrors(err, []string{"	InvalidLifecyclePolicy.NotFound"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
@@ -260,5 +263,6 @@ func resourceAliCloudNasAutoSnapshotPolicyDelete(d *schema.ResourceData, meta in
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
+
 	return nil
 }

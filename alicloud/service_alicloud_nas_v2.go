@@ -524,15 +524,18 @@ func (s *NasServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 
 func (s *NasServiceV2) DescribeNasAutoSnapshotPolicy(id string) (object map[string]interface{}, err error) {
 	client := s.client
+	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeAutoSnapshotPolicies"
+	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["AutoSnapshotPolicyId"] = id
+	request["AutoSnapshotPolicyId"] = id
+
+	action := "DescribeAutoSnapshotPolicies"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("NAS", "2017-06-26", action, query, nil, true)
+		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -541,14 +544,13 @@ func (s *NasServiceV2) DescribeNasAutoSnapshotPolicy(id string) (object map[stri
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, query)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidLifecyclePolicy.NotFound"}) {
+		if IsExpectedErrors(err, []string{"	InvalidLifecyclePolicy.NotFound"}) {
 			return object, WrapErrorf(NotFoundErr("AutoSnapshotPolicy", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, query)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -565,15 +567,18 @@ func (s *NasServiceV2) DescribeNasAutoSnapshotPolicy(id string) (object map[stri
 }
 
 func (s *NasServiceV2) NasAutoSnapshotPolicyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NasAutoSnapshotPolicyStateRefreshFuncWithApi(id, field, failStates, s.DescribeNasAutoSnapshotPolicy)
+}
+
+func (s *NasServiceV2) NasAutoSnapshotPolicyStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNasAutoSnapshotPolicy(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 		if field == "$.RepeatWeekdays" {
@@ -585,6 +590,13 @@ func (s *NasServiceV2) NasAutoSnapshotPolicyStateRefreshFunc(id string, field st
 			e := jsonata.MustCompile("$split($.TimePoints, \",\")")
 			v, _ = e.Eval(object)
 			currentStatus = fmt.Sprint(v)
+		}
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
 		}
 
 		for _, failState := range failStates {

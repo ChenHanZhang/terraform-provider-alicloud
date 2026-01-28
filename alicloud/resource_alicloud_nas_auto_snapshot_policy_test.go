@@ -657,3 +657,371 @@ func TestAccAliCloudNasAutoSnapshotPolicy_basic6532_raw(t *testing.T) {
 }
 
 // Test Nas AutoSnapshotPolicy. <<< Resource test cases, automatically generated.
+// Test Nas AutoSnapshotPolicy. >>> Resource test cases, automatically generated.
+// Case resource_AutoSnapshotPolicy_test 12376
+func TestAccAliCloudNasAutoSnapshotPolicy_basic12376(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasAutoSnapshotPolicyMap12376)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasAutoSnapshotPolicyBasicDependence12376)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"time_points": []string{
+						"0", "8", "16"},
+					"file_system_type": "extreme",
+					"repeat_weekdays": []string{
+						"1", "2", "3"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"time_points.#":     "3",
+						"file_system_type":  "extreme",
+						"repeat_weekdays.#": "3",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasAutoSnapshotPolicyMap12376 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasAutoSnapshotPolicyBasicDependence12376(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case resource_AutoSnapshotPolicy_test_1 12385
+func TestAccAliCloudNasAutoSnapshotPolicy_basic12385(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasAutoSnapshotPolicyMap12385)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasAutoSnapshotPolicyBasicDependence12385)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"time_points": []string{
+						"0", "6", "12"},
+					"file_system_type": "extreme",
+					"retention_days":   "30",
+					"repeat_weekdays": []string{
+						"1", "3", "5"},
+					"auto_snapshot_policy_name": name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"time_points.#":             "3",
+						"file_system_type":          "extreme",
+						"retention_days":            "30",
+						"repeat_weekdays.#":         "3",
+						"auto_snapshot_policy_name": name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"retention_days":            "7",
+					"auto_snapshot_policy_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"retention_days":            "7",
+						"auto_snapshot_policy_name": name + "_update",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasAutoSnapshotPolicyMap12385 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasAutoSnapshotPolicyBasicDependence12385(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 自动快照策略_副本 6770
+func TestAccAliCloudNasAutoSnapshotPolicy_basic6770(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasAutoSnapshotPolicyMap6770)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasAutoSnapshotPolicyBasicDependence6770)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"time_points":               []string{},
+					"retention_days":            "1",
+					"repeat_weekdays":           []string{},
+					"auto_snapshot_policy_name": name,
+					"file_system_type":          "extreme",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"time_points.#":             "1",
+						"retention_days":            CHECKSET,
+						"repeat_weekdays.#":         "1",
+						"auto_snapshot_policy_name": name,
+						"file_system_type":          "extreme",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"time_points":               []string{},
+					"retention_days":            "2",
+					"repeat_weekdays":           []string{},
+					"auto_snapshot_policy_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"time_points.#":             "1",
+						"retention_days":            CHECKSET,
+						"repeat_weekdays.#":         "1",
+						"auto_snapshot_policy_name": name + "_update",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasAutoSnapshotPolicyMap6770 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasAutoSnapshotPolicyBasicDependence6770(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 自动快照策略 6532
+func TestAccAliCloudNasAutoSnapshotPolicy_basic6532(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasAutoSnapshotPolicyMap6532)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasAutoSnapshotPolicyBasicDependence6532)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"retention_days":            "1",
+					"auto_snapshot_policy_name": name,
+					"file_system_type":          "extreme",
+					"time_points": []string{
+						"${var.time_point1}"},
+					"repeat_weekdays": []string{
+						"${var.repeat_weekday1}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"retention_days":            CHECKSET,
+						"auto_snapshot_policy_name": name,
+						"file_system_type":          "extreme",
+						"time_points.#":             "1",
+						"repeat_weekdays.#":         "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"retention_days":            "2",
+					"auto_snapshot_policy_name": name + "_update",
+					"time_points": []string{
+						"${var.time_point1}", "${var.time_point2}", "${var.time_point3}"},
+					"repeat_weekdays": []string{
+						"${var.repeat_weekday1}", "${var.repeat_weekday2}", "${var.repeat_weekday3}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"retention_days":            CHECKSET,
+						"auto_snapshot_policy_name": name + "_update",
+						"time_points.#":             "3",
+						"repeat_weekdays.#":         "3",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"time_points": []string{
+						"${var.time_point3}"},
+					"repeat_weekdays": []string{
+						"${var.repeat_weekday2}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"time_points.#":     "1",
+						"repeat_weekdays.#": "1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasAutoSnapshotPolicyMap6532 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasAutoSnapshotPolicyBasicDependence6532(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "time_point3" {
+  default = <<EOF
+3
+EOF
+}
+
+variable "repeat_weekday2" {
+  default = <<EOF
+2
+EOF
+}
+
+variable "repeat_weekday1" {
+  default = <<EOF
+1
+EOF
+}
+
+variable "repeat_weekday3" {
+  default = <<EOF
+3
+EOF
+}
+
+variable "time_point2" {
+  default = <<EOF
+2
+EOF
+}
+
+variable "time_point1" {
+  default = <<EOF
+1
+EOF
+}
+
+
+`, name)
+}
+
+// Test Nas AutoSnapshotPolicy. <<< Resource test cases, automatically generated.
