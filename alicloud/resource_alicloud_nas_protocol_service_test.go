@@ -26,7 +26,6 @@ func TestAccAliCloudNasProtocolService_basic12170(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasProtocolServiceBasicDependence12170)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -70,8 +69,9 @@ func TestAccAliCloudNasProtocolService_basic12170(t *testing.T) {
 }
 
 var AlicloudNasProtocolServiceMap12170 = map[string]string{
-	"status":      CHECKSET,
-	"create_time": CHECKSET,
+	"status":              CHECKSET,
+	"create_time":         CHECKSET,
+	"protocol_service_id": CHECKSET,
 }
 
 func AlicloudNasProtocolServiceBasicDependence12170(name string) string {
@@ -83,7 +83,7 @@ variable "name" {
 resource "alicloud_vpc" "createEVpc_Cpfs1" {
   is_default  = false
   cidr_block  = "192.168.0.0/16"
-  vpc_name    = "nas-teste1031-vpc"
+  vpc_name    = "nas-teste1223-vpc"
   enable_ipv6 = true
 }
 
@@ -91,15 +91,14 @@ resource "alicloud_vswitch" "CreateVswitch1" {
   is_default   = false
   vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
   zone_id      = "cn-beijing-i"
-  cidr_block   = "192.168.2.0/24"
-  vswitch_name = "nas-teste1031-vsw1sdw-F"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
 }
 
 resource "alicloud_nas_file_system" "create_cpfs_file_system_General" {
-  description      = "cpfs-文件系统本地冗余-protocol_service测试"
+  description      = "cpfs-文件系统本地冗余-protocol_service-gen测试"
   storage_type     = "advance_100"
   zone_id          = "cn-beijing-i"
-  encrypt_type     = "0"
   vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
   capacity         = "3600"
   protocol_type    = "cpfs"
@@ -126,7 +125,6 @@ func TestAccAliCloudNasProtocolService_basic12172(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasProtocolServiceBasicDependence12172)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -172,8 +170,9 @@ func TestAccAliCloudNasProtocolService_basic12172(t *testing.T) {
 }
 
 var AlicloudNasProtocolServiceMap12172 = map[string]string{
-	"status":      CHECKSET,
-	"create_time": CHECKSET,
+	"status":              CHECKSET,
+	"create_time":         CHECKSET,
+	"protocol_service_id": CHECKSET,
 }
 
 func AlicloudNasProtocolServiceBasicDependence12172(name string) string {
@@ -185,7 +184,7 @@ variable "name" {
 resource "alicloud_vpc" "createEVpc_Cpfs1" {
   is_default  = false
   cidr_block  = "192.168.0.0/16"
-  vpc_name    = "nas-teste1031-vpc"
+  vpc_name    = "nas-teste1223-vpc"
   enable_ipv6 = true
 }
 
@@ -193,15 +192,14 @@ resource "alicloud_vswitch" "CreateVswitch1" {
   is_default   = false
   vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
   zone_id      = "cn-beijing-i"
-  cidr_block   = "192.168.2.0/24"
-  vswitch_name = "nas-teste1031-vsw1sdw-F"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
 }
 
 resource "alicloud_nas_file_system" "create_cpfs_file_system_CL2" {
-  description      = "cpfs-文件系统本地冗余-protocol_service测试"
+  description      = "cpfs-文件系统本地冗余-protocol_service-CL2测试"
   storage_type     = "advance_100"
   zone_id          = "cn-beijing-i"
-  encrypt_type     = "0"
   vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
   capacity         = "3600"
   protocol_type    = "cpfs"
@@ -228,7 +226,6 @@ func TestAccAliCloudNasProtocolService_basic12174(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasProtocolServiceBasicDependence12174)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -286,8 +283,9 @@ func TestAccAliCloudNasProtocolService_basic12174(t *testing.T) {
 }
 
 var AlicloudNasProtocolServiceMap12174 = map[string]string{
-	"status":      CHECKSET,
-	"create_time": CHECKSET,
+	"status":              CHECKSET,
+	"create_time":         CHECKSET,
+	"protocol_service_id": CHECKSET,
 }
 
 func AlicloudNasProtocolServiceBasicDependence12174(name string) string {
@@ -296,31 +294,45 @@ variable "name" {
     default = "%s"
 }
 
-resource "alicloud_vpc" "createEVpc_Cpfs1" {
+resource "alicloud_vpc" "createEVpc_Cpfs" {
   is_default  = false
   cidr_block  = "192.168.0.0/16"
-  vpc_name    = "nas-teste1031-vpc"
+  vpc_name    = "nas-teste1223-vpc"
   enable_ipv6 = true
 }
 
-resource "alicloud_vswitch" "CreateVswitch1" {
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1223-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitchC" {
   is_default   = false
-  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
   zone_id      = "cn-beijing-i"
-  cidr_block   = "192.168.2.0/24"
-  vswitch_name = "nas-teste1031-vsw1sdw-F"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
 }
 
 resource "alicloud_nas_file_system" "create_cpfs_file_system_CL1" {
   description      = "cpfs-文件系统本地冗余-protocol_service测试"
   storage_type     = "advance_100"
   zone_id          = "cn-beijing-i"
-  encrypt_type     = "0"
   vpc_id           = alicloud_vpc.createEVpc_Cpfs1.id
   capacity         = "3600"
   protocol_type    = "cpfs"
-  vswitch_id       = alicloud_vswitch.CreateVswitch1.id
+  vswitch_id       = alicloud_vswitch.CreateVswitchC.id
   file_system_type = "cpfs"
+}
+
+resource "alicloud_vswitch" "CreateVswitch1" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs1.id
+  zone_id      = "cn-beijing-i"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
 }
 
 
@@ -342,7 +354,6 @@ func TestAccAliCloudNasProtocolService_basic12186(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasProtocolServiceBasicDependence12186)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -382,8 +393,9 @@ func TestAccAliCloudNasProtocolService_basic12186(t *testing.T) {
 }
 
 var AlicloudNasProtocolServiceMap12186 = map[string]string{
-	"status":      CHECKSET,
-	"create_time": CHECKSET,
+	"status":              CHECKSET,
+	"create_time":         CHECKSET,
+	"protocol_service_id": CHECKSET,
 }
 
 func AlicloudNasProtocolServiceBasicDependence12186(name string) string {
@@ -395,44 +407,50 @@ variable "name" {
 resource "alicloud_vpc" "createEVpc_Cpfs" {
   is_default  = false
   cidr_block  = "192.168.0.0/16"
-  vpc_name    = "nas-teste1031-vpc"
+  vpc_name    = "nas-teste1223-vpc"
   enable_ipv6 = true
 }
 
 resource "alicloud_vswitch" "CreateVswitchF" {
   is_default   = false
   vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
-  zone_id      = "cn-beijing-i"
+  zone_id      = "cn-beijing-h"
   cidr_block   = "192.168.2.0/24"
-  vswitch_name = "nas-teste1031-vsw1sdw-F"
+  vswitch_name = "nas-teste1223-vsw1sdw-F"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs1" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1223-vpc"
+  enable_ipv6 = true
 }
 
 resource "alicloud_vswitch" "CreateVswitchC" {
   is_default   = false
   vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
-  zone_id      = "cn-beijing-l"
+  zone_id      = "cn-beijing-i"
   cidr_block   = "192.168.3.0/24"
-  vswitch_name = "nas-teste1031-vsw2sdw-C"
+  vswitch_name = "nas-teste1223-vsw2sdw-C"
 }
 
 resource "alicloud_vswitch" "CreateVswitchD" {
   is_default   = false
   vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
-  zone_id      = "cn-beijing-h"
+  zone_id      = "cn-beijing-l"
   cidr_block   = "192.168.4.0/24"
-  vswitch_name = "nas-teste1031-vsw3sdw-D"
+  vswitch_name = "nas-teste1223-vsw3sdw-D"
 }
 
 resource "alicloud_nas_file_system" "create_cpfsse_file_system_General" {
-  description      = "峰-cpfsse-ZRS-protocol_service测试"
-  storage_type     = "advance_100"
-  encrypt_type     = "0"
-  vpc_id           = alicloud_vpc.createEVpc_Cpfs.id
-  redundancy_vswitch_ids = [alicloud_vswitch.CreateVswitchC.id, alicloud_vswitch.CreateVswitchD.id, alicloud_vswitch.CreateVswitchF.id]
-  capacity         = "500"
-  protocol_type    = "cpfs"
-  file_system_type = "cpfsse"
-  redundancy_type  = "ZRS"
+  description            = "峰-cpfsse-protocol_service测试"
+  storage_type           = "advance_100"
+  vpc_id                 = alicloud_vpc.createEVpc_Cpfs1.id
+  redundancy_vswitch_ids = ["${alicloud_vswitch.CreateVswitchC.id}", "${alicloud_vswitch.CreateVswitchD.id}", "${alicloud_vswitch.CreateVswitchF.id}"]
+  capacity               = "500"
+  protocol_type          = "cpfs"
+  file_system_type       = "cpfsse"
+  redundancy_type        = "ZRS"
 }
 
 
