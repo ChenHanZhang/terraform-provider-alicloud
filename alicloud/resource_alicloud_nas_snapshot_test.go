@@ -176,7 +176,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudNasSnapshotCreate(d, rawClient)
+		err := resourceAliCloudNasSnapshotCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -193,7 +193,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotCreate(d, rawClient)
+		err := resourceAliCloudNasSnapshotCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -210,7 +210,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotCreate(dCreate, rawClient)
+		err := resourceAliCloudNasSnapshotCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -228,7 +228,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudNasSnapshotDelete(d, rawClient)
+		err := resourceAliCloudNasSnapshotDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -245,7 +245,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotDelete(d, rawClient)
+		err := resourceAliCloudNasSnapshotDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -265,7 +265,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 		patcheDescribeNasSnapshot := gomonkey.ApplyMethod(reflect.TypeOf(&NasService{}), "DescribeNasSnapshot", func(*NasService, string) (map[string]interface{}, error) {
 			return responseMock["NotFoundError"]("ResourceNotfound")
 		})
-		err := resourceAlicloudNasSnapshotDelete(d, rawClient)
+		err := resourceAliCloudNasSnapshotDelete(d, rawClient)
 		patches.Reset()
 		patcheDescribeNasSnapshot.Reset()
 		assert.Nil(t, err)
@@ -283,7 +283,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotDelete(d, rawClient)
+		err := resourceAliCloudNasSnapshotDelete(d, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -300,7 +300,7 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotRead(d, rawClient)
+		err := resourceAliCloudNasSnapshotRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -316,8 +316,249 @@ func TestUnitAlicloudNASSnapshot(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudNasSnapshotRead(d, rawClient)
+		err := resourceAliCloudNasSnapshotRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
 }
+
+// Test Nas Snapshot. >>> Resource test cases, automatically generated.
+// Case resource_Snapshot_test 12384
+func TestAccAliCloudNasSnapshot_basic12384(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_snapshot.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasSnapshotMap12384)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasSnapshot")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasSnapshotBasicDependence12384)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"file_system_id": "${alicloud_nas_file_system.resource_FileSystem_test_3.id}",
+					"retention_days": "30",
+					"snapshot_name":  name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"file_system_id": CHECKSET,
+						"retention_days": "30",
+						"snapshot_name":  name,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasSnapshotMap12384 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasSnapshotBasicDependence12384(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_nas_file_system" "resource_FileSystem_test_3" {
+  storage_type     = "advance"
+  zone_id          = "cn-hangzhou-h"
+  encrypt_type     = "0"
+  capacity         = "100"
+  protocol_type    = "NFS"
+  file_system_type = "extreme"
+}
+
+
+`, name)
+}
+
+// Case resource_Snapshot_test_1 12391
+func TestAccAliCloudNasSnapshot_basic12391(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_snapshot.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasSnapshotMap12391)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasSnapshot")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasSnapshotBasicDependence12391)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":    "TestSnapshotDescription",
+					"file_system_id": "${alicloud_nas_file_system.resource_FileSystem_test_4.id}",
+					"retention_days": "-1",
+					"snapshot_name":  name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":    "TestSnapshotDescription",
+						"file_system_id": CHECKSET,
+						"retention_days": "-1",
+						"snapshot_name":  name,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasSnapshotMap12391 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasSnapshotBasicDependence12391(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createVpc_4" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_kms_key" "resource_Key_test_3" {
+}
+
+resource "alicloud_vswitch" "CreateVswitch_4" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_4.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_nas_file_system" "resource_FileSystem_test_4" {
+  storage_type     = "Performance"
+  encrypt_type     = "0"
+  kms_key_id       = alicloud_kms_key.resource_Key_test_3.id
+  capacity         = "200"
+  protocol_type    = "SMB"
+  file_system_type = "standard"
+  vswitch_id       = alicloud_vswitch.CreateVswitch_4.id
+}
+
+
+`, name)
+}
+
+// Case 极速型快照 6553
+func TestAccAliCloudNasSnapshot_basic6553(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_snapshot.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasSnapshotMap6553)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasSnapshot")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasSnapshotBasicDependence6553)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":    "测试",
+					"file_system_id": "${alicloud_nas_file_system.defaultUpRxH6.id}",
+					"retention_days": "1",
+					"snapshot_name":  name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":    "测试",
+						"file_system_id": CHECKSET,
+						"retention_days": "1",
+						"snapshot_name":  name,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudNasSnapshotMap6553 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudNasSnapshotBasicDependence6553(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region" {
+  default = "cn-hangzhou"
+}
+
+variable "azone" {
+  default = "cn-hangzhou-h"
+}
+
+resource "alicloud_nas_file_system" "defaultUpRxH6" {
+  storage_type     = "advance"
+  zone_id          = var.azone
+  encrypt_type     = "0"
+  capacity         = "100"
+  file_system_type = "extreme"
+  protocol_type    = "NFS"
+}
+
+
+`, name)
+}
+
+// Test Nas Snapshot. <<< Resource test cases, automatically generated.
