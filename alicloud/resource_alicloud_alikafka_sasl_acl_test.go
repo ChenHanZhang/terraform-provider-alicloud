@@ -787,3 +787,221 @@ resource "alicloud_alikafka_instance" "default" {
 }
 `, name)
 }
+
+// Test Alikafka SaslAcl. >>> Resource test cases, automatically generated.
+// Case v3 创建ACL生命周期 12413
+func TestAccAliCloudAlikafkaSaslAcl_basic12413(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_alikafka_sasl_acl.default"
+	ra := resourceAttrInit(resourceId, AlicloudAlikafkaSaslAclMap12413)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AlikafkaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAlikafkaSaslAcl")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccalikafka%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudAlikafkaSaslAclBasicDependence12413)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"username":                  "${alicloud_alikafka_sasl_user.defaulty2f9ds.username}",
+					"acl_operation_types":       "Write",
+					"acl_operation_type":        "Write",
+					"acl_permission_type":       "ALLOW",
+					"host":                      "*",
+					"acl_resource_pattern_type": "LITERAL",
+					"acl_resource_name":         "*",
+					"instance_id":               "${ alicloud_alikafka_instance.defaultZgBJfR.id}",
+					"acl_resource_type":         "Topic",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"username":                  CHECKSET,
+						"acl_operation_types":       "Write",
+						"acl_operation_type":        "Write",
+						"acl_permission_type":       "ALLOW",
+						"host":                      "*",
+						"acl_resource_pattern_type": "LITERAL",
+						"acl_resource_name":         "*",
+						"instance_id":               CHECKSET,
+						"acl_resource_type":         "Topic",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"acl_operation_types"},
+			},
+		},
+	})
+}
+
+var AlicloudAlikafkaSaslAclMap12413 = map[string]string{}
+
+func AlicloudAlikafkaSaslAclBasicDependence12413(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region" {
+  default = "cn-beijing"
+}
+
+resource "alicloud_vpc" "default0ppNRd" {
+  ipv4_cidr_mask = "24"
+  is_default     = false
+  cidr_block     = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "defaultn6iyAD" {
+  vpc_id     = alicloud_vpc.default0ppNRd.id
+  cidr_block = "172.18.0.0/23"
+  zone_id    = "cn-beijing-a"
+}
+
+resource " alicloud_alikafka_instance" "defaultZgBJfR" {
+  deploy_type = "5"
+  spec_type   = "normal"
+  config      = "{\"auto.create.topics.enable\":\"true\",\"enable.acl\":\"true\",\"enable.vpc_sasl_ssl\":\"false\",\"kafka.ssl.bit\":\"4096\",\"log.retention.hours\":\"72\",\"message.max.bytes\":\"1048576\",\"num.partitions\":\"3\",\"offsets.retention.minutes\":\"10080\"}"
+  zone_id     = "cn-beijing-a"
+  vswitch_id  = alicloud_vswitch.defaultn6iyAD.id
+  paid_type   = "3"
+  serverless_config {
+    reserved_publish_capacity   = "60"
+    reserved_subscribe_capacity = "60"
+  }
+  vpc_id = alicloud_vpc.default0ppNRd.id
+}
+
+resource "alicloud_alikafka_sasl_user" "defaulty2f9ds" {
+  type        = "scram"
+  username    = "qwoeiuqwoieurandom809"
+  password    = "123123"
+  instance_id = alicloud_alikafka_instance.defaultZgBJfR.id
+  mechanism   = "SCRAM-SHA-256"
+}
+
+
+`, name)
+}
+
+// Case v2 创建ACL生命周期 12414
+func TestAccAliCloudAlikafkaSaslAcl_basic12414(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_alikafka_sasl_acl.default"
+	ra := resourceAttrInit(resourceId, AlicloudAlikafkaSaslAclMap12414)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AlikafkaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAlikafkaSaslAcl")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccalikafka%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudAlikafkaSaslAclBasicDependence12414)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"username":                  "${alicloud_alikafka_sasl_user.defaulty2f9ds.username}",
+					"acl_operation_types":       "IDEMPOTENT_WRITE",
+					"acl_operation_type":        "Write",
+					"acl_permission_type":       "ALLOW",
+					"host":                      "*",
+					"acl_resource_pattern_type": "LITERAL",
+					"acl_resource_name":         "*",
+					"instance_id":               "${ alicloud_alikafka_instance.defaultZgBJfR.id}",
+					"acl_resource_type":         "Topic",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"username":                  CHECKSET,
+						"acl_operation_types":       "IDEMPOTENT_WRITE",
+						"acl_operation_type":        "Write",
+						"acl_permission_type":       "ALLOW",
+						"host":                      "*",
+						"acl_resource_pattern_type": "LITERAL",
+						"acl_resource_name":         "*",
+						"instance_id":               CHECKSET,
+						"acl_resource_type":         "Topic",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"acl_operation_types"},
+			},
+		},
+	})
+}
+
+var AlicloudAlikafkaSaslAclMap12414 = map[string]string{}
+
+func AlicloudAlikafkaSaslAclBasicDependence12414(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region" {
+  default = "cn-beijing"
+}
+
+resource "alicloud_vpc" "default0ppNRd" {
+  ipv4_cidr_mask = "24"
+  is_default     = false
+  cidr_block     = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "defaultn6iyAD" {
+  vpc_id     = alicloud_vpc.default0ppNRd.id
+  cidr_block = "172.18.0.0/23"
+  zone_id    = "cn-beijing-a"
+}
+
+resource " alicloud_alikafka_instance" "defaultZgBJfR" {
+  deploy_type   = "5"
+  spec_type     = "professional"
+  config        = "{\"enable.vpc_sasl_ssl\":\"false\",\"kafka.log.retention.hours\":\"72\",\"auto.create.topics.enable\":\"true\",\"enable.tiered\":\"false\",\"max.message.bytes\":\"1048576\",\"cloud.maxTieredStoreSpace\":\"0\",\"message.timestamp.type\":\"CreateTime\",\"kafka.message.max.bytes\":\"1048576\",\"kafka.offsets.retention.minutes\":\"10080\",\"enable.acl\":\"true\",\"kafka.ssl.bit\":\"4096\",\"enable.compact\":\"true\",\"message.timestamp.difference.max.ms\":\"9223372036854775807\"}"
+  zone_id       = "cn-beijing-a"
+  vswitch_id    = alicloud_vswitch.defaultn6iyAD.id
+  paid_type     = "1"
+  vpc_id        = alicloud_vpc.default0ppNRd.id
+  disk_type     = "0"
+  disk_size     = "500"
+  deploy_module = "vpc"
+  io_max_spec   = "alikafka.hw.2xlarge"
+}
+
+resource "alicloud_alikafka_sasl_user" "defaulty2f9ds" {
+  type        = "scram"
+  username    = "qwoeiuqwoieurandom139"
+  password    = "123123"
+  instance_id = alicloud_alikafka_instance.defaultZgBJfR.id
+}
+
+
+`, name)
+}
+
+// Test Alikafka SaslAcl. <<< Resource test cases, automatically generated.
