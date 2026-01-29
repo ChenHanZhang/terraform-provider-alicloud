@@ -20,12 +20,6 @@ For information about SSL Certificates Certificate and how to use it, see [What 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ssl_certificates_service_certificate&exampleId=484f1229-91fa-a3e8-ded0-68c2f1583a7561832250&activeTab=example&spm=docs.r.ssl_certificates_service_certificate.0.484f122991&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 resource "random_integer" "default" {
   min = 10000
@@ -91,42 +85,35 @@ EOF
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ssl_certificates_service_certificate&spm=docs.r.ssl_certificates_service_certificate.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-
-* `cert` - (Optional, ForceNew) The content of a non-SM certificate in PEM format.
-* `key` - (Optional, ForceNew) The private key of a non-SM certificate in PEM format.
-* `encrypt_cert` - (Optional, ForceNew, Available since v1.260.1) The content of an SM encryption certificate in PEM format.
-* `encrypt_private_key` - (Optional, ForceNew, Available since v1.260.1) The private key of an SM encryption certificate in PEM format.
-* `sign_cert` - (Optional, ForceNew, Available since v1.260.1) The content of an SM signing certificate in PEM format.
-* `sign_private_key` - (Optional, ForceNew, Available since v1.260.1) The private key of an SM signing certificate in PEM format.
-* `certificate_name` - (Optional) A custom name for the certificate. The name can be up to 64 characters long and can contain any character type, such as letters, numbers, and underscores. **NOTE:** From version 1.260.1, `certificate_name` can be modified.
-* `resource_group_id` - (Optional, Available since v1.260.1) The ID of the resource group.
-* `tags` - (Optional, Map, Available since v1.260.1) The tag of the resource.
-* `name` - (Optional, Deprecated since v1.129.0) Field `name` has been deprecated from provider version 1.129.0 and it will be removed in the future version. Please use the new attribute `certificate_name` instead.
-* `lang` - (Deprecated since v1.260.1) Field `lang` has been deprecated from provider version 1.260.1 and it will be removed in the future version.
+* `cert` - (Optional, ForceNew) The certificate content in PEM format.
+* `certificate_name` - (Optional, Computed) Custom certificate name. Maximum supported character length:128. All character types are supported, including letters, numbers and underscores.
+ The certificate name under the same user cannot be duplicated.
+* `encrypt_cert` - (Optional, ForceNew, Available since v1.260.1) The content of the encryption certificate in PEM format.
+* `encrypt_private_key` - (Optional, ForceNew, Available since v1.260.1) The private key content of the encryption certificate in PEM format.
+* `key` - (Optional, ForceNew) The private key content of the certificate in PEM format.
+* `resource_group_id` - (Optional, Computed, Available since v1.260.1) The ID of the resource group
+* `sign_cert` - (Optional, ForceNew, Available since v1.260.1) The signature certificate content in PEM format.
+* `sign_private_key` - (Optional, ForceNew, Available since v1.260.1) The private key content of the signature certificate in PEM format.
+* `tags` - (Optional, Map, Available since v1.260.1) The tag of the resource
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
-
--> **NOTE:** Available since 1.260.1.
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 5 mins) Used when create the Certificate.
 * `delete` - (Defaults to 5 mins) Used when delete the Certificate.
-* `update` - (Defaults to 5 mins) Used when update the Certificate.
 
 ## Import
 
 SSL Certificates Certificate can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_ssl_certificates_service_certificate.example <id>
+$ terraform import alicloud_ssl_certificates_service_certificate.example <cert_id>
 ```

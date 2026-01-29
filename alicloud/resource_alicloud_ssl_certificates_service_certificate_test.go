@@ -498,11 +498,11 @@ EOF
 }
 
 // Test SslCertificatesService Certificate. >>> Resource test cases, automatically generated.
-// Case Certificate资源用例 10998
-func TestAccAliCloudSslCertificatesServiceCertificate_basic10998(t *testing.T) {
+// Case 国密Certificate资源用例 11548
+func TestAccAliCloudSslCertificatesServiceCertificate_basic11548(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ssl_certificates_service_certificate.default"
-	ra := resourceAttrInit(resourceId, AliCloudSslCertificatesServiceCertificateMap10998)
+	ra := resourceAttrInit(resourceId, AlicloudSslCertificatesServiceCertificateMap11548)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &SslCertificatesServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeSslCertificatesServiceCertificate")
@@ -510,10 +510,9 @@ func TestAccAliCloudSslCertificatesServiceCertificate_basic10998(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccsslcertificatesservice%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudSslCertificatesServiceCertificateBasicDependence10998)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudSslCertificatesServiceCertificateBasicDependence11548)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -522,38 +521,44 @@ func TestAccAliCloudSslCertificatesServiceCertificate_basic10998(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"encrypt_cert":        "${var.encrypt_cert}",
-					"encrypt_private_key": "${var.encrypt_private_key}",
-					"sign_cert":           "${var.sign_cert}",
-					"sign_private_key":    "${var.sign_private_key}",
 					"certificate_name":    name,
+					"sign_cert":           "-----BEGIN CERTIFICATE----- MIIBvjCCAWWgAwIBAgIQAJzIt/HH1TasGQlFBhgvCTAKBggqgRzPVQGDdTARMQ8w DQYDVQQDDAZzbS5jb20wHhcNMjUwOTIyMDIxNDQyWhcNMzUwOTIwMDIxNDQyWjAR MQ8wDQYDVQQDDAZzbS5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAAS89+8z SlvIV7Ms2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pf e6PdKgWAYJ++y1gDo4GeMIGbMB0GA1UdDgQWBBTnfWwQ5ow95cHdfJdnB4+ueoVB AjAOBgNVHQ8BAf8EBAMCBLAwDAYDVR0TAQH/BAIwADA7BgNVHSUENDAyBggrBgEF BQcDAgYIKwYBBQUHAwEGCCsGAQUFBwMDBggrBgEFBQcDBAYIKwYBBQUHAwgwHwYD VR0jBBgwFoAU531sEOaMPeXB3XyXZwePrnqFQQIwCgYIKoEcz1UBg3UDRwAwRAIg UlhFWz4nQSa2SbGyD7gAyW1xiwUHjKqBfTJFQ/9DszQCICHdStISWyiNU07tPVle /ew9mzyuGzDTGylNw50DZGZf -----END CERTIFICATE-----",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"encrypt_cert":        "-----BEGIN CERTIFICATE----- MIIBvjCCAWWgAwIBAgIQAJzIt/HH1TasGQlFBhgvCTAKBggqgRzPVQGDdTARMQ8w DQYDVQQDDAZzbS5jb20wHhcNMjUwOTIyMDIxNDQyWhcNMzUwOTIwMDIxNDQyWjAR MQ8wDQYDVQQDDAZzbS5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAAS89+8z SlvIV7Ms2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pf e6PdKgWAYJ++y1gDo4GeMIGbMB0GA1UdDgQWBBTnfWwQ5ow95cHdfJdnB4+ueoVB AjAOBgNVHQ8BAf8EBAMCBLAwDAYDVR0TAQH/BAIwADA7BgNVHSUENDAyBggrBgEF BQcDAgYIKwYBBQUHAwEGCCsGAQUFBwMDBggrBgEFBQcDBAYIKwYBBQUHAwgwHwYD VR0jBBgwFoAU531sEOaMPeXB3XyXZwePrnqFQQIwCgYIKoEcz1UBg3UDRwAwRAIg UlhFWz4nQSa2SbGyD7gAyW1xiwUHjKqBfTJFQ/9DszQCICHdStISWyiNU07tPVle /ew9mzyuGzDTGylNw50DZGZf -----END CERTIFICATE-----",
+					"sign_private_key":    "-----BEGIN PRIVATE KEY----- MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQge6GP8kHTGt79YNRv W5ccEAsJrLUZq6GRWfxDJISUHeSgCgYIKoEcz1UBgi2hRANCAAS89+8zSlvIV7Ms 2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pfe6PdKgWA YJ++y1gD -----END PRIVATE KEY-----",
+					"encrypt_private_key": "-----BEGIN PRIVATE KEY----- MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQge6GP8kHTGt79YNRv W5ccEAsJrLUZq6GRWfxDJISUHeSgCgYIKoEcz1UBgi2hRANCAAS89+8zSlvIV7Ms 2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pfe6PdKgWA YJ++y1gD -----END PRIVATE KEY-----",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"encrypt_cert":        CHECKSET,
-						"encrypt_private_key": CHECKSET,
-						"sign_cert":           CHECKSET,
-						"sign_private_key":    CHECKSET,
 						"certificate_name":    name,
+						"sign_cert":           "-----BEGIN CERTIFICATE----- MIIBvjCCAWWgAwIBAgIQAJzIt/HH1TasGQlFBhgvCTAKBggqgRzPVQGDdTARMQ8w DQYDVQQDDAZzbS5jb20wHhcNMjUwOTIyMDIxNDQyWhcNMzUwOTIwMDIxNDQyWjAR MQ8wDQYDVQQDDAZzbS5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAAS89+8z SlvIV7Ms2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pf e6PdKgWAYJ++y1gDo4GeMIGbMB0GA1UdDgQWBBTnfWwQ5ow95cHdfJdnB4+ueoVB AjAOBgNVHQ8BAf8EBAMCBLAwDAYDVR0TAQH/BAIwADA7BgNVHSUENDAyBggrBgEF BQcDAgYIKwYBBQUHAwEGCCsGAQUFBwMDBggrBgEFBQcDBAYIKwYBBQUHAwgwHwYD VR0jBBgwFoAU531sEOaMPeXB3XyXZwePrnqFQQIwCgYIKoEcz1UBg3UDRwAwRAIg UlhFWz4nQSa2SbGyD7gAyW1xiwUHjKqBfTJFQ/9DszQCICHdStISWyiNU07tPVle /ew9mzyuGzDTGylNw50DZGZf -----END CERTIFICATE-----",
+						"resource_group_id":   CHECKSET,
+						"encrypt_cert":        "-----BEGIN CERTIFICATE----- MIIBvjCCAWWgAwIBAgIQAJzIt/HH1TasGQlFBhgvCTAKBggqgRzPVQGDdTARMQ8w DQYDVQQDDAZzbS5jb20wHhcNMjUwOTIyMDIxNDQyWhcNMzUwOTIwMDIxNDQyWjAR MQ8wDQYDVQQDDAZzbS5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAAS89+8z SlvIV7Ms2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pf e6PdKgWAYJ++y1gDo4GeMIGbMB0GA1UdDgQWBBTnfWwQ5ow95cHdfJdnB4+ueoVB AjAOBgNVHQ8BAf8EBAMCBLAwDAYDVR0TAQH/BAIwADA7BgNVHSUENDAyBggrBgEF BQcDAgYIKwYBBQUHAwEGCCsGAQUFBwMDBggrBgEFBQcDBAYIKwYBBQUHAwgwHwYD VR0jBBgwFoAU531sEOaMPeXB3XyXZwePrnqFQQIwCgYIKoEcz1UBg3UDRwAwRAIg UlhFWz4nQSa2SbGyD7gAyW1xiwUHjKqBfTJFQ/9DszQCICHdStISWyiNU07tPVle /ew9mzyuGzDTGylNw50DZGZf -----END CERTIFICATE-----",
+						"sign_private_key":    "-----BEGIN PRIVATE KEY----- MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQge6GP8kHTGt79YNRv W5ccEAsJrLUZq6GRWfxDJISUHeSgCgYIKoEcz1UBgi2hRANCAAS89+8zSlvIV7Ms 2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pfe6PdKgWA YJ++y1gD -----END PRIVATE KEY-----",
+						"encrypt_private_key": "-----BEGIN PRIVATE KEY----- MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQge6GP8kHTGt79YNRv W5ccEAsJrLUZq6GRWfxDJISUHeSgCgYIKoEcz1UBgi2hRANCAAS89+8zSlvIV7Ms 2azllmIxIiAMqTQPwUD8w1aiABZD79PhaWTmfJKtxe5xY55/gzCSc5Pfe6PdKgWA YJ++y1gD -----END PRIVATE KEY-----",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"certificate_name": name + "-update",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"certificate_name": name + "-update",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
+					"certificate_name":  name + "_update",
 					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
+						"certificate_name":  name + "_update",
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"certificate_name":  name + "_update",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"certificate_name":  name + "_update",
 						"resource_group_id": CHECKSET,
 					}),
 				),
@@ -601,145 +606,30 @@ func TestAccAliCloudSslCertificatesServiceCertificate_basic10998(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      resourceId,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"encrypt_private_key", "key", "sign_private_key"},
 			},
 		},
 	})
 }
 
-func TestAccAliCloudSslCertificatesServiceCertificate_basic10998_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_ssl_certificates_service_certificate.default"
-	ra := resourceAttrInit(resourceId, AliCloudSslCertificatesServiceCertificateMap10998)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &SslCertificatesServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeSslCertificatesServiceCertificate")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccsslcertificatesservice%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudSslCertificatesServiceCertificateBasicDependence10998)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"encrypt_cert":        "${var.encrypt_cert}",
-					"encrypt_private_key": "${var.encrypt_private_key}",
-					"sign_cert":           "${var.sign_cert}",
-					"sign_private_key":    "${var.sign_private_key}",
-					"certificate_name":    name,
-					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"encrypt_cert":        CHECKSET,
-						"encrypt_private_key": CHECKSET,
-						"sign_cert":           CHECKSET,
-						"sign_private_key":    CHECKSET,
-						"certificate_name":    name,
-						"resource_group_id":   CHECKSET,
-						"tags.%":              "2",
-						"tags.Created":        "TF",
-						"tags.For":            "Test",
-					}),
-				),
-			},
-			{
-				ResourceName:      resourceId,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
+var AlicloudSslCertificatesServiceCertificateMap11548 = map[string]string{}
 
-var AliCloudSslCertificatesServiceCertificateMap10998 = map[string]string{
-	"certificate_name":  CHECKSET,
-	"resource_group_id": CHECKSET,
-	"name":              CHECKSET,
-}
-
-func AliCloudSslCertificatesServiceCertificateBasicDependence10998(name string) string {
+func AlicloudSslCertificatesServiceCertificateBasicDependence11548(name string) string {
 	return fmt.Sprintf(`
-	variable "name" {
-  		default = "%s"
-	}
+variable "name" {
+    default = "%s"
+}
 
-	data "alicloud_resource_manager_resource_groups" "default" {
-	}
+variable "cert_name" {
+  default = "134"
+}
 
-	variable "encrypt_cert" {
-  		default = <<EOF
------BEGIN CERTIFICATE-----
-MIICOTCCAd+gAwIBAgIRAMyLoXyyYUjinX19tBRq2NswCgYIKoEcz1UBg3UwgYgx
-CzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hhaTERMA8GA1UEBwwIU2hhbmdo
-YWkxDjAMBgNVBAoMBU15U1NMMS8wLQYDVQQLDCZNeVNTTCBTTTIgVGVzdCBNaWQg
-LSBGb3IgdGVzdCB1c2Ugb25seTESMBAGA1UEAwwJTXlTU0wuY29tMB4XDTI1MDky
-MjA5MzAwOFoXDTMwMDkyMTA5MzAwOFowIDELMAkGA1UEBhMCQ04xETAPBgNVBAMT
-CDE2ODguY29tMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEEUV6G/mqnVAX8w5Y
-pOS+CT78Qxv+p5XaOf/j/dE+nl50wvjNG90hNbc/xXXfncyaxGFia8IEv02OfyoI
-7wH/nKOBkDCBjTAOBgNVHQ8BAf8EBAMCAzgwZgYIKwYBBQUHAQEEWjBYMCQGCCsG
-AQUFBzABhhhodHRwOi8vb2NzcC5nbS5teXNzbC5jb20wMAYIKwYBBQUHMAKGJGh0
-dHA6Ly9jYS5teXNzbC5jb20vbXlzc2x0ZXN0c20yLmNydDATBgNVHREEDDAKgggx
-Njg4LmNvbTAKBggqgRzPVQGDdQNIADBFAiAmIZDik4VOlSdGNI7JnZb5qNQRxZ7I
-3M7HVHCPLG/AzQIhAPw/gCRrotbanc4BXLNDqjmASDF6Rr3yMN85zRgkmyOM
------END CERTIFICATE-----
-EOF
-	}
+data "alicloud_resource_manager_resource_groups" "default" {}
 
-	variable "encrypt_private_key" {
-  		default = <<EOF
------BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgeZV0qGwTsp+HRWoz
-p5RjfAnjf23C0BHwH30i5EdxeHygCgYIKoEcz1UBgi2hRANCAAQRRXob+aqdUBfz
-Dlik5L4JPvxDG/6nldo5/+P90T6eXnTC+M0b3SE1tz/Fdd+dzJrEYWJrwgS/TY5/
-KgjvAf+c
------END PRIVATE KEY-----
-EOF
-	}
 
-	variable "sign_cert" {
-  		default = <<EOF
------BEGIN CERTIFICATE-----
-MIICNzCCAd6gAwIBAgIQFMHRdrBlR1uG8XvOAKCqRzAKBggqgRzPVQGDdTCBiDEL
-MAkGA1UEBhMCQ04xETAPBgNVBAgMCFNoYW5naGFpMREwDwYDVQQHDAhTaGFuZ2hh
-aTEOMAwGA1UECgwFTXlTU0wxLzAtBgNVBAsMJk15U1NMIFNNMiBUZXN0IE1pZCAt
-IEZvciB0ZXN0IHVzZSBvbmx5MRIwEAYDVQQDDAlNeVNTTC5jb20wHhcNMjUwOTIy
-MDkyMjQwWhcNMzAwOTIxMDkyMjQwWjAgMQswCQYDVQQGEwJDTjERMA8GA1UEAxMI
-MTY4OC5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAARd6pakVALwxocIsNN8
-o8ZzKOLUmvMJ/lrvc6Jymkj4kON/o2deuZqdLJTuoImIbAElReEpSfLmb4kfhZND
-hzy/o4GQMIGNMA4GA1UdDwEB/wQEAwIHgDBmBggrBgEFBQcBAQRaMFgwJAYIKwYB
-BQUHMAGGGGh0dHA6Ly9vY3NwLmdtLm15c3NsLmNvbTAwBggrBgEFBQcwAoYkaHR0
-cDovL2NhLm15c3NsLmNvbS9teXNzbHRlc3RzbTIuY3J0MBMGA1UdEQQMMAqCCDE2
-ODguY29tMAoGCCqBHM9VAYN1A0cAMEQCIGecCrkkVF6MhM+ZY157+3QiWjzCOicx
-qJmwZd05e3++AiBeKMZ1UUuKVDJ/oxSy2i6U1oxOlzAxEN9GVdAZ1Q8lYA==
------END CERTIFICATE-----
-EOF
-	}
-
-	variable "sign_private_key" {
-  		default = <<EOF
------BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgTCW/gskueHncKfwU
-T+d32+jtTxNny9i6ZBGeea5+6XqgCgYIKoEcz1UBgi2hRANCAARd6pakVALwxocI
-sNN8o8ZzKOLUmvMJ/lrvc6Jymkj4kON/o2deuZqdLJTuoImIbAElReEpSfLmb4kf
-hZNDhzy/
------END PRIVATE KEY-----
-EOF
-	}
 `, name)
 }
 

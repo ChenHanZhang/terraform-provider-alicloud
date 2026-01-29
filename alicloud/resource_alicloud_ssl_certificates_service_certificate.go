@@ -32,10 +32,9 @@ func resourceAliCloudSslCertificatesServiceCertificate() *schema.Resource {
 				ForceNew: true,
 			},
 			"certificate_name": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				AtLeastOneOf: []string{"certificate_name", "name"},
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"encrypt_cert": {
 				Type:     schema.TypeString,
@@ -240,6 +239,7 @@ func resourceAliCloudSslCertificatesServiceCertificateUpdate(d *schema.ResourceD
 	}
 
 	return resourceAliCloudSslCertificatesServiceCertificateRead(d, meta)
+	return nil
 }
 
 func resourceAliCloudSslCertificatesServiceCertificateDelete(d *schema.ResourceData, meta interface{}) error {
@@ -256,7 +256,6 @@ func resourceAliCloudSslCertificatesServiceCertificateDelete(d *schema.ResourceD
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("cas", "2020-04-07", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
