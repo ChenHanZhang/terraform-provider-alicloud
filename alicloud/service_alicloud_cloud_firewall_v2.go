@@ -772,7 +772,6 @@ func (s *CloudFirewallServiceV2) CloudFirewallPrivateDnsStateRefreshFuncWithApi(
 
 func (s *CloudFirewallServiceV2) DescribeCloudFirewallVpcFirewallControlPolicy(id string) (object map[string]interface{}, err error) {
 	client := s.client
-	var endpoint string
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
@@ -785,21 +784,16 @@ func (s *CloudFirewallServiceV2) DescribeCloudFirewallVpcFirewallControlPolicy(i
 	query = make(map[string]interface{})
 	request["AclUuid"] = parts[1]
 	request["VpcFirewallId"] = parts[0]
-	request["CurrentPage"] = 1
-	request["PageSize"] = PageSizeLarge
 
 	action := "DescribeVpcFirewallControlPolicy"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
