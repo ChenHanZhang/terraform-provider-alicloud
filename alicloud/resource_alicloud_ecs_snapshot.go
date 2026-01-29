@@ -34,17 +34,27 @@ func resourceAliCloudEcsSnapshot() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"standard", "flash"}, false),
 			},
+			"cool_off_period": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntInSlice([]int{0, 1}),
+			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"disk_id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"encrypted": {
+				Type:     schema.TypeBool,
+				Optional: true,
 				ForceNew: true,
 			},
 			"force": {
@@ -54,12 +64,28 @@ func resourceAliCloudEcsSnapshot() *schema.Resource {
 			"instant_access": {
 				Type:       schema.TypeBool,
 				Optional:   true,
-				Deprecated: "Field `instant_access` has been deprecated from provider version 1.231.0.",
+				Deprecated: "Field 'instant_access' has been deprecated from provider version 1.270.0. Field `instant_access` has been deprecated from provider version 1.231.0.",
 			},
 			"instant_access_retention_days": {
 				Type:       schema.TypeInt,
 				Optional:   true,
-				Deprecated: "Field `instant_access_retention_days` has been deprecated from provider version 1.231.0.",
+				ForceNew:   true,
+				Deprecated: "Field 'instant_access_retention_days' has been deprecated from provider version 1.270.0. Field `instant_access_retention_days` has been deprecated from provider version 1.231.0.",
+			},
+			"kms_key_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"lock_duration": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntInSlice([]int{0, 1}),
+			},
+			"lock_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"compliance"}, false),
 			},
 			"region_id": {
 				Type:     schema.TypeString,
@@ -68,29 +94,30 @@ func resourceAliCloudEcsSnapshot() *schema.Resource {
 			"resource_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"retention_days": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 			"snapshot_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"source_region_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: StringInSlice([]string{"cn-hangzhou"}, false),
+			},
+			"source_snapshot_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"tags": tagsSchema(),
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"snapshot_name"},
-				Deprecated:    "Field `name` has been deprecated from provider version 1.120.0. New field `snapshot_name` instead.",
-			},
 		},
 	}
 }
@@ -108,28 +135,28 @@ func resourceAliCloudEcsSnapshotCreate(d *schema.ResourceData, meta interface{})
 
 	request["ClientToken"] = buildClientToken(action)
 
+	request["DiskId"] = d.Get("disk_id")
+	if v, ok := d.GetOkExists("instant_access"); ok {
+		request["InstantAccess"] = v
+	}
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
 		request = expandTagsToMap(request, tagsMap)
 	}
 
-	if v, ok := d.GetOk("description"); ok {
-		request["Description"] = v
-	}
-	if v, ok := d.GetOk("snapshot_name"); ok {
-		request["SnapshotName"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["SnapshotName"] = v
-	}
-	if v, ok := d.GetOkExists("retention_days"); ok {
-		request["RetentionDays"] = v
-	}
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
-	request["DiskId"] = d.Get("disk_id")
 	if v, ok := d.GetOk("category"); ok {
 		request["Category"] = v
+	}
+	request["Description"] = d.Get("description")
+	request["SnapshotName"] = d.Get("snapshot_name")
+	if v, ok := d.GetOkExists("instant_access_retention_days"); ok {
+		request["InstantAccessRetentionDays"] = v
+	}
+	if v, ok := d.GetOkExists("retention_days"); ok {
+		request["RetentionDays"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -157,7 +184,53 @@ func resourceAliCloudEcsSnapshotCreate(d *schema.ResourceData, meta interface{})
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAliCloudEcsSnapshotRead(d, meta)
+	action = "CopySnapshot"
+	request = make(map[string]interface{})
+	request["DestinationRegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
+	}
+
+	request["DestinationSnapshotDescription"] = d.Get("description")
+	if v, ok := d.GetOkExists("encrypted"); ok {
+		request["Encrypted"] = v
+	}
+	request["DestinationSnapshotName"] = d.Get("snapshot_name")
+	request["SnapshotId"] = d.Get("source_snapshot_id")
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		request["KMSKeyId"] = v
+	}
+	if v, ok := d.GetOkExists("retention_days"); ok {
+		request["RetentionDays"] = v
+	}
+	request["RegionId"] = d.Get("source_region_id")
+	wait = incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_snapshot", action, AlibabaCloudSdkGoERROR)
+	}
+
+	d.SetId(fmt.Sprint(response["SnapshotId"]))
+
+	return resourceAliCloudEcsSnapshotUpdate(d, meta)
 }
 
 func resourceAliCloudEcsSnapshotRead(d *schema.ResourceData, meta interface{}) error {
@@ -174,37 +247,31 @@ func resourceAliCloudEcsSnapshotRead(d *schema.ResourceData, meta interface{}) e
 		return WrapError(err)
 	}
 
-	if objectRaw["Category"] != nil {
-		d.Set("category", objectRaw["Category"])
-	}
-	if objectRaw["CreationTime"] != nil {
-		d.Set("create_time", objectRaw["CreationTime"])
-	}
-	if objectRaw["Description"] != nil {
-		d.Set("description", objectRaw["Description"])
-	}
-	if objectRaw["SourceDiskId"] != nil {
-		d.Set("disk_id", objectRaw["SourceDiskId"])
-	}
-	if objectRaw["RegionId"] != nil {
-		d.Set("region_id", objectRaw["RegionId"])
-	}
-	if objectRaw["ResourceGroupId"] != nil {
-		d.Set("resource_group_id", objectRaw["ResourceGroupId"])
-	}
-	if objectRaw["RetentionDays"] != nil {
-		d.Set("retention_days", objectRaw["RetentionDays"])
-	}
-	if objectRaw["SnapshotName"] != nil {
-		d.Set("snapshot_name", objectRaw["SnapshotName"])
-		d.Set("name", objectRaw["SnapshotName"])
-	}
-	if objectRaw["Status"] != nil {
-		d.Set("status", objectRaw["Status"])
-	}
+	d.Set("category", objectRaw["Category"])
+	d.Set("create_time", objectRaw["CreationTime"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("disk_id", objectRaw["SourceDiskId"])
+	d.Set("encrypted", objectRaw["Encrypted"])
+	d.Set("instant_access", objectRaw["InstantAccess"])
+	d.Set("instant_access_retention_days", objectRaw["InstantAccessRetentionDays"])
+	d.Set("kms_key_id", objectRaw["KMSKeyId"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
+	d.Set("retention_days", objectRaw["RetentionDays"])
+	d.Set("snapshot_name", objectRaw["SnapshotName"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("source_region_id", objectRaw["SourceRegionId"])
 
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
+
+	objectRaw, err = ecsServiceV2.DescribeSnapshotDescribeLockedSnapshots(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("cool_off_period", objectRaw["CoolOffPeriod"])
+	d.Set("lock_duration", objectRaw["LockDuration"])
 
 	return nil
 }
@@ -217,36 +284,66 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 	update := false
 	d.Partial(true)
 
-	action := "ModifySnapshotAttribute"
+	ecsServiceV2 := EcsServiceV2{client}
+	objectRaw, _ := ecsServiceV2.DescribeEcsSnapshot(d.Id())
+
+	if d.HasChange("lock_status") {
+		var err error
+		target := d.Get("lock_status").(string)
+		if target == "unlocked" {
+			action := "UnlockSnapshot"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["SnapshotId"] = d.Id()
+			request["RegionId"] = client.RegionId
+			request["ClientToken"] = buildClientToken(action)
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+			ecsServiceV2 := EcsServiceV2{client}
+			stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFuncWithApi(d.Id(), "LockDuration", []string{}, ecsServiceV2.DescribeSnapshotDescribeLockedSnapshots))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+
+		}
+	}
+
 	var err error
+	action := "ModifySnapshotAttribute"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["SnapshotId"] = d.Id()
 
-	if d.HasChange("description") {
+	if !d.IsNewResource() && d.HasChange("instant_access") {
 		update = true
-		request["Description"] = d.Get("description")
+		request["DisableInstantAccess"] = d.Get("instant_access")
 	}
 
-	if d.HasChange("snapshot_name") {
+	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
-		request["SnapshotName"] = d.Get("snapshot_name")
 	}
-
-	if d.HasChange("retention_days") {
+	request["Description"] = d.Get("description")
+	if !d.IsNewResource() && d.HasChange("snapshot_name") {
 		update = true
-
-		if v, ok := d.GetOkExists("retention_days"); ok {
-			request["RetentionDays"] = v
-		}
 	}
-
-	if d.HasChange("name") {
+	request["SnapshotName"] = d.Get("snapshot_name")
+	if !d.IsNewResource() && d.HasChange("retention_days") {
 		update = true
-
-		if v, ok := d.GetOk("name"); ok {
-			request["SnapshotName"] = v
-		}
+		request["RetentionDays"] = d.Get("retention_days")
 	}
 
 	if update {
@@ -278,11 +375,9 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if d.HasChange("resource_group_id") {
+	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
 		update = true
-	}
-	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["ResourceGroupId"] = v
+		request["ResourceGroupId"] = d.Get("resource_group_id")
 	}
 
 	request["ResourceType"] = "snapshot"
@@ -302,6 +397,79 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifySnapshotCategory"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["SnapshotId"] = d.Id()
+	request["SourceRegionId"] = client.RegionId
+	if !d.IsNewResource() && d.HasChange("category") {
+		update = true
+		request["Category"] = d.Get("category")
+	}
+
+	if !d.IsNewResource() && d.HasChange("retention_days") {
+		update = true
+		request["RetentionDays"] = d.Get("retention_days")
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "LockSnapshot"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["SnapshotId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("cool_off_period") {
+		update = true
+	}
+	request["CoolOffPeriod"] = d.Get("cool_off_period")
+	if d.HasChange("lock_duration") {
+		update = true
+	}
+	request["LockDuration"] = d.Get("lock_duration")
+	request["LockMode"] = d.Get("lock_mode")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		ecsServiceV2 := EcsServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFuncWithApi(d.Id(), "#LockDuration", []string{}, ecsServiceV2.DescribeSnapshotDescribeLockedSnapshots))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 
@@ -332,7 +500,6 @@ func resourceAliCloudEcsSnapshotDelete(d *schema.ResourceData, meta interface{})
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -352,4 +519,13 @@ func resourceAliCloudEcsSnapshotDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return nil
+}
+
+func convertEcsSnapshotLockedSnapshotsInfoLockStatusResponse(source interface{}) interface{} {
+	source = fmt.Sprint(source)
+	switch source {
+	case "unlocked":
+		return ""
+	}
+	return source
 }
