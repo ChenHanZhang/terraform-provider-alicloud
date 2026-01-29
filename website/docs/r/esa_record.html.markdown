@@ -20,12 +20,6 @@ For information about ESA Record and how to use it, see [What is Record](https:/
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_record&exampleId=481256ba-f7b1-ccf5-8fe9-bd54780bb71216c0d2d6&activeTab=example&spm=docs.r.esa_record.0.481256baf7&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -68,18 +62,16 @@ resource "alicloud_esa_record" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_record&spm=docs.r.esa_record.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `auth_conf` - (Optional, List) The origin authentication information of the CNAME record. See [`auth_conf`](#auth_conf) below.
+* `auth_conf` - (Optional, Set) The origin authentication information of the CNAME record. See [`auth_conf`](#auth_conf) below.
 * `biz_name` - (Optional) The business scenario of the record for acceleration. Leave the parameter empty if your record is not proxied. Valid values:
   - `image_video`: video and image.
   - `api`: API.
   - `web`: web page.
 * `comment` - (Optional) The comment of the record. The maximum length is 100 characters.
-* `data` - (Required, List) The DNS record information. The format of this field varies based on the record type. For more information, see [References](https://www.alibabacloud.com/help/doc-detail/2708761.html?spm=openapi-amp.newDocPublishment.0.0.6a0f281feoeVWr). See [`data`](#data) below.
+* `data` - (Required, Set) The DNS record information. The format of this field varies based on the record type. For more information, see [References](https://www.alibabacloud.com/help/doc-detail/2708761.html?spm=openapi-amp.newDocPublishment.0.0.6a0f281feoeVWr). See [`data`](#data) below.
 * `host_policy` - (Optional) The origin host policy. This policy takes effect when the record type is CNAME. You can set the policy in two modes:
   - `follow_hostname`: Follow the host record.
   - `follow_origin_domain`: match the origin's domain name.
@@ -96,7 +88,7 @@ The following arguments are supported:
   - `OP`: origin pool.
   - `Domain`: domain name.
   - If you do not pass this parameter or if you leave its value empty, Domain is used by default.
-* `ttl` - (Optional, Int) The TTL of the record. Unit: seconds. If the value is 1, the TTL of the record is determined by the system.
+* `ttl` - (Required, Int) The TTL of the record. Unit: seconds. If the value is 1, the TTL of the record is determined by the system.
 
 ### `auth_conf`
 
@@ -146,8 +138,8 @@ The data supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - The time when the record was created. The time follows the ISO 8601 standard in the yyyy-MM-ddTHH:mm:ssZ format. The time is displayed in UTC.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The time when the record was created.
 
 ## Timeouts
 
@@ -161,5 +153,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 ESA Record can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_esa_record.example <id>
+$ terraform import alicloud_esa_record.example <record_id>
 ```

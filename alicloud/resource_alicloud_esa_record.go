@@ -50,7 +50,7 @@ func resourceAliCloudEsaRecord() *schema.Resource {
 						"auth_type": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: StringInSlice([]string{"public", "private", "private_same_account"}, false),
+							ValidateFunc: StringInSlice([]string{"public", "private", "private_same_account", "private_cross_account"}, false),
 						},
 						"access_key": {
 							Type:      schema.TypeString,
@@ -167,7 +167,7 @@ func resourceAliCloudEsaRecord() *schema.Resource {
 			},
 			"ttl": {
 				Type:     schema.TypeInt,
-				Optional: true,
+				Required: true,
 			},
 		},
 	}
@@ -286,9 +286,7 @@ func resourceAliCloudEsaRecordCreate(d *schema.ResourceData, meta interface{}) e
 		request["AuthConf"] = string(authConfJson)
 	}
 
-	if v, ok := d.GetOkExists("ttl"); ok {
-		request["Ttl"] = v
-	}
+	request["Ttl"] = d.Get("ttl")
 	request["RecordName"] = d.Get("record_name")
 	if v, ok := d.GetOk("host_policy"); ok {
 		request["HostPolicy"] = v
@@ -428,59 +426,59 @@ func resourceAliCloudEsaRecordUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if v := d.Get("data"); v != nil {
 		value1, _ := jsonpath.Get("$[0].value", v)
-		if value1 != nil && (d.HasChange("data.0.value") || value1 != "") {
+		if value1 != nil && value1 != "" {
 			data["Value"] = value1
 		}
 		matchingType1, _ := jsonpath.Get("$[0].matching_type", v)
-		if matchingType1 != nil && (d.HasChange("data.0.matching_type") || matchingType1 != "") {
+		if matchingType1 != nil && matchingType1 != "" {
 			data["MatchingType"] = matchingType1
 		}
 		fingerprint1, _ := jsonpath.Get("$[0].fingerprint", v)
-		if fingerprint1 != nil && (d.HasChange("data.0.fingerprint") || fingerprint1 != "") {
+		if fingerprint1 != nil && fingerprint1 != "" {
 			data["Fingerprint"] = fingerprint1
 		}
 		usage1, _ := jsonpath.Get("$[0].usage", v)
-		if usage1 != nil && (d.HasChange("data.0.usage") || usage1 != "") {
+		if usage1 != nil && usage1 != "" {
 			data["Usage"] = usage1
 		}
 		algorithm1, _ := jsonpath.Get("$[0].algorithm", v)
-		if algorithm1 != nil && (d.HasChange("data.0.algorithm") || algorithm1 != "") {
+		if algorithm1 != nil && algorithm1 != "" {
 			data["Algorithm"] = algorithm1
 		}
 		type1, _ := jsonpath.Get("$[0].type", v)
-		if type1 != nil && (d.HasChange("data.0.type") || type1 != "") {
+		if type1 != nil && type1 != "" {
 			data["Type"] = type1
 		}
 		keyTag1, _ := jsonpath.Get("$[0].key_tag", v)
-		if keyTag1 != nil && (d.HasChange("data.0.key_tag") || keyTag1 != "") {
+		if keyTag1 != nil && keyTag1 != "" {
 			data["KeyTag"] = keyTag1
 		}
 		certificate1, _ := jsonpath.Get("$[0].certificate", v)
-		if certificate1 != nil && (d.HasChange("data.0.certificate") || certificate1 != "") {
+		if certificate1 != nil && certificate1 != "" {
 			data["Certificate"] = certificate1
 		}
 		port1, _ := jsonpath.Get("$[0].port", v)
-		if port1 != nil && (d.HasChange("data.0.port") || port1 != "") {
+		if port1 != nil && port1 != "" {
 			data["Port"] = port1
 		}
 		weight1, _ := jsonpath.Get("$[0].weight", v)
-		if weight1 != nil && (d.HasChange("data.0.weight") || weight1 != "") {
+		if weight1 != nil && weight1 != "" {
 			data["Weight"] = weight1
 		}
 		priority1, _ := jsonpath.Get("$[0].priority", v)
-		if priority1 != nil && (d.HasChange("data.0.priority") || priority1 != "") {
+		if priority1 != nil && priority1 != "" {
 			data["Priority"] = priority1
 		}
 		selector1, _ := jsonpath.Get("$[0].selector", v)
-		if selector1 != nil && (d.HasChange("data.0.selector") || selector1 != "") {
+		if selector1 != nil && selector1 != "" {
 			data["Selector"] = selector1
 		}
 		tag1, _ := jsonpath.Get("$[0].tag", v)
-		if tag1 != nil && (d.HasChange("data.0.tag") || tag1 != "") {
+		if tag1 != nil && tag1 != "" {
 			data["Tag"] = tag1
 		}
 		flag1, _ := jsonpath.Get("$[0].flag", v)
-		if flag1 != nil && (d.HasChange("data.0.flag") || flag1 != "") {
+		if flag1 != nil && flag1 != "" {
 			data["Flag"] = flag1
 		}
 
@@ -497,23 +495,23 @@ func resourceAliCloudEsaRecordUpdate(d *schema.ResourceData, meta interface{}) e
 
 		if v := d.Get("auth_conf"); v != nil {
 			accessKey1, _ := jsonpath.Get("$[0].access_key", v)
-			if accessKey1 != nil && (d.HasChange("auth_conf.0.access_key") || accessKey1 != "") {
+			if accessKey1 != nil && accessKey1 != "" {
 				authConf["AccessKey"] = accessKey1
 			}
 			version1, _ := jsonpath.Get("$[0].version", v)
-			if version1 != nil && (d.HasChange("auth_conf.0.version") || version1 != "") {
+			if version1 != nil && version1 != "" {
 				authConf["Version"] = version1
 			}
 			authType1, _ := jsonpath.Get("$[0].auth_type", v)
-			if authType1 != nil && (d.HasChange("auth_conf.0.auth_type") || authType1 != "") {
+			if authType1 != nil && authType1 != "" {
 				authConf["AuthType"] = authType1
 			}
 			secretKey1, _ := jsonpath.Get("$[0].secret_key", v)
-			if secretKey1 != nil && (d.HasChange("auth_conf.0.secret_key") || secretKey1 != "") {
+			if secretKey1 != nil && secretKey1 != "" {
 				authConf["SecretKey"] = secretKey1
 			}
 			region1, _ := jsonpath.Get("$[0].region", v)
-			if region1 != nil && (d.HasChange("auth_conf.0.region") || region1 != "") {
+			if region1 != nil && region1 != "" {
 				authConf["Region"] = region1
 			}
 
@@ -527,9 +525,8 @@ func resourceAliCloudEsaRecordUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("ttl") {
 		update = true
-		request["Ttl"] = d.Get("ttl")
 	}
-
+	request["Ttl"] = d.Get("ttl")
 	if d.HasChange("host_policy") {
 		update = true
 		request["HostPolicy"] = d.Get("host_policy")

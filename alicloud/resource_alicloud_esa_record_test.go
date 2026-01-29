@@ -730,3 +730,744 @@ resource "alicloud_esa_site" "resource_Site_caa_test" {
 }
 
 // Test ESA Record. <<< Resource test cases, automatically generated.
+// Test Esa Record. >>> Resource test cases, automatically generated.
+// Case resource_Record_cert_test 11883
+func TestAccAliCloudEsaRecord_basic11883(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11883)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccesa%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11883)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"site_id":     "${alicloud_esa_site.resource_Site_cert_test.id}",
+					"record_type": "CERT",
+					"data": []map[string]interface{}{
+						{
+							"type":        "111",
+							"key_tag":     "11",
+							"algorithm":   "11",
+							"certificate": "eGVzdGFsbWNkbg==",
+						},
+					},
+					"ttl": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"site_id":     CHECKSET,
+						"record_type": "CERT",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "test_record_comment",
+					"data": []map[string]interface{}{
+						{
+							"type":        "222",
+							"key_tag":     "22",
+							"algorithm":   "22",
+							"certificate": "bGVzdGGsbWNkbg==",
+						},
+					},
+					"ttl": "86400",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "test_record_comment",
+						"ttl":     "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11883 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11883(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_cert_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_cert_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_cert_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Case resource_Record_sshfp_test 11884
+func TestAccAliCloudEsaRecord_basic11884(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11884)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccesa%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11884)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"site_id":     "${alicloud_esa_site.resource_Site_sshfp_test.id}",
+					"record_type": "SSHFP",
+					"data": []map[string]interface{}{
+						{
+							"type":        "1",
+							"fingerprint": "6262626475636f6d",
+							"algorithm":   "1",
+						},
+					},
+					"ttl": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"site_id":     CHECKSET,
+						"record_type": "SSHFP",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "test_record_comment",
+					"data": []map[string]interface{}{
+						{
+							"type":        "3",
+							"fingerprint": "6464646475636f6d",
+							"algorithm":   "3",
+						},
+					},
+					"ttl": "86400",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "test_record_comment",
+						"ttl":     "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11884 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11884(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_sshfp_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_sshfp_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_sshfp_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Case resource_Record_srv_test 11885
+func TestAccAliCloudEsaRecord_basic11885(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11885)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11885)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"site_id":     "${alicloud_esa_site.resource_Site_srv_test.id}",
+					"record_type": "SRV",
+					"data": []map[string]interface{}{
+						{
+							"priority": "1",
+							"port":     "80",
+							"value":    "www.eerrraaa.com",
+							"weight":   "1",
+						},
+					},
+					"ttl": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"site_id":     CHECKSET,
+						"record_type": "SRV",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "test_record_comment",
+					"data": []map[string]interface{}{
+						{
+							"priority": "2",
+							"port":     "8080",
+							"value":    "www.qwer.com",
+							"weight":   "2",
+						},
+					},
+					"ttl": "86400",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "test_record_comment",
+						"ttl":     "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11885 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11885(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_srv_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_srv_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_srv_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Case resource_Record_smimea_test 11886
+func TestAccAliCloudEsaRecord_basic11886(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11886)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccesa%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11886)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"site_id":     "${alicloud_esa_site.resource_Site_smimea_test.id}",
+					"record_type": "SMIMEA",
+					"data": []map[string]interface{}{
+						{
+							"usage":         "1",
+							"matching_type": "1",
+							"selector":      "1",
+							"certificate":   "7777276264696475536f6d313237",
+						},
+					},
+					"ttl": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"site_id":     CHECKSET,
+						"record_type": "SMIMEA",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "test_record_comment",
+					"data": []map[string]interface{}{
+						{
+							"usage":         "3",
+							"matching_type": "3",
+							"selector":      "3",
+							"certificate":   "7737246264656475536f6d617256",
+						},
+					},
+					"ttl": "86400",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "test_record_comment",
+						"ttl":     "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11886 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11886(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_smimea_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_smimea_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_smimea_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Case resource_Record_test_cname 11887
+func TestAccAliCloudEsaRecord_basic11887(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11887)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccesa%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11887)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"proxied":     "true",
+					"site_id":     "${alicloud_esa_site.resource_Site_basic_test.id}",
+					"record_type": "CNAME",
+					"source_type": "S3",
+					"data": []map[string]interface{}{
+						{
+							"value": "www.idltestr.com",
+						},
+					},
+					"biz_name":    "api",
+					"host_policy": "follow_hostname",
+					"ttl":         "100",
+					"auth_conf": []map[string]interface{}{
+						{
+							"secret_key": "hijklmnhijklmnhijklmnhijklmn",
+							"version":    "v4",
+							"region":     "us-east-1",
+							"auth_type":  "private",
+							"access_key": "abcdefgabcdefgabcdefgabcdefg",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"proxied":     "true",
+						"site_id":     CHECKSET,
+						"record_type": "CNAME",
+						"source_type": "S3",
+						"biz_name":    "api",
+						"host_policy": "follow_hostname",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"biz_name": "web",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"biz_name": "web",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"data": []map[string]interface{}{
+						{
+							"value": "www.pangleitestupdate.com",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"ttl": "3600",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"ttl": "3600",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "DNS记录测试",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "DNS记录测试",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"source_type": "OSS",
+					"auth_conf": []map[string]interface{}{
+						{
+							"secret_key": "secretkey1234567890abcdefghijklmn",
+							"version":    "v2",
+							"region":     "us-east-2",
+							"auth_type":  "public",
+							"access_key": "AccessKey1234567890abcdefghijklmn",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"source_type": "OSS",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"host_policy": "follow_origin_domain",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"host_policy": "follow_origin_domain",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment":     "test_record_comment",
+					"source_type": "S3",
+					"data": []map[string]interface{}{
+						{
+							"value": "www.plexample.com",
+						},
+					},
+					"biz_name": "api",
+					"ttl":      "86400",
+					"auth_conf": []map[string]interface{}{
+						{
+							"secret_key": "secretkey0987654321fedcbafedcba",
+							"version":    "v2",
+							"region":     "us-gov-west-1",
+							"auth_type":  "private",
+							"access_key": "AccessKey0987654321fedcbafedcba",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment":     "test_record_comment",
+						"source_type": "S3",
+						"biz_name":    "api",
+						"ttl":         "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11887 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11887(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_basic_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_basic_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_basic_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Case resource_Record_caa_test 11888
+func TestAccAliCloudEsaRecord_basic11888(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_esa_record.default"
+	ra := resourceAttrInit(resourceId, AlicloudEsaRecordMap11888)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEsaRecord")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccesa%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaRecordBasicDependence11888)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"record_name": name,
+					"comment":     "This is a remark",
+					"site_id":     "${alicloud_esa_site.resource_Site_caa_test.id}",
+					"record_type": "CAA",
+					"data": []map[string]interface{}{
+						{
+							"value": "www.eerrraaa.com",
+							"tag":   "issue",
+							"flag":  "1",
+						},
+					},
+					"ttl": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"record_name": name,
+						"comment":     "This is a remark",
+						"site_id":     CHECKSET,
+						"record_type": "CAA",
+						"ttl":         "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"comment": "test_record_comment",
+					"data": []map[string]interface{}{
+						{
+							"value": "www.qwer.com",
+							"tag":   "issuewild",
+							"flag":  "1",
+						},
+					},
+					"ttl": "86400",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"comment": "test_record_comment",
+						"ttl":     "86400",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_conf"},
+			},
+		},
+	})
+}
+
+var AlicloudEsaRecordMap11888 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudEsaRecordBasicDependence11888(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_esa_rate_plan_instance" "resource_RatePlanInstance_caa_test" {
+  type         = "NS"
+  auto_renew   = false
+  period       = "1"
+  payment_type = "Subscription"
+  coverage     = "overseas"
+  auto_pay     = true
+  plan_name    = "high"
+}
+
+resource "alicloud_esa_site" "resource_Site_caa_test" {
+  site_name   = "gositecdn.cn"
+  instance_id = alicloud_esa_rate_plan_instance.resource_RatePlanInstance_caa_test.id
+  coverage    = "overseas"
+  access_type = "NS"
+}
+
+
+`, name)
+}
+
+// Test Esa Record. <<< Resource test cases, automatically generated.
