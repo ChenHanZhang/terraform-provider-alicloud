@@ -435,6 +435,7 @@ func (s *RdsServiceV2) RdsDatabaseStateRefreshFuncWithApi(id string, field strin
 }
 
 // DescribeRdsDatabase >>> Encapsulated.
+
 // DescribeRdsAccount <<< Encapsulated get interface for Rds Account.
 
 func (s *RdsServiceV2) DescribeRdsAccount(id string) (object map[string]interface{}, err error) {
