@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
@@ -595,7 +596,6 @@ func TestAccAliCloudFcv3CustomDomain_basic7241_raw(t *testing.T) {
 }
 
 // Test Fc3 CustomDomain. <<< Resource test cases, automatically generated.
-
 // Test Fcv3 CustomDomain. >>> Resource test cases, automatically generated.
 // Case TestCustomDomain_CORS 12462
 func TestAccAliCloudFcv3CustomDomain_basic12462(t *testing.T) {
@@ -607,7 +607,8 @@ func TestAccAliCloudFcv3CustomDomain_basic12462(t *testing.T) {
 	}, "DescribeFcv3CustomDomain")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	name := fmt.Sprintf("flask-07ap.fcv3.%d.%s.fc.devsapp.net", 1511928242963727, defaultRegionToTest)
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfcv3%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3CustomDomainBasicDependence12462)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -851,9 +852,7 @@ func TestAccAliCloudFcv3CustomDomain_basic12462(t *testing.T) {
 							"auth_type": "function",
 						},
 					},
-					"protocol":    "HTTP",
-					"cert_config": REMOVEKEY,
-					"tls_config":  REMOVEKEY,
+					"protocol": "HTTP",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -882,6 +881,7 @@ var AlicloudFcv3CustomDomainMap12462 = map[string]string{
 	"account_id":         CHECKSET,
 	"create_time":        CHECKSET,
 	"last_modified_time": CHECKSET,
+	"subdomain_count":    CHECKSET,
 }
 
 func AlicloudFcv3CustomDomainBasicDependence12462(name string) string {
@@ -912,7 +912,8 @@ func TestAccAliCloudFcv3CustomDomain_basic7338(t *testing.T) {
 	}, "DescribeFcv3CustomDomain")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	name := fmt.Sprintf("flask-07ap.fcv3.%d.%s.fc.devsapp.net", 1511928242963727, "cn-shanghai")
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfcv3%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3CustomDomainBasicDependence7338)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1134,9 +1135,7 @@ func TestAccAliCloudFcv3CustomDomain_basic7338(t *testing.T) {
 							"auth_type": "function",
 						},
 					},
-					"protocol":    "HTTP",
-					"cert_config": REMOVEKEY,
-					"tls_config":  REMOVEKEY,
+					"protocol": "HTTP",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -1165,6 +1164,7 @@ var AlicloudFcv3CustomDomainMap7338 = map[string]string{
 	"account_id":         CHECKSET,
 	"create_time":        CHECKSET,
 	"last_modified_time": CHECKSET,
+	"subdomain_count":    CHECKSET,
 }
 
 func AlicloudFcv3CustomDomainBasicDependence7338(name string) string {
@@ -1195,7 +1195,8 @@ func TestAccAliCloudFcv3CustomDomain_basic6974(t *testing.T) {
 	}, "DescribeFcv3CustomDomain")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	name := fmt.Sprintf("flask-07ap.fcv3.%d.%s.fc.devsapp.net", 1511928242963727, "cn-shanghai")
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfcv3%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3CustomDomainBasicDependence6974)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1417,9 +1418,7 @@ func TestAccAliCloudFcv3CustomDomain_basic6974(t *testing.T) {
 							"auth_type": "function",
 						},
 					},
-					"protocol":    "HTTP",
-					"cert_config": REMOVEKEY,
-					"tls_config":  REMOVEKEY,
+					"protocol": "HTTP",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -1448,6 +1447,7 @@ var AlicloudFcv3CustomDomainMap6974 = map[string]string{
 	"account_id":         CHECKSET,
 	"create_time":        CHECKSET,
 	"last_modified_time": CHECKSET,
+	"subdomain_count":    CHECKSET,
 }
 
 func AlicloudFcv3CustomDomainBasicDependence6974(name string) string {
@@ -1478,7 +1478,8 @@ func TestAccAliCloudFcv3CustomDomain_basic7241(t *testing.T) {
 	}, "DescribeFcv3CustomDomain")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	name := fmt.Sprintf("flask-07ap.fcv3.%d.%s.fc.devsapp.net", 1511928242963727, "cn-shanghai")
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfcv3%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3CustomDomainBasicDependence7241)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1695,9 +1696,7 @@ func TestAccAliCloudFcv3CustomDomain_basic7241(t *testing.T) {
 							"auth_type": "function",
 						},
 					},
-					"protocol":    "HTTP",
-					"cert_config": REMOVEKEY,
-					"tls_config":  REMOVEKEY,
+					"protocol": "HTTP",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -1726,6 +1725,7 @@ var AlicloudFcv3CustomDomainMap7241 = map[string]string{
 	"account_id":         CHECKSET,
 	"create_time":        CHECKSET,
 	"last_modified_time": CHECKSET,
+	"subdomain_count":    CHECKSET,
 }
 
 func AlicloudFcv3CustomDomainBasicDependence7241(name string) string {

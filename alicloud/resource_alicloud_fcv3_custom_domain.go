@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -43,10 +44,6 @@ func resourceAliCloudFcv3CustomDomain() *schema.Resource {
 						"auth_info": {
 							Type:     schema.TypeString,
 							Optional: true,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								equal, _ := compareJsonTemplateAreEquivalent(old, new)
-								return equal
-							},
 						},
 						"auth_type": {
 							Type:         schema.TypeString,
