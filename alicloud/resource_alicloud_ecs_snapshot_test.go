@@ -926,3 +926,391 @@ func TestUnitAliCloudEcsSnapshot(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
+
+// Test Ecs Snapshot. >>> Resource test cases, automatically generated.
+// Case 基本创建+修改+标签+锁定_换账号测试 12162
+func TestAccAliCloudEcsSnapshot_basic12162(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_snapshot.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsSnapshotMap12162)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsSnapshot")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsSnapshotBasicDependence12162)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":      "model_test",
+					"disk_id":          "${alicloud_ecs_disk.查询磁盘.id}",
+					"snapshot_name":    name,
+					"retention_days":   "3",
+					"source_region_id": "${var.region_id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":      "model_test",
+						"disk_id":          CHECKSET,
+						"snapshot_name":    name,
+						"retention_days":   "3",
+						"source_region_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":    "修改描述",
+					"snapshot_name":  name + "_update",
+					"retention_days": "4",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":    "修改描述",
+						"snapshot_name":  name + "_update",
+						"retention_days": "4",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"cool_off_period": "1",
+					"lock_duration":   "1",
+					"lock_mode":       "compliance",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"cool_off_period": "1",
+						"lock_duration":   "1",
+						"lock_mode":       "compliance",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"lock_mode", "source_region_id", "source_snapshot_id"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsSnapshotMap12162 = map[string]string{
+	"status":      " ",
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudEcsSnapshotBasicDependence12162(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "zone_id" {
+  default = "cn-hangzhou-h"
+}
+
+variable "destination_region_id" {
+  default = "cn-qingdao"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+resource "alicloud_vpc" "创建VPC" {
+  is_default = false
+  cidr_block = "172.16.0.0/16"
+}
+
+resource "alicloud_vswitch" "创建交换机" {
+  vpc_id     = alicloud_vpc.创建VPC.id
+  zone_id    = var.zone_id
+  cidr_block = "172.16.0.0/24"
+}
+
+resource "alicloud_security_group" "创建安全组" {
+  vpc_id              = alicloud_vpc.创建VPC.id
+  security_group_type = "normal"
+  description         = "sg"
+  security_group_name = "sg_name"
+}
+
+resource "alicloud_ecs_instance" "创建实例" {
+  system_disk {
+    size      = "20"
+    category  = "cloud_essd"
+    disk_name = "快照模型测试"
+  }
+  vpc_attributes {
+    vpc_id     = alicloud_vpc.创建VPC.id
+    vswitch_id = alicloud_vswitch.创建交换机.id
+  }
+  instance_name     = "快照模型测试"
+  instance_type     = "ecs.u1-c1m1.large"
+  image_id          = "aliyun_3_x64_20G_alibase_20251030.vhd"
+  payment_type      = "PayAsYouGo"
+  security_group_id = alicloud_security_group.创建安全组.id
+  status            = "Running"
+}
+
+resource "alicloud_ecs_disk" "查询磁盘" {
+  disk_name = "快照模型测试"
+  category  = "cloud_essd"
+}
+
+
+`, name)
+}
+
+// Case testaaa 12243
+func TestAccAliCloudEcsSnapshot_basic12243(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_snapshot.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsSnapshotMap12243)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsSnapshot")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsSnapshotBasicDependence12243)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":       "xinglv_test",
+					"disk_id":           "${alicloud_ecs_disk.查询磁盘.id}",
+					"snapshot_name":     name,
+					"retention_days":    "3",
+					"source_region_id":  "${var.region_id}",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":       "xinglv_test",
+						"disk_id":           CHECKSET,
+						"snapshot_name":     name,
+						"retention_days":    "3",
+						"source_region_id":  CHECKSET,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":     "修改描述",
+					"snapshot_name":   name + "_update",
+					"retention_days":  "4",
+					"lock_mode":       "compliance",
+					"cool_off_period": "1",
+					"lock_duration":   "1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":     "修改描述",
+						"snapshot_name":   name + "_update",
+						"retention_days":  "4",
+						"lock_mode":       "compliance",
+						"cool_off_period": "1",
+						"lock_duration":   "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"lock_mode", "source_region_id", "source_snapshot_id"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsSnapshotMap12243 = map[string]string{
+	"status":      " ",
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudEcsSnapshotBasicDependence12243(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "zone_id" {
+  default = "cn-hangzhou-i"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+resource "alicloud_vpc" "创建VPC" {
+  is_default = false
+}
+
+resource "alicloud_vswitch" "创建交换机" {
+  vpc_id       = alicloud_vpc.创建VPC.id
+  vswitch_name = "快照模型测试"
+  zone_id      = var.zone_id
+  cidr_block   = "172.19.192.0/20"
+}
+
+resource "alicloud_security_group" "创建安全组" {
+  security_group_name = "快照模型测试"
+  vpc_id              = alicloud_vpc.创建VPC.id
+  security_group_type = "normal"
+}
+
+resource "alicloud_ecs_instance" "创建实例" {
+  system_disk {
+    size      = "20"
+    category  = "cloud_essd"
+    disk_name = "快照模型测试"
+  }
+  vpc_attributes {
+    vpc_id     = alicloud_vpc.创建VPC.id
+    vswitch_id = alicloud_vswitch.创建交换机.id
+  }
+  instance_name     = "快照模型测试"
+  instance_type     = "ecs.u1-c1m1.large"
+  image_id          = "aliyun_3_x64_20G_alibase_20251030.vhd"
+  payment_type      = "PayAsYouGo"
+  security_group_id = alicloud_security_group.创建安全组.id
+  status            = "Running"
+}
+
+resource "alicloud_ecs_disk" "查询磁盘" {
+  disk_name = "快照模型测试"
+  category  = "cloud_essd"
+}
+
+
+`, name)
+}
+
+// Test Ecs Snapshot. <<< Resource test cases, automatically generated.
