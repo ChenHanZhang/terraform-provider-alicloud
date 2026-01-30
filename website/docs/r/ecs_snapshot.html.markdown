@@ -20,12 +20,6 @@ For information about ECS Snapshot and how to use it, see [What is Snapshot](htt
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ecs_snapshot&exampleId=c82d2dc4-2b3d-fdf4-0d61-629fc1ecfb4c664174cd&activeTab=example&spm=docs.r.ecs_snapshot.0.c82d2dc42b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -100,41 +94,56 @@ resource "alicloud_ecs_snapshot" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ecs_snapshot&spm=docs.r.ecs_snapshot.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `category` - (Optional, ForceNew) The category of the snapshot. Valid values:
+* `category` - (Optional, ForceNew, Computed) The category of the snapshot. Valid values:
   - `standard`: Normal snapshot.
   - `flash`: Local snapshot.
-* `description` - (Optional) The description of the snapshot.
-* `disk_id` - (Required, ForceNew) The ID of the disk.
-* `force` - (Optional, Bool) Specifies whether to force delete the snapshot that has been used to create disks. Valid values:
+* `cool_off_period` - (Optional, Int, Available since v1.270.0) Compliance mode cooling off period. Unit: hours.
+* `description` - (Required) The description of the snapshot.
+* `disk_id` - (Optional, ForceNew) The ID of the disk.
+* `encrypted` - (Optional, ForceNew, Available since v1.270.0) Specifies whether the snapshot is encrypted. Default value: false.
+* `force` - (Optional) Specifies whether to force delete the snapshot that has been used to create disks. Valid values:
   - `true`: Force deletes the snapshot. After the snapshot is force deleted, the disks created from the snapshot cannot be re-initialized.
   - `false`: Does not force delete the snapshot.
-* `instant_access` - (Optional, Deprecated since v1.231.0) Field `instant_access` has been deprecated from provider version 1.231.0.
-* `instant_access_retention_days` - (Optional, Deprecated since v1.231.0) Field `instant_access_retention_days` has been deprecated from provider version 1.231.0.
-* `resource_group_id` - (Optional) The ID of the resource group. **NOTE:** From version 1.239.0, `resource_group_id` can be modified.
+
+-> **NOTE:** This parameter only takes effect when deletion is triggered.
+
+* `from_region_id` - (Optional, Available since v1.270.0) The ID of the destination region of the new snapshot.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `instant_access` - (Optional, Deprecated since v1.270.0) Field `instant_access` has been deprecated from provider version 1.231.0.
+* `instant_access_retention_days` - (Optional, ForceNew, Int, Deprecated since v1.270.0) Field `instant_access_retention_days` has been deprecated from provider version 1.231.0.
+* `kms_key_id` - (Optional, ForceNew, Available since v1.270.0) The ID of the Key Management Service (KMS) key that is used for the data disk.
+* `lock_duration` - (Optional, Int, Available since v1.270.0) Lock is long. The snapshot lock automatically expires after the lock duration expires. Unit: days.
+* `lock_mode` - (Optional, Available since v1.270.0) Lock mode. Value range:
+  - compliance: Lock the snapshot in compliance mode. Snapshots locked in compliance mode cannot be unlocked by any user and can only be deleted after the lock duration expires. Users cannot shorten the lock duration, but users with the corresponding RAM permissions can extend the lock duration at any time. When locking a snapshot in compliance mode, you can optionally specify a cooling off period.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `resource_group_id` - (Optional, Computed) The ID of the resource group. **NOTE:** From version 1.239.0, `resource_group_id` can be modified.
 * `retention_days` - (Optional, Int) The retention period of the snapshot. Valid values: `1` to `65536`. **NOTE:** From version 1.231.0, `retention_days` can be modified.
-* `snapshot_name` - (Optional) The name of the snapshot.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
-* `name` - (Optional, Deprecated since v1.120.0) Field `name` has been deprecated from provider version 1.120.0. New field `snapshot_name` instead.
+* `snapshot_name` - (Required) The name of the snapshot.
+* `source_snapshot_id` - (Optional, Available since v1.270.0) This property does not have a description in the spec, please add it before generating code.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `tags` - (Optional, Map) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The resource ID in terraform of Snapshot.
-* `create_time` - (Available since v1.239.0) The time when the snapshot was created.
-* `region_id` - (Available since v1.239.0) The region ID of the snapshot.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The time when the snapshot was created.
+* `region_id` - The region ID of the snapshot.
 * `status` - The status of the Snapshot.
 
 ## Timeouts
 
--> **NOTE:** Available since v1.231.0.
-
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Snapshot.
+* `create` - (Defaults to 10 mins) Used when create the Snapshot.
 * `delete` - (Defaults to 5 mins) Used when delete the Snapshot.
 * `update` - (Defaults to 5 mins) Used when update the Snapshot.
 
@@ -143,5 +152,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 ECS Snapshot can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_ecs_snapshot.example <id>
+$ terraform import alicloud_ecs_snapshot.example <snapshot_id>
 ```
