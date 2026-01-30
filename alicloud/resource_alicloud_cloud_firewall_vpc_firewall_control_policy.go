@@ -116,10 +116,13 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicy() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"old_order": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"order": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 			"proto": {
 				Type:     schema.TypeString,
@@ -188,7 +191,6 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyCreate(d *schema.Resou
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	var endpoint string
 	if v, ok := d.GetOk("vpc_firewall_id"); ok {
 		request["VpcFirewallId"] = v
 	}
@@ -254,18 +256,14 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyCreate(d *schema.Resou
 	request["Source"] = d.Get("source")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-
 		return nil
 	})
 	addDebug(action, response, request)
@@ -363,8 +361,8 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+	d.Partial(true)
 
-	var endpoint string
 	var err error
 	parts := strings.Split(d.Id(), ":")
 	action := "ModifyVpcFirewallControlPolicy"
@@ -375,7 +373,6 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 
 	if d.HasChange("application_name") {
 		update = true
-
 		request["ApplicationName"] = d.Get("application_name")
 	}
 
@@ -401,16 +398,12 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 
 	if d.HasChange("dest_port") {
 		update = true
-	}
-	if v, ok := d.GetOk("dest_port"); ok {
-		request["DestPort"] = v
+		request["DestPort"] = d.Get("dest_port")
 	}
 
 	if d.HasChange("dest_port_group") {
 		update = true
-	}
-	if v, ok := d.GetOk("dest_port_group"); ok {
-		request["DestPortGroup"] = v
+		request["DestPortGroup"] = d.Get("dest_port_group")
 	}
 
 	if d.HasChange("repeat_start_time") {
@@ -433,9 +426,7 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 
 	if d.HasChange("dest_port_type") {
 		update = true
-	}
-	if v, ok := d.GetOk("dest_port_type"); ok {
-		request["DestPortType"] = v
+		request["DestPortType"] = d.Get("dest_port_type")
 	}
 
 	if d.HasChange("repeat_end_time") {
@@ -445,9 +436,7 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 
 	if d.HasChange("release") {
 		update = true
-	}
-	if v, ok := d.GetOk("release"); ok {
-		request["Release"] = v
+		request["Release"] = d.Get("release")
 	}
 
 	if d.HasChange("acl_action") {
@@ -489,18 +478,50 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
-				} else if IsExpectedErrors(err, []string{"not buy user"}) {
-					endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	parts = strings.Split(d.Id(), ":")
+	action = "ModifyVpcFirewallControlPolicyPosition"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["VpcFirewallId"] = parts[0]
+	request["AclUuid"] = parts[1]
+
+	if v, ok := d.GetOk("old_order"); ok {
+		request["OldOrder"] = v
+	}
+	if v, ok := d.GetOk("lang"); ok {
+		request["Lang"] = v
+	}
+	if d.HasChange("order") {
+		update = true
+	}
+	request["NewOrder"] = d.Get("order")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-
 			return nil
 		})
 		addDebug(action, response, request)
@@ -509,6 +530,7 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 		}
 	}
 
+	d.Partial(false)
 	return resourceAliCloudCloudFirewallVpcFirewallControlPolicyRead(d, meta)
 }
 
@@ -521,7 +543,6 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyDelete(d *schema.Resou
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
-	var endpoint string
 	request = make(map[string]interface{})
 	request["VpcFirewallId"] = parts[0]
 	request["AclUuid"] = parts[1]
@@ -531,18 +552,14 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyDelete(d *schema.Resou
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-
 		return nil
 	})
 	addDebug(action, response, request)
