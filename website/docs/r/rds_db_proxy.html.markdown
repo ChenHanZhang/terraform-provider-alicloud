@@ -2,24 +2,23 @@
 subcategory: "RDS"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_rds_db_proxy"
-sidebar_current: "docs-alicloud-resource-rds-db-proxy"
 description: |-
-  Provides an RDS instance read write splitting connection resource.
+  Provides a Alicloud RDS Db Proxy resource.
 ---
 
 # alicloud_rds_db_proxy
 
-Information about RDS database exclusive agent and its usage, see [What is RDS DB Proxy](https://www.alibabacloud.com/help/en/apsaradb-for-rds/latest/api-rds-2014-08-15-modifydbproxy).
+Provides a RDS Db Proxy resource.
+
+Database Exclusive Agent Details.
+
+For information about RDS Db Proxy and how to use it, see [What is Db Proxy](https://next.api.alibabacloud.com/document/Rds/2014-08-15/ModifyDBProxy).
 
 -> **NOTE:** Available since v1.193.0.
 
 ## Example Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_rds_db_proxy&exampleId=17286700-d627-0c0f-5c6c-18d91eb8572e7b07c365&activeTab=example&spm=docs.r.rds_db_proxy.0.17286700d6&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "name" {
@@ -90,100 +89,173 @@ resource "alicloud_rds_db_proxy" "default" {
 }
 ```
 
--> **NOTE:** Resource `alicloud_rds_db_proxy` should be created after `alicloud_db_readonly_instance`, so the `depends_on` statement is necessary.
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_rds_db_proxy&spm=docs.r.rds_db_proxy.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `causal_consist_read_timeout` - (Optional, Available since v1.270.0) The timeout period of the consistency read. Unit: milliseconds. The default value is `10` milliseconds, value: **0 to 60000**
 
-* `instance_id` - (Required, ForceNew) The Id of instance that can run database.
-* `db_proxy_instance_num` - (Required)The number of proxy instances that are enabled. Valid values: 1 to 60.
-* `instance_network_type` - (Required, ForceNew)The network type of the instance. Set the value to VPC.
-* `vpc_id` - (Required, ForceNew)The ID of the virtual private cloud (VPC) to which the instance belongs.
-* `vswitch_id` - (Required, ForceNew)The ID of the vSwitch that is associated with the specified VPC.
-* `db_proxy_connection_prefix` - (Optional)The new prefix of the proxy endpoint. Enter a prefix.
-* `db_proxy_connect_string_port` - (Optional)The port number that is associated with the proxy endpoint.
-* `db_proxy_instance_type` - (Optional, Available since v1.230.0) The database proxy type. Valid values:
-  - common: universal proxy.
-  - exclusive: Exclusive proxy (default).
-* `effective_time` - (Optional)When modifying the number of proxy instances,The time when you want to apply the new database proxy settings.Valid values:
-  - Immediate: ApsaraDB RDS immediately applies the new settings.
-  - MaintainTime: ApsaraDB RDS applies the new settings during the maintenance window that you specified. For more information, see Modify the maintenance window.
-  - SpecificTime: ApsaraDB RDS applies the new settings at a specified point in time.
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
 
--> **NOTE:** Note If you set the EffectiveTime parameter to SpecificTime, you must specify the EffectiveSpecificTime parameter.
+* `config_db_proxy_features` - (Optional, Available since v1.270.0) Set the proxy connection address to enable the proxy function, which is separated by English semicolons (;). Format: 'Function 1: Opening Situation; Function 2: Opening Situation;... ', without English semicolon (;) at the end.
 
-* `effective_specific_time` - (Optional) The point in time at which you want to apply the new database proxy settings. Specify the time in the ISO 8601 standard in the yyyy-MM-ddTHH:mm:ssZ format. The time must be in UTC.
-* `read_only_instance_max_delay_time` - (Optional) The maximum latency threshold that is allowed for read/write splitting. If the latency on a read-only instance exceeds the threshold that you specified, ApsaraDB RDS no longer forwards read requests to the read-only instance. If you do not specify this parameter, the default value of this parameter is retained. Unit: seconds. Valid values: 0 to 3600.
+Function value:
+* `ReadWriteSpliting`: Read/write separation
+* `ConnectionPersist`: connection pool
+* `Qin`: Transaction Split
+* `AZProximityAccess`: nearby access
+* `Causconsiststread`: Read consistency
+* `HtapFilter`:HTAP line automatically shunts
 
--> **NOTE:** Note If the instance runs PostgreSQL, you can enable only the read/write splitting feature, which is specified by ReadWriteSpliting.
+Value of opening condition:
+* `1`: The function has been activated
+* `0`: The function is not activated
 
-* `db_proxy_features` - (Optional) The features that you want to enable for the proxy endpoint. If you specify more than one feature, separate the features with semicolons (;). Format: Feature 1:Status;Feature 2:Status;.... Do not add a semicolon (;) at the end of the last value. Valid feature values:
-  - ReadWriteSpliting: read/write splitting.
-  - ConnectionPersist: connection pooling.
-  - TransactionReadSqlRouteOptimizeStatus: transaction splitting.
-    Valid status values:
-    - 1: enabled.
-    - 0: disabled.
+-> **NOTE:**  - RDS PostgreSQL only supports setting `ReadWriteSpliting`.
 
--> **NOTE:** Note You must specify this parameter only when the read/write splitting feature is enabled.
+-> **NOTE:** - the nearest access function only supports MySQL exclusive proxy.
 
-* `read_only_instance_distribution_type` - (Optional) The policy that is used to allocate read weights. Valid values:
-  - Standard: ApsaraDB RDS automatically allocates read weights to the instance and its read-only instances based on the specifications of the instances.
-  - Custom: You must manually allocate read weights to the instance and its read-only instances.
 
--> **NOTE:** Note If you set the ReadOnlyInstanceDistributionType parameter to Custom, you must specify the ReadOnlyInstanceWeight parameter.
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
 
-* `read_only_instance_weight` - (Optional) A list of the read weights of the instance and its read-only instances.  It contains two sub-fields(instance_id and weight). Read weights increase in increments of 100, and the maximum read weight is 10000. See [`read_only_instance_weight`](#read_only_instance_weight) below.
-* `db_proxy_endpoint_read_write_mode` - (Optional) The read and write attributes of the proxy terminal. Valid values:
-  - ReadWrite: The proxy terminal connects to the primary instance and can receive both read and write requests.
-  - ReadOnly: The proxy terminal does not connect to the primary instance and can receive only read requests. This is the default value.
+* `db_instance_id` - (Required, ForceNew, Available since v1.270.0) The ID of the instance.
+* `db_proxy_connect_string` - (Optional, ForceNew, Available since v1.270.0) The proxy terminal connection address.
+* `db_proxy_connect_string_net_type` - (Optional, ForceNew, Computed, Available since v1.270.0) The network type of the proxy connection address.
+  - OuterString: Extranet
+  - InnerString: intranet
+* `db_proxy_endpoint_id` - (Optional, ForceNew, Computed) The ID of the backend proxy terminal.
+* `db_proxy_instance_num` - (Optional, Computed, Int) The number of proxy instances that are opened.
+* `db_proxy_new_connect_string` - (Optional, Available since v1.270.0) Prefix of the target database proxy connection address. Custom.
 
--> **NOTE:** Note This setting causes your instance to restart. Proceed with caution.
+-> **NOTE:**  At least one of `DBProxyNewConnectString` and `DBProxyNewConnectStringPort` is passed in.
 
-* `db_proxy_ssl_enabled` - (Optional) The SSL configuration setting that you want to apply on the instance. Valid values:
-  - Close: disables SSL encryption.
-  - Open: enables SSL encryption or modifies the endpoint that requires SSL encryption.
-  - Update: updates the validity period of the SSL certificate.
-* `upgrade_time` - (Optional) The time when you want to upgrade the database proxy version of the instance. Valid values:
-  - MaintainTime: ApsaraDB RDS performs the upgrade during the maintenance window that you specified. This is the default value. For more information, see Modify the maintenance window.
-  - Immediate: ApsaraDB RDS immediately performs the upgrade.
-  - SpecificTime: ApsaraDB RDS performs the upgrade at a specified point in time.
-* `switch_time` - (Optional) The point in time at which you want to upgrade the database proxy version of the instance. Specify the time in the ISO 8601 standard in the yyyy-MM-ddTHH:mm:ssZ format. The time must be in UTC.
-* `resource_group_id` - (Optional) The ID of the resource group.
+* `db_endpoint_aliases` - (Optional, Available since v1.270.0) The comment information of the agent terminal.
 
-### `read_only_instance_weight`
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
 
-The read_only_instance_weight mapping supports the following:
+* `db_endpoint_min_slave_count` - (Optional, Available since v1.270.0) Minimum number of reserved instances.
 
-* `instance_id` - (Required) The Id of the instance and its read-only instances that can run database.
-* `weight` - (Required) Weight of instances that can run the database and their read-only instances. Read weights increase in increments of 100, and the maximum read weight is 10000.
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_endpoint_operator` - (Optional, Available since v1.270.0) Operation type, value:
+  - `Modify`: The default value. Modify the proxy terminal.
+  - `Create`: Creates a proxy terminal.
+  - `Delete`: deletes the proxy terminal.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_endpoint_read_write_mode` - (Optional, Available since v1.270.0) Read/write type, value:
+* `ReadWrite`: connects to the Master instance and accepts write requests.
+* `ReadOnly`: The default value. The primary instance is not connected and cannot accept write requests.
+
+-> **NOTE:**  * When the value of `DbEndpointOperator` is `Create`, this parameter must be specified.
+
+-> **NOTE:**  * In the RDS MySQL instance, when the value of this parameter is changed from `ReadWrite` to `ReadOnly`, the transaction splitting function is disabled.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_proxy_instance_type` - (Optional, Computed, Available since v1.230.0) Database proxy instance type, value:
+  - `common`: General Purpose Agent
+  - `exclusive`: exclusive proxy (default)
+* `db_proxy_new_connect_string_port` - (Optional, Available since v1.270.0) Port of the destination database proxy connection address. Custom.
+
+-> **NOTE:**  At least one of `DBProxyNewConnectString` and `DBProxyNewConnectStringPort` is passed in.
+
+* `db_proxy_ssl_enabled` - (Optional, Computed) The operation to perform SSL encryption. The value is:
+* 0: disable SSL encryption
+* 1: Enable SSL encryption or modify the SSL encryption address
+* 2: Update Certificate Validity Period
+
+-> **NOTE:**  Performing the above operations will restart the instance. Please be cautious.
+
+* `effective_specific_time` - (Optional, Computed) The specified time takes effect. Format:  yyyy-MM-dd T  HH:mm:ss Z(UTC time).
+
+-> **NOTE:**  When `EffectiveTime` is set to `SpecificTime`, this parameter must be set.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `effective_time` - (Optional, Computed) Effective time, value:
+
+  - `Immediate`: Effective immediately.
+  - `MaintainTime`: takes effect during the O & M period. For details, see ModifyDBInstanceMaintainTime.
+  - `SpecificTime`: The specified time takes effect.
+
+Default value: **MaintainTime * *.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `persistent_connection_status` - (Optional, Available since v1.270.0) Whether to turn on the connection hold. Value:
+  - `Enabled`: open connection hold
+  - `Disabled`: Turn off connection hold
+
+-> **NOTE:** - only RDS MySQL supports this parameter.
+
+-> **NOTE:** - The value of `ConfigDBProxyService` is `Modify` when the connection retention status is modified * *.
+
+* `read_only_instance_distribution_type` - (Optional, Computed) Read weight assignment mode. Value:
+
+* `Standard`: The default value, which is automatically assigned by specification weight.
+* `Custom`: The Custom weight.
+
+-> **NOTE:**  This parameter needs to be passed in only when read/write splitting is enabled. For details about the permission assignment mode, see [Read Weight Assignment](~~ 96076 ~~) for MySQL, and [Activate and Configure Database Proxy Service](~~ 418272 ~~) for PostgreSQL.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `read_only_instance_max_delay_time` - (Optional, ForceNew, Computed) The maximum latency threshold for read-only instances in read/write splitting. When the latency of a read-only instance exceeds this value, read traffic is not sent to the instance. Unit: seconds. If this parameter is not passed, the original value will be maintained. Value: `0` ~ `3600`.
+
+-> **NOTE:** - This parameter needs to be passed in only when read/write splitting is enabled.
+
+-> **NOTE:** - Default value: The default value is `30` seconds when the read/write attribute is read/write (read/write separation), and the default value is **-1** (disabled) when the read/write attribute is read-only.
+
+* `read_only_instance_weight` - (Optional, Computed) Custom read weight allocation, that is, the read weight of the input Master instance and read-only instance. Increment by 100, maximum 10000, format:
+  - Regular instance: '{"Master instance ID":"weight","read-only instance ID":"weight"...}'
+
+Example: '{"rm-uf6wjk5 ****":"500","rr-tfhfgk5xxx":"200"...}'
+  - RDS MySQL Cluster Edition instance: '{"read-only instance ID":"weight","DBClusterNode":{"primary node ID":"weight","secondary node ID":"weight","secondary node ID":"weight"...}}'
+
+Example: '{"rr-tfhfgk5 ****":"200","DBClusterNode":{"rn-2z ****":"0","rn-2z ****":"400","rn-2z ****":"400"...}}'
+
+-> **NOTE:**  `DBClusterNode` is the request information unique to the cluster edition, including the `NodeID` and `weight` of the active and standby nodes.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `resource_group_id` - (Optional, Computed) The ID of the resource group
+* `vswitch_id` - (Optional) The ID of the vSwitch to which the instance belongs. You can call the DescribeDBInstanceAttribute interface to query.
+
+-> **NOTE:**  This parameter is required when enabling the database proxy for RDS MySQL cloud disk or RDS PostgreSQL.
+
+
+-> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `vpc_id` - (Optional) The VPC ID of the instance. You can call the DescribeDBInstanceAttribute interface to query.
+
+-> **NOTE:**  This parameter is required when enabling the database proxy for RDS MySQL cloud disk or RDS PostgreSQL.
+
+
+-> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The Id of DB instance.
-* `net_type` - Network type of proxy connection address.
-* `db_proxy_endpoint_aliases` - Remarks of agent terminal.
-* `db_proxy_endpoint_id` - Proxy connection address ID.
-* `db_proxy_connection_string` - Connection instance string.
-* `ssl_expired_time` - The time when the certificate expires.
+* `id` - The ID of the resource supplied above. 
+* `db_proxy_connect_string_port` - The port of the proxy connection address.
+* `db_proxy_endpoint_aliases` - The comment information of the agent terminal.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 60 mins) Use when opening exclusive agent (until it reaches the initial `Running` status).
-* `update` - (Defaults to 30 mins) Used when updating exclusive agent (until it reaches the initial `Running` status).
-* `delete` - (Defaults to 20 mins) Use when closing exclusive agent.
+* `create` - (Defaults to 10 mins) Used when create the Db Proxy.
+* `delete` - (Defaults to 5 mins) Used when delete the Db Proxy.
+* `update` - (Defaults to 5 mins) Used when update the Db Proxy.
 
 ## Import
 
-RDS database proxy feature can be imported using the id, e.g.
+RDS Db Proxy can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_rds_db_proxy.example abc12345678
+$ terraform import alicloud_rds_db_proxy.example <db_instance_id>
 ```
