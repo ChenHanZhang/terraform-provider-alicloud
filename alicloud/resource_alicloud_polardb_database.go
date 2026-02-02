@@ -13,12 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudPolarDbDatabase() *schema.Resource {
+func resourceAliCloudPolardbDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudPolarDbDatabaseCreate,
-		Read:   resourceAliCloudPolarDbDatabaseRead,
-		Update: resourceAliCloudPolarDbDatabaseUpdate,
-		Delete: resourceAliCloudPolarDbDatabaseDelete,
+		Create: resourceAliCloudPolardbDatabaseCreate,
+		Read:   resourceAliCloudPolardbDatabaseRead,
+		Update: resourceAliCloudPolardbDatabaseUpdate,
+		Delete: resourceAliCloudPolardbDatabaseDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -34,8 +34,7 @@ func resourceAliCloudPolarDbDatabase() *schema.Resource {
 			},
 			"character_set_name": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"collate": {
@@ -69,7 +68,7 @@ func resourceAliCloudPolarDbDatabase() *schema.Resource {
 	}
 }
 
-func resourceAliCloudPolarDbDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -89,33 +88,16 @@ func resourceAliCloudPolarDbDatabaseCreate(d *schema.ResourceData, meta interfac
 	if v, ok := d.GetOk("account_name"); ok {
 		request["AccountName"] = v
 	}
+	if v, ok := d.GetOk("ctype"); ok {
+		request["Ctype"] = v
+	}
 	if v, ok := d.GetOk("db_description"); ok {
 		request["DBDescription"] = v
 	}
-	if v, ok := d.GetOk("character_set_name"); ok {
-		request["CharacterSetName"] = v
-	} else {
-		request["CharacterSetName"] = "utf8"
-	}
-
-	polarDBService := PolarDBService{client}
-	cluster, err := polarDBService.DescribePolarDBCluster(fmt.Sprint(request["DBClusterId"]))
-	if err != nil {
-		return WrapError(err)
-	}
-
 	if v, ok := d.GetOk("collate"); ok {
 		request["Collate"] = v
-	} else if cluster.DBType == "PostgreSQL" || cluster.DBType == "Oracle" {
-		request["Collate"] = "C"
 	}
-
-	if v, ok := d.GetOk("ctype"); ok {
-		request["Ctype"] = v
-	} else if cluster.DBType == "PostgreSQL" || cluster.DBType == "Oracle" {
-		request["Ctype"] = "C"
-	}
-
+	request["CharacterSetName"] = d.Get("character_set_name")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
@@ -136,23 +118,23 @@ func resourceAliCloudPolarDbDatabaseCreate(d *schema.ResourceData, meta interfac
 
 	d.SetId(fmt.Sprintf("%v:%v", request["DBClusterId"], request["DBName"]))
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, polarDbServiceV2.PolarDbDatabaseStateRefreshFunc(d.Id(), "DBStatus", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, polardbServiceV2.PolardbDatabaseStateRefreshFunc(d.Id(), "DBStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAliCloudPolarDbDatabaseRead(d, meta)
+	return resourceAliCloudPolardbDatabaseRead(d, meta)
 }
 
-func resourceAliCloudPolarDbDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	polarDbServiceV2 := PolarDbServiceV2{client}
+	polardbServiceV2 := PolardbServiceV2{client}
 
-	objectRaw, err := polarDbServiceV2.DescribePolarDbDatabase(d.Id())
+	objectRaw, err := polardbServiceV2.DescribePolardbDatabase(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_polardb_database DescribePolarDbDatabase Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_polardb_database DescribePolardbDatabase Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -174,7 +156,7 @@ func resourceAliCloudPolarDbDatabaseRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -182,8 +164,8 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 	update := false
 	d.Partial(true)
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	objectRaw, _ := polarDbServiceV2.DescribePolarDbDatabase(d.Id())
+	polardbServiceV2 := PolardbServiceV2{client}
+	objectRaw, _ := polardbServiceV2.DescribePolardbDatabase(d.Id())
 
 	var err error
 	parts := strings.Split(d.Id(), ":")
@@ -193,6 +175,7 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 	request["DBClusterId"] = parts[0]
 	request["DBName"] = parts[1]
 
+	request["DBName"] = buildClientToken(action)
 	if d.HasChange("db_description") {
 		update = true
 	}
@@ -202,7 +185,7 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"Connect.Timeout"}) || NeedRetry(err) {
+				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -216,10 +199,9 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 		}
 	}
 	update = false
-	objectRaw, _ = polarDbServiceV2.DescribePolarDbDatabase(d.Id())
+	objectRaw, _ = polardbServiceV2.DescribePolardbDatabase(d.Id())
 	enableGrantAccountPrivilege1 := false
-	checkValue00 := objectRaw["Engine"]
-
+	checkValue00 := objectRaw["$.Engine"]
 	if InArray(fmt.Sprint(checkValue00), []string{"PostgreSQL", "Oracle"}) {
 		enableGrantAccountPrivilege1 = true
 	}
@@ -255,10 +237,10 @@ func resourceAliCloudPolarDbDatabaseUpdate(d *schema.ResourceData, meta interfac
 	}
 
 	d.Partial(false)
-	return resourceAliCloudPolarDbDatabaseRead(d, meta)
+	return resourceAliCloudPolardbDatabaseRead(d, meta)
 }
 
-func resourceAliCloudPolarDbDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")
@@ -292,8 +274,8 @@ func resourceAliCloudPolarDbDatabaseDelete(d *schema.ResourceData, meta interfac
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, polarDbServiceV2.PolarDbDatabaseStateRefreshFunc(d.Id(), "DBStatus", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, polardbServiceV2.PolardbDatabaseStateRefreshFunc(d.Id(), "DBStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
