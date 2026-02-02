@@ -17,8 +17,9 @@ import (
 	"github.com/aliyun/credentials-go/credentials"
 	"github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/aliyun/terraform-provider-alicloud/alicloud/helper"
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -323,7 +324,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cr_repos":                                         dataSourceAlicloudCRRepos(),
 			"alicloud_cr_ee_instances":                                  dataSourceAlicloudCrEEInstances(),
 			"alicloud_cr_ee_namespaces":                                 dataSourceAlicloudCrEENamespaces(),
-			"alicloud_cr_ee_repos":                                      dataSourceAliCloudCrEERepos(),
+			"alicloud_cr_ee_repos":                                      dataSourceAlicloudCrEERepos(),
 			"alicloud_cr_ee_sync_rules":                                 dataSourceAlicloudCrEESyncRules(),
 			"alicloud_mns_queues":                                       dataSourceAlicloudMNSQueues(),
 			"alicloud_mns_topics":                                       dataSourceAlicloudMNSTopics(),
@@ -915,10 +916,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_ssl_certificates_service_pca_cert":                    resourceAliCloudSslCertificatesServicePcaCert(),
-			"alicloud_max_compute_tenant_role_user_attachment":              resourceAliCloudMaxComputeTenantRoleUserAttachment(),
-			"alicloud_click_house_enterprise_db_cluster_computing_group":    resourceAliCloudClickHouseEnterpriseDbClusterComputingGroup(),
-			"alicloud_cloud_monitor_service_agent_config":                   resourceAliCloudCloudMonitorServiceAgentConfig(),
 			"alicloud_alikafka_scheduled_scaling_rule":                      resourceAliCloudAlikafkaScheduledScalingRule(),
 			"alicloud_event_bridge_event_source_v2":                         resourceAliCloudEventBridgeEventSourceV2(),
 			"alicloud_cloud_firewall_vpc_firewall_acl_engine_mode":          resourceAliCloudCloudFirewallVpcFirewallAclEngineMode(),
@@ -1018,7 +1015,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_click_house_enterprise_db_cluster_backup_policy":      resourceAliCloudClickHouseEnterpriseDbClusterBackupPolicy(),
 			"alicloud_click_house_enterprise_db_cluster_public_endpoint":    resourceAliCloudClickHouseEnterpriseDbClusterPublicEndpoint(),
 			"alicloud_click_house_enterprise_db_cluster_account":            resourceAliCloudClickHouseEnterpriseDBClusterAccount(),
-			"alicloud_click_house_enterprise_db_cluster":                    resourceAliCloudClickHouseEnterpriseDbCluster(),
+			"alicloud_click_house_enterprise_db_cluster":                    resourceAliCloudClickHouseEnterpriseDBCluster(),
 			"alicloud_esa_site_delivery_task":                               resourceAliCloudEsaSiteDeliveryTask(),
 			"alicloud_esa_cache_reserve_instance":                           resourceAliCloudEsaCacheReserveInstance(),
 			"alicloud_eais_client_instance_attachment":                      resourceAliCloudEaisClientInstanceAttachment(),
@@ -1359,7 +1356,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_alikafka_instance":             resourceAliCloudAlikafkaInstance(),
 			"alicloud_alikafka_topic":                resourceAliCloudAlikafkaTopic(),
 			"alicloud_alikafka_sasl_user":            resourceAliCloudAliKafkaSaslUser(),
-			"alicloud_alikafka_sasl_acl":             resourceAliCloudAlikafkaSaslAcl(),
+			"alicloud_alikafka_sasl_acl":             resourceAlicloudAlikafkaSaslAcl(),
 			"alicloud_dns_record":                    resourceAlicloudDnsRecord(),
 			"alicloud_dns":                           resourceAlicloudDns(),
 			"alicloud_dns_group":                     resourceAlicloudDnsGroup(),
@@ -2429,6 +2426,9 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 
 	return client, nil
 }
+
+// This is a global MutexKV for use within this plugin.
+var alicloudMutexKV = mutexkv.NewMutexKV()
 
 var descriptions map[string]string
 
@@ -4017,7 +4017,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["oceanbase"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["beebot"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["computenest"].(string)))
-	return helper.Hashcode(buf.String())
+	return hashcode.String(buf.String())
 }
 
 // deprecatedEndpointMap is used to map old service name to new service name,

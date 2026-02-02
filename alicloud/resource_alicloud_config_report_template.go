@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -96,29 +97,36 @@ func resourceAliCloudConfigReportTemplateCreate(d *schema.ResourceData, meta int
 	if v, ok := d.GetOk("subscription_frequency"); ok {
 		request["SubscriptionFrequency"] = v
 	}
+	reportScopeDataList := make(map[string]interface{})
 
 	if v, ok := d.GetOk("report_scope"); ok {
-		reportScopeMaps := make([]map[string]interface{}, 0)
-		for _, reportScope := range v.([]interface{}) {
-			reportScopeMap := map[string]interface{}{}
-			reportScopeArg := reportScope.(map[string]interface{})
-
-			if MatchType, ok := reportScopeArg["match_type"]; ok {
-				reportScopeMap["MatchType"] = MatchType
-			}
-
-			if val, ok := reportScopeArg["value"]; ok {
-				reportScopeMap["Value"] = val
-			}
-
-			if key, ok := reportScopeArg["key"]; ok {
-				reportScopeMap["Key"] = key
-			}
-
-			reportScopeMaps = append(reportScopeMaps, reportScopeMap)
+		value1, _ := jsonpath.Get("$.value", v)
+		if value1 != nil && value1 != "" {
+			reportScopeDataList["Value"] = value1
 		}
-		request["ReportScope"], _ = convertArrayObjectToJsonString(reportScopeMaps)
 	}
+
+	if v, ok := d.GetOk("report_scope"); ok {
+		matchType1, _ := jsonpath.Get("$.match_type", v)
+		if matchType1 != nil && matchType1 != "" {
+			reportScopeDataList["MatchType"] = matchType1
+		}
+	}
+
+	if v, ok := d.GetOk("report_scope"); ok {
+		key1, _ := jsonpath.Get("$.key", v)
+		if key1 != nil && key1 != "" {
+			reportScopeDataList["Key"] = key1
+		}
+	}
+
+	ReportScopeMap := make([]interface{}, 0)
+	ReportScopeMap = append(ReportScopeMap, reportScopeDataList)
+	reportScopeDataListJson, err := json.Marshal(ReportScopeMap)
+	if err != nil {
+		return WrapError(err)
+	}
+	request["ReportScope"] = string(reportScopeDataListJson)
 
 	if v, ok := d.GetOk("report_granularity"); ok {
 		request["ReportGranularity"] = v
@@ -173,9 +181,10 @@ func resourceAliCloudConfigReportTemplateRead(d *schema.ResourceData, meta inter
 	d.Set("report_template_name", objectRaw["ReportTemplateName"])
 	d.Set("subscription_frequency", objectRaw["SubscriptionFrequency"])
 
+	reportScopeRaw := objectRaw["ReportScope"]
 	reportScopeMaps := make([]map[string]interface{}, 0)
-	if reportScopeList, ok := objectRaw["ReportScope"].([]interface{}); ok {
-		for _, reportScopeChildRaw := range reportScopeList {
+	if reportScopeRaw != nil {
+		for _, reportScopeChildRaw := range convertToInterfaceArray(reportScopeRaw) {
 			reportScopeMap := make(map[string]interface{})
 			reportScopeChildRaw := reportScopeChildRaw.(map[string]interface{})
 			reportScopeMap["key"] = reportScopeChildRaw["Key"]
@@ -185,7 +194,9 @@ func resourceAliCloudConfigReportTemplateRead(d *schema.ResourceData, meta inter
 			reportScopeMaps = append(reportScopeMaps, reportScopeMap)
 		}
 	}
-	d.Set("report_scope", reportScopeMaps)
+	if err := d.Set("report_scope", reportScopeMaps); err != nil {
+		return err
+	}
 
 	return nil
 }
