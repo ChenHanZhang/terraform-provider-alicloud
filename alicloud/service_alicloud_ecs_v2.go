@@ -85,8 +85,8 @@ func (s *EcsServiceV2) EcsImageComponentStateRefreshFunc(id string, field string
 // SetResourceTags <<< Encapsulated tag function for Ecs.
 func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -112,7 +112,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -145,7 +145,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -420,11 +420,11 @@ func (s *EcsServiceV2) DescribeEcsDisk(id string) (object map[string]interface{}
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeDisks"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["DiskIds"] = convertListToJsonString([]interface{}{id})
+	request["DiskIds"] = expandSingletonToList(id)
 	request["RegionId"] = client.RegionId
+	action := "DescribeDisks"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -462,15 +462,19 @@ func (s *EcsServiceV2) DescribeEcsDisk(id string) (object map[string]interface{}
 }
 
 func (s *EcsServiceV2) EcsDiskStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EcsDiskStateRefreshFuncWithApi(id, field, failStates, s.DescribeEcsDisk)
+}
+
+func (s *EcsServiceV2) EcsDiskStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeEcsDisk(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
+		object["DiskChargeType"] = convertEcsDiskDisksDiskDiskChargeTypeResponse(object["DiskChargeType"])
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
