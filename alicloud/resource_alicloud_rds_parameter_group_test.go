@@ -18,6 +18,187 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test Rds ParameterGroup. >>> Resource test cases, automatically generated.
+// Case RDS/参数模板测试 12250
+func TestAccAliCloudRdsParameterGroup_basic12250(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_rds_parameter_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudRdsParameterGroupMap12250)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &RdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeRdsParameterGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudRdsParameterGroupBasicDependence12250)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"engine_version":       "8.0",
+					"parameter_group_name": name,
+					"parameter_group_desc": "test001",
+					"engine":               "mysql",
+					"resource_group_id":    "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"engine_version":       CHECKSET,
+						"parameter_group_name": name,
+						"parameter_group_desc": "test001",
+						"engine":               "mysql",
+						"resource_group_id":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"parameter_group_name": name + "_update",
+					"parameter_group_desc": "test02",
+					"resource_group_id":    "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"modify_mode":          "Individual",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"parameter_group_name": name + "_update",
+						"parameter_group_desc": "test02",
+						"resource_group_id":    CHECKSET,
+						"modify_mode":          "Individual",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"modify_mode", "resource_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudRdsParameterGroupMap12250 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudRdsParameterGroupBasicDependence12250(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "test_region_id" {
+  default = "cn-beijing"
+}
+
+variable "test_zone_id" {
+  default = "cn-beijing-h"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case RDS/参数模板测试 12067
+func TestAccAliCloudRdsParameterGroup_basic12067(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_rds_parameter_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudRdsParameterGroupMap12067)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &RdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeRdsParameterGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudRdsParameterGroupBasicDependence12067)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"engine_version":       "8.0",
+					"parameter_group_name": name,
+					"parameter_group_desc": "test001",
+					"engine":               "mysql",
+					"resource_group_id":    "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"engine_version":       CHECKSET,
+						"parameter_group_name": name,
+						"parameter_group_desc": "test001",
+						"engine":               "mysql",
+						"resource_group_id":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"parameter_group_name": name + "_update",
+					"parameter_group_desc": "test02",
+					"resource_group_id":    "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"modify_mode":          "Individual",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"parameter_group_name": name + "_update",
+						"parameter_group_desc": "test02",
+						"resource_group_id":    CHECKSET,
+						"modify_mode":          "Individual",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"modify_mode", "resource_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudRdsParameterGroupMap12067 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudRdsParameterGroupBasicDependence12067(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "test_region_id" {
+  default = "cn-beijing"
+}
+
+variable "test_zone_id" {
+  default = "cn-beijing-h"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Test Rds ParameterGroup. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudRdsParameterGroup_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_rds_parameter_group.default"
@@ -289,7 +470,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudRdsParameterGroupCreate(dInit, rawClient)
+	err = resourceAliCloudRdsParameterGroupCreate(dInit, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	ReadMockResponseDiff := map[string]interface{}{
@@ -315,7 +496,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudRdsParameterGroupCreate(dInit, rawClient)
+		err := resourceAliCloudRdsParameterGroupCreate(dInit, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -342,7 +523,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudRdsParameterGroupUpdate(dExisted, rawClient)
+	err = resourceAliCloudRdsParameterGroupUpdate(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	// ModifyParameterGroup
@@ -398,7 +579,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudRdsParameterGroupUpdate(dExisted, rawClient)
+		err := resourceAliCloudRdsParameterGroupUpdate(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -437,7 +618,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudRdsParameterGroupRead(dExisted, rawClient)
+		err := resourceAliCloudRdsParameterGroupRead(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -456,7 +637,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudRdsParameterGroupDelete(dExisted, rawClient)
+	err = resourceAliCloudRdsParameterGroupDelete(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	errorCodes = []string{"NonRetryableError", "Throttling", "nil"}
@@ -478,7 +659,7 @@ func TestUnitAlicloudRdsParameterGroup(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudRdsParameterGroupDelete(dExisted, rawClient)
+		err := resourceAliCloudRdsParameterGroupDelete(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
