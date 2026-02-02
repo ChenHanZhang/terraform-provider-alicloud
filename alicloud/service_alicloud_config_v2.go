@@ -425,6 +425,7 @@ func (s *ConfigServiceV2) DescribeAsyncGetAggregator(d *schema.ResourceData, res
 }
 
 // DescribeAsyncGetAggregator >>> Encapsulated.
+
 // DescribeConfigReportTemplate <<< Encapsulated get interface for Config ReportTemplate.
 
 func (s *ConfigServiceV2) DescribeConfigReportTemplate(id string) (object map[string]interface{}, err error) {
