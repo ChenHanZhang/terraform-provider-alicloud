@@ -2,28 +2,23 @@
 subcategory: "PolarDB"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_polardb_global_database_network"
-sidebar_current: "docs-alicloud-resource-polardb-global-database-network"
 description: |-
-  Provides a Alicloud PolarDB Global Database Network resource.
+  Provides a Alicloud Polardb Global Database Network resource.
 ---
 
 # alicloud_polardb_global_database_network
 
-Provides a PolarDB Global Database Network resource.
+Provides a Polardb Global Database Network resource.
 
-For information about PolarDB Global Database Network and how to use it, see [What is Global Database Network](https://www.alibabacloud.com/help/en/polardb/api-polardb-2017-08-01-createglobaldatabasenetwork).
+
+
+For information about Polardb Global Database Network and how to use it, see [What is Global Database Network](https://www.alibabacloud.com/help/en/polardb/api-polardb-2017-08-01-createglobaldatabasenetwork).
 
 -> **NOTE:** Available since v1.181.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_global_database_network&exampleId=0673154c-3963-3b2b-096d-ed036a8b01c2eaee75a3&activeTab=example&spm=docs.r.polardb_global_database_network.0.0673154c39&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 data "alicloud_polardb_node_classes" "default" {
@@ -60,35 +55,42 @@ resource "alicloud_polardb_global_database_network" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_polardb_global_database_network&spm=docs.r.polardb_global_database_network.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `db_cluster_id` - (Required) The cluster ID in the GDN that needs to be switched to the primary cluster.  
+You can call the [DescribeGlobalDatabaseNetwork](https://help.aliyun.com/document_detail/264580.html) operation to view the cluster IDs in the GDN.
+* `forced` - (Optional, Available since v1.270.0) Specifies whether to forcibly switch the primary and secondary clusters in the GDN. Valid values:  
+  - `true`: Forcibly switches the primary and secondary clusters in the GDN.  
+  - `false`: Does not forcibly switch the primary and secondary clusters in the GDN.
 
-* `db_cluster_id` - (Required, ForceNew) The ID of the primary cluster.
-* `status` - (Computed) The status of the Global Database Network.
-* `description` - (Optional, Computed) The description of the Global Database Network.
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `gdn_description` - (Optional, Available since v1.270.0) The description of the GDN. Requirements are as follows:
+  - It must not start with http:// or https://.
+  - It must start with a letter (uppercase or lowercase) or a Chinese character.
+  - It can contain letters (uppercase or lowercase), Chinese characters, digits, underscores (_), or hyphens (-).
+  - Its length must be between 2 and 126 characters.
+* `resource_group_id` - (Optional, Computed, Available since v1.270.0) The ID of the resource group.
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Global Database Network.
-* `status` - The status of the Global Database Network.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the GDN, in the format `YYYY-MM-DDThh:mm:ssZ` (UTC time).
+* `status` - The status of the Global Database Network (GDN).
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 10 mins) Used when create the PolarDB Global Database Network.
-* `update` - (Defaults to 3 mins) Used when update the PolarDB Global Database Network.
-* `delete` - (Defaults to 10 mins) Used when delete the PolarDB Global Database Network.
+* `create` - (Defaults to 5 mins) Used when create the Global Database Network.
+* `delete` - (Defaults to 5 mins) Used when delete the Global Database Network.
+* `update` - (Defaults to 5 mins) Used when update the Global Database Network.
 
 ## Import
 
-PolarDB Global Database Network can be imported using the id, e.g.
+Polardb Global Database Network can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_polardb_global_database_network.example <id>
+$ terraform import alicloud_polardb_global_database_network.example <gdn_id>
 ```

@@ -115,6 +115,89 @@ func testSweepPolarDBGlobalDatabaseNetwork(region string) error {
 	return nil
 }
 
+// Test Polardb GlobalDatabaseNetwork. >>> Resource test cases, automatically generated.
+// Case GlobalDatabaseNetwork用例 9139
+func TestAccAliCloudPolardbGlobalDatabaseNetwork_basic9139(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_polardb_global_database_network.default"
+	ra := resourceAttrInit(resourceId, AlicloudPolardbGlobalDatabaseNetworkMap9139)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PolardbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePolardbGlobalDatabaseNetwork")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccpolardb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPolardbGlobalDatabaseNetworkBasicDependence9139)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"gdn_description": "GDN-fortest",
+					"db_cluster_id":   "${alicloud_polardb_cluster.globalDatabaseNetwork.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"gdn_description": "GDN-fortest",
+						"db_cluster_id":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"gdn_description": "gdn_test_upd",
+					"forced":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"gdn_description": "gdn_test_upd",
+						"forced":          "false",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"forced"},
+			},
+		},
+	})
+}
+
+var AlicloudPolardbGlobalDatabaseNetworkMap9139 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+}
+
+func AlicloudPolardbGlobalDatabaseNetworkBasicDependence9139(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_polardb_cluster" "globalDatabaseNetwork" {
+  db_node_class     = "polar.mysql.x4.large"
+  creation_category = "Normal"
+  db_version        = "8.0"
+  pay_type          = "Postpaid"
+  creation_option   = "Normal"
+  db_type           = "MySQL"
+  zone_id           = "cn-beijing-k"
+}
+
+
+`, name)
+}
+
+// Test Polardb GlobalDatabaseNetwork. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudPolarDBGlobalDatabaseNetwork_basic00(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_polardb_global_database_network.default"

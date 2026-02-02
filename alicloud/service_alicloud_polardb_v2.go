@@ -98,3 +98,70 @@ func (s *PolardbServiceV2) PolardbGlobalSecurityIpGroupStateRefreshFuncWithApi(i
 }
 
 // DescribePolardbGlobalSecurityIpGroup >>> Encapsulated.
+// DescribePolardbGlobalDatabaseNetwork <<< Encapsulated get interface for Polardb GlobalDatabaseNetwork.
+
+func (s *PolardbServiceV2) DescribePolardbGlobalDatabaseNetwork(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["GDNId"] = id
+	request["RegionId"] = client.RegionId
+	action := "DescribeGlobalDatabaseNetwork"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("polardb", "2017-08-01", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *PolardbServiceV2) PolardbGlobalDatabaseNetworkStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.PolardbGlobalDatabaseNetworkStateRefreshFuncWithApi(id, field, failStates, s.DescribePolardbGlobalDatabaseNetwork)
+}
+
+func (s *PolardbServiceV2) PolardbGlobalDatabaseNetworkStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribePolardbGlobalDatabaseNetwork >>> Encapsulated.
