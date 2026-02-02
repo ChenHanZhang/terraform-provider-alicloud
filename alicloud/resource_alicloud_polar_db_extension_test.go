@@ -11,6 +11,102 @@ import (
 )
 
 // Test PolarDb Extension. >>> Resource test cases, automatically generated.
+// Test Polardb Extension. >>> Resource test cases, automatically generated.
+// Case resource_Extension_test 11907
+func TestAccAliCloudPolardbExtension_basic11907(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_polar_db_extension.default"
+	ra := resourceAttrInit(resourceId, AlicloudPolardbExtensionMap11907)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PolardbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePolardbExtension")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPolardbExtensionBasicDependence11907)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"extension_name": name,
+					"db_cluster_id":  "${alicloud_polardb_cluster.resource_DBCluster_test_01.id}",
+					"db_name":        "${alicloud_polardb_database.resource_Database_test.db_name}",
+					"account_name":   "${alicloud_polardb_account.resource_Account_test.account_name}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"extension_name": name,
+						"db_cluster_id":  CHECKSET,
+						"db_name":        CHECKSET,
+						"account_name":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudPolardbExtensionMap11907 = map[string]string{
+	"default_version": CHECKSET,
+}
+
+func AlicloudPolardbExtensionBasicDependence11907(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_polardb_cluster" "resource_DBCluster_test_01" {
+  default_time_zone = "SYSTEM"
+  creation_category = "Normal"
+  storage_type      = "PSL5"
+  db_version        = "14"
+  pay_type          = "PayAsYouGo"
+  db_node_class     = "polar.pg.x4.medium"
+  db_type           = "PostgreSQL"
+  creation_option   = "Normal"
+}
+
+resource "alicloud_polardb_account" "resource_Account_test" {
+  db_cluster_id    = alicloud_polardb_cluster.resource_DBCluster_test_01.id
+  account_name     = "nzh"
+  account_password = "Ali123456"
+}
+
+resource "alicloud_polardb_database" "resource_Database_test" {
+  character_set_name = "UTF8"
+  db_cluster_id      = alicloud_polardb_cluster.resource_DBCluster_test_01.id
+  db_name            = "nzh"
+  collate            = "C"
+  ctype              = "C"
+  account_name       = alicloud_polardb_account.resource_Account_test.account_name
+}
+
+
+`, name)
+}
+
+// Test Polardb Extension. <<< Resource test cases, automatically generated.
+
 // Case 已重置副本 11821
 func TestAccAliCloudPolarDbExtension_basic11821(t *testing.T) {
 	var v map[string]interface{}

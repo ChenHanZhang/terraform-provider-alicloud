@@ -947,7 +947,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_esa_http_incoming_response_header_modification_rule":  resourceAliCloudEsaHttpIncomingResponseHeaderModificationRule(),
 			"alicloud_cloud_firewall_private_dns":                           resourceAliCloudCloudFirewallPrivateDns(),
 			"alicloud_eflo_hyper_node":                                      resourceAliCloudEfloHyperNode(),
-			"alicloud_polar_db_extension":                                   resourceAliCloudPolarDbExtension(),
+			"alicloud_polar_db_extension":                                   resourceAliCloudPolardbExtension(),
 			"alicloud_cloud_firewall_ai_traffic_analysis_status":            resourceAliCloudCloudFirewallAiTrafficAnalysisStatus(),
 			"alicloud_eflo_vpd_grant_rule":                                  resourceAliCloudEfloVpdGrantRule(),
 			"alicloud_wafv3_defense_resource_group":                         resourceAliCloudWafv3DefenseResourceGroup(),

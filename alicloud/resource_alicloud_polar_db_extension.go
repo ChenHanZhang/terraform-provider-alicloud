@@ -13,12 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudPolarDbExtension() *schema.Resource {
+func resourceAliCloudPolardbExtension() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudPolarDbExtensionCreate,
-		Read:   resourceAliCloudPolarDbExtensionRead,
-		Update: resourceAliCloudPolarDbExtensionUpdate,
-		Delete: resourceAliCloudPolarDbExtensionDelete,
+		Create: resourceAliCloudPolardbExtensionCreate,
+		Read:   resourceAliCloudPolardbExtensionRead,
+		Update: resourceAliCloudPolardbExtensionUpdate,
+		Delete: resourceAliCloudPolardbExtensionDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -57,11 +57,15 @@ func resourceAliCloudPolarDbExtension() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"requires": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
 		},
 	}
 }
 
-func resourceAliCloudPolarDbExtensionCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbExtensionCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -106,23 +110,23 @@ func resourceAliCloudPolarDbExtensionCreate(d *schema.ResourceData, meta interfa
 
 	d.SetId(fmt.Sprintf("%v:%v:%v:%v", request["DBClusterId"], request["AccountName"], request["DBNames"], request["Extensions"]))
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, polarDbServiceV2.PolarDbExtensionStateRefreshFunc(d.Id(), "#$.Name", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, polardbServiceV2.PolardbExtensionStateRefreshFunc(d.Id(), "#Name", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAliCloudPolarDbExtensionUpdate(d, meta)
+	return resourceAliCloudPolardbExtensionUpdate(d, meta)
 }
 
-func resourceAliCloudPolarDbExtensionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbExtensionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	polarDbServiceV2 := PolarDbServiceV2{client}
+	polardbServiceV2 := PolardbServiceV2{client}
 
-	objectRaw, err := polarDbServiceV2.DescribePolarDbExtension(d.Id())
+	objectRaw, err := polardbServiceV2.DescribePolardbExtension(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_polar_db_extension DescribePolarDbExtension Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_polar_db_extension DescribePolardbExtension Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -131,6 +135,7 @@ func resourceAliCloudPolarDbExtensionRead(d *schema.ResourceData, meta interface
 
 	d.Set("default_version", objectRaw["DefaultVersion"])
 	d.Set("installed_version", objectRaw["InstalledVersion"])
+	d.Set("requires", objectRaw["Requires"])
 	d.Set("account_name", objectRaw["Owner"])
 	d.Set("extension_name", objectRaw["Name"])
 
@@ -141,24 +146,25 @@ func resourceAliCloudPolarDbExtensionRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceAliCloudPolarDbExtensionUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbExtensionUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	objectRaw, _ := polarDbServiceV2.DescribePolarDbExtension(d.Id())
+	polardbServiceV2 := PolardbServiceV2{client}
+	objectRaw, _ := polardbServiceV2.DescribePolardbExtension(d.Id())
 
 	if d.HasChange("installed_version") {
 		var err error
 		target := d.Get("installed_version").(string)
-		currentInstalledVersion, err := jsonpath.Get("$.InstalledVersion", objectRaw)
-		latestInstalledVersion, err := jsonpath.Get("$.DefaultVersion", objectRaw)
-		if currentInstalledVersion != target {
-			if target != latestInstalledVersion {
-				return WrapErrorf(err, InvalidAttributeValue, "installed_version", latestInstalledVersion)
-			} else {
+
+		currentStatus, err := jsonpath.Get("InstalledVersion", objectRaw)
+		if err != nil {
+			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "InstalledVersion", objectRaw)
+		}
+		if fmt.Sprint(currentStatus) != target {
+			if target == "$.DefaultVersion" {
 				parts := strings.Split(d.Id(), ":")
 				action := "UpdateExtensions"
 				request = make(map[string]interface{})
@@ -184,8 +190,8 @@ func resourceAliCloudPolarDbExtensionUpdate(d *schema.ResourceData, meta interfa
 				if err != nil {
 					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 				}
-				polarDbServiceV2 := PolarDbServiceV2{client}
-				stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("installed_version"))}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, polarDbServiceV2.PolarDbExtensionStateRefreshFunc(d.Id(), "$.InstalledVersion", []string{}))
+				polardbServiceV2 := PolardbServiceV2{client}
+				stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("installed_version"))}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, polardbServiceV2.PolardbExtensionStateRefreshFunc(d.Id(), "InstalledVersion", []string{}))
 				if _, err := stateConf.WaitForState(); err != nil {
 					return WrapErrorf(err, IdMsg, d.Id())
 				}
@@ -194,10 +200,10 @@ func resourceAliCloudPolarDbExtensionUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	return resourceAliCloudPolarDbExtensionRead(d, meta)
+	return resourceAliCloudPolardbExtensionRead(d, meta)
 }
 
-func resourceAliCloudPolarDbExtensionDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbExtensionDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")
@@ -234,8 +240,8 @@ func resourceAliCloudPolarDbExtensionDelete(d *schema.ResourceData, meta interfa
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 10*time.Second, polarDbServiceV2.PolarDbExtensionStateRefreshFunc(d.Id(), "$.Name", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 10*time.Second, polardbServiceV2.PolardbExtensionStateRefreshFunc(d.Id(), "Name", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
