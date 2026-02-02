@@ -12,12 +12,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudPolarDbAccount() *schema.Resource {
+func resourceAliCloudPolardbAccount() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudPolarDbAccountCreate,
-		Read:   resourceAliCloudPolarDbAccountRead,
-		Update: resourceAliCloudPolarDbAccountUpdate,
-		Delete: resourceAliCloudPolarDbAccountDelete,
+		Create: resourceAliCloudPolardbAccountCreate,
+		Read:   resourceAliCloudPolardbAccountRead,
+		Update: resourceAliCloudPolardbAccountUpdate,
+		Delete: resourceAliCloudPolardbAccountDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -44,7 +44,7 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 			},
 			"account_password": {
 				Type:      schema.TypeString,
-				Optional:  true,
+				Required:  true,
 				Sensitive: true,
 			},
 			"account_password_valid_time": {
@@ -55,8 +55,8 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 			"account_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"Normal", "Super"}, false),
 			},
 			"db_cluster_id": {
@@ -85,7 +85,7 @@ func resourceAliCloudPolarDbAccount() *schema.Resource {
 	}
 }
 
-func resourceAliCloudPolarDbAccountCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbAccountCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -107,7 +107,6 @@ func resourceAliCloudPolarDbAccountCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("account_description"); ok {
 		request["AccountDescription"] = v
 	}
-
 	password := d.Get("account_password").(string)
 	kmsPassword := d.Get("kms_encrypted_password").(string)
 
@@ -149,23 +148,23 @@ func resourceAliCloudPolarDbAccountCreate(d *schema.ResourceData, meta interface
 
 	d.SetId(fmt.Sprintf("%v:%v", request["DBClusterId"], request["AccountName"]))
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, polarDbServiceV2.PolarDbAccountStateRefreshFunc(d.Id(), "AccountStatus", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, polardbServiceV2.PolardbAccountStateRefreshFunc(d.Id(), "AccountStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAliCloudPolarDbAccountUpdate(d, meta)
+	return resourceAliCloudPolardbAccountUpdate(d, meta)
 }
 
-func resourceAliCloudPolarDbAccountRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbAccountRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	polarDbServiceV2 := PolarDbServiceV2{client}
+	polardbServiceV2 := PolardbServiceV2{client}
 
-	objectRaw, err := polarDbServiceV2.DescribePolarDbAccount(d.Id())
+	objectRaw, err := polardbServiceV2.DescribePolardbAccount(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_polardb_account DescribePolarDbAccount Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_polardb_account DescribePolardbAccount Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -185,7 +184,7 @@ func resourceAliCloudPolarDbAccountRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceAliCloudPolarDbAccountUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbAccountUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -267,11 +266,9 @@ func resourceAliCloudPolarDbAccountUpdate(d *schema.ResourceData, meta interface
 	request["DBClusterId"] = parts[0]
 
 	if !d.IsNewResource() && d.HasChange("account_password") {
-		update = true
-
 		request["NewAccountPassword"] = d.Get("account_password")
+		update = true
 	}
-
 	if !d.IsNewResource() && d.HasChange("kms_encrypted_password") {
 		update = true
 
@@ -302,10 +299,10 @@ func resourceAliCloudPolarDbAccountUpdate(d *schema.ResourceData, meta interface
 	}
 
 	d.Partial(false)
-	return resourceAliCloudPolarDbAccountRead(d, meta)
+	return resourceAliCloudPolardbAccountRead(d, meta)
 }
 
-func resourceAliCloudPolarDbAccountDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbAccountDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	parts := strings.Split(d.Id(), ":")
@@ -339,8 +336,8 @@ func resourceAliCloudPolarDbAccountDelete(d *schema.ResourceData, meta interface
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
-	polarDbServiceV2 := PolarDbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, polarDbServiceV2.PolarDbAccountStateRefreshFunc(d.Id(), "AccountStatus", []string{}))
+	polardbServiceV2 := PolardbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, polardbServiceV2.PolardbAccountStateRefreshFunc(d.Id(), "AccountStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
