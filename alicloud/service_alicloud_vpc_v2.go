@@ -2457,3 +2457,75 @@ func (s *VpcServiceV2) VpcRouteEntryStateRefreshFunc(id string, field string, fa
 }
 
 // DescribeVpcRouteEntry >>> Encapsulated.
+// DescribeVpcRouteTargetGroup <<< Encapsulated get interface for Vpc RouteTargetGroup.
+
+func (s *VpcServiceV2) DescribeVpcRouteTargetGroup(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["RouteTargetGroupId"] = id
+	request["RegionId"] = client.RegionId
+	action := "GetRouteTargetGroup"
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
+		request["ClientToken"] = buildClientToken(action)
+
+		if err != nil {
+			if IsExpectedErrors(err, []string{"TaskConflict"}) || NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"ResourceNotFound.RouteTargetGroup"}) {
+			return object, WrapErrorf(NotFoundErr("RouteTargetGroup", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *VpcServiceV2) VpcRouteTargetGroupStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.VpcRouteTargetGroupStateRefreshFuncWithApi(id, field, failStates, s.DescribeVpcRouteTargetGroup)
+}
+
+func (s *VpcServiceV2) VpcRouteTargetGroupStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeVpcRouteTargetGroup >>> Encapsulated.
