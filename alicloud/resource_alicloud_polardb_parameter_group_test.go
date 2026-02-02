@@ -109,6 +109,85 @@ func testSweepPolarDBParameterGroup(region string) error {
 	return nil
 }
 
+// Test Polardb ParameterGroup. >>> Resource test cases, automatically generated.
+// Case 属性全覆盖_多参数 11763
+func TestAccAliCloudPolardbParameterGroup_basic11763(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_polardb_parameter_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudPolardbParameterGroupMap11763)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PolardbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePolardbParameterGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPolardbParameterGroupBasicDependence11763)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_version":           "8.0",
+					"parameter_group_name": name,
+					"db_type":              "MySQL",
+					"parameters": []map[string]interface{}{
+						{
+							"param_name":  "wait_timeout",
+							"param_value": "86400",
+						},
+						{
+							"param_name":  "innodb_old_blocks_time",
+							"param_value": "1000",
+						},
+						{
+							"param_name":  "default_time_zone",
+							"param_value": "SYSTEM",
+						},
+					},
+					"description": "tf_testAcc",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_version":           CHECKSET,
+						"parameter_group_name": name,
+						"db_type":              "MySQL",
+						"parameters.#":         "3",
+						"description":          "tf_testAcc",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudPolardbParameterGroupMap11763 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudPolardbParameterGroupBasicDependence11763(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Polardb ParameterGroup. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudPolarDBParameterGroup_basic00(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_polardb_parameter_group.default"

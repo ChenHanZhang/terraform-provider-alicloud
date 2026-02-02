@@ -12,11 +12,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudPolarDbParameterGroup() *schema.Resource {
+func resourceAliCloudPolardbParameterGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudPolarDbParameterGroupCreate,
-		Read:   resourceAliCloudPolarDbParameterGroupRead,
-		Delete: resourceAliCloudPolarDbParameterGroupDelete,
+		Create: resourceAliCloudPolardbParameterGroupCreate,
+		Read:   resourceAliCloudPolardbParameterGroupRead,
+		Delete: resourceAliCloudPolardbParameterGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -74,14 +74,14 @@ func resourceAliCloudPolarDbParameterGroup() *schema.Resource {
 				Type:       schema.TypeString,
 				Optional:   true,
 				Computed:   true,
-				Deprecated: "Field 'name' has been deprecated since provider version 1.263.0. New field 'parameter_group_name' instead.",
+				Deprecated: "Field 'name' has been deprecated since provider version 1.270.0. New field 'parameter_group_name' instead.",
 				ForceNew:   true,
 			},
 		},
 	}
 }
 
-func resourceAliCloudPolarDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -139,17 +139,17 @@ func resourceAliCloudPolarDbParameterGroupCreate(d *schema.ResourceData, meta in
 
 	d.SetId(fmt.Sprint(response["ParameterGroupId"]))
 
-	return resourceAliCloudPolarDbParameterGroupRead(d, meta)
+	return resourceAliCloudPolardbParameterGroupRead(d, meta)
 }
 
-func resourceAliCloudPolarDbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	polarDbServiceV2 := PolarDbServiceV2{client}
+	polardbServiceV2 := PolardbServiceV2{client}
 
-	objectRaw, err := polarDbServiceV2.DescribePolarDbParameterGroup(d.Id())
+	objectRaw, err := polardbServiceV2.DescribePolardbParameterGroup(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_polardb_parameter_group DescribePolarDbParameterGroup Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_polardb_parameter_group DescribePolardbParameterGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -182,7 +182,7 @@ func resourceAliCloudPolarDbParameterGroupRead(d *schema.ResourceData, meta inte
 	return nil
 }
 
-func resourceAliCloudPolarDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudPolardbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteParameterGroup"
