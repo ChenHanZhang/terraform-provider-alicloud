@@ -1,31 +1,41 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
-	"regexp"
+	"strings"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAlicloudCloudSsoGroup() *schema.Resource {
+func resourceAliCloudCloudSsoGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudCloudSsoGroupCreate,
-		Read:   resourceAlicloudCloudSsoGroupRead,
-		Update: resourceAlicloudCloudSsoGroupUpdate,
-		Delete: resourceAlicloudCloudSsoGroupDelete,
+		Create: resourceAliCloudCloudSsoGroupCreate,
+		Read:   resourceAliCloudCloudSsoGroupRead,
+		Update: resourceAliCloudCloudSsoGroupUpdate,
+		Delete: resourceAliCloudCloudSsoGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringLenBetween(0, 1024),
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 			"directory_id": {
 				Type:     schema.TypeString,
@@ -37,28 +47,35 @@ func resourceAlicloudCloudSsoGroup() *schema.Resource {
 				Computed: true,
 			},
 			"group_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[\w-.]{1,128}$`), "The name of the resource. The name must be 1 to 128 characters in length and  can contain letters, digits, periods (.), underscores (_), and hyphens (-)."),
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
 			},
 		},
 	}
 }
 
-func resourceAlicloudCloudSsoGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudCloudSsoGroupCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	request := make(map[string]interface{})
+
+	action := "CreateGroup"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("directory_id"); ok {
+		request["DirectoryId"] = v
+	}
+
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
-	request["DirectoryId"] = d.Get("directory_id")
 	request["GroupName"] = d.Get("group_name")
-	var response map[string]interface{}
-	action := "CreateGroup"
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		resp, err := client.RpcPost("cloudsso", "2021-05-15", action, nil, request, false)
+		response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -66,70 +83,73 @@ func resourceAlicloudCloudSsoGroupCreate(d *schema.ResourceData, meta interface{
 			}
 			return resource.NonRetryableError(err)
 		}
-		response = resp
-		addDebug(action, resp, request)
 		return nil
 	})
+	addDebug(action, response, request)
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_sso_group", action, AlibabaCloudSdkGoERROR)
 	}
-	responseGroup := response["Group"].(map[string]interface{})
-	d.SetId(fmt.Sprint(request["DirectoryId"], ":", responseGroup["GroupId"]))
 
-	return resourceAlicloudCloudSsoGroupRead(d, meta)
+	GroupGroupIdVar, _ := jsonpath.Get("$.Group.GroupId", response)
+	d.SetId(fmt.Sprintf("%v:%v", request["DirectoryId"], GroupGroupIdVar))
+
+	return resourceAliCloudCloudSsoGroupRead(d, meta)
 }
-func resourceAlicloudCloudSsoGroupRead(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudCloudSsoGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	cloudssoService := CloudssoService{client}
-	object, err := cloudssoService.DescribeCloudSsoGroup(d.Id())
+	cloudSSOServiceV2 := CloudSSOServiceV2{client}
+
+	objectRaw, err := cloudSSOServiceV2.DescribeCloudSsoGroup(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_cloud_sso_group cloudssoService.DescribeCloudSsoGroup Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_cloud_sso_group DescribeCloudSsoGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
+
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("group_name", objectRaw["GroupName"])
+	d.Set("group_id", objectRaw["GroupId"])
+
+	parts := strings.Split(d.Id(), ":")
 	d.Set("directory_id", parts[0])
-	d.Set("group_id", parts[1])
-	d.Set("description", object["Description"])
-	d.Set("group_name", object["GroupName"])
+
 	return nil
 }
-func resourceAlicloudCloudSsoGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudCloudSsoGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	var err error
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
 	update := false
-	request := map[string]interface{}{
-		"DirectoryId": parts[0],
-		"GroupId":     parts[1],
-	}
+
+	var err error
+	parts := strings.Split(d.Id(), ":")
+	action := "UpdateGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["GroupId"] = parts[1]
+	request["DirectoryId"] = parts[0]
 
 	if d.HasChange("description") {
 		update = true
-		if v, ok := d.GetOk("description"); ok {
-			request["NewDescription"] = v
-		}
+		request["NewDescription"] = d.Get("description")
 	}
+
 	if d.HasChange("group_name") {
 		update = true
-		if v, ok := d.GetOk("group_name"); ok {
-			request["NewGroupName"] = v
-		}
 	}
+	request["NewGroupName"] = d.Get("group_name")
 	if update {
-		action := "UpdateGroup"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			resp, err := client.RpcPost("cloudsso", "2021-05-15", action, nil, request, false)
+			response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -137,45 +157,50 @@ func resourceAlicloudCloudSsoGroupUpdate(d *schema.ResourceData, meta interface{
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, resp, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
-	return resourceAlicloudCloudSsoGroupRead(d, meta)
-}
-func resourceAlicloudCloudSsoGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
-		return WrapError(err)
-	}
-	request := map[string]interface{}{
-		"DirectoryId": parts[0],
-		"GroupId":     parts[1],
-	}
 
+	return resourceAliCloudCloudSsoGroupRead(d, meta)
+}
+
+func resourceAliCloudCloudSsoGroupDelete(d *schema.ResourceData, meta interface{}) error {
+
+	client := meta.(*connectivity.AliyunClient)
+	parts := strings.Split(d.Id(), ":")
 	action := "DeleteGroup"
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["GroupId"] = parts[1]
+	request["DirectoryId"] = parts[0]
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		resp, err := client.RpcPost("cloudsso", "2021-05-15", action, nil, request, false)
+		response, err = client.RpcPost("cloudsso", "2021-05-15", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) || IsExpectedErrors(err, []string{"DeletionConflict.Group.AccessAssigment"}) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, resp, request)
 		return nil
 	})
+	addDebug(action, response, request)
+
 	if err != nil {
 		if IsExpectedErrors(err, []string{"EntityNotExists.Group"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+
 	return nil
 }

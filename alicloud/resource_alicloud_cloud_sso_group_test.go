@@ -18,6 +18,205 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test CloudSso Group. >>> Resource test cases, automatically generated.
+// Case UserGroup 10090
+func TestAccAliCloudCloudSsoGroup_basic10090(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_sso_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudSsoGroupMap10090)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudSSOServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudSsoGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudsso%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudSsoGroupBasicDependence10090)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_name":   name,
+					"description":  "this is a group description",
+					"directory_id": "${alicloud_cloud_sso_directory.defaultgZ01vg.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_name":   name,
+						"description":  "this is a group description",
+						"directory_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_name":  name + "_update",
+					"description": "this is a group description1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_name":  name + "_update",
+						"description": "this is a group description1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description", "group_name"},
+			},
+		},
+	})
+}
+
+var AlicloudCloudSsoGroupMap10090 = map[string]string{
+	"create_time": CHECKSET,
+	"group_id":    CHECKSET,
+}
+
+func AlicloudCloudSsoGroupBasicDependence10090(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "group_name" {
+  default = "gnforrtprod"
+}
+
+variable "directory_name" {
+  default = "rtforgroupprod"
+}
+
+variable "group_name1" {
+  default = "gnforrtprod1"
+}
+
+resource "alicloud_cloud_sso_directory" "defaultgZ01vg" {
+  directory_global_access_status = "Disabled"
+  password_policy {
+    min_password_length          = "8"
+    min_password_different_chars = "8"
+    max_password_age             = "90"
+    password_reuse_prevention    = "1"
+    max_login_attempts           = "5"
+    max_password_length          = "32"
+  }
+  directory_name = var.directory_name
+}
+
+
+`, name)
+}
+
+// Case UserGroup_online 10387
+func TestAccAliCloudCloudSsoGroup_basic10387(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cloud_sso_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudCloudSsoGroupMap10387)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CloudSSOServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCloudSsoGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccloudsso%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCloudSsoGroupBasicDependence10387)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_name":   name,
+					"description":  "this is a group description",
+					"directory_id": "${alicloud_cloud_sso_directory.defaultgZ01vg.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_name":   name,
+						"description":  "this is a group description",
+						"directory_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"group_name":  name + "_update",
+					"description": "this is a group description1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"group_name":  name + "_update",
+						"description": "this is a group description1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description", "group_name"},
+			},
+		},
+	})
+}
+
+var AlicloudCloudSsoGroupMap10387 = map[string]string{
+	"create_time": CHECKSET,
+	"group_id":    CHECKSET,
+}
+
+func AlicloudCloudSsoGroupBasicDependence10387(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "group_name" {
+  default = "gnforrtprod"
+}
+
+variable "directory_name" {
+  default = "rtforgrouponline"
+}
+
+variable "group_name1" {
+  default = "gnforrtprod1"
+}
+
+resource "alicloud_cloud_sso_directory" "defaultgZ01vg" {
+  directory_global_access_status = "Disabled"
+  password_policy {
+    min_password_length          = "8"
+    min_password_different_chars = "8"
+    max_password_age             = "90"
+    password_reuse_prevention    = "1"
+    max_login_attempts           = "5"
+    max_password_length          = "32"
+  }
+  directory_name = var.directory_name
+}
+
+
+`, name)
+}
+
+// Test CloudSso Group. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudCloudSSOGroup_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_cloud_sso_group.default"

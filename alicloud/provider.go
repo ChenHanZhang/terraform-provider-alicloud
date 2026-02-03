@@ -1742,7 +1742,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_dts_subscription_job":                                  resourceAliCloudDtsSubscriptionJob(),
 			"alicloud_service_mesh_service_mesh":                             resourceAliCloudServiceMeshServiceMesh(),
 			"alicloud_mhub_app":                                              resourceAlicloudMhubApp(),
-			"alicloud_cloud_sso_group":                                       resourceAlicloudCloudSsoGroup(),
+			"alicloud_cloud_sso_group":                                       resourceAliCloudCloudSsoGroup(),
 			"alicloud_dts_synchronization_instance":                          resourceAlicloudDtsSynchronizationInstance(),
 			"alicloud_dts_synchronization_job":                               resourceAlicloudDtsSynchronizationJob(),
 			"alicloud_cloud_firewall_instance":                               resourceAliCloudCloudFirewallInstance(),
