@@ -112,14 +112,11 @@ func resourceAliCloudFcv3AsyncInvokeConfigCreate(d *schema.ResourceData, meta in
 	body := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	if v, ok := d.GetOk("function_name"); ok {
-		request["functionName"] = v
-	}
 
 	if v, ok := d.GetOkExists("async_task"); ok {
 		request["asyncTask"] = v
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	destinationConfig := make(map[string]interface{})
 
 	if v := d.Get("destination_config"); !IsNil(v) {
 		onFailure := make(map[string]interface{})
@@ -128,16 +125,20 @@ func resourceAliCloudFcv3AsyncInvokeConfigCreate(d *schema.ResourceData, meta in
 			onFailure["destination"] = destination1
 		}
 
-		objectDataLocalMap["onFailure"] = onFailure
+		if len(onFailure) > 0 {
+			destinationConfig["onFailure"] = onFailure
+		}
 		onSuccess := make(map[string]interface{})
 		destination3, _ := jsonpath.Get("$[0].on_success[0].destination", d.Get("destination_config"))
 		if destination3 != nil && destination3 != "" {
 			onSuccess["destination"] = destination3
 		}
 
-		objectDataLocalMap["onSuccess"] = onSuccess
+		if len(onSuccess) > 0 {
+			destinationConfig["onSuccess"] = onSuccess
+		}
 
-		request["destinationConfig"] = objectDataLocalMap
+		request["destinationConfig"] = destinationConfig
 	}
 
 	if v, ok := d.GetOkExists("max_async_event_age_in_seconds"); ok && v.(int) > 0 {
@@ -188,63 +189,49 @@ func resourceAliCloudFcv3AsyncInvokeConfigRead(d *schema.ResourceData, meta inte
 		return WrapError(err)
 	}
 
-	if objectRaw["asyncTask"] != nil {
-		d.Set("async_task", objectRaw["asyncTask"])
-	}
-	if objectRaw["createdTime"] != nil {
-		d.Set("create_time", objectRaw["createdTime"])
-	}
-	if objectRaw["functionArn"] != nil {
-		d.Set("function_arn", objectRaw["functionArn"])
-	}
-	if objectRaw["lastModifiedTime"] != nil {
-		d.Set("last_modified_time", objectRaw["lastModifiedTime"])
-	}
-	if objectRaw["maxAsyncEventAgeInSeconds"] != nil {
-		d.Set("max_async_event_age_in_seconds", objectRaw["maxAsyncEventAgeInSeconds"])
-	}
-	if objectRaw["maxAsyncRetryAttempts"] != nil {
-		d.Set("max_async_retry_attempts", objectRaw["maxAsyncRetryAttempts"])
-	}
+	d.Set("async_task", objectRaw["asyncTask"])
+	d.Set("create_time", objectRaw["createdTime"])
+	d.Set("function_arn", objectRaw["functionArn"])
+	d.Set("last_modified_time", objectRaw["lastModifiedTime"])
+	d.Set("max_async_event_age_in_seconds", objectRaw["maxAsyncEventAgeInSeconds"])
+	d.Set("max_async_retry_attempts", objectRaw["maxAsyncRetryAttempts"])
 
 	destinationConfigMaps := make([]map[string]interface{}, 0)
 	destinationConfigMap := make(map[string]interface{})
-	destinationConfig1Raw := make(map[string]interface{})
+	destinationConfigRaw := make(map[string]interface{})
 	if objectRaw["destinationConfig"] != nil {
-		destinationConfig1Raw = objectRaw["destinationConfig"].(map[string]interface{})
+		destinationConfigRaw = objectRaw["destinationConfig"].(map[string]interface{})
 	}
-	if len(destinationConfig1Raw) > 0 {
+	if len(destinationConfigRaw) > 0 {
 
 		onFailureMaps := make([]map[string]interface{}, 0)
 		onFailureMap := make(map[string]interface{})
-		onFailure1Raw := make(map[string]interface{})
-		if destinationConfig1Raw["onFailure"] != nil {
-			onFailure1Raw = destinationConfig1Raw["onFailure"].(map[string]interface{})
+		onFailureRaw := make(map[string]interface{})
+		if destinationConfigRaw["onFailure"] != nil {
+			onFailureRaw = destinationConfigRaw["onFailure"].(map[string]interface{})
 		}
-		if len(onFailure1Raw) > 0 {
-			onFailureMap["destination"] = onFailure1Raw["destination"]
+		if len(onFailureRaw) > 0 {
+			onFailureMap["destination"] = onFailureRaw["destination"]
 
 			onFailureMaps = append(onFailureMaps, onFailureMap)
 		}
 		destinationConfigMap["on_failure"] = onFailureMaps
 		onSuccessMaps := make([]map[string]interface{}, 0)
 		onSuccessMap := make(map[string]interface{})
-		onSuccess1Raw := make(map[string]interface{})
-		if destinationConfig1Raw["onSuccess"] != nil {
-			onSuccess1Raw = destinationConfig1Raw["onSuccess"].(map[string]interface{})
+		onSuccessRaw := make(map[string]interface{})
+		if destinationConfigRaw["onSuccess"] != nil {
+			onSuccessRaw = destinationConfigRaw["onSuccess"].(map[string]interface{})
 		}
-		if len(onSuccess1Raw) > 0 {
-			onSuccessMap["destination"] = onSuccess1Raw["destination"]
+		if len(onSuccessRaw) > 0 {
+			onSuccessMap["destination"] = onSuccessRaw["destination"]
 
 			onSuccessMaps = append(onSuccessMaps, onSuccessMap)
 		}
 		destinationConfigMap["on_success"] = onSuccessMaps
 		destinationConfigMaps = append(destinationConfigMaps, destinationConfigMap)
 	}
-	if objectRaw["destinationConfig"] != nil {
-		if err := d.Set("destination_config", destinationConfigMaps); err != nil {
-			return err
-		}
+	if err := d.Set("destination_config", destinationConfigMaps); err != nil {
+		return err
 	}
 
 	d.Set("function_name", d.Id())
@@ -256,16 +243,17 @@ func resourceAliCloudFcv3AsyncInvokeConfigUpdate(d *schema.ResourceData, meta in
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
+
+	var err error
 	functionName := d.Id()
 	action := fmt.Sprintf("/2023-03-30/functions/%s/async-invoke-config", functionName)
-	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
-	request["functionName"] = d.Id()
 
 	if d.HasChange("async_task") {
 		update = true
@@ -274,25 +262,29 @@ func resourceAliCloudFcv3AsyncInvokeConfigUpdate(d *schema.ResourceData, meta in
 
 	if d.HasChange("destination_config") {
 		update = true
-		objectDataLocalMap := make(map[string]interface{})
+		destinationConfig := make(map[string]interface{})
 
-		if v := d.Get("destination_config"); !IsNil(v) {
+		if v := d.Get("destination_config"); v != nil {
 			onFailure := make(map[string]interface{})
-			destination1, _ := jsonpath.Get("$[0].on_failure[0].destination", v)
-			if destination1 != nil && (d.HasChange("destination_config.0.on_failure.0.destination") || destination1 != "") {
+			destination1, _ := jsonpath.Get("$[0].on_failure[0].destination", d.Get("destination_config"))
+			if destination1 != nil && destination1 != "" {
 				onFailure["destination"] = destination1
 			}
 
-			objectDataLocalMap["onFailure"] = onFailure
+			if len(onFailure) > 0 {
+				destinationConfig["onFailure"] = onFailure
+			}
 			onSuccess := make(map[string]interface{})
-			destination3, _ := jsonpath.Get("$[0].on_success[0].destination", v)
-			if destination3 != nil && (d.HasChange("destination_config.0.on_success.0.destination") || destination3 != "") {
+			destination3, _ := jsonpath.Get("$[0].on_success[0].destination", d.Get("destination_config"))
+			if destination3 != nil && destination3 != "" {
 				onSuccess["destination"] = destination3
 			}
 
-			objectDataLocalMap["onSuccess"] = onSuccess
+			if len(onSuccess) > 0 {
+				destinationConfig["onSuccess"] = onSuccess
+			}
 
-			request["destinationConfig"] = objectDataLocalMap
+			request["destinationConfig"] = destinationConfig
 		}
 	}
 
@@ -314,7 +306,7 @@ func resourceAliCloudFcv3AsyncInvokeConfigUpdate(d *schema.ResourceData, meta in
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RoaPut("FC", "2023-03-30", action, query, nil, body, true)
+			response, err = client.RoaPut("FC", "2023-03-30", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -343,7 +335,6 @@ func resourceAliCloudFcv3AsyncInvokeConfigDelete(d *schema.ResourceData, meta in
 	query := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
-	request["functionName"] = d.Id()
 
 	if v, ok := d.GetOk("qualifier"); ok {
 		query["qualifier"] = StringPointer(v.(string))
@@ -352,7 +343,6 @@ func resourceAliCloudFcv3AsyncInvokeConfigDelete(d *schema.ResourceData, meta in
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RoaDelete("FC", "2023-03-30", action, query, nil, nil, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

@@ -9,6 +9,117 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
+// Test Fcv3 AsyncInvokeConfig. >>> Resource test cases, automatically generated.
+// Case AsyncInvokeConfig_Base_Online 7335
+func TestAccAliCloudFcv3AsyncInvokeConfig_basic7335(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fcv3_async_invoke_config.default"
+	ra := resourceAttrInit(resourceId, AlicloudFcv3AsyncInvokeConfigMap7335)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Fcv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFcv3AsyncInvokeConfig")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfcv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFcv3AsyncInvokeConfigBasicDependence7335)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"function_name": "TestFunction_AsyncInvokeConfig",
+					"destination_config": []map[string]interface{}{
+						{
+							"on_failure": []map[string]interface{}{
+								{
+									"destination": "acs:fc:cn-shanghai:1511928242963727:functions/TestFunction_AsyncInvokeConfig_Dest",
+								},
+							},
+							"on_success": []map[string]interface{}{
+								{
+									"destination": "acs:fc:cn-shanghai:1511928242963727:functions/TestFunction_AsyncInvokeConfig_Dest",
+								},
+							},
+						},
+					},
+					"qualifier":                      "LATEST",
+					"max_async_retry_attempts":       "1",
+					"max_async_event_age_in_seconds": "1",
+					"async_task":                     "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"function_name":                  "TestFunction_AsyncInvokeConfig",
+						"qualifier":                      "LATEST",
+						"max_async_retry_attempts":       "1",
+						"max_async_event_age_in_seconds": "1",
+						"async_task":                     "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"destination_config": []map[string]interface{}{
+						{
+							"on_failure": []map[string]interface{}{
+								{
+									"destination": "acs:fc:cn-shanghai:1511928242963727:functions/TestFunction_AsyncInvokeConfig_Dest1",
+								},
+							},
+							"on_success": []map[string]interface{}{
+								{
+									"destination": "acs:fc:cn-shanghai:1511928242963727:functions/TestFunction_AsyncInvokeConfig_Dest1",
+								},
+							},
+						},
+					},
+					"max_async_retry_attempts":       "2",
+					"max_async_event_age_in_seconds": "2",
+					"async_task":                     "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"max_async_retry_attempts":       "2",
+						"max_async_event_age_in_seconds": "2",
+						"async_task":                     "true",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"qualifier"},
+			},
+		},
+	})
+}
+
+var AlicloudFcv3AsyncInvokeConfigMap7335 = map[string]string{
+	"function_arn":       CHECKSET,
+	"create_time":        CHECKSET,
+	"last_modified_time": CHECKSET,
+}
+
+func AlicloudFcv3AsyncInvokeConfigBasicDependence7335(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Fcv3 AsyncInvokeConfig. <<< Resource test cases, automatically generated.
+
 // Case AsyncInvokeConfig_Base 7133
 func TestAccAliCloudFcv3AsyncInvokeConfig_basic7133(t *testing.T) {
 	var v map[string]interface{}

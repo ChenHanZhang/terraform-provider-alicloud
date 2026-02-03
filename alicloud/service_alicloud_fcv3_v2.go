@@ -298,15 +298,17 @@ func (s *Fcv3ServiceV2) DescribeFcv3AsyncInvokeConfig(id string) (object map[str
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	functionName := id
-	action := fmt.Sprintf("/2023-03-30/functions/%s/async-invoke-config", functionName)
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	request["functionName"] = id
+	header = make(map[string]*string)
+
+	action := fmt.Sprintf("/2023-03-30/functions/%s/async-invoke-config", functionName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("FC", "2023-03-30", action, query, nil, nil)
+		response, err = client.RoaGet("FC", "2023-03-30", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -329,17 +331,27 @@ func (s *Fcv3ServiceV2) DescribeFcv3AsyncInvokeConfig(id string) (object map[str
 }
 
 func (s *Fcv3ServiceV2) Fcv3AsyncInvokeConfigStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.Fcv3AsyncInvokeConfigStateRefreshFuncWithApi(id, field, failStates, s.DescribeFcv3AsyncInvokeConfig)
+}
+
+func (s *Fcv3ServiceV2) Fcv3AsyncInvokeConfigStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeFcv3AsyncInvokeConfig(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
