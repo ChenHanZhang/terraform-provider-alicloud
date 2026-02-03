@@ -96,28 +96,21 @@ func resourceAliCloudConfigReportTemplateCreate(d *schema.ResourceData, meta int
 	if v, ok := d.GetOk("subscription_frequency"); ok {
 		request["SubscriptionFrequency"] = v
 	}
-
 	if v, ok := d.GetOk("report_scope"); ok {
-		reportScopeMaps := make([]map[string]interface{}, 0)
-		for _, reportScope := range v.([]interface{}) {
-			reportScopeMap := map[string]interface{}{}
-			reportScopeArg := reportScope.(map[string]interface{})
-
-			if MatchType, ok := reportScopeArg["match_type"]; ok {
-				reportScopeMap["MatchType"] = MatchType
-			}
-
-			if val, ok := reportScopeArg["value"]; ok {
-				reportScopeMap["Value"] = val
-			}
-
-			if key, ok := reportScopeArg["key"]; ok {
-				reportScopeMap["Key"] = key
-			}
-
-			reportScopeMaps = append(reportScopeMaps, reportScopeMap)
+		reportScopeMapsArray := make([]interface{}, 0)
+		for _, dataLoop := range convertToInterfaceArray(v) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			dataLoopMap := make(map[string]interface{})
+			dataLoopMap["Value"] = dataLoopTmp["value"]
+			dataLoopMap["MatchType"] = dataLoopTmp["match_type"]
+			dataLoopMap["Key"] = dataLoopTmp["key"]
+			reportScopeMapsArray = append(reportScopeMapsArray, dataLoopMap)
 		}
-		request["ReportScope"], _ = convertArrayObjectToJsonString(reportScopeMaps)
+		reportScopeMapsJson, err := json.Marshal(reportScopeMapsArray)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["ReportScope"] = string(reportScopeMapsJson)
 	}
 
 	if v, ok := d.GetOk("report_granularity"); ok {
@@ -173,9 +166,10 @@ func resourceAliCloudConfigReportTemplateRead(d *schema.ResourceData, meta inter
 	d.Set("report_template_name", objectRaw["ReportTemplateName"])
 	d.Set("subscription_frequency", objectRaw["SubscriptionFrequency"])
 
+	reportScopeRaw := objectRaw["ReportScope"]
 	reportScopeMaps := make([]map[string]interface{}, 0)
-	if reportScopeList, ok := objectRaw["ReportScope"].([]interface{}); ok {
-		for _, reportScopeChildRaw := range reportScopeList {
+	if reportScopeRaw != nil {
+		for _, reportScopeChildRaw := range convertToInterfaceArray(reportScopeRaw) {
 			reportScopeMap := make(map[string]interface{})
 			reportScopeChildRaw := reportScopeChildRaw.(map[string]interface{})
 			reportScopeMap["key"] = reportScopeChildRaw["Key"]
@@ -185,7 +179,9 @@ func resourceAliCloudConfigReportTemplateRead(d *schema.ResourceData, meta inter
 			reportScopeMaps = append(reportScopeMaps, reportScopeMap)
 		}
 	}
-	d.Set("report_scope", reportScopeMaps)
+	if err := d.Set("report_scope", reportScopeMaps); err != nil {
+		return err
+	}
 
 	return nil
 }
