@@ -2,7 +2,6 @@
 subcategory: "Event Bridge"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_event_bridge_connection"
-sidebar_current: "docs-alicloud-resource-event-bridge-connection"
 description: |-
   Provides a Alicloud Event Bridge Connection resource.
 ---
@@ -11,19 +10,15 @@ description: |-
 
 Provides a Event Bridge Connection resource.
 
-For information about Event Bridge Connection and how to use it, see [What is Connection](https://www.alibabacloud.com/help/en/eventbridge/latest/api-eventbridge-2020-04-01-createconnection).
 
--> **NOTE:** Available since v1.210.0.
+
+For information about Event Bridge Connection and how to use it, see [What is Connection](https://next.api.alibabacloud.com/document/eventbridge/2020-04-01/CreateConnection).
+
+-> **NOTE:** Available since v1.270.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_event_bridge_connection&exampleId=5f2132f4-75c6-44d6-eab9-2bca3ea2855abef271a3&activeTab=example&spm=docs.r.event_bridge_connection.0.5f2132f475&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 provider "alicloud" {
@@ -106,117 +101,128 @@ resource "alicloud_event_bridge_connection" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_event_bridge_connection&spm=docs.r.event_bridge_connection.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-
-* `connection_name` - (Required, ForceNew) The name of the connection.
-* `description` - (Optional) The description of the connection.
-* `network_parameters` - (Required, Set) The parameters that are configured for the network. See [`network_parameters`](#network_parameters) below.
-* `auth_parameters` - (Optional, Set) The parameters that are configured for authentication. See [`auth_parameters`](#auth_parameters) below.
-
-### `network_parameters`
-
-The network_parameters supports the following:
-
-* `network_type` - (Required) The network type. Valid values: `PublicNetwork`, `PrivateNetwork`. **NOTE:** If you set `network_type` to `PrivateNetwork`, you must configure `vpc_id`, `vswitche_id`, and `security_group_id`.
-* `vpc_id` - (Optional) The ID of the VPC.
-* `vswitche_id` - (Optional) The ID of the VSwitch.
-* `security_group_id` - (Optional) The ID of the security group.
+* `auth_parameters` - (Optional, Set) Authentication Data Structure See [`auth_parameters`](#auth_parameters) below.
+* `connection_name` - (Required, ForceNew) The connection configuration name. The maximum length is 127 characters. Minimum length 2 characters.
+* `description` - (Optional) The connection configuration description. The maximum length is 255 characters.
+* `network_parameters` - (Required, Set) Network Configuration Data Structure See [`network_parameters`](#network_parameters) below.
 
 ### `auth_parameters`
 
 The auth_parameters supports the following:
+* `api_key_auth_parameters` - (Optional, Set) API KEY data structure See [`api_key_auth_parameters`](#auth_parameters-api_key_auth_parameters) below.
+* `authorization_type` - (Optional) Authentication type:
 
-* `authorization_type` - (Optional) The type of the authentication. Valid values: `API_KEY_AUTH`, `BASIC_AUTH`, `OAUTH_AUTH`.
-* `api_key_auth_parameters` - (Optional, Set) The parameters that are configured for API key authentication. See [`api_key_auth_parameters`](#auth_parameters-api_key_auth_parameters) below.
-* `basic_auth_parameters` - (Optional, Set) The parameters that are configured for basic authentication. See [`basic_auth_parameters`](#auth_parameters-basic_auth_parameters) below.
-* `oauth_parameters` - (Optional, Set) The parameters that are configured for OAuth authentication. See [`oauth_parameters`](#auth_parameters-oauth_parameters) below.
+BASIC:BASIC_AUTH
+
+Introduction: This authorization method is the basic authorization method implemented by the browser in compliance with the http protocol. In the process of communication with the HTTP protocol, the HTTP protocol defines the method by which the basic authentication allows the HTTP server to carry out user identity cards on the client. In the request header, add Authorization :Basic empty Base64 encryption (user name: password) fixed format.
+
+1. Username and Password are required
+
+API KEY :API_KEY_AUTH
+
+Introduction:
+Fixed format Add Token :Token value in request header
+  - ApiKeyName and ApiKeyValue are required
+
+OAUTH :OAUTH_AUTH
+
+Introduction:
+OAuth2.0 is an authorization mechanism. Normally, for systems that do not use authorization mechanisms such as OAuth2.0, the client can directly Access the resources of the Resource Server. In order for users to Access data safely, an Access Token mechanism is added in the middle of the Access. Clients need to carry Access tokens to Access protected resources. Therefore, OAuth2.0 ensures that resources are not accessed by malicious clients, thus improving the security of the system.
+  - AuthorizationEndpoint, oauthttpparameters, and HttpMethod are required
+* `basic_auth_parameters` - (Optional, Set) Basic authentication data structure See [`basic_auth_parameters`](#auth_parameters-basic_auth_parameters) below.
+* `oauth_parameters` - (Optional, Set) OAuth Authentication parameter data structure See [`oauth_parameters`](#auth_parameters-oauth_parameters) below.
 
 ### `auth_parameters-api_key_auth_parameters`
 
-The api_key_auth_parameters supports the following:
-
-* `api_key_name` - (Optional) The name of the API key.
-* `api_key_value` - (Optional) The value of the API key.
+The auth_parameters-api_key_auth_parameters supports the following:
+* `api_key_name` - (Optional) The key value of Api key
+* `api_key_value` - (Optional) Value of Api key
 
 ### `auth_parameters-basic_auth_parameters`
 
-The basic_auth_parameters supports the following:
-
-* `username` - (Optional) The username for basic authentication.
-* `password` - (Optional) The password for basic authentication.
+The auth_parameters-basic_auth_parameters supports the following:
+* `password` - (Optional) Password for basic authentication
+* `username` - (Optional) Username for basic authentication
 
 ### `auth_parameters-oauth_parameters`
 
-The oauth_parameters supports the following:
-
-* `authorization_endpoint` - (Optional) The IP address of the authorized endpoint.
-* `http_method` - (Optional) The HTTP request method. Valid values: `GET`, `POST`, `HEAD`, `DELETE`, `PUT`, `PATCH`.
-* `client_parameters` - (Optional, Set) The parameters that are configured for the client. See [`client_parameters`](#auth_parameters-oauth_parameters-client_parameters) below.
-* `oauth_http_parameters` - (Optional, Set) The request parameters that are configured for OAuth authentication. See [`oauth_http_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters) below.
+The auth_parameters-oauth_parameters supports the following:
+* `authorization_endpoint` - (Optional) Authorized endpoint address. The maximum length is 127 characters.
+* `client_parameters` - (Optional, Set) Customer Parameter Data Structure See [`client_parameters`](#auth_parameters-oauth_parameters-client_parameters) below.
+* `http_method` - (Optional) The method of the probe type. Value:
+  - GET
+  - POST
+  - HEAD
+  - DELETE
+  - PUT
+  - PATCH
+* `oauth_http_parameters` - (Optional, Set) Request parameters for Oauth Authentication See [`oauth_http_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters) below.
 
 ### `auth_parameters-oauth_parameters-client_parameters`
 
-The client_parameters supports the following:
-
+The auth_parameters-oauth_parameters-client_parameters supports the following:
 * `client_id` - (Optional) The ID of the client.
-* `client_secret` - (Optional) The AccessKey secret of the client.
-
+* `client_secret` - (Optional) Application's client key secret
 
 ### `auth_parameters-oauth_parameters-oauth_http_parameters`
 
-The oauth_http_parameters supports the following:
-
-* `header_parameters` - (Optional, Set) The parameters that are configured for the request header. See [`header_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-header_parameters) below.
-* `body_parameters` - (Optional, Set) The parameters that are configured for the request body. See [`body_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-body_parameters) below.
-* `query_string_parameters` - (Optional, Set) The parameters that are configured for the request path. See [`query_string_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-query_string_parameters) below.
-
-### `auth_parameters-oauth_parameters-oauth_http_parameters-header_parameters`
-
-The header_parameters supports the following:
-
-* `key` - (Optional) The key of the request header.
-* `value` - (Optional) The value of the request header.
-* `is_value_secret` - (Optional) Specifies whether to enable authentication.
+The auth_parameters-oauth_parameters-oauth_http_parameters supports the following:
+* `body_parameters` - (Optional, List) Body request parameter data structure List See [`body_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-body_parameters) below.
+* `header_parameters` - (Optional, List) Parameter list of request header See [`header_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-header_parameters) below.
+* `query_string_parameters` - (Optional, List) Data structure of request path parameters See [`query_string_parameters`](#auth_parameters-oauth_parameters-oauth_http_parameters-query_string_parameters) below.
 
 ### `auth_parameters-oauth_parameters-oauth_http_parameters-body_parameters`
 
-The body_parameters supports the following:
+The auth_parameters-oauth_parameters-oauth_http_parameters-body_parameters supports the following:
+* `is_value_secret` - (Optional) Whether it is Authentication
+* `key` - (Optional) The key of the body request parameter.
+* `value` - (Optional) The value of the body request parameter.
 
-* `key` - (Optional) The key of the request body.
-* `value` - (Optional) The value of the request body.
-* `is_value_secret` - (Optional) Specifies whether to enable authentication.
+### `auth_parameters-oauth_parameters-oauth_http_parameters-header_parameters`
+
+The auth_parameters-oauth_parameters-oauth_http_parameters-header_parameters supports the following:
+* `is_value_secret` - (Optional) Whether it is Authentication
+* `key` - (Optional) The parameter key of the request header.
+* `value` - (Optional) Request header parameter value
 
 ### `auth_parameters-oauth_parameters-oauth_http_parameters-query_string_parameters`
 
-The query_string_parameters supports the following:
+The auth_parameters-oauth_parameters-oauth_http_parameters-query_string_parameters supports the following:
+* `is_value_secret` - (Optional) Whether it is Authentication
+* `key` - (Optional) Request path parameter key
+* `value` - (Optional) Request path parameter value
 
-* `key` - (Optional) The key of the request path.
-* `value` - (Optional) The key of the request path.
-* `is_value_secret` - (Optional) Specifies whether to enable authentication.
+### `network_parameters`
+
+The network_parameters supports the following:
+* `network_type` - (Required) Public network: PublicNetwork
+
+Private network: PrivateNetwork
+  - Tip: When selecting a VPC, VpcId, VswitcheId, and SecurityGroupId are required.
+* `security_group_id` - (Optional) Security group ID
+* `vpc_id` - (Optional) The ID of the VPC.
+* `vswitche_id` - (Optional) Switch ID
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Connection.
-* `create_time` - The creation time of the Connection.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the resource.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Connection.
-* `update` - (Defaults to 5 mins) Used when update the Connection.
 * `delete` - (Defaults to 5 mins) Used when delete the Connection.
+* `update` - (Defaults to 5 mins) Used when update the Connection.
 
 ## Import
 
 Event Bridge Connection can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_event_bridge_connection.example <id>
+$ terraform import alicloud_event_bridge_connection.example <connection_name>
 ```

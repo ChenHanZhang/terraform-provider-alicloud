@@ -1,7 +1,10 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -25,72 +28,112 @@ func resourceAliCloudEventBridgeConnection() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"connection_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"network_parameters": {
-				Type:     schema.TypeList,
-				Required: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"network_type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: StringInSlice([]string{"PublicNetwork", "PrivateNetwork"}, false),
-						},
-						"vpc_id": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"vswitche_id": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"security_group_id": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
-			},
 			"auth_parameters": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"authorization_type": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: StringInSlice([]string{"API_KEY_AUTH", "BASIC_AUTH", "OAUTH_AUTH"}, false),
-						},
-						"api_key_auth_parameters": {
+						"oauth_parameters": {
 							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"api_key_name": {
+									"client_parameters": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"client_secret": {
+													Type:      schema.TypeString,
+													Optional:  true,
+													Sensitive: true,
+												},
+												"client_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"oauth_http_parameters": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"header_parameters": {
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"is_value_secret": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"value": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"key": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+												"query_string_parameters": {
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"is_value_secret": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"value": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"key": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+												"body_parameters": {
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"is_value_secret": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"value": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"key": {
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"authorization_endpoint": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
-									"api_key_value": {
-										Type:      schema.TypeString,
-										Optional:  true,
-										Sensitive: true,
-										DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-											if old != "" && new != "" && old != new {
-												return true
-											}
-											return false
-										},
+									"http_method": {
+										Type:     schema.TypeString,
+										Optional: true,
 									},
 								},
 							},
@@ -109,343 +152,249 @@ func resourceAliCloudEventBridgeConnection() *schema.Resource {
 										Type:      schema.TypeString,
 										Optional:  true,
 										Sensitive: true,
-										DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-											if old != "" && new != "" && old != new {
-												return true
-											}
-											return false
-										},
 									},
 								},
 							},
 						},
-						"oauth_parameters": {
+						"api_key_auth_parameters": {
 							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"authorization_endpoint": {
+									"api_key_value": {
+										Type:      schema.TypeString,
+										Optional:  true,
+										Sensitive: true,
+									},
+									"api_key_name": {
 										Type:     schema.TypeString,
 										Optional: true,
-									},
-									"http_method": {
-										Type:         schema.TypeString,
-										Optional:     true,
-										ValidateFunc: StringInSlice([]string{"GET", "POST", "HEAD", "DELETE", "PUT", "PATCH"}, false),
-									},
-									"client_parameters": {
-										Type:     schema.TypeList,
-										Optional: true,
-										MaxItems: 1,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"client_id": {
-													Type:     schema.TypeString,
-													Optional: true,
-												},
-												"client_secret": {
-													Type:      schema.TypeString,
-													Optional:  true,
-													Sensitive: true,
-												},
-											},
-										},
-									},
-									"oauth_http_parameters": {
-										Type:     schema.TypeList,
-										Optional: true,
-										MaxItems: 1,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"header_parameters": {
-													Type:     schema.TypeList,
-													Optional: true,
-													Elem: &schema.Resource{
-														Schema: map[string]*schema.Schema{
-															"key": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"value": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"is_value_secret": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-														},
-													},
-												},
-												"body_parameters": {
-													Type:     schema.TypeList,
-													Optional: true,
-													Elem: &schema.Resource{
-														Schema: map[string]*schema.Schema{
-															"key": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"value": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"is_value_secret": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-														},
-													},
-												},
-												"query_string_parameters": {
-													Type:     schema.TypeList,
-													Optional: true,
-													Elem: &schema.Resource{
-														Schema: map[string]*schema.Schema{
-															"key": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"value": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-															"is_value_secret": {
-																Type:     schema.TypeString,
-																Optional: true,
-															},
-														},
-													},
-												},
-											},
-										},
 									},
 								},
 							},
 						},
+						"authorization_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
+			},
+			"connection_name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"network_parameters": {
+				Type:     schema.TypeList,
+				Required: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"vpc_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"network_type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"security_group_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"vswitche_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
 }
 
 func resourceAliCloudEventBridgeConnectionCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
-	action := "CreateConnection"
-	request := make(map[string]interface{})
-	var err error
 
-	request["ConnectionName"] = d.Get("connection_name")
+	client := meta.(*connectivity.AliyunClient)
+
+	action := "CreateConnection"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("connection_name"); ok {
+		request["ConnectionName"] = v
+	}
 
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
+	networkParameters := make(map[string]interface{})
 
-	networkParameters := d.Get("network_parameters")
-	networkParametersMap := map[string]interface{}{}
-	for _, networkParametersList := range networkParameters.([]interface{}) {
-		networkParametersArg := networkParametersList.(map[string]interface{})
-
-		networkParametersMap["NetworkType"] = networkParametersArg["network_type"]
-
-		if vpcId, ok := networkParametersArg["vpc_id"]; ok {
-			networkParametersMap["VpcId"] = vpcId
+	if v := d.Get("network_parameters"); v != nil {
+		networkType1, _ := jsonpath.Get("$[0].network_type", v)
+		if networkType1 != nil && networkType1 != "" {
+			networkParameters["NetworkType"] = networkType1
+		}
+		vpcId1, _ := jsonpath.Get("$[0].vpc_id", v)
+		if vpcId1 != nil && vpcId1 != "" {
+			networkParameters["VpcId"] = vpcId1
+		}
+		vswitcheId1, _ := jsonpath.Get("$[0].vswitche_id", v)
+		if vswitcheId1 != nil && vswitcheId1 != "" {
+			networkParameters["VswitcheId"] = vswitcheId1
+		}
+		securityGroupId1, _ := jsonpath.Get("$[0].security_group_id", v)
+		if securityGroupId1 != nil && securityGroupId1 != "" {
+			networkParameters["SecurityGroupId"] = securityGroupId1
 		}
 
-		if vswitcheId, ok := networkParametersArg["vswitche_id"]; ok {
-			networkParametersMap["VswitcheId"] = vswitcheId
-		}
-
-		if securityGroupId, ok := networkParametersArg["security_group_id"]; ok {
-			networkParametersMap["SecurityGroupId"] = securityGroupId
-		}
-	}
-
-	networkParametersJson, err := convertMaptoJsonString(networkParametersMap)
-	if err != nil {
-		return WrapError(err)
-	}
-
-	request["NetworkParameters"] = networkParametersJson
-
-	if v, ok := d.GetOk("auth_parameters"); ok {
-		authParametersMap := map[string]interface{}{}
-		for _, authParametersList := range v.([]interface{}) {
-			authParametersArg := authParametersList.(map[string]interface{})
-
-			if authorizationType, ok := authParametersArg["authorization_type"]; ok {
-				authParametersMap["AuthorizationType"] = authorizationType
-			}
-
-			if apiKeyAuthParameters, ok := authParametersArg["api_key_auth_parameters"]; ok {
-				apiKeyAuthParametersMap := map[string]interface{}{}
-				for _, apiKeyAuthParametersList := range apiKeyAuthParameters.([]interface{}) {
-					apiKeyAuthParametersArg := apiKeyAuthParametersList.(map[string]interface{})
-
-					if apiKeyName, ok := apiKeyAuthParametersArg["api_key_name"]; ok {
-						apiKeyAuthParametersMap["ApiKeyName"] = apiKeyName
-					}
-
-					if apiKeyValue, ok := apiKeyAuthParametersArg["api_key_value"]; ok {
-						apiKeyAuthParametersMap["ApiKeyValue"] = apiKeyValue
-					}
-				}
-
-				authParametersMap["ApiKeyAuthParameters"] = apiKeyAuthParametersMap
-			}
-
-			if basicAuthParameters, ok := authParametersArg["basic_auth_parameters"]; ok {
-				basicAuthParametersMap := map[string]interface{}{}
-				for _, basicAuthParametersList := range basicAuthParameters.([]interface{}) {
-					basicAuthParametersArg := basicAuthParametersList.(map[string]interface{})
-
-					if username, ok := basicAuthParametersArg["username"]; ok {
-						basicAuthParametersMap["Username"] = username
-					}
-
-					if password, ok := basicAuthParametersArg["password"]; ok {
-						basicAuthParametersMap["Password"] = password
-					}
-				}
-
-				authParametersMap["BasicAuthParameters"] = basicAuthParametersMap
-			}
-
-			if oAuthParameters, ok := authParametersArg["oauth_parameters"]; ok {
-				oAuthParametersMap := map[string]interface{}{}
-				for _, oAuthParametersList := range oAuthParameters.([]interface{}) {
-					oAuthParametersArg := oAuthParametersList.(map[string]interface{})
-
-					if authorizationEndpoint, ok := oAuthParametersArg["authorization_endpoint"]; ok {
-						oAuthParametersMap["AuthorizationEndpoint"] = authorizationEndpoint
-					}
-
-					if httpMethod, ok := oAuthParametersArg["http_method"]; ok {
-						oAuthParametersMap["HttpMethod"] = httpMethod
-					}
-
-					if clientParameters, ok := oAuthParametersArg["client_parameters"]; ok {
-						clientParametersMap := map[string]interface{}{}
-						for _, clientParametersList := range clientParameters.([]interface{}) {
-							clientParametersArg := clientParametersList.(map[string]interface{})
-
-							if clientID, ok := clientParametersArg["client_id"]; ok {
-								clientParametersMap["ClientID"] = clientID
-							}
-
-							if clientSecret, ok := clientParametersArg["client_secret"]; ok {
-								clientParametersMap["ClientSecret"] = clientSecret
-							}
-						}
-
-						oAuthParametersMap["ClientParameters"] = clientParametersMap
-					}
-
-					if oAuthHttpParameters, ok := oAuthParametersArg["oauth_http_parameters"]; ok {
-						oAuthHttpParametersMap := map[string]interface{}{}
-						for _, oAuthHttpParametersList := range oAuthHttpParameters.([]interface{}) {
-							oAuthHttpParametersArg := oAuthHttpParametersList.(map[string]interface{})
-
-							if headerParameters, ok := oAuthHttpParametersArg["header_parameters"]; ok {
-								headerParametersMaps := make([]map[string]interface{}, 0)
-								for _, headerParametersList := range headerParameters.([]interface{}) {
-									headerParametersMap := map[string]interface{}{}
-									headerParametersArg := headerParametersList.(map[string]interface{})
-
-									if key, ok := headerParametersArg["key"]; ok {
-										headerParametersMap["Key"] = key
-									}
-
-									if value, ok := headerParametersArg["value"]; ok {
-										headerParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := headerParametersArg["is_value_secret"]; ok {
-										headerParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									headerParametersMaps = append(headerParametersMaps, headerParametersMap)
-								}
-
-								oAuthHttpParametersMap["HeaderParameters"] = headerParametersMaps
-							}
-
-							if bodyParameters, ok := oAuthHttpParametersArg["body_parameters"]; ok {
-								bodyParametersMaps := make([]map[string]interface{}, 0)
-								for _, bodyParametersList := range bodyParameters.([]interface{}) {
-									bodyParametersMap := map[string]interface{}{}
-									bodyParametersArg := bodyParametersList.(map[string]interface{})
-
-									if key, ok := bodyParametersArg["key"]; ok {
-										bodyParametersMap["Key"] = key
-									}
-
-									if value, ok := bodyParametersArg["value"]; ok {
-										bodyParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := bodyParametersArg["is_value_secret"]; ok {
-										bodyParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									bodyParametersMaps = append(bodyParametersMaps, bodyParametersMap)
-								}
-
-								oAuthHttpParametersMap["BodyParameters"] = bodyParametersMaps
-							}
-
-							if queryStringParameters, ok := oAuthHttpParametersArg["query_string_parameters"]; ok {
-								queryStringParametersMaps := make([]map[string]interface{}, 0)
-								for _, queryStringParametersList := range queryStringParameters.([]interface{}) {
-									queryStringParametersMap := map[string]interface{}{}
-									queryStringParametersArg := queryStringParametersList.(map[string]interface{})
-
-									if key, ok := queryStringParametersArg["key"]; ok {
-										queryStringParametersMap["Key"] = key
-									}
-
-									if value, ok := queryStringParametersArg["value"]; ok {
-										queryStringParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := queryStringParametersArg["is_value_secret"]; ok {
-										queryStringParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									queryStringParametersMaps = append(queryStringParametersMaps, queryStringParametersMap)
-								}
-
-								oAuthHttpParametersMap["QueryStringParameters"] = queryStringParametersMaps
-							}
-
-						}
-
-						oAuthParametersMap["OAuthHttpParameters"] = oAuthHttpParametersMap
-					}
-				}
-
-				authParametersMap["OAuthParameters"] = oAuthParametersMap
-			}
-		}
-
-		authParametersJson, err := convertMaptoJsonString(authParametersMap)
+		networkParametersJson, err := json.Marshal(networkParameters)
 		if err != nil {
 			return WrapError(err)
 		}
+		request["NetworkParameters"] = string(networkParametersJson)
+	}
 
-		request["AuthParameters"] = authParametersJson
+	authParameters := make(map[string]interface{})
+
+	if v := d.Get("auth_parameters"); !IsNil(v) {
+		authorizationType1, _ := jsonpath.Get("$[0].authorization_type", v)
+		if authorizationType1 != nil && authorizationType1 != "" {
+			authParameters["AuthorizationType"] = authorizationType1
+		}
+		apiKeyAuthParameters := make(map[string]interface{})
+		apiKeyName1, _ := jsonpath.Get("$[0].api_key_auth_parameters[0].api_key_name", d.Get("auth_parameters"))
+		if apiKeyName1 != nil && apiKeyName1 != "" {
+			apiKeyAuthParameters["ApiKeyName"] = apiKeyName1
+		}
+		apiKeyValue1, _ := jsonpath.Get("$[0].api_key_auth_parameters[0].api_key_value", d.Get("auth_parameters"))
+		if apiKeyValue1 != nil && apiKeyValue1 != "" {
+			apiKeyAuthParameters["ApiKeyValue"] = apiKeyValue1
+		}
+
+		if len(apiKeyAuthParameters) > 0 {
+			authParameters["ApiKeyAuthParameters"] = apiKeyAuthParameters
+		}
+		basicAuthParameters := make(map[string]interface{})
+		password1, _ := jsonpath.Get("$[0].basic_auth_parameters[0].password", d.Get("auth_parameters"))
+		if password1 != nil && password1 != "" {
+			basicAuthParameters["Password"] = password1
+		}
+		username1, _ := jsonpath.Get("$[0].basic_auth_parameters[0].username", d.Get("auth_parameters"))
+		if username1 != nil && username1 != "" {
+			basicAuthParameters["Username"] = username1
+		}
+
+		if len(basicAuthParameters) > 0 {
+			authParameters["BasicAuthParameters"] = basicAuthParameters
+		}
+		oAuthParameters := make(map[string]interface{})
+		clientParameters := make(map[string]interface{})
+		clientId, _ := jsonpath.Get("$[0].oauth_parameters[0].client_parameters[0].client_id", d.Get("auth_parameters"))
+		if clientId != nil && clientId != "" {
+			clientParameters["ClientID"] = clientId
+		}
+		clientSecret1, _ := jsonpath.Get("$[0].oauth_parameters[0].client_parameters[0].client_secret", d.Get("auth_parameters"))
+		if clientSecret1 != nil && clientSecret1 != "" {
+			clientParameters["ClientSecret"] = clientSecret1
+		}
+
+		if len(clientParameters) > 0 {
+			oAuthParameters["ClientParameters"] = clientParameters
+		}
+		httpMethod1, _ := jsonpath.Get("$[0].oauth_parameters[0].http_method", d.Get("auth_parameters"))
+		if httpMethod1 != nil && httpMethod1 != "" {
+			oAuthParameters["HttpMethod"] = httpMethod1
+		}
+		authorizationEndpoint1, _ := jsonpath.Get("$[0].oauth_parameters[0].authorization_endpoint", d.Get("auth_parameters"))
+		if authorizationEndpoint1 != nil && authorizationEndpoint1 != "" {
+			oAuthParameters["AuthorizationEndpoint"] = authorizationEndpoint1
+		}
+		oAuthHttpParameters := make(map[string]interface{})
+		localData, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].body_parameters", v)
+		if err != nil {
+			localData = make([]interface{}, 0)
+		}
+		localMaps := make([]interface{}, 0)
+		for _, dataLoop := range convertToInterfaceArray(localData) {
+			dataLoopTmp := make(map[string]interface{})
+			if dataLoop != nil {
+				dataLoopTmp = dataLoop.(map[string]interface{})
+			}
+			dataLoopMap := make(map[string]interface{})
+			dataLoopMap["IsValueSecret"] = dataLoopTmp["is_value_secret"]
+			dataLoopMap["Key"] = dataLoopTmp["key"]
+			dataLoopMap["Value"] = dataLoopTmp["value"]
+			localMaps = append(localMaps, dataLoopMap)
+		}
+		oAuthHttpParameters["BodyParameters"] = localMaps
+
+		localData1, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].header_parameters", v)
+		if err != nil {
+			localData1 = make([]interface{}, 0)
+		}
+		localMaps1 := make([]interface{}, 0)
+		for _, dataLoop1 := range convertToInterfaceArray(localData1) {
+			dataLoop1Tmp := make(map[string]interface{})
+			if dataLoop1 != nil {
+				dataLoop1Tmp = dataLoop1.(map[string]interface{})
+			}
+			dataLoop1Map := make(map[string]interface{})
+			dataLoop1Map["IsValueSecret"] = dataLoop1Tmp["is_value_secret"]
+			dataLoop1Map["Key"] = dataLoop1Tmp["key"]
+			dataLoop1Map["Value"] = dataLoop1Tmp["value"]
+			localMaps1 = append(localMaps1, dataLoop1Map)
+		}
+		oAuthHttpParameters["HeaderParameters"] = localMaps1
+
+		localData2, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].query_string_parameters", v)
+		if err != nil {
+			localData2 = make([]interface{}, 0)
+		}
+		localMaps2 := make([]interface{}, 0)
+		for _, dataLoop2 := range convertToInterfaceArray(localData2) {
+			dataLoop2Tmp := make(map[string]interface{})
+			if dataLoop2 != nil {
+				dataLoop2Tmp = dataLoop2.(map[string]interface{})
+			}
+			dataLoop2Map := make(map[string]interface{})
+			dataLoop2Map["IsValueSecret"] = dataLoop2Tmp["is_value_secret"]
+			dataLoop2Map["Key"] = dataLoop2Tmp["key"]
+			dataLoop2Map["Value"] = dataLoop2Tmp["value"]
+			localMaps2 = append(localMaps2, dataLoop2Map)
+		}
+		oAuthHttpParameters["QueryStringParameters"] = localMaps2
+
+		if len(oAuthHttpParameters) > 0 {
+			oAuthParameters["OAuthHttpParameters"] = oAuthHttpParameters
+		}
+
+		if len(oAuthParameters) > 0 {
+			authParameters["OAuthParameters"] = oAuthParameters
+		}
+
+		authParametersJson, err := json.Marshal(authParameters)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["AuthParameters"] = string(authParametersJson)
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, true)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -461,12 +410,8 @@ func resourceAliCloudEventBridgeConnectionCreate(d *schema.ResourceData, meta in
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_event_bridge_connection", action, AlibabaCloudSdkGoERROR)
 	}
 
-	if resp, err := jsonpath.Get("$.Data", response); err != nil || resp == nil {
-		return WrapErrorf(err, IdMsg, "alicloud_event_bridge_connection")
-	} else {
-		connectionName := resp.(map[string]interface{})["ConnectionName"]
-		d.SetId(fmt.Sprint(connectionName))
-	}
+	id, _ := jsonpath.Get("$.Data.ConnectionName", response)
+	d.SetId(fmt.Sprint(id))
 
 	return resourceAliCloudEventBridgeConnectionRead(d, meta)
 }
@@ -475,452 +420,342 @@ func resourceAliCloudEventBridgeConnectionRead(d *schema.ResourceData, meta inte
 	client := meta.(*connectivity.AliyunClient)
 	eventBridgeServiceV2 := EventBridgeServiceV2{client}
 
-	object, err := eventBridgeServiceV2.DescribeEventBridgeConnection(d.Id())
+	objectRaw, err := eventBridgeServiceV2.DescribeEventBridgeConnection(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_event_bridge_connection DescribeEventBridgeConnection Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("connection_name", object["ConnectionName"])
-	d.Set("description", object["Description"])
-	d.Set("create_time", object["GmtCreate"])
+	d.Set("create_time", objectRaw["GmtCreate"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("connection_name", objectRaw["ConnectionName"])
 
-	if networkParameters, ok := object["NetworkParameters"]; ok {
-		networkParametersMaps := make([]map[string]interface{}, 0)
-		networkParametersArg := networkParameters.(map[string]interface{})
-		networkParametersMap := make(map[string]interface{})
+	authParametersMaps := make([]map[string]interface{}, 0)
+	authParametersMap := make(map[string]interface{})
+	authParametersRaw := make(map[string]interface{})
+	if objectRaw["AuthParameters"] != nil {
+		authParametersRaw = objectRaw["AuthParameters"].(map[string]interface{})
+	}
+	if len(authParametersRaw) > 0 {
+		authParametersMap["authorization_type"] = authParametersRaw["AuthorizationType"]
 
-		if networkType, ok := networkParametersArg["NetworkType"]; ok {
-			networkParametersMap["network_type"] = networkType
+		apiKeyAuthParametersMaps := make([]map[string]interface{}, 0)
+		apiKeyAuthParametersMap := make(map[string]interface{})
+		apiKeyAuthParametersRaw := make(map[string]interface{})
+		if authParametersRaw["ApiKeyAuthParameters"] != nil {
+			apiKeyAuthParametersRaw = authParametersRaw["ApiKeyAuthParameters"].(map[string]interface{})
 		}
+		if len(apiKeyAuthParametersRaw) > 0 {
+			apiKeyAuthParametersMap["api_key_name"] = apiKeyAuthParametersRaw["ApiKeyName"]
+			apiKeyAuthParametersMap["api_key_value"] = apiKeyAuthParametersRaw["ApiKeyValue"]
 
-		if vpcId, ok := networkParametersArg["VpcId"]; ok {
-			networkParametersMap["vpc_id"] = vpcId
+			apiKeyAuthParametersMaps = append(apiKeyAuthParametersMaps, apiKeyAuthParametersMap)
 		}
+		authParametersMap["api_key_auth_parameters"] = apiKeyAuthParametersMaps
+		basicAuthParametersMaps := make([]map[string]interface{}, 0)
+		basicAuthParametersMap := make(map[string]interface{})
+		basicAuthParametersRaw := make(map[string]interface{})
+		if authParametersRaw["BasicAuthParameters"] != nil {
+			basicAuthParametersRaw = authParametersRaw["BasicAuthParameters"].(map[string]interface{})
+		}
+		if len(basicAuthParametersRaw) > 0 {
+			basicAuthParametersMap["password"] = basicAuthParametersRaw["Password"]
+			basicAuthParametersMap["username"] = basicAuthParametersRaw["Username"]
 
-		if vswitcheId, ok := networkParametersArg["VswitcheId"]; ok {
-			networkParametersMap["vswitche_id"] = vswitcheId
+			basicAuthParametersMaps = append(basicAuthParametersMaps, basicAuthParametersMap)
 		}
+		authParametersMap["basic_auth_parameters"] = basicAuthParametersMaps
+		oauthParametersMaps := make([]map[string]interface{}, 0)
+		oauthParametersMap := make(map[string]interface{})
+		oAuthParametersRaw := make(map[string]interface{})
+		if authParametersRaw["OAuthParameters"] != nil {
+			oAuthParametersRaw = authParametersRaw["OAuthParameters"].(map[string]interface{})
+		}
+		if len(oAuthParametersRaw) > 0 {
+			oauthParametersMap["authorization_endpoint"] = oAuthParametersRaw["AuthorizationEndpoint"]
+			oauthParametersMap["http_method"] = oAuthParametersRaw["HttpMethod"]
 
-		if securityGroupId, ok := networkParametersArg["SecurityGroupId"]; ok {
-			networkParametersMap["security_group_id"] = securityGroupId
+			clientParametersMaps := make([]map[string]interface{}, 0)
+			clientParametersMap := make(map[string]interface{})
+			clientParametersRaw := make(map[string]interface{})
+			if oAuthParametersRaw["ClientParameters"] != nil {
+				clientParametersRaw = oAuthParametersRaw["ClientParameters"].(map[string]interface{})
+			}
+			if len(clientParametersRaw) > 0 {
+				clientParametersMap["client_id"] = clientParametersRaw["ClientID"]
+				clientParametersMap["client_secret"] = clientParametersRaw["ClientSecret"]
+
+				clientParametersMaps = append(clientParametersMaps, clientParametersMap)
+			}
+			oauthParametersMap["client_parameters"] = clientParametersMaps
+			oauthHttpParametersMaps := make([]map[string]interface{}, 0)
+			oauthHttpParametersMap := make(map[string]interface{})
+			oAuthHttpParametersRaw := make(map[string]interface{})
+			if oAuthParametersRaw["OAuthHttpParameters"] != nil {
+				oAuthHttpParametersRaw = oAuthParametersRaw["OAuthHttpParameters"].(map[string]interface{})
+			}
+			if len(oAuthHttpParametersRaw) > 0 {
+
+				bodyParametersRaw := oAuthHttpParametersRaw["BodyParameters"]
+				bodyParametersMaps := make([]map[string]interface{}, 0)
+				if bodyParametersRaw != nil {
+					for _, bodyParametersChildRaw := range convertToInterfaceArray(bodyParametersRaw) {
+						bodyParametersMap := make(map[string]interface{})
+						bodyParametersChildRaw := bodyParametersChildRaw.(map[string]interface{})
+						bodyParametersMap["is_value_secret"] = bodyParametersChildRaw["IsValueSecret"]
+						bodyParametersMap["key"] = bodyParametersChildRaw["Key"]
+						bodyParametersMap["value"] = bodyParametersChildRaw["Value"]
+
+						bodyParametersMaps = append(bodyParametersMaps, bodyParametersMap)
+					}
+				}
+				oauthHttpParametersMap["body_parameters"] = bodyParametersMaps
+				headerParametersRaw := oAuthHttpParametersRaw["HeaderParameters"]
+				headerParametersMaps := make([]map[string]interface{}, 0)
+				if headerParametersRaw != nil {
+					for _, headerParametersChildRaw := range convertToInterfaceArray(headerParametersRaw) {
+						headerParametersMap := make(map[string]interface{})
+						headerParametersChildRaw := headerParametersChildRaw.(map[string]interface{})
+						headerParametersMap["is_value_secret"] = headerParametersChildRaw["IsValueSecret"]
+						headerParametersMap["key"] = headerParametersChildRaw["Key"]
+						headerParametersMap["value"] = headerParametersChildRaw["Value"]
+
+						headerParametersMaps = append(headerParametersMaps, headerParametersMap)
+					}
+				}
+				oauthHttpParametersMap["header_parameters"] = headerParametersMaps
+				queryStringParametersRaw := oAuthHttpParametersRaw["QueryStringParameters"]
+				queryStringParametersMaps := make([]map[string]interface{}, 0)
+				if queryStringParametersRaw != nil {
+					for _, queryStringParametersChildRaw := range convertToInterfaceArray(queryStringParametersRaw) {
+						queryStringParametersMap := make(map[string]interface{})
+						queryStringParametersChildRaw := queryStringParametersChildRaw.(map[string]interface{})
+						queryStringParametersMap["is_value_secret"] = queryStringParametersChildRaw["IsValueSecret"]
+						queryStringParametersMap["key"] = queryStringParametersChildRaw["Key"]
+						queryStringParametersMap["value"] = queryStringParametersChildRaw["Value"]
+
+						queryStringParametersMaps = append(queryStringParametersMaps, queryStringParametersMap)
+					}
+				}
+				oauthHttpParametersMap["query_string_parameters"] = queryStringParametersMaps
+				oauthHttpParametersMaps = append(oauthHttpParametersMaps, oauthHttpParametersMap)
+			}
+			oauthParametersMap["oauth_http_parameters"] = oauthHttpParametersMaps
+			oauthParametersMaps = append(oauthParametersMaps, oauthParametersMap)
 		}
+		authParametersMap["oauth_parameters"] = oauthParametersMaps
+		authParametersMaps = append(authParametersMaps, authParametersMap)
+	}
+	if err := d.Set("auth_parameters", authParametersMaps); err != nil {
+		return err
+	}
+	networkParametersMaps := make([]map[string]interface{}, 0)
+	networkParametersMap := make(map[string]interface{})
+	networkParametersRaw := make(map[string]interface{})
+	if objectRaw["NetworkParameters"] != nil {
+		networkParametersRaw = objectRaw["NetworkParameters"].(map[string]interface{})
+	}
+	if len(networkParametersRaw) > 0 {
+		networkParametersMap["network_type"] = networkParametersRaw["NetworkType"]
+		networkParametersMap["security_group_id"] = networkParametersRaw["SecurityGroupId"]
+		networkParametersMap["vpc_id"] = networkParametersRaw["VpcId"]
+		networkParametersMap["vswitche_id"] = networkParametersRaw["VswitcheId"]
 
 		networkParametersMaps = append(networkParametersMaps, networkParametersMap)
-
-		d.Set("network_parameters", networkParametersMaps)
+	}
+	if err := d.Set("network_parameters", networkParametersMaps); err != nil {
+		return err
 	}
 
-	if authParameters, ok := object["AuthParameters"]; ok {
-		authParametersMaps := make([]map[string]interface{}, 0)
-		authParametersArg := authParameters.(map[string]interface{})
-		authParametersMap := make(map[string]interface{})
-
-		if authorizationType, ok := authParametersArg["AuthorizationType"]; ok {
-			authParametersMap["authorization_type"] = authorizationType
-		}
-
-		if apiKeyAuthParameters, ok := authParametersArg["ApiKeyAuthParameters"]; ok {
-			apiKeyAuthParametersMaps := make([]map[string]interface{}, 0)
-			apiKeyAuthParametersArg := apiKeyAuthParameters.(map[string]interface{})
-			apiKeyAuthParametersMap := make(map[string]interface{})
-
-			if len(apiKeyAuthParametersArg) > 0 {
-				if apiKeyName, ok := apiKeyAuthParametersArg["ApiKeyName"]; ok {
-					apiKeyAuthParametersMap["api_key_name"] = apiKeyName
-				}
-
-				if apiKeyValue, ok := apiKeyAuthParametersArg["ApiKeyValue"]; ok {
-					apiKeyAuthParametersMap["api_key_value"] = apiKeyValue
-				}
-
-				apiKeyAuthParametersMaps = append(apiKeyAuthParametersMaps, apiKeyAuthParametersMap)
-
-				authParametersMap["api_key_auth_parameters"] = apiKeyAuthParametersMaps
-			}
-		}
-
-		if basicAuthParameters, ok := authParametersArg["BasicAuthParameters"]; ok {
-			basicAuthParametersMaps := make([]map[string]interface{}, 0)
-			basicAuthParametersArg := basicAuthParameters.(map[string]interface{})
-			basicAuthParametersMap := make(map[string]interface{})
-
-			if len(basicAuthParametersArg) > 0 {
-				if username, ok := basicAuthParametersArg["Username"]; ok {
-					basicAuthParametersMap["username"] = username
-				}
-
-				if password, ok := basicAuthParametersArg["Password"]; ok {
-					basicAuthParametersMap["password"] = password
-				}
-
-				basicAuthParametersMaps = append(basicAuthParametersMaps, basicAuthParametersMap)
-
-				authParametersMap["basic_auth_parameters"] = basicAuthParametersMaps
-			}
-		}
-
-		if oAuthParameters, ok := authParametersArg["OAuthParameters"]; ok {
-			oAuthParametersMaps := make([]map[string]interface{}, 0)
-			oAuthParametersArg := oAuthParameters.(map[string]interface{})
-			oAuthParametersMap := make(map[string]interface{})
-
-			if authorizationEndpoint, ok := oAuthParametersArg["AuthorizationEndpoint"]; ok {
-				oAuthParametersMap["authorization_endpoint"] = authorizationEndpoint
-			}
-
-			if httpMethod, ok := oAuthParametersArg["HttpMethod"]; ok {
-				oAuthParametersMap["http_method"] = httpMethod
-			}
-
-			if clientParameters, ok := oAuthParametersArg["ClientParameters"]; ok {
-				clientParametersMaps := make([]map[string]interface{}, 0)
-				clientParametersArg := clientParameters.(map[string]interface{})
-				clientParametersMap := make(map[string]interface{})
-
-				if len(clientParametersArg) > 0 {
-					if clientID, ok := clientParametersArg["ClientID"]; ok {
-						clientParametersMap["client_id"] = clientID
-					}
-
-					if clientSecret, ok := clientParametersArg["ClientSecret"]; ok {
-						clientParametersMap["client_secret"] = clientSecret
-					}
-
-					clientParametersMaps = append(clientParametersMaps, clientParametersMap)
-
-					oAuthParametersMap["client_parameters"] = clientParametersMaps
-				}
-			}
-
-			if oAuthHttpParameters, ok := oAuthParametersArg["OAuthHttpParameters"]; ok {
-				oAuthHttpParametersMaps := make([]map[string]interface{}, 0)
-				oAuthHttpParametersArg := oAuthHttpParameters.(map[string]interface{})
-				oAuthHttpParametersMap := make(map[string]interface{})
-
-				if len(oAuthHttpParametersArg) > 0 {
-					if headerParametersList, ok := oAuthHttpParametersArg["HeaderParameters"]; ok {
-						headerParametersMaps := make([]map[string]interface{}, 0)
-						for _, headerParameters := range headerParametersList.([]interface{}) {
-							headerParametersArg := headerParameters.(map[string]interface{})
-							headerParametersMap := map[string]interface{}{}
-
-							if key, ok := headerParametersArg["Key"]; ok {
-								headerParametersMap["key"] = key
-							}
-
-							if value, ok := headerParametersArg["Value"]; ok {
-								headerParametersMap["value"] = value
-							}
-
-							if isValueSecret, ok := headerParametersArg["IsValueSecret"]; ok {
-								headerParametersMap["is_value_secret"] = isValueSecret
-							}
-
-							headerParametersMaps = append(headerParametersMaps, headerParametersMap)
-						}
-
-						oAuthHttpParametersMap["header_parameters"] = headerParametersMaps
-					}
-
-					if bodyParametersList, ok := oAuthHttpParametersArg["BodyParameters"]; ok {
-						bodyParametersMaps := make([]map[string]interface{}, 0)
-						for _, bodyParameters := range bodyParametersList.([]interface{}) {
-							bodyParametersArg := bodyParameters.(map[string]interface{})
-							bodyParametersMap := map[string]interface{}{}
-
-							if key, ok := bodyParametersArg["Key"]; ok {
-								bodyParametersMap["key"] = key
-							}
-
-							if value, ok := bodyParametersArg["Value"]; ok {
-								bodyParametersMap["value"] = value
-							}
-
-							if isValueSecret, ok := bodyParametersArg["IsValueSecret"]; ok {
-								bodyParametersMap["is_value_secret"] = isValueSecret
-							}
-
-							bodyParametersMaps = append(bodyParametersMaps, bodyParametersMap)
-						}
-
-						oAuthHttpParametersMap["body_parameters"] = bodyParametersMaps
-					}
-
-					if queryStringParametersList, ok := oAuthHttpParametersArg["QueryStringParameters"]; ok {
-						queryStringParametersMaps := make([]map[string]interface{}, 0)
-						for _, queryStringParameters := range queryStringParametersList.([]interface{}) {
-							queryStringParametersArg := queryStringParameters.(map[string]interface{})
-							queryStringParametersMap := map[string]interface{}{}
-
-							if key, ok := queryStringParametersArg["Key"]; ok {
-								queryStringParametersMap["key"] = key
-							}
-
-							if value, ok := queryStringParametersArg["Value"]; ok {
-								queryStringParametersMap["value"] = value
-							}
-
-							if isValueSecret, ok := queryStringParametersArg["IsValueSecret"]; ok {
-								queryStringParametersMap["is_value_secret"] = isValueSecret
-							}
-
-							queryStringParametersMaps = append(queryStringParametersMaps, queryStringParametersMap)
-						}
-
-						oAuthHttpParametersMap["query_string_parameters"] = queryStringParametersMaps
-					}
-
-					oAuthHttpParametersMaps = append(oAuthHttpParametersMaps, oAuthHttpParametersMap)
-
-					oAuthParametersMap["oauth_http_parameters"] = oAuthHttpParametersMaps
-				}
-			}
-
-			if len(oAuthParametersMap) > 0 {
-				oAuthParametersMaps = append(oAuthParametersMaps, oAuthParametersMap)
-
-				authParametersMap["oauth_parameters"] = oAuthParametersMaps
-			}
-		}
-
-		if len(authParametersMap) > 0 {
-			authParametersMaps = append(authParametersMaps, authParametersMap)
-		}
-
-		d.Set("auth_parameters", authParametersMaps)
-	}
+	d.Set("connection_name", d.Id())
 
 	return nil
 }
 
 func resourceAliCloudEventBridgeConnectionUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
+	var request map[string]interface{}
 	var response map[string]interface{}
-	var err error
+	var query map[string]interface{}
 	update := false
 
-	request := map[string]interface{}{
-		"ConnectionName": d.Id(),
-	}
+	var err error
+	action := "UpdateConnection"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ConnectionName"] = d.Id()
 
 	if d.HasChange("description") {
 		update = true
-	}
-	if v, ok := d.GetOk("description"); ok {
-		request["Description"] = v
+		request["Description"] = d.Get("description")
 	}
 
 	if d.HasChange("network_parameters") {
 		update = true
 	}
-	if v, ok := d.GetOk("network_parameters"); ok {
-		networkParametersMap := map[string]interface{}{}
-		for _, networkParametersList := range v.([]interface{}) {
-			networkParametersArg := networkParametersList.(map[string]interface{})
+	networkParameters := make(map[string]interface{})
 
-			networkParametersMap["NetworkType"] = networkParametersArg["network_type"]
-
-			if vpcId, ok := networkParametersArg["vpc_id"]; ok {
-				networkParametersMap["VpcId"] = vpcId
-			}
-
-			if vswitcheId, ok := networkParametersArg["vswitche_id"]; ok {
-				networkParametersMap["VswitcheId"] = vswitcheId
-			}
-
-			if securityGroupId, ok := networkParametersArg["security_group_id"]; ok {
-				networkParametersMap["SecurityGroupId"] = securityGroupId
-			}
+	if v := d.Get("network_parameters"); v != nil {
+		networkType1, _ := jsonpath.Get("$[0].network_type", v)
+		if networkType1 != nil && networkType1 != "" {
+			networkParameters["NetworkType"] = networkType1
+		}
+		vpcId1, _ := jsonpath.Get("$[0].vpc_id", v)
+		if vpcId1 != nil && vpcId1 != "" {
+			networkParameters["VpcId"] = vpcId1
+		}
+		vswitcheId1, _ := jsonpath.Get("$[0].vswitche_id", v)
+		if vswitcheId1 != nil && vswitcheId1 != "" {
+			networkParameters["VswitcheId"] = vswitcheId1
+		}
+		securityGroupId1, _ := jsonpath.Get("$[0].security_group_id", v)
+		if securityGroupId1 != nil && securityGroupId1 != "" {
+			networkParameters["SecurityGroupId"] = securityGroupId1
 		}
 
-		networkParametersJson, err := convertMaptoJsonString(networkParametersMap)
+		networkParametersJson, err := json.Marshal(networkParameters)
 		if err != nil {
 			return WrapError(err)
 		}
-
-		request["NetworkParameters"] = networkParametersJson
+		request["NetworkParameters"] = string(networkParametersJson)
 	}
 
 	if d.HasChange("auth_parameters") {
 		update = true
-	}
-	if v, ok := d.GetOk("auth_parameters"); ok {
-		authParametersMap := map[string]interface{}{}
-		for _, authParametersList := range v.([]interface{}) {
-			authParametersArg := authParametersList.(map[string]interface{})
+		authParameters := make(map[string]interface{})
 
-			if authorizationType, ok := authParametersArg["authorization_type"]; ok {
-				authParametersMap["AuthorizationType"] = authorizationType
+		if v := d.Get("auth_parameters"); v != nil {
+			authorizationType1, _ := jsonpath.Get("$[0].authorization_type", v)
+			if authorizationType1 != nil && authorizationType1 != "" {
+				authParameters["AuthorizationType"] = authorizationType1
+			}
+			apiKeyAuthParameters := make(map[string]interface{})
+			apiKeyName1, _ := jsonpath.Get("$[0].api_key_auth_parameters[0].api_key_name", d.Get("auth_parameters"))
+			if apiKeyName1 != nil && apiKeyName1 != "" {
+				apiKeyAuthParameters["ApiKeyName"] = apiKeyName1
+			}
+			apiKeyValue1, _ := jsonpath.Get("$[0].api_key_auth_parameters[0].api_key_value", d.Get("auth_parameters"))
+			if apiKeyValue1 != nil && apiKeyValue1 != "" {
+				apiKeyAuthParameters["ApiKeyValue"] = apiKeyValue1
 			}
 
-			if apiKeyAuthParameters, ok := authParametersArg["api_key_auth_parameters"]; ok {
-				apiKeyAuthParametersMap := map[string]interface{}{}
-				for _, apiKeyAuthParametersList := range apiKeyAuthParameters.([]interface{}) {
-					apiKeyAuthParametersArg := apiKeyAuthParametersList.(map[string]interface{})
+			if len(apiKeyAuthParameters) > 0 {
+				authParameters["ApiKeyAuthParameters"] = apiKeyAuthParameters
+			}
+			basicAuthParameters := make(map[string]interface{})
+			password1, _ := jsonpath.Get("$[0].basic_auth_parameters[0].password", d.Get("auth_parameters"))
+			if password1 != nil && password1 != "" {
+				basicAuthParameters["Password"] = password1
+			}
+			username1, _ := jsonpath.Get("$[0].basic_auth_parameters[0].username", d.Get("auth_parameters"))
+			if username1 != nil && username1 != "" {
+				basicAuthParameters["Username"] = username1
+			}
 
-					if apiKeyName, ok := apiKeyAuthParametersArg["api_key_name"]; ok {
-						apiKeyAuthParametersMap["ApiKeyName"] = apiKeyName
-					}
+			if len(basicAuthParameters) > 0 {
+				authParameters["BasicAuthParameters"] = basicAuthParameters
+			}
+			oAuthParameters := make(map[string]interface{})
+			authorizationEndpoint1, _ := jsonpath.Get("$[0].oauth_parameters[0].authorization_endpoint", d.Get("auth_parameters"))
+			if authorizationEndpoint1 != nil && authorizationEndpoint1 != "" {
+				oAuthParameters["AuthorizationEndpoint"] = authorizationEndpoint1
+			}
+			clientParameters := make(map[string]interface{})
+			clientId, _ := jsonpath.Get("$[0].oauth_parameters[0].client_parameters[0].client_id", d.Get("auth_parameters"))
+			if clientId != nil && clientId != "" {
+				clientParameters["ClientID"] = clientId
+			}
+			clientSecret1, _ := jsonpath.Get("$[0].oauth_parameters[0].client_parameters[0].client_secret", d.Get("auth_parameters"))
+			if clientSecret1 != nil && clientSecret1 != "" {
+				clientParameters["ClientSecret"] = clientSecret1
+			}
 
-					if apiKeyValue, ok := apiKeyAuthParametersArg["api_key_value"]; ok {
-						apiKeyAuthParametersMap["ApiKeyValue"] = apiKeyValue
-					}
+			if len(clientParameters) > 0 {
+				oAuthParameters["ClientParameters"] = clientParameters
+			}
+			httpMethod1, _ := jsonpath.Get("$[0].oauth_parameters[0].http_method", d.Get("auth_parameters"))
+			if httpMethod1 != nil && httpMethod1 != "" {
+				oAuthParameters["HttpMethod"] = httpMethod1
+			}
+			oAuthHttpParameters := make(map[string]interface{})
+			localData, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].body_parameters", v)
+			if err != nil {
+				localData = make([]interface{}, 0)
+			}
+			localMaps := make([]interface{}, 0)
+			for _, dataLoop := range convertToInterfaceArray(localData) {
+				dataLoopTmp := make(map[string]interface{})
+				if dataLoop != nil {
+					dataLoopTmp = dataLoop.(map[string]interface{})
 				}
-
-				authParametersMap["ApiKeyAuthParameters"] = apiKeyAuthParametersMap
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["IsValueSecret"] = dataLoopTmp["is_value_secret"]
+				dataLoopMap["Key"] = dataLoopTmp["key"]
+				dataLoopMap["Value"] = dataLoopTmp["value"]
+				localMaps = append(localMaps, dataLoopMap)
 			}
+			oAuthHttpParameters["BodyParameters"] = localMaps
 
-			if basicAuthParameters, ok := authParametersArg["basic_auth_parameters"]; ok {
-				basicAuthParametersMap := map[string]interface{}{}
-				for _, basicAuthParametersList := range basicAuthParameters.([]interface{}) {
-					basicAuthParametersArg := basicAuthParametersList.(map[string]interface{})
-
-					if username, ok := basicAuthParametersArg["username"]; ok {
-						basicAuthParametersMap["Username"] = username
-					}
-
-					if password, ok := basicAuthParametersArg["password"]; ok {
-						basicAuthParametersMap["Password"] = password
-					}
+			localData1, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].header_parameters", v)
+			if err != nil {
+				localData1 = make([]interface{}, 0)
+			}
+			localMaps1 := make([]interface{}, 0)
+			for _, dataLoop1 := range convertToInterfaceArray(localData1) {
+				dataLoop1Tmp := make(map[string]interface{})
+				if dataLoop1 != nil {
+					dataLoop1Tmp = dataLoop1.(map[string]interface{})
 				}
-
-				authParametersMap["BasicAuthParameters"] = basicAuthParametersMap
+				dataLoop1Map := make(map[string]interface{})
+				dataLoop1Map["IsValueSecret"] = dataLoop1Tmp["is_value_secret"]
+				dataLoop1Map["Key"] = dataLoop1Tmp["key"]
+				dataLoop1Map["Value"] = dataLoop1Tmp["value"]
+				localMaps1 = append(localMaps1, dataLoop1Map)
 			}
+			oAuthHttpParameters["HeaderParameters"] = localMaps1
 
-			if oAuthParameters, ok := authParametersArg["oauth_parameters"]; ok {
-				oAuthParametersMap := map[string]interface{}{}
-				for _, oAuthParametersList := range oAuthParameters.([]interface{}) {
-					oAuthParametersArg := oAuthParametersList.(map[string]interface{})
-
-					if authorizationEndpoint, ok := oAuthParametersArg["authorization_endpoint"]; ok {
-						oAuthParametersMap["AuthorizationEndpoint"] = authorizationEndpoint
-					}
-
-					if httpMethod, ok := oAuthParametersArg["http_method"]; ok {
-						oAuthParametersMap["HttpMethod"] = httpMethod
-					}
-
-					if clientParameters, ok := oAuthParametersArg["client_parameters"]; ok {
-						clientParametersMap := map[string]interface{}{}
-						for _, clientParametersList := range clientParameters.([]interface{}) {
-							clientParametersArg := clientParametersList.(map[string]interface{})
-
-							if clientID, ok := clientParametersArg["client_id"]; ok {
-								clientParametersMap["ClientID"] = clientID
-							}
-
-							if clientSecret, ok := clientParametersArg["client_secret"]; ok {
-								clientParametersMap["ClientSecret"] = clientSecret
-							}
-						}
-
-						oAuthParametersMap["ClientParameters"] = clientParametersMap
-					}
-
-					if oAuthHttpParameters, ok := oAuthParametersArg["oauth_http_parameters"]; ok {
-						oAuthHttpParametersMap := map[string]interface{}{}
-						for _, oAuthHttpParametersList := range oAuthHttpParameters.([]interface{}) {
-							oAuthHttpParametersArg := oAuthHttpParametersList.(map[string]interface{})
-
-							if headerParameters, ok := oAuthHttpParametersArg["header_parameters"]; ok {
-								headerParametersMaps := make([]map[string]interface{}, 0)
-								for _, headerParametersList := range headerParameters.([]interface{}) {
-									headerParametersMap := map[string]interface{}{}
-									headerParametersArg := headerParametersList.(map[string]interface{})
-
-									if key, ok := headerParametersArg["key"]; ok {
-										headerParametersMap["Key"] = key
-									}
-
-									if value, ok := headerParametersArg["value"]; ok {
-										headerParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := headerParametersArg["is_value_secret"]; ok {
-										headerParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									headerParametersMaps = append(headerParametersMaps, headerParametersMap)
-								}
-
-								oAuthHttpParametersMap["HeaderParameters"] = headerParametersMaps
-							}
-
-							if bodyParameters, ok := oAuthHttpParametersArg["body_parameters"]; ok {
-								bodyParametersMaps := make([]map[string]interface{}, 0)
-								for _, bodyParametersList := range bodyParameters.([]interface{}) {
-									bodyParametersMap := map[string]interface{}{}
-									bodyParametersArg := bodyParametersList.(map[string]interface{})
-
-									if key, ok := bodyParametersArg["key"]; ok {
-										bodyParametersMap["Key"] = key
-									}
-
-									if value, ok := bodyParametersArg["value"]; ok {
-										bodyParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := bodyParametersArg["is_value_secret"]; ok {
-										bodyParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									bodyParametersMaps = append(bodyParametersMaps, bodyParametersMap)
-								}
-
-								oAuthHttpParametersMap["BodyParameters"] = bodyParametersMaps
-							}
-
-							if queryStringParameters, ok := oAuthHttpParametersArg["query_string_parameters"]; ok {
-								queryStringParametersMaps := make([]map[string]interface{}, 0)
-								for _, queryStringParametersList := range queryStringParameters.([]interface{}) {
-									queryStringParametersMap := map[string]interface{}{}
-									queryStringParametersArg := queryStringParametersList.(map[string]interface{})
-
-									if key, ok := queryStringParametersArg["key"]; ok {
-										queryStringParametersMap["Key"] = key
-									}
-
-									if value, ok := queryStringParametersArg["value"]; ok {
-										queryStringParametersMap["Value"] = value
-									}
-
-									if isValueSecret, ok := queryStringParametersArg["is_value_secret"]; ok {
-										queryStringParametersMap["IsValueSecret"] = isValueSecret
-									}
-
-									queryStringParametersMaps = append(queryStringParametersMaps, queryStringParametersMap)
-								}
-
-								oAuthHttpParametersMap["QueryStringParameters"] = queryStringParametersMaps
-							}
-
-						}
-
-						oAuthParametersMap["OAuthHttpParameters"] = oAuthHttpParametersMap
-					}
+			localData2, err := jsonpath.Get("$[0].oauth_parameters[0].oauth_http_parameters[0].query_string_parameters", v)
+			if err != nil {
+				localData2 = make([]interface{}, 0)
+			}
+			localMaps2 := make([]interface{}, 0)
+			for _, dataLoop2 := range convertToInterfaceArray(localData2) {
+				dataLoop2Tmp := make(map[string]interface{})
+				if dataLoop2 != nil {
+					dataLoop2Tmp = dataLoop2.(map[string]interface{})
 				}
-
-				authParametersMap["OAuthParameters"] = oAuthParametersMap
+				dataLoop2Map := make(map[string]interface{})
+				dataLoop2Map["IsValueSecret"] = dataLoop2Tmp["is_value_secret"]
+				dataLoop2Map["Key"] = dataLoop2Tmp["key"]
+				dataLoop2Map["Value"] = dataLoop2Tmp["value"]
+				localMaps2 = append(localMaps2, dataLoop2Map)
 			}
+			oAuthHttpParameters["QueryStringParameters"] = localMaps2
+
+			if len(oAuthHttpParameters) > 0 {
+				oAuthParameters["OAuthHttpParameters"] = oAuthHttpParameters
+			}
+
+			if len(oAuthParameters) > 0 {
+				authParameters["OAuthParameters"] = oAuthParameters
+			}
+
+			authParametersJson, err := json.Marshal(authParameters)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["AuthParameters"] = string(authParametersJson)
 		}
-
-		authParametersJson, err := convertMaptoJsonString(authParametersMap)
-		if err != nil {
-			return WrapError(err)
-		}
-
-		request["AuthParameters"] = authParametersJson
 	}
 
 	if update {
-		action := "UpdateConnection"
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, true)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -931,7 +766,6 @@ func resourceAliCloudEventBridgeConnectionUpdate(d *schema.ResourceData, meta in
 			return nil
 		})
 		addDebug(action, response, request)
-
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -941,16 +775,19 @@ func resourceAliCloudEventBridgeConnectionUpdate(d *schema.ResourceData, meta in
 }
 
 func resourceAliCloudEventBridgeConnectionDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteConnection"
+	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
-	request := map[string]interface{}{
-		"ConnectionName": d.Id(),
-	}
+	request = make(map[string]interface{})
+	request["ConnectionName"] = d.Id()
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, false)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -963,6 +800,9 @@ func resourceAliCloudEventBridgeConnectionDelete(d *schema.ResourceData, meta in
 	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
