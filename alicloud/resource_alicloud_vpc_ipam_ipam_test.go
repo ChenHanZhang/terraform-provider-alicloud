@@ -21,7 +21,7 @@ func TestAccAliCloudVpcIpamIpam_basic10035(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%svpcipamipam%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccvpcipam%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcIpamIpamBasicDependence10035)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -161,7 +161,7 @@ func TestAccAliCloudVpcIpamIpam_basic7856(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%svpcipamipam%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccvpcipam%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcIpamIpamBasicDependence7856)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
