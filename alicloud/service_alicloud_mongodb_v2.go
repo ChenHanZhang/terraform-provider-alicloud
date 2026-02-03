@@ -275,7 +275,7 @@ func (s *MongodbServiceV2) DescribeMongodbAuditPolicy(id string) (object map[str
 
 	return response, nil
 }
-func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditPolicy(id string) (object map[string]interface{}, err error) {
+func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditLogFilter(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -284,7 +284,7 @@ func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditPolicy(id string) (ob
 	query = make(map[string]interface{})
 	request["DBInstanceId"] = id
 	request["RegionId"] = client.RegionId
-	action := "DescribeAuditPolicy"
+	action := "DescribeAuditLogFilter"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -306,8 +306,7 @@ func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditPolicy(id string) (ob
 
 	return response, nil
 }
-
-func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditLogFilter(id string) (object map[string]interface{}, err error) {
+func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditPolicy(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -316,7 +315,7 @@ func (s *MongodbServiceV2) DescribeAuditPolicyDescribeAuditLogFilter(id string) 
 	query = make(map[string]interface{})
 	request["DBInstanceId"] = id
 	request["RegionId"] = client.RegionId
-	action := "DescribeAuditLogFilter"
+	action := "DescribeAuditPolicy"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {

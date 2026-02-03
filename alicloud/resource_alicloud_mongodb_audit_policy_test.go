@@ -385,11 +385,10 @@ func TestUnitAliCloudMongoDBAuditPolicy(t *testing.T) {
 
 // Test Mongodb AuditPolicy. >>> Resource test cases, automatically generated.
 // Case 审计日志TF覆盖 11599
-// lintignore: AT001
 func TestAccAliCloudMongodbAuditPolicy_basic11599(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_mongodb_audit_policy.default"
-	ra := resourceAttrInit(resourceId, AliCloudMongodbAuditPolicyMap11599)
+	ra := resourceAttrInit(resourceId, AlicloudMongodbAuditPolicyMap11599)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &MongodbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeMongodbAuditPolicy")
@@ -397,9 +396,10 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccmongodb%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudMongodbAuditPolicyBasicDependence11599)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudMongodbAuditPolicyBasicDependence11599)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -407,13 +407,29 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"db_instance_id": "${alicloud_mongodb_instance.default.id}",
+					"db_instance_id": "${alicloud_mongodb_instance.default6TxENd.id}",
 					"audit_status":   "enable",
+					"storage_period": "11",
+					"filter":         "admin,slow,query",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"db_instance_id": CHECKSET,
 						"audit_status":   "enable",
+						"storage_period": "11",
+						"filter":         "admin,slow,query",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"storage_period": "13",
+					"filter":         "admin,slow,query,insert",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"storage_period": "13",
+						"filter":         "admin,slow,query,insert",
 					}),
 				),
 			},
@@ -428,50 +444,70 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"audit_status": "enable",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"audit_status": "enable",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"storage_period": "12",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"storage_period": "12",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"filter": "update,insert,delete",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"filter": "update,insert,delete",
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ImportStateVerifyIgnore: []string{"storage_period"},
 			},
 		},
 	})
 }
 
-// lintignore: AT001
-func TestAccAliCloudMongodbAuditPolicy_basic11599_twin(t *testing.T) {
+var AlicloudMongodbAuditPolicyMap11599 = map[string]string{}
+
+func AlicloudMongodbAuditPolicyBasicDependence11599(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "zone_id" {
+  default = "cn-shanghai-b"
+}
+
+variable "region_id" {
+  default = "cn-shanghai"
+}
+
+variable "ipv4网段-b" {
+  default = "10.0.0.0/24"
+}
+
+resource "alicloud_vpc" "defaultsWuuyh" {
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "bgg-vpc-shanghai-b"
+}
+
+resource "alicloud_vswitch" "defaultbR7RHo" {
+  vpc_id       = alicloud_vpc.defaultsWuuyh.id
+  zone_id      = var.zone_id
+  cidr_block   = var.ipv4网段-b
+  vswitch_name = "bgg-shanghai-B"
+}
+
+resource "alicloud_mongodb_instance" "default6TxENd" {
+  engine_version      = "4.2"
+  storage_type        = "local_ssd"
+  vswitch_id          = alicloud_vswitch.defaultbR7RHo.id
+  db_instance_storage = "20"
+  vpc_id              = alicloud_vpc.defaultsWuuyh.id
+  db_instance_class   = "dds.mongo.mid"
+  storage_engine      = "WiredTiger"
+  network_type        = "VPC"
+  replication_factor  = "3"
+  zone_id             = var.zone_id
+  readonly_replicas   = "0"
+}
+
+
+`, name)
+}
+
+// Case 审计日志TF覆盖_分片修改类型_001 12411
+func TestAccAliCloudMongodbAuditPolicy_basic12411(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_mongodb_audit_policy.default"
-	ra := resourceAttrInit(resourceId, AliCloudMongodbAuditPolicyMap11599)
+	ra := resourceAttrInit(resourceId, AlicloudMongodbAuditPolicyMap12411)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &MongodbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeMongodbAuditPolicy")
@@ -479,9 +515,10 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599_twin(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccmongodb%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudMongodbAuditPolicyBasicDependence11599)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudMongodbAuditPolicyBasicDependence12411)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -489,17 +526,49 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599_twin(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"db_instance_id": "${alicloud_mongodb_instance.default.id}",
+					"db_instance_id": "${alicloud_mongodb_instance.default6TxENd.id}",
+					"storage_period": "10",
 					"audit_status":   "enable",
-					"storage_period": "12",
-					"filter":         "update,insert,delete",
+					"filter":         "admin,slow,insert",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"db_instance_id": CHECKSET,
+						"storage_period": "10",
 						"audit_status":   "enable",
+						"filter":         "admin,slow,insert",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"storage_period": "12",
+					"filter":         "admin,slow",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
 						"storage_period": "12",
-						"filter":         "update,insert,delete",
+						"filter":         "admin,slow",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"filter": "admin,slow,query",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"filter": "admin,slow,query",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"audit_status": "disabled",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"audit_status": "disabled",
 					}),
 				),
 			},
@@ -507,43 +576,54 @@ func TestAccAliCloudMongodbAuditPolicy_basic11599_twin(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ImportStateVerifyIgnore: []string{"storage_period"},
 			},
 		},
 	})
 }
 
-var AliCloudMongodbAuditPolicyMap11599 = map[string]string{
-	"storage_period": CHECKSET,
-	"filter":         CHECKSET,
-}
+var AlicloudMongodbAuditPolicyMap12411 = map[string]string{}
 
-func AliCloudMongodbAuditPolicyBasicDependence11599(name string) string {
+func AlicloudMongodbAuditPolicyBasicDependence12411(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
-data "alicloud_mongodb_zones" "default" {}
-
-data "alicloud_vpcs" "default" {
-    name_regex = "^default-NODELETING$"
+variable "zone_id" {
+  default = "cn-shanghai-b"
 }
 
-data "alicloud_vswitches" "default" {
-  vpc_id  = data.alicloud_vpcs.default.ids.0
-  zone_id = data.alicloud_mongodb_zones.default.zones.0.id
+variable "region_id" {
+  default = "cn-shanghai"
 }
 
-resource "alicloud_mongodb_instance" "default" {
-  engine_version      = "4.2"
-  db_instance_class   = "mongo.x8.large"
-  db_instance_storage = 50
-  storage_engine      = "WiredTiger"
-  storage_type        = "local_ssd"
-  name                = var.name
-  vswitch_id          = data.alicloud_vswitches.default.ids.0
+variable "ipv4网段-b" {
+  default = "10.0.0.0/24"
 }
+
+resource "alicloud_vpc" "defaultsWuuyh" {
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "bgg-vpc-shanghai-b"
+}
+
+resource "alicloud_vswitch" "defaultbR7RHo" {
+  vpc_id       = alicloud_vpc.defaultsWuuyh.id
+  zone_id      = var.zone_id
+  cidr_block   = var.ipv4网段-b
+  vswitch_name = "bgg-shanghai-B"
+}
+
+resource "alicloud_mongodb_instance" "default6TxENd" {
+  engine_version = "4.4"
+  vswitch_id     = alicloud_vswitch.defaultbR7RHo.id
+  vpc_id         = alicloud_vpc.defaultsWuuyh.id
+  storage_engine = "WiredTiger"
+  network_type   = "VPC"
+  zone_id        = var.zone_id
+}
+
+
 `, name)
 }
 
