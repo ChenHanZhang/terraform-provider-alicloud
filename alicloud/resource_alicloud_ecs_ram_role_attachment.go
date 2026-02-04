@@ -42,6 +42,10 @@ func resourceAliCloudEcsRamRoleAttachment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -56,9 +60,12 @@ func resourceAliCloudEcsRamRoleAttachmentCreate(d *schema.ResourceData, meta int
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["RamRoleName"] = d.Get("ram_role_name")
-	request["InstanceIds"] = fmt.Sprintf("[\"%s\"]", d.Get("instance_id"))
-
+	if v, ok := d.GetOk("ram_role_name"); ok {
+		request["RamRoleName"] = v
+	}
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceIds"] = v
+	}
 	request["RegionId"] = client.RegionId
 
 	if v, ok := d.GetOk("policy"); ok {
@@ -68,7 +75,7 @@ func resourceAliCloudEcsRamRoleAttachmentCreate(d *schema.ResourceData, meta int
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"unexpected end of JSON input"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -105,6 +112,8 @@ func resourceAliCloudEcsRamRoleAttachmentRead(d *schema.ResourceData, meta inter
 	d.Set("instance_id", objectRaw["InstanceId"])
 	d.Set("ram_role_name", objectRaw["RamRoleName"])
 
+	d.Set("region_id", objectRaw["RegionId"])
+
 	return nil
 }
 
@@ -124,15 +133,14 @@ func resourceAliCloudEcsRamRoleAttachmentDelete(d *schema.ResourceData, meta int
 	var err error
 	request = make(map[string]interface{})
 	request["RamRoleName"] = parts[1]
-	request["InstanceIds"] = fmt.Sprintf("[\"%s\"]", parts[0])
+	request["InstanceIds"] = parts[0]
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
-
 		if err != nil {
-			if IsExpectedErrors(err, []string{"unexpected end of JSON input"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}

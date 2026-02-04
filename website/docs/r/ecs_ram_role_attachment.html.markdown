@@ -20,12 +20,6 @@ For information about ECS Ram Role Attachment and how to use it, see [What is Ra
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ecs_ram_role_attachment&exampleId=0ff709a5-e00b-8867-fb22-4cc62bb0ebef4f2f211e&activeTab=example&spm=docs.r.ecs_ram_role_attachment.0.0ff709a5e0&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -111,19 +105,21 @@ resource "alicloud_ecs_ram_role_attachment" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ecs_ram_role_attachment&spm=docs.r.ecs_ram_role_attachment.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `instance_id` - (Required, ForceNew) The ID of the instance.
-* `policy` - (Optional) The additional policy. When you attach an instance RAM role to instances, you can specify an additional policy to further limit the permissions of the role.
-* `ram_role_name` - (Required, ForceNew) The name of the instance RAM role.
+* `policy` - (Optional) Extra permissions policy. You can specify an additional permission policy to further restrict the permissions of the RAM role. For more information, see [Permission Policy Overview](~~ 93732 ~~). The length is 1~1024 characters.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `ram_role_name` - (Required, ForceNew) Instance RAM role names.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<ram_role_name>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<ram_role_name>`.
+* `region_id` - The region ID of the resource.
 
 ## Timeouts
 

@@ -15,7 +15,7 @@ import (
 func TestAccAliCloudEcsRamRoleAttachment_basic10656(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_ram_role_attachment.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsRamRoleAttachmentMap10656)
+	ra := resourceAttrInit(resourceId, AlicloudEcsRamRoleAttachmentMap10656)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEcsRamRoleAttachment")
@@ -23,7 +23,7 @@ func TestAccAliCloudEcsRamRoleAttachment_basic10656(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccecs%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsRamRoleAttachmentBasicDependence10656)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsRamRoleAttachmentBasicDependence10656)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
@@ -35,11 +35,13 @@ func TestAccAliCloudEcsRamRoleAttachment_basic10656(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"ram_role_name": "${alicloud_ram_role.default.id}",
-					"instance_id":   "${alicloud_instance.default.id}",
+					"policy":        "{\\\"Statement\\\": [{\\\"Action\\\": [\\\"*\\\"],\\\"Effect\\\": \\\"Allow\\\",\\\"Resource\\\": [\\\"*\\\"]}],\\\"Version\\\":\\\"1\\\"}",
+					"ram_role_name": "${alicloud_ram_role.ram.id}",
+					"instance_id":   "${alicloud_ecs_instance.instance.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
+						"policy":        CHECKSET,
 						"ram_role_name": CHECKSET,
 						"instance_id":   CHECKSET,
 					}),
@@ -55,122 +57,58 @@ func TestAccAliCloudEcsRamRoleAttachment_basic10656(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudEcsRamRoleAttachment_basic10656_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_ecs_ram_role_attachment.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsRamRoleAttachmentMap10656)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeEcsRamRoleAttachment")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccecs%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsRamRoleAttachmentBasicDependence10656)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"policy":        `{\"Statement\": [{\"Action\": [\"*\"],\"Effect\": \"Allow\",\"Resource\": [\"*\"]}],\"Version\":\"1\"}`,
-					"ram_role_name": "${alicloud_ram_role.default.id}",
-					"instance_id":   "${alicloud_instance.default.id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"ram_role_name": CHECKSET,
-						"instance_id":   CHECKSET,
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"policy"},
-			},
-		},
-	})
+var AlicloudEcsRamRoleAttachmentMap10656 = map[string]string{
+	"region_id": CHECKSET,
 }
 
-var AliCloudEcsRamRoleAttachmentMap10656 = map[string]string{}
-
-func AliCloudEcsRamRoleAttachmentBasicDependence10656(name string) string {
+func AlicloudEcsRamRoleAttachmentBasicDependence10656(name string) string {
 	return fmt.Sprintf(`
-	variable "name" {
-  		default = "%s"
-	}
+variable "name" {
+    default = "%s"
+}
 
-	data "alicloud_zones" "default" {
-  		available_disk_category     = "cloud_efficiency"
-  		available_resource_creation = "VSwitch"
-	}
+resource "alicloud_vpc" "vpc" {
+  cidr_block = "172.16.0.0/18"
+  vpc_name   = "tf-test"
+}
 
-	data "alicloud_images" "default" {
-  		most_recent = true
-  		owners      = "system"
-	}
+resource "alicloud_vswitch" "vsw" {
+  vpc_id       = alicloud_vpc.vpc.id
+  zone_id      = "cn-hangzhou-i"
+  cidr_block   = "172.16.0.0/18"
+  vswitch_name = "tf-test"
+}
 
-	data "alicloud_instance_types" "default" {
-  		availability_zone = data.alicloud_zones.default.zones.0.id
-  		image_id          = data.alicloud_images.default.images.0.id
-	}
+resource "alicloud_security_group" "sg" {
+  description         = "sg"
+  security_group_name = "sg_name"
+  vpc_id              = alicloud_vpc.vpc.id
+  security_group_type = "normal"
+}
 
-	resource "alicloud_ram_role" "default" {
-  		name     = var.name
-  		document = <<EOF
-		{
-			"Statement": [
-				{
-					"Action": "sts:AssumeRole",
-					"Effect": "Allow",
-					"Principal": {
-						"Service": [
-							"ecs.aliyuncs.com"
-						]
-					}
-				}
-		  	],
-			"Version": "1"
-		}
-	  	EOF
-		force    = true
-	}
+resource "alicloud_ecs_instance" "instance" {
+  system_disk {
+    size     = "20"
+    category = "cloud_essd"
+  }
+  status       = "Running"
+  image_family = "acs:alibaba_cloud_linux_3_2104_lts_x64"
+  vpc_attributes {
+    vpc_id     = alicloud_vpc.vpc.id
+    vswitch_id = alicloud_vswitch.vsw.id
+  }
+  instance_name     = "tf-image-ecs"
+  password          = "Ali@qa1234"
+  security_group_id = alicloud_security_group.sg.id
+  instance_type     = "ecs.g6e.large"
+}
 
-	resource "alicloud_vpc" "default" {
-  		vpc_name   = var.name
-  		cidr_block = "192.168.0.0/16"
-	}
+resource "alicloud_ram_role" "ram" {
+  role_name                   = "tfTest1770205954"
+  assume_role_policy_document = "{\"Statement\": [{\"Action\": \"sts:AssumeRole\", \"Effect\": \"Allow\", \"Principal\": {\"Service\": [\"ecs.aliyuncs.com\"]}}], \"Version\": \"1\"}"
+}
 
-	resource "alicloud_vswitch" "default" {
-  		vswitch_name = var.name
-  		vpc_id       = alicloud_vpc.default.id
-  		cidr_block   = "192.168.192.0/24"
-  		zone_id      = data.alicloud_zones.default.zones.0.id
-	}
 
-	resource "alicloud_security_group" "default" {
-  		vpc_id = alicloud_vpc.default.id
-	}
-
-	resource "alicloud_instance" "default" {
-  		image_id                   = data.alicloud_images.default.images.0.id
-  		instance_type              = data.alicloud_instance_types.default.instance_types.0.id
-  		security_groups            = alicloud_security_group.default.*.id
-  		internet_charge_type       = "PayByTraffic"
-  		internet_max_bandwidth_out = "10"
-  		availability_zone          = data.alicloud_instance_types.default.instance_types.0.availability_zones.0
-  		instance_charge_type       = "PostPaid"
-  		system_disk_category       = "cloud_efficiency"
-  		vswitch_id                 = alicloud_vswitch.default.id
-  		instance_name              = var.name
-	}
 `, name)
 }
 

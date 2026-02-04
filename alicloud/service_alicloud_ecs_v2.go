@@ -664,10 +664,11 @@ func (s *EcsServiceV2) DescribeEcsRamRoleAttachment(id string) (object map[strin
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["InstanceIds"] = fmt.Sprintf("[\"%s\"]", parts[0])
+	request["InstanceIds"] = parts[0]
 	request["RamRoleName"] = parts[1]
 	request["RegionId"] = client.RegionId
 	action := "DescribeInstanceRamRole"
@@ -677,7 +678,7 @@ func (s *EcsServiceV2) DescribeEcsRamRoleAttachment(id string) (object map[strin
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"unexpected end of JSON input"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -687,9 +688,6 @@ func (s *EcsServiceV2) DescribeEcsRamRoleAttachment(id string) (object map[strin
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidRamRole.NotFound"}) {
-			return object, WrapErrorf(NotFoundErr("RamRoleAttachment", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -707,22 +705,22 @@ func (s *EcsServiceV2) DescribeEcsRamRoleAttachment(id string) (object map[strin
 		return object, WrapErrorf(NotFoundErr("RamRoleAttachment", id), NotFoundMsg, response)
 	}
 
-	object = v.([]interface{})[0].(map[string]interface{})
-	object["RegionId"] = response["RegionId"]
-
-	return object, nil
+	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
 func (s *EcsServiceV2) EcsRamRoleAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EcsRamRoleAttachmentStateRefreshFuncWithApi(id, field, failStates, s.DescribeEcsRamRoleAttachment)
+}
+
+func (s *EcsServiceV2) EcsRamRoleAttachmentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeEcsRamRoleAttachment(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
