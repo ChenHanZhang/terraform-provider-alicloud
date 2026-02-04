@@ -915,6 +915,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_cms_digital_employee":                                 resourceAliCloudCmsDigitalEmployee(),
 			"alicloud_ssl_certificates_service_pca_cert":                    resourceAliCloudSslCertificatesServicePcaCert(),
 			"alicloud_max_compute_tenant_role_user_attachment":              resourceAliCloudMaxComputeTenantRoleUserAttachment(),
 			"alicloud_click_house_enterprise_db_cluster_computing_group":    resourceAliCloudClickHouseEnterpriseDbClusterComputingGroup(),
@@ -1472,7 +1473,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_api_gateway_group":                                     resourceAliyunApigatewayGroup(),
 			"alicloud_api_gateway_app":                                       resourceAliyunApigatewayApp(),
 			"alicloud_api_gateway_app_attachment":                            resourceAliyunApigatewayAppAttachment(),
-			"alicloud_api_gateway_vpc_access":                                resourceAliCloudApiGatewayVpcAccess(),
+			"alicloud_api_gateway_vpc_access":                                resourceAliyunApigatewayVpc(),
 			"alicloud_common_bandwidth_package":                              resourceAliCloudCbwpCommonBandwidthPackage(),
 			"alicloud_common_bandwidth_package_attachment":                   resourceAliCloudCbwpCommonBandwidthPackageAttachment(),
 			"alicloud_drds_instance":                                         resourceAlicloudDRDSInstance(),
