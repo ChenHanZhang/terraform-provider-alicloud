@@ -98,6 +98,132 @@ func testSweepGaAcl(region string) error {
 	return nil
 }
 
+// Test Ga Acl. >>> Resource test cases, automatically generated.
+// Case Acl测试用例_副本1676971614067_副本1689080118814 3593
+func TestAccAliCloudGaAcl_basic3593(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ga_acl.default"
+	ra := resourceAttrInit(resourceId, AlicloudGaAclMap3593)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &GaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeGaAcl")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccga%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudGaAclBasicDependence3593)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"address_ip_version": "IPv4",
+					"acl_name":           name,
+					"acl_entries": []map[string]interface{}{
+						{
+							"entry":             "192.168.1.1/32",
+							"entry_description": "备注1",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"address_ip_version": "IPv4",
+						"acl_name":           name,
+						"acl_entries.#":      "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"acl_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"acl_name": name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudGaAclMap3593 = map[string]string{
+	"status": CHECKSET,
+}
+
+func AlicloudGaAclBasicDependence3593(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Ga Acl. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudGaAcl_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ga_acl.default"
