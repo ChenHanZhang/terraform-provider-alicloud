@@ -22,11 +22,11 @@ func (s *EcsServiceV2) DescribeEcsImageComponent(id string) (object map[string]i
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeImageComponents"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ImageComponentId.1"] = id
 	request["RegionId"] = client.RegionId
+	action := "DescribeImageComponents"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -59,17 +59,27 @@ func (s *EcsServiceV2) DescribeEcsImageComponent(id string) (object map[string]i
 }
 
 func (s *EcsServiceV2) EcsImageComponentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EcsImageComponentStateRefreshFuncWithApi(id, field, failStates, s.DescribeEcsImageComponent)
+}
+
+func (s *EcsServiceV2) EcsImageComponentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeEcsImageComponent(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
@@ -85,8 +95,8 @@ func (s *EcsServiceV2) EcsImageComponentStateRefreshFunc(id string, field string
 // SetResourceTags <<< Encapsulated tag function for Ecs.
 func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -112,7 +122,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -145,7 +155,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()

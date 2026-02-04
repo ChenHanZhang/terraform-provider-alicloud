@@ -151,30 +151,14 @@ func resourceAliCloudEcsImageComponentRead(d *schema.ResourceData, meta interfac
 		return WrapError(err)
 	}
 
-	if objectRaw["ComponentType"] != nil {
-		d.Set("component_type", objectRaw["ComponentType"])
-	}
-	if objectRaw["ComponentVersion"] != nil {
-		d.Set("component_version", objectRaw["ComponentVersion"])
-	}
-	if objectRaw["Content"] != nil {
-		d.Set("content", objectRaw["Content"])
-	}
-	if objectRaw["CreationTime"] != nil {
-		d.Set("create_time", objectRaw["CreationTime"])
-	}
-	if objectRaw["Description"] != nil {
-		d.Set("description", objectRaw["Description"])
-	}
-	if objectRaw["Name"] != nil {
-		d.Set("image_component_name", objectRaw["Name"])
-	}
-	if objectRaw["ResourceGroupId"] != nil {
-		d.Set("resource_group_id", objectRaw["ResourceGroupId"])
-	}
-	if objectRaw["SystemType"] != nil {
-		d.Set("system_type", objectRaw["SystemType"])
-	}
+	d.Set("component_type", objectRaw["ComponentType"])
+	d.Set("component_version", objectRaw["ComponentVersion"])
+	d.Set("content", objectRaw["Content"])
+	d.Set("create_time", objectRaw["CreationTime"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("image_component_name", objectRaw["Name"])
+	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
+	d.Set("system_type", objectRaw["SystemType"])
 
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -188,8 +172,9 @@ func resourceAliCloudEcsImageComponentUpdate(d *schema.ResourceData, meta interf
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "JoinResourceGroup"
+
 	var err error
+	action := "JoinResourceGroup"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
@@ -243,7 +228,6 @@ func resourceAliCloudEcsImageComponentDelete(d *schema.ResourceData, meta interf
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
