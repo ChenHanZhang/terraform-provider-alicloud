@@ -19,6 +19,80 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test Ecs HpcCluster. >>> Resource test cases, automatically generated.
+// Case HpcCluster 12355
+func TestAccAliCloudEcsHpcCluster_basic12355(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_hpc_cluster.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsHpcClusterMap12355)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsHpcCluster")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsHpcClusterBasicDependence12355)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":      "resource_1511928242963727",
+					"hpc_cluster_name": name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":      CHECKSET,
+						"hpc_cluster_name": name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":      "resource_update_1511928242963727",
+					"hpc_cluster_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":      CHECKSET,
+						"hpc_cluster_name": name + "_update",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudEcsHpcClusterMap12355 = map[string]string{}
+
+func AlicloudEcsHpcClusterBasicDependence12355(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+
+`, name)
+}
+
+// Test Ecs HpcCluster. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudECSHpcCluster_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_hpc_cluster.default"
@@ -189,7 +263,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudEcsHpcClusterCreate(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -206,7 +280,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterCreate(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -223,7 +297,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterCreate(dCreate, rawClient)
+		err := resourceAliCloudEcsHpcClusterCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -241,7 +315,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterCreate(dCreate, rawClient)
+		err := resourceAliCloudEcsHpcClusterCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -259,7 +333,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 		})
 
-		err := resourceAlicloudEcsHpcClusterUpdate(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterUpdate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -291,7 +365,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterUpdate(resourceData1, rawClient)
+		err := resourceAliCloudEcsHpcClusterUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -323,7 +397,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterUpdate(resourceData1, rawClient)
+		err := resourceAliCloudEcsHpcClusterUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -338,7 +412,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAlicloudEcsHpcClusterDelete(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -355,7 +429,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterDelete(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -372,7 +446,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterDelete(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterDelete(d, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -389,7 +463,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterRead(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -405,7 +479,7 @@ func TestUnitAlicloudECSHpcCluster(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAlicloudEcsHpcClusterRead(d, rawClient)
+		err := resourceAliCloudEcsHpcClusterRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})

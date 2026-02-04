@@ -1608,7 +1608,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_quotas_quota_alarm":                                    resourceAliCloudQuotasQuotaAlarm(),
 			"alicloud_ecs_command":                                           resourceAlicloudEcsCommand(),
 			"alicloud_cloud_storage_gateway_storage_bundle":                  resourceAlicloudCloudStorageGatewayStorageBundle(),
-			"alicloud_ecs_hpc_cluster":                                       resourceAlicloudEcsHpcCluster(),
+			"alicloud_ecs_hpc_cluster":                                       resourceAliCloudEcsHpcCluster(),
 			"alicloud_vpc_flow_log":                                          resourceAliCloudVpcFlowLog(),
 			"alicloud_brain_industrial_pid_loop":                             resourceAlicloudBrainIndustrialPidLoop(),
 			"alicloud_quotas_quota_application":                              resourceAliCloudQuotasQuotaApplication(),

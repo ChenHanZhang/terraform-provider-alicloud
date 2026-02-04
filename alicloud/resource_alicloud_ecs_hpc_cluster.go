@@ -1,28 +1,36 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAlicloudEcsHpcCluster() *schema.Resource {
+func resourceAliCloudEcsHpcCluster() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudEcsHpcClusterCreate,
-		Read:   resourceAlicloudEcsHpcClusterRead,
-		Update: resourceAlicloudEcsHpcClusterUpdate,
-		Delete: resourceAlicloudEcsHpcClusterDelete,
+		Create: resourceAliCloudEcsHpcClusterCreate,
+		Read:   resourceAliCloudEcsHpcClusterRead,
+		Update: resourceAliCloudEcsHpcClusterUpdate,
+		Delete: resourceAliCloudEcsHpcClusterDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"name": {
+			"hpc_cluster_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -30,88 +38,144 @@ func resourceAlicloudEcsHpcCluster() *schema.Resource {
 	}
 }
 
-func resourceAlicloudEcsHpcClusterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudEcsHpcClusterCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "CreateHpcCluster"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
+	request["Name"] = d.Get("hpc_cluster_name")
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
 
-	request["Name"] = d.Get("name")
-	request["RegionId"] = client.RegionId
-	request["ClientToken"] = buildClientToken("CreateHpcCluster")
-	response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_hpc_cluster", action, AlibabaCloudSdkGoERROR)
 	}
-	addDebug(action, response, request)
 
 	d.SetId(fmt.Sprint(response["HpcClusterId"]))
 
-	return resourceAlicloudEcsHpcClusterRead(d, meta)
+	return resourceAliCloudEcsHpcClusterRead(d, meta)
 }
-func resourceAlicloudEcsHpcClusterRead(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudEcsHpcClusterRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	ecsService := EcsService{client}
-	object, err := ecsService.DescribeEcsHpcCluster(d.Id())
+	ecsServiceV2 := EcsServiceV2{client}
+
+	objectRaw, err := ecsServiceV2.DescribeEcsHpcCluster(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_ecs_hpc_cluster ecsService.DescribeEcsHpcCluster Failed!!! %s", err)
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_ecs_hpc_cluster DescribeEcsHpcCluster Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
-	d.Set("description", object["Description"])
-	d.Set("name", object["Name"])
+
+	d.Set("description", objectRaw["Description"])
+	d.Set("hpc_cluster_name", objectRaw["Name"])
+
 	return nil
 }
-func resourceAlicloudEcsHpcClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudEcsHpcClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	var err error
+	var request map[string]interface{}
 	var response map[string]interface{}
+	var query map[string]interface{}
 	update := false
-	request := map[string]interface{}{
-		"HpcClusterId": d.Id(),
-	}
+
+	var err error
+	action := "ModifyHpcClusterAttribute"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["HpcClusterId"] = d.Id()
 	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 	if d.HasChange("description") {
 		update = true
 		request["Description"] = d.Get("description")
 	}
-	if d.HasChange("name") {
+
+	if d.HasChange("hpc_cluster_name") {
 		update = true
-		request["Name"] = d.Get("name")
 	}
+	request["Name"] = d.Get("hpc_cluster_name")
 	if update {
-		action := "ModifyHpcClusterAttribute"
-		request["ClientToken"] = buildClientToken("ModifyHpcClusterAttribute")
-		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
-	return resourceAlicloudEcsHpcClusterRead(d, meta)
+
+	return resourceAliCloudEcsHpcClusterRead(d, meta)
 }
-func resourceAlicloudEcsHpcClusterDelete(d *schema.ResourceData, meta interface{}) error {
+
+func resourceAliCloudEcsHpcClusterDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteHpcCluster"
+	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
-	request := map[string]interface{}{
-		"HpcClusterId": d.Id(),
-	}
-
+	request = make(map[string]interface{})
+	request["HpcClusterId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	request["ClientToken"] = buildClientToken("DeleteHpcCluster")
-	response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	addDebug(action, response, request)
+
 	if err != nil {
+		if IsExpectedErrors(err, []string{"NotExists.HpcCluster"}) || NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+
 	return nil
 }
