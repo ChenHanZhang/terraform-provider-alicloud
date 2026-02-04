@@ -445,28 +445,39 @@ func TestUnitAliCloudECSKeyPair(t *testing.T) {
 }
 
 // Test Ecs KeyPair. >>> Resource test cases, automatically generated.
-// Case 创建KeyPair生命周期 9172
-func TestAccAliCloudECSKeyPair_basic9172(t *testing.T) {
+// Case keypair-createKeyPair 12460
+func TestAccAliCloudEcsKeyPair_basic12460(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap12460)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEcsKeyPair")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence12460)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"key_pair_name":     name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"key_pair_name":     name,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
@@ -529,18 +540,363 @@ func TestAccAliCloudECSKeyPair_basic9172(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudECSKeyPair_basic9172_twin(t *testing.T) {
+var AlicloudEcsKeyPairMap12460 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence12460(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case keypair-tag空置 12463
+func TestAccAliCloudEcsKeyPair_basic12463(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap12463)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsKeyPair")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence12463)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"key_pair_name":     name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"key_pair_name":     name,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"public_key"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsKeyPairMap12463 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence12463(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case keypair-ImportKeyPair 12459
+func TestAccAliCloudEcsKeyPair_basic12459(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_key_pair.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap12459)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsKeyPair")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence12459)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"key_pair_name":     name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"public_key":        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQChYaZjH\\n0O5O9dYO/uvHqo1zf8v39zYPBWxdNBLKCMWA08lyeVA/Z\\nzYrAOCcQ6DjsReM5R4x7sRgs8t8PFwbEPhWTKw0JFqpng\\nZU2ipxg65rAc7zqssqysVSrz9ex1Io0pWP6O20k7j4mrs\\nUtpS3UAAqKPt0V6kdpBY0d0yy4t1vRfswZJc5uoaVmORq\\nczQCriQKoIBIVH1fh1HAzFtsvTttXNAsWUjOW1Ptq9il0\\nnefOFOU95wLbf8tmxhLkdXeyDOe8bmPqzjLlrMKoDcQEy\\n4usqSFWD8zsO1UAo9ntGGBfQmiLCx56Z4HEqIwH0tdc2Z\\nF4rUV0uLUplKDs35 imported-openssh-key",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"key_pair_name":     name,
+						"resource_group_id": CHECKSET,
+						"public_key":        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQChYaZjH\n0O5O9dYO/uvHqo1zf8v39zYPBWxdNBLKCMWA08lyeVA/Z\nzYrAOCcQ6DjsReM5R4x7sRgs8t8PFwbEPhWTKw0JFqpng\nZU2ipxg65rAc7zqssqysVSrz9ex1Io0pWP6O20k7j4mrs\nUtpS3UAAqKPt0V6kdpBY0d0yy4t1vRfswZJc5uoaVmORq\nczQCriQKoIBIVH1fh1HAzFtsvTttXNAsWUjOW1Ptq9il0\nnefOFOU95wLbf8tmxhLkdXeyDOe8bmPqzjLlrMKoDcQEy\n4usqSFWD8zsO1UAo9ntGGBfQmiLCx56Z4HEqIwH0tdc2Z\nF4rUV0uLUplKDs35 imported-openssh-key",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"public_key"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsKeyPairMap12459 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence12459(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 测试用例v2 2826
+func TestAccAliCloudEcsKeyPair_basic2826(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_key_pair.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap2826)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsKeyPair")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence2826)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"public_key"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsKeyPairMap2826 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence2826(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case KeyPair全生命周期_副本1730283475887 8573
+func TestAccAliCloudEcsKeyPair_basic8573(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_key_pair.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap8573)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEcsKeyPair")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence8573)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
@@ -553,20 +909,76 @@ func TestAccAliCloudECSKeyPair_basic9172_twin(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"key_pair_name":     name,
-					"public_key":        "ssh-rsa AAAAB3Nza12345678qwertyuudsfsg",
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"key_pair_name":     name,
 						"resource_group_id": CHECKSET,
-						"tags.%":            "2",
-						"tags.Created":      "TF",
-						"tags.For":          "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
 					}),
 				),
 			},
@@ -580,36 +992,36 @@ func TestAccAliCloudECSKeyPair_basic9172_twin(t *testing.T) {
 	})
 }
 
-var AliCloudEcsKeyPairMap9172 = map[string]string{
-	"finger_print":      CHECKSET,
-	"create_time":       CHECKSET,
-	"resource_group_id": CHECKSET,
+var AlicloudEcsKeyPairMap8573 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
 }
 
-func AliCloudEcsKeyPairBasicDependence9172(name string) string {
+func AlicloudEcsKeyPairBasicDependence8573(name string) string {
 	return fmt.Sprintf(`
-	variable "name" {
-		default = "%s"
-	}
+variable "name" {
+    default = "%s"
+}
 
-	data "alicloud_resource_manager_resource_groups" "default" {
-	}
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
 `, name)
 }
 
-// Case 适配字段key_name_prefix 9171
-func TestAccAliCloudECSKeyPair_basic9171(t *testing.T) {
+// Case 导入keyPair生命周期测试_副本1730697109749 8639
+func TestAccAliCloudEcsKeyPair_basic8639(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap8639)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEcsKeyPair")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence8639)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
@@ -621,6 +1033,20 @@ func TestAccAliCloudECSKeyPair_basic9171(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"key_pair_name":     name,
+					"public_key":        "ssh-rsa MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK/3I+bpYNFmRrdJmKijeSXPb9+5GDWS kP+pOZ2vRU7rWLSrLjKnksF8AIO8LmMrhOVQdvbWJU0aQR8PJsAeOyECAwEAAQ==",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+						"key_pair_name":     name,
+						"public_key":        "ssh-rsa MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK/3I+bpYNFmRrdJmKijeSXPb9+5GDWS kP+pOZ2vRU7rWLSrLjKnksF8AIO8LmMrhOVQdvbWJU0aQR8PJsAeOyECAwEAAQ==",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
 					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -630,137 +1056,9 @@ func TestAccAliCloudECSKeyPair_basic9171(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
+				Config: testAccConfig(map[string]interface{}{}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "2",
-						"tags.Created": "TF",
-						"tags.For":     "Test",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": map[string]string{
-						"Created": "TF-update",
-						"For":     "Test-update",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "2",
-						"tags.Created": "TF-update",
-						"tags.For":     "Test-update",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": REMOVEKEY,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "0",
-						"tags.Created": REMOVEKEY,
-						"tags.For":     REMOVEKEY,
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"key_name_prefix", "public_key"},
-			},
-		},
-	})
-}
-
-func TestAccAliCloudECSKeyPair_basic9171_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeEcsKeyPair")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"key_name_prefix":   name,
-					"public_key":        "ssh-rsa AAAAB3Nza12345678qwertyuudsfsg",
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"resource_group_id": CHECKSET,
-						"tags.%":            "2",
-						"tags.Created":      "TF",
-						"tags.For":          "Test",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"key_name_prefix", "public_key"},
-			},
-		},
-	})
-}
-
-// Case 适配废弃字段key_name 8639
-func TestAccAliCloudECSKeyPair_basic8369(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeEcsKeyPair")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"resource_group_id": CHECKSET,
-					}),
+					testAccCheck(map[string]string{}),
 				),
 			},
 			{
@@ -815,18 +1113,40 @@ func TestAccAliCloudECSKeyPair_basic8369(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudECSKeyPair_basic8639_twin(t *testing.T) {
+var AlicloudEcsKeyPairMap8639 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence8639(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 导入keyPair生命周期测试 9171
+func TestAccAliCloudEcsKeyPair_basic9171(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_key_pair.default"
-	ra := resourceAttrInit(resourceId, AliCloudEcsKeyPairMap9172)
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap9171)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEcsKeyPair")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1, 999)
-	name := fmt.Sprintf("tf_testacc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsKeyPairBasicDependence9172)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence9171)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
@@ -838,9 +1158,36 @@ func TestAccAliCloudECSKeyPair_basic8639_twin(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"key_name":          name,
-					"public_key":        "ssh-rsa AAAAB3Nza12345678qwertyuudsfsg",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"key_pair_name":     name,
+					"public_key":        "ssh-rsa MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK/3I+bpYNFmRrdJmKijeSXPb9+5GDWS kP+pOZ2vRU7rWLSrLjKnksF8AIO8LmMrhOVQdvbWJU0aQR8PJsAeOyECAwEAAQ==",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+						"key_pair_name":     name,
+						"public_key":        "ssh-rsa MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK/3I+bpYNFmRrdJmKijeSXPb9+5GDWS kP+pOZ2vRU7rWLSrLjKnksF8AIO8LmMrhOVQdvbWJU0aQR8PJsAeOyECAwEAAQ==",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
 					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
 					"tags": map[string]string{
 						"Created": "TF",
 						"For":     "Test",
@@ -848,11 +1195,36 @@ func TestAccAliCloudECSKeyPair_basic8639_twin(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"key_name":          name,
-						"resource_group_id": CHECKSET,
-						"tags.%":            "2",
-						"tags.Created":      "TF",
-						"tags.For":          "Test",
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
 					}),
 				),
 			},
@@ -864,6 +1236,253 @@ func TestAccAliCloudECSKeyPair_basic8639_twin(t *testing.T) {
 			},
 		},
 	})
+}
+
+var AlicloudEcsKeyPairMap9171 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence9171(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 创建KeyPair生命周期 9172
+func TestAccAliCloudEcsKeyPair_basic9172(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_key_pair.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap9172)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsKeyPair")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence9172)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"key_pair_name":     name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"key_pair_name":     name,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"public_key"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsKeyPairMap9172 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence9172(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 创建KeyPair生命周期_副本1733128670859 9289
+func TestAccAliCloudEcsKeyPair_basic9289(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_key_pair.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsKeyPairMap9289)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsKeyPair")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsKeyPairBasicDependence9289)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"key_pair_name":     name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"key_pair_name":     name,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"public_key"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsKeyPairMap9289 = map[string]string{
+	"finger_print": CHECKSET,
+	"create_time":  CHECKSET,
+}
+
+func AlicloudEcsKeyPairBasicDependence9289(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
 }
 
 // Test Ecs KeyPair. <<< Resource test cases, automatically generated.
