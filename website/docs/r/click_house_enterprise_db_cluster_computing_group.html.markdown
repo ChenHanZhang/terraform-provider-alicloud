@@ -14,17 +14,11 @@ ClickHouse Enterprise Edition Cluster Compute Group.
 
 For information about Click House Enterprise Db Cluster Computing Group and how to use it, see [What is Enterprise Db Cluster Computing Group](https://next.api.alibabacloud.com/document/clickhouse/2023-05-22/CreateComputingGroup).
 
--> **NOTE:** Available since v1.270.0.
+-> **NOTE:** Available since v1.271.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_click_house_enterprise_db_cluster_computing_group&exampleId=41ac95ef-2ebb-0954-0373-9717f54e7af1f3c1eca1&activeTab=example&spm=docs.r.click_house_enterprise_db_cluster_computing_group.0.41ac95ef2e&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -97,18 +91,15 @@ resource "alicloud_click_house_enterprise_db_cluster_computing_group" "default" 
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_click_house_enterprise_db_cluster_computing_group&spm=docs.r.click_house_enterprise_db_cluster_computing_group.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `computing_group_description` - (Optional) Computing group name
-* `db_instance_id` - (Required, ForceNew) ClickHouse Enterprise Edition instance ID
-* `is_readonly` - (Required) Computing group read-only
-* `node_count` - (Required, Int) Number of computing group nodes
-* `node_scale_max` - (Required, Int) Computing group node elasticity upper limit
-* `node_scale_min` - (Required, Int) Lower limit of computing group node elasticity
+* `computing_group_description` - (Optional) A resource property field representing the resource name.
+* `db_instance_id` - (Required, ForceNew) The cluster ID.
+* `is_readonly` - (Required) Indicates whether the computing group is read-only.
+* `node_count` - (Required, Int) The number of nodes in the computing group.
+* `node_scale_max` - (Required, Int) The maximum value for serverless node auto scaling. Valid values range from 4 to 32, and this value must be greater than the minimum value.
+* `node_scale_min` - (Required, Int) The minimum value for serverless node auto scaling. Valid values: 4–32.
 
 ## Attributes Reference
 
