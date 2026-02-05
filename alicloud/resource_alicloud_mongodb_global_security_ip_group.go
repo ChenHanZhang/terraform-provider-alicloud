@@ -12,12 +12,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudMongodbGlobalSecurityIPGroup() *schema.Resource {
+func resourceAliCloudMongodbGlobalSecurityIpGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudMongodbGlobalSecurityIPGroupCreate,
-		Read:   resourceAliCloudMongodbGlobalSecurityIPGroupRead,
-		Update: resourceAliCloudMongodbGlobalSecurityIPGroupUpdate,
-		Delete: resourceAliCloudMongodbGlobalSecurityIPGroupDelete,
+		Create: resourceAliCloudMongodbGlobalSecurityIpGroupCreate,
+		Read:   resourceAliCloudMongodbGlobalSecurityIpGroupRead,
+		Update: resourceAliCloudMongodbGlobalSecurityIpGroupUpdate,
+		Delete: resourceAliCloudMongodbGlobalSecurityIpGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -43,7 +43,7 @@ func resourceAliCloudMongodbGlobalSecurityIPGroup() *schema.Resource {
 	}
 }
 
-func resourceAliCloudMongodbGlobalSecurityIPGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudMongodbGlobalSecurityIpGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 
@@ -78,17 +78,17 @@ func resourceAliCloudMongodbGlobalSecurityIPGroupCreate(d *schema.ResourceData, 
 	id, _ := jsonpath.Get("$.GlobalSecurityIPGroup[0].GlobalSecurityGroupId", response)
 	d.SetId(fmt.Sprint(id))
 
-	return resourceAliCloudMongodbGlobalSecurityIPGroupRead(d, meta)
+	return resourceAliCloudMongodbGlobalSecurityIpGroupRead(d, meta)
 }
 
-func resourceAliCloudMongodbGlobalSecurityIPGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudMongodbGlobalSecurityIpGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	mongodbServiceV2 := MongodbServiceV2{client}
 
-	objectRaw, err := mongodbServiceV2.DescribeMongodbGlobalSecurityIPGroup(d.Id())
+	objectRaw, err := mongodbServiceV2.DescribeMongodbGlobalSecurityIpGroup(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_mongodb_global_security_ip_group DescribeMongodbGlobalSecurityIPGroup Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_mongodb_global_security_ip_group DescribeMongodbGlobalSecurityIpGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
@@ -102,7 +102,7 @@ func resourceAliCloudMongodbGlobalSecurityIPGroupRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceAliCloudMongodbGlobalSecurityIPGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudMongodbGlobalSecurityIpGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -142,10 +142,10 @@ func resourceAliCloudMongodbGlobalSecurityIPGroupUpdate(d *schema.ResourceData, 
 		}
 	}
 
-	return resourceAliCloudMongodbGlobalSecurityIPGroupRead(d, meta)
+	return resourceAliCloudMongodbGlobalSecurityIpGroupRead(d, meta)
 }
 
-func resourceAliCloudMongodbGlobalSecurityIPGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudMongodbGlobalSecurityIpGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteGlobalSecurityIPGroup"
@@ -161,7 +161,6 @@ func resourceAliCloudMongodbGlobalSecurityIPGroupDelete(d *schema.ResourceData, 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Dds", "2015-12-01", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

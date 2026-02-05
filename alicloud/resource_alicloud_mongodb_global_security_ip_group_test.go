@@ -11,6 +11,87 @@ import (
 )
 
 // Test Mongodb GlobalSecurityIPGroup. >>> Resource test cases, automatically generated.
+// Test Mongodb GlobalSecurityIpGroup. >>> Resource test cases, automatically generated.
+// Case 白名单线上接入_修改GIpList 11168
+func TestAccAliCloudMongodbGlobalSecurityIpGroup_basic11168(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_mongodb_global_security_ip_group.default"
+	ra := resourceAttrInit(resourceId, AlicloudMongodbGlobalSecurityIpGroupMap11168)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &MongodbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeMongodbGlobalSecurityIpGroup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccmongodb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudMongodbGlobalSecurityIpGroupBasicDependence11168)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"global_ig_name":          "bggtestssssss",
+					"global_security_ip_list": "192.168.1.1,192.168.2.1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"global_ig_name":          "bggtestssssss",
+						"global_security_ip_list": "192.168.1.1,192.168.2.1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"global_ig_name":          "bggtestsss",
+					"global_security_ip_list": "192.168.1.1,192.168.2.1,192.168.3.1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"global_ig_name":          "bggtestsss",
+						"global_security_ip_list": "192.168.1.1,192.168.2.1,192.168.3.1",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudMongodbGlobalSecurityIpGroupMap11168 = map[string]string{
+	"region_id": CHECKSET,
+}
+
+func AlicloudMongodbGlobalSecurityIpGroupBasicDependence11168(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "zone_id" {
+  default = "cn-shanghai-b"
+}
+
+variable "region_id" {
+  default = "cn-shanghai"
+}
+
+
+`, name)
+}
+
+// Test Mongodb GlobalSecurityIpGroup. <<< Resource test cases, automatically generated.
+
 // Case 白名单线上接入 10994
 func TestAccAliCloudMongodbGlobalSecurityIPGroup_basic10994(t *testing.T) {
 	var v map[string]interface{}

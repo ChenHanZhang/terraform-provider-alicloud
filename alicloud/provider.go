@@ -974,7 +974,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_eflo_er":                                              resourceAliCloudEfloEr(),
 			"alicloud_ssl_certificates_service_pca_certificate":             resourceAliCloudSslCertificatesServicePcaCertificate(),
 			"alicloud_threat_detection_attack_path_sensitive_asset_config":  resourceAliCloudThreatDetectionAttackPathSensitiveAssetConfig(),
-			"alicloud_mongodb_global_security_ip_group":                     resourceAliCloudMongodbGlobalSecurityIPGroup(),
+			"alicloud_mongodb_global_security_ip_group":                     resourceAliCloudMongodbGlobalSecurityIpGroup(),
 			"alicloud_wafv3_defense_rule":                                   resourceAliCloudWafv3DefenseRule(),
 			"alicloud_esa_origin_protection":                                resourceAliCloudEsaOriginProtection(),
 			"alicloud_esa_origin_ca_certificate":                            resourceAliCloudEsaOriginCaCertificate(),
