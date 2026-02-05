@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -20,7 +21,7 @@ func resourceAliCloudMongodbAuditPolicy() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(7 * time.Minute),
 			Update: schema.DefaultTimeout(15 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
@@ -35,13 +36,13 @@ func resourceAliCloudMongodbAuditPolicy() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"storage_period": {
-				Type:     schema.TypeInt,
+			"filter": {
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"filter": {
-				Type:     schema.TypeString,
+			"storage_period": {
+				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
@@ -73,7 +74,7 @@ func resourceAliCloudMongodbAuditPolicyCreate(d *schema.ResourceData, meta inter
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Dds", "2015-12-01", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationDenied.DBInstanceStatus"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -90,7 +91,7 @@ func resourceAliCloudMongodbAuditPolicyCreate(d *schema.ResourceData, meta inter
 	d.SetId(fmt.Sprint(request["DBInstanceId"]))
 
 	mongodbServiceV2 := MongodbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutCreate), 5*time.Minute, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutCreate), 2*time.Minute, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
 	if jobDetail, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
@@ -114,6 +115,13 @@ func resourceAliCloudMongodbAuditPolicyRead(d *schema.ResourceData, meta interfa
 
 	d.Set("storage_period", objectRaw["TtlForStandard"])
 
+	objectRaw, err = mongodbServiceV2.DescribeAuditPolicyDescribeAuditLogFilter(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("filter", objectRaw["Filter"])
+
 	objectRaw, err = mongodbServiceV2.DescribeAuditPolicyDescribeAuditPolicy(d.Id())
 	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
@@ -122,13 +130,6 @@ func resourceAliCloudMongodbAuditPolicyRead(d *schema.ResourceData, meta interfa
 	d.Set("audit_status", convertMongodbAuditPolicyLogAuditStatusResponse(objectRaw["LogAuditStatus"]))
 
 	d.Set("db_instance_id", d.Id())
-
-	objectRaw, err = mongodbServiceV2.DescribeAuditPolicyDescribeAuditLogFilter(d.Id())
-	if err != nil && !NotFoundError(err) {
-		return WrapError(err)
-	}
-
-	d.Set("filter", objectRaw["Filter"])
 
 	return nil
 }
@@ -147,14 +148,9 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 	query = make(map[string]interface{})
 	request["DBInstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if !d.IsNewResource() && d.HasChange("storage_period") {
-		update = true
-
-		if v, ok := d.GetOkExists("storage_period"); ok {
-			request["StoragePeriod"] = v
-		}
+	if v, ok := d.GetOkExists("storage_period"); ok {
+		request["StoragePeriod"] = v
 	}
-
 	if !d.IsNewResource() && d.HasChange("audit_status") {
 		update = true
 	}
@@ -178,7 +174,7 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		mongodbServiceV2 := MongodbServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutUpdate), 5*time.Minute, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
 		if jobDetail, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 		}
@@ -193,7 +189,6 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 		update = true
 	}
 	request["Filter"] = d.Get("filter")
-
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
@@ -212,7 +207,7 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		mongodbServiceV2 := MongodbServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutUpdate), 5*time.Minute, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, mongodbServiceV2.DescribeAsyncMongodbAuditPolicyStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
 		if jobDetail, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 		}
@@ -225,6 +220,17 @@ func resourceAliCloudMongodbAuditPolicyUpdate(d *schema.ResourceData, meta inter
 func resourceAliCloudMongodbAuditPolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy resource AliCloud Resource Audit Policy. Terraform will remove this resource from the state file, however resources may remain.")
 	return nil
+}
+
+func convertMongodbAuditPolicyResponse(source string) string {
+	source = fmt.Sprint(source)
+	switch source {
+	case "Enable":
+		return "enable"
+	case "Disabled":
+		return "disabled"
+	}
+	return source
 }
 
 func convertMongodbAuditPolicyLogAuditStatusResponse(source interface{}) interface{} {
@@ -244,17 +250,6 @@ func convertMongodbAuditPolicyAuditStatusRequest(source interface{}) interface{}
 		return "Enable"
 	case " disabled":
 		return "Disabled"
-	}
-	return source
-}
-
-func convertMongodbAuditPolicyResponse(source string) string {
-	source = fmt.Sprint(source)
-	switch source {
-	case "Enable":
-		return "enable"
-	case "Disabled":
-		return "disabled"
 	}
 	return source
 }
