@@ -20,12 +20,6 @@ For information about Log Service (SLS) Etl and how to use it, see [What is Etl]
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_sls_etl&exampleId=18ea6489-61d7-eb1b-e1aa-c19d7081fa3db8bc64b8&activeTab=example&spm=docs.r.sls_etl.0.18ea648961&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -72,45 +66,44 @@ resource "alicloud_sls_etl" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_sls_etl&spm=docs.r.sls_etl.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `configuration` - (Required, Set) The ETL configuration. See [`configuration`](#configuration) below.
-* `description` - (Optional) Data Processing Task Description.
-* `display_name` - (Required) Data processing task display name.
-* `job_name` - (Required, ForceNew) Unique identification of data processing task.
-* `project` - (Required, ForceNew) Project Name.
+* `configuration` - (Required, Set) Detailed configuration of data processing tasks See [`configuration`](#configuration) below.
+* `description` - (Optional) The description of the job.
+* `display_name` - (Required) The display name of the job.
+* `job_name` - (Required, ForceNew) The name of the job (unique within a project).
+* `project` - (Required, ForceNew) The name of the project.
 
 ### `configuration`
 
 The configuration supports the following:
-* `from_time` - (Required, ForceNew, Int) The beginning of the time range for transformation.
-* `lang` - (Required) Data processing syntax type.
-* `logstore` - (Required, ForceNew) Source Logstore Name.
-* `parameters` - (Optional, Map) Advanced parameter configuration.
+* `from_time` - (Required, ForceNew, Int) Processing time start timestamp (accurate to the second). Enter 0 when the first log received from the source Logstore is consumed.
+* `lang` - (Required) Data processing syntax type
+* `logstore` - (Required, ForceNew) Source Logstore Name
+* `parameters` - (Optional, Map) Advanced parameter configuration
 * `role_arn` - (Required) The ARN role that authorizes reading of the source Logstore.
-* `script` - (Required) Processing script.
-* `sink` - (Required, Set) Processing result output target list See [`sink`](#configuration-sink) below.
-* `to_time` - (Required, ForceNew, Int) The end of the time range for transformation.
+* `script` - (Required) Processing script
+* `sink` - (Required, List) Processing result output target list See [`sink`](#configuration-sink) below.
+* `to_time` - (Required, ForceNew, Int) Processing time end timestamp (accurate to seconds). When continuous consumption is stopped manually, fill in 0
 
 ### `configuration-sink`
 
 The configuration-sink supports the following:
-* `datasets` - (Required, List) Write Result Set.
-* `endpoint` - (Required) The endpoint of the region where the target Project is located.
-* `logstore` - (Required) Destination Logstore Name.
-* `name` - (Required, ForceNew) Output Destination Name.
-* `project` - (Required) Target Project name.
+* `datasets` - (Required, List) Write Result Set
+* `endpoint` - (Required) The endpoint of the region where the target Project is located
+* `logstore` - (Required) Destination Logstore Name
+* `name` - (Required, ForceNew) Output Destination Name
+* `project` - (Required) Target Project name
 * `role_arn` - (Required) The ARN role that authorizes writing to the target Logstore.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<project>:<job_name>`.
-* `create_time` - The time when the data transformation job was created.
-* `status` - The status of the data transformation job.
+* `id` - The ID of the resource supplied above. The value is formulated as `<project>:<job_name>`.
+* `create_time` - Task creation time.
+* `status` - Task Status.
 
 ## Timeouts
 

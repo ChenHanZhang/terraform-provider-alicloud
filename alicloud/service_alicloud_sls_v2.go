@@ -606,13 +606,16 @@ func (s *SlsServiceV2) DescribeSlsEtl(id string) (object map[string]interface{},
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
+	var header map[string]*string
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	etlName := parts[1]
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+	header = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["project"] = StringPointer(parts[0])
 
@@ -620,7 +623,7 @@ func (s *SlsServiceV2) DescribeSlsEtl(id string) (object map[string]interface{},
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetETL", action), query, nil, nil, hostMap, false)
+		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetETL", action), query, nil, nil, hostMap, true)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -643,15 +646,18 @@ func (s *SlsServiceV2) DescribeSlsEtl(id string) (object map[string]interface{},
 }
 
 func (s *SlsServiceV2) SlsEtlStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SlsEtlStateRefreshFuncWithApi(id, field, failStates, s.DescribeSlsEtl)
+}
+
+func (s *SlsServiceV2) SlsEtlStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSlsEtl(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

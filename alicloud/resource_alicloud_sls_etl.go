@@ -145,42 +145,21 @@ func resourceAliCloudSlsEtlCreate(d *schema.ResourceData, meta interface{}) erro
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
-	hostMap["project"] = StringPointer(d.Get("project").(string))
-	request["name"] = d.Get("job_name")
-	request["displayName"] = d.Get("display_name")
-	if v, ok := d.GetOk("description"); ok {
-		request["description"] = v
+	if v, ok := d.GetOk("job_name"); ok {
+		request["name"] = v
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	hostMap["project"] = StringPointer(d.Get("project").(string))
+
+	configuration := make(map[string]interface{})
 
 	if v := d.Get("configuration"); v != nil {
-		script1, _ := jsonpath.Get("$[0].script", v)
-		if script1 != nil && script1 != "" {
-			objectDataLocalMap["script"] = script1
-		}
-		lang1, _ := jsonpath.Get("$[0].lang", v)
-		if lang1 != nil && lang1 != "" {
-			objectDataLocalMap["lang"] = lang1
-		}
-		fromTime1, _ := jsonpath.Get("$[0].from_time", v)
-		if fromTime1 != nil && fromTime1 != "" {
-			objectDataLocalMap["fromTime"] = fromTime1
+		roleArn1, _ := jsonpath.Get("$[0].role_arn", v)
+		if roleArn1 != nil && roleArn1 != "" {
+			configuration["roleArn"] = roleArn1
 		}
 		toTime1, _ := jsonpath.Get("$[0].to_time", v)
 		if toTime1 != nil && toTime1 != "" {
-			objectDataLocalMap["toTime"] = toTime1
-		}
-		logstore1, _ := jsonpath.Get("$[0].logstore", v)
-		if logstore1 != nil && logstore1 != "" {
-			objectDataLocalMap["logstore"] = logstore1
-		}
-		roleArn1, _ := jsonpath.Get("$[0].role_arn", v)
-		if roleArn1 != nil && roleArn1 != "" {
-			objectDataLocalMap["roleArn"] = roleArn1
-		}
-		parameters1, _ := jsonpath.Get("$[0].parameters", v)
-		if parameters1 != nil && parameters1 != "" {
-			objectDataLocalMap["parameters"] = parameters1
+			configuration["toTime"] = toTime1
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData, err := jsonpath.Get("$[0].sink", v)
@@ -188,26 +167,51 @@ func resourceAliCloudSlsEtlCreate(d *schema.ResourceData, meta interface{}) erro
 				localData = make([]interface{}, 0)
 			}
 			localMaps := make([]interface{}, 0)
-			for _, dataLoop := range localData.([]interface{}) {
+			for _, dataLoop := range convertToInterfaceArray(localData) {
 				dataLoopTmp := make(map[string]interface{})
 				if dataLoop != nil {
 					dataLoopTmp = dataLoop.(map[string]interface{})
 				}
 				dataLoopMap := make(map[string]interface{})
-				dataLoopMap["name"] = dataLoopTmp["name"]
 				dataLoopMap["endpoint"] = dataLoopTmp["endpoint"]
-				dataLoopMap["project"] = dataLoopTmp["project"]
 				dataLoopMap["logstore"] = dataLoopTmp["logstore"]
-				dataLoopMap["datasets"] = dataLoopTmp["datasets"]
 				dataLoopMap["roleArn"] = dataLoopTmp["role_arn"]
+				dataLoopMap["datasets"] = dataLoopTmp["datasets"]
+				dataLoopMap["project"] = dataLoopTmp["project"]
+				dataLoopMap["name"] = dataLoopTmp["name"]
 				localMaps = append(localMaps, dataLoopMap)
 			}
-			objectDataLocalMap["sinks"] = localMaps
+			configuration["sinks"] = localMaps
 		}
 
-		request["configuration"] = objectDataLocalMap
+		logstore3, _ := jsonpath.Get("$[0].logstore", v)
+		if logstore3 != nil && logstore3 != "" {
+			configuration["logstore"] = logstore3
+		}
+		script1, _ := jsonpath.Get("$[0].script", v)
+		if script1 != nil && script1 != "" {
+			configuration["script"] = script1
+		}
+		parameters1, _ := jsonpath.Get("$[0].parameters", v)
+		if parameters1 != nil && parameters1 != "" {
+			configuration["parameters"] = parameters1
+		}
+		fromTime1, _ := jsonpath.Get("$[0].from_time", v)
+		if fromTime1 != nil && fromTime1 != "" {
+			configuration["fromTime"] = fromTime1
+		}
+		lang1, _ := jsonpath.Get("$[0].lang", v)
+		if lang1 != nil && lang1 != "" {
+			configuration["lang"] = lang1
+		}
+
+		request["configuration"] = configuration
 	}
 
+	if v, ok := d.GetOk("description"); ok {
+		request["description"] = v
+	}
+	request["displayName"] = d.Get("display_name")
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -275,7 +279,7 @@ func resourceAliCloudSlsEtlRead(d *schema.ResourceData, meta interface{}) error 
 		sinksRaw := configurationRaw["sinks"]
 		sinkMaps := make([]map[string]interface{}, 0)
 		if sinksRaw != nil {
-			for _, sinksChildRaw := range sinksRaw.([]interface{}) {
+			for _, sinksChildRaw := range convertToInterfaceArray(sinksRaw) {
 				sinkMap := make(map[string]interface{})
 				sinksChildRaw := sinksChildRaw.(map[string]interface{})
 				sinkMap["endpoint"] = sinksChildRaw["endpoint"]
@@ -286,7 +290,7 @@ func resourceAliCloudSlsEtlRead(d *schema.ResourceData, meta interface{}) error 
 
 				datasetsRaw := make([]interface{}, 0)
 				if sinksChildRaw["datasets"] != nil {
-					datasetsRaw = sinksChildRaw["datasets"].([]interface{})
+					datasetsRaw = convertToInterfaceArray(sinksChildRaw["datasets"])
 				}
 
 				sinkMap["datasets"] = datasetsRaw
@@ -311,6 +315,7 @@ func resourceAliCloudSlsEtlUpdate(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var header map[string]*string
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
@@ -325,45 +330,19 @@ func resourceAliCloudSlsEtlUpdate(d *schema.ResourceData, meta interface{}) erro
 	hostMap := make(map[string]*string)
 	hostMap["project"] = StringPointer(parts[0])
 
-	if d.HasChange("display_name") {
-		update = true
-	}
-	request["displayName"] = d.Get("display_name")
-	if d.HasChange("description") {
-		update = true
-	}
-	if v, ok := d.GetOk("description"); ok {
-		request["description"] = v
-	}
 	if d.HasChange("configuration") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	configuration := make(map[string]interface{})
 
 	if v := d.Get("configuration"); v != nil {
-		script1, _ := jsonpath.Get("$[0].script", v)
-		if script1 != nil && (d.HasChange("configuration.0.script") || script1 != "") {
-			objectDataLocalMap["script"] = script1
-		}
-		fromTime1, _ := jsonpath.Get("$[0].from_time", v)
-		if fromTime1 != nil && (d.HasChange("configuration.0.from_time") || fromTime1 != "") {
-			objectDataLocalMap["fromTime"] = fromTime1
+		roleArn1, _ := jsonpath.Get("$[0].role_arn", v)
+		if roleArn1 != nil && roleArn1 != "" {
+			configuration["roleArn"] = roleArn1
 		}
 		toTime1, _ := jsonpath.Get("$[0].to_time", v)
-		if toTime1 != nil && (d.HasChange("configuration.0.to_time") || toTime1 != "") {
-			objectDataLocalMap["toTime"] = toTime1
-		}
-		logstore1, _ := jsonpath.Get("$[0].logstore", v)
-		if logstore1 != nil && (d.HasChange("configuration.0.logstore") || logstore1 != "") {
-			objectDataLocalMap["logstore"] = logstore1
-		}
-		roleArn1, _ := jsonpath.Get("$[0].role_arn", v)
-		if roleArn1 != nil && (d.HasChange("configuration.0.role_arn") || roleArn1 != "") {
-			objectDataLocalMap["roleArn"] = roleArn1
-		}
-		parameters1, _ := jsonpath.Get("$[0].parameters", v)
-		if parameters1 != nil && (d.HasChange("configuration.0.parameters") || parameters1 != "") {
-			objectDataLocalMap["parameters"] = parameters1
+		if toTime1 != nil && toTime1 != "" {
+			configuration["toTime"] = toTime1
 		}
 		if v, ok := d.GetOk("configuration"); ok {
 			localData, err := jsonpath.Get("$[0].sink", v)
@@ -371,31 +350,57 @@ func resourceAliCloudSlsEtlUpdate(d *schema.ResourceData, meta interface{}) erro
 				localData = make([]interface{}, 0)
 			}
 			localMaps := make([]interface{}, 0)
-			for _, dataLoop := range localData.([]interface{}) {
+			for _, dataLoop := range convertToInterfaceArray(localData) {
 				dataLoopTmp := make(map[string]interface{})
 				if dataLoop != nil {
 					dataLoopTmp = dataLoop.(map[string]interface{})
 				}
 				dataLoopMap := make(map[string]interface{})
-				dataLoopMap["name"] = dataLoopTmp["name"]
-				dataLoopMap["project"] = dataLoopTmp["project"]
-				dataLoopMap["logstore"] = dataLoopTmp["logstore"]
-				dataLoopMap["datasets"] = dataLoopTmp["datasets"]
-				dataLoopMap["roleArn"] = dataLoopTmp["role_arn"]
 				dataLoopMap["endpoint"] = dataLoopTmp["endpoint"]
+				dataLoopMap["logstore"] = dataLoopTmp["logstore"]
+				dataLoopMap["roleArn"] = dataLoopTmp["role_arn"]
+				dataLoopMap["datasets"] = dataLoopTmp["datasets"]
+				dataLoopMap["project"] = dataLoopTmp["project"]
+				dataLoopMap["name"] = dataLoopTmp["name"]
 				localMaps = append(localMaps, dataLoopMap)
 			}
-			objectDataLocalMap["sinks"] = localMaps
+			configuration["sinks"] = localMaps
 		}
 
+		logstore3, _ := jsonpath.Get("$[0].logstore", v)
+		if logstore3 != nil && logstore3 != "" {
+			configuration["logstore"] = logstore3
+		}
+		script1, _ := jsonpath.Get("$[0].script", v)
+		if script1 != nil && script1 != "" {
+			configuration["script"] = script1
+		}
+		parameters1, _ := jsonpath.Get("$[0].parameters", v)
+		if parameters1 != nil && parameters1 != "" {
+			configuration["parameters"] = parameters1
+		}
+		fromTime1, _ := jsonpath.Get("$[0].from_time", v)
+		if fromTime1 != nil && fromTime1 != "" {
+			configuration["fromTime"] = fromTime1
+		}
 		lang1, _ := jsonpath.Get("$[0].lang", v)
-		if lang1 != nil && (d.HasChange("configuration.0.lang") || lang1 != "") {
-			objectDataLocalMap["lang"] = lang1
+		if lang1 != nil && lang1 != "" {
+			configuration["lang"] = lang1
 		}
 
-		request["configuration"] = objectDataLocalMap
+		request["configuration"] = configuration
 	}
 
+	if d.HasChange("description") {
+		update = true
+	}
+	if v, ok := d.GetOk("description"); ok || d.HasChange("description") {
+		request["description"] = v
+	}
+	if d.HasChange("display_name") {
+		update = true
+	}
+	request["displayName"] = d.Get("display_name")
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -441,7 +446,6 @@ func resourceAliCloudSlsEtlDelete(d *schema.ResourceData, meta interface{}) erro
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.Do("Sls", roaParam("DELETE", "2020-12-30", "DeleteETL", action), query, nil, nil, hostMap, false)
-
 		if err != nil {
 			if IsExpectedErrors(err, []string{"403"}) || NeedRetry(err) {
 				wait()
