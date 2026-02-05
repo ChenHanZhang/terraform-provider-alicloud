@@ -37,7 +37,7 @@ func TestAccAliCloudMongodbNode_basic6181(t *testing.T) {
 				Config: testAccConfig(map[string]interface{}{
 					"node_class":        "mdb.shard.4x.large.d",
 					"readonly_replicas": "0",
-					"db_instance_id":    "${alicloud_mongodb_sharding_instance.default.id}",
+					"db_instance_id":    "${alicloud_mongodb_instance.default4kU8ZI.id}",
 					"node_type":         "mongos",
 					"account_name":      "root",
 					"account_password":  "q1w2e3r4!",
@@ -108,52 +108,31 @@ variable "region_id" {
   default = "cn-shanghai"
 }
 
-variable "ipv4_cidr" {
+variable "ipv4网段-b" {
   default = "10.0.0.0/24"
 }
 
-resource "alicloud_vpc" "default" {
+resource "alicloud_vpc" "defaultFBPRtb" {
   description = "bgg-test"
   vpc_name    = "bgg-vpc-shanghai-b"
   cidr_block  = "10.0.0.0/8"
 }
 
-resource "alicloud_vswitch" "default" {
-  vpc_id       = alicloud_vpc.default.id
+resource "alicloud_vswitch" "defaulti0SRXN" {
+  vpc_id       = alicloud_vpc.defaultFBPRtb.id
   zone_id      = var.zone_id
-  cidr_block   = var.ipv4_cidr
+  cidr_block   = var.ipv4网段-b
   vswitch_name = "bgg-shanghai-B"
 }
 
-resource "alicloud_mongodb_sharding_instance" "default" {
-  engine_version = "4.2"
-  vswitch_id     = alicloud_vswitch.default.id
+resource "alicloud_mongodb_instance" "default4kU8ZI" {
   zone_id        = var.zone_id
-  name           = var.name
-  storage_type = "cloud_auto"
-  provisioned_iops = 60
-  config_server_list {
-    node_class = "mdb.shard.2x.xlarge.d"
-    node_storage = 80
-  }
-  mongo_list {
-   node_class = "mdb.shard.2x.xlarge.d"
-  }
-  mongo_list {
-   node_class = "mdb.shard.2x.xlarge.d"
-  }
-  shard_list {
-    node_class        = "mdb.shard.2x.xlarge.d"
-    node_storage      = "80"
-  }
-  shard_list {
-    node_class        = "mdb.shard.2x.xlarge.d"
-    node_storage      = "80"
-  }
-  lifecycle {
-    ignore_changes = [mongo_list]
-  }
+  engine_version = "4.4"
+  storage_type   = "cloud_essd1"
+  vswitch_id     = alicloud_vswitch.defaulti0SRXN.id
+  vpc_id         = alicloud_vpc.defaultFBPRtb.id
 }
+
 
 `, name)
 }
@@ -184,14 +163,14 @@ func TestAccAliCloudMongodbNode_basic6201(t *testing.T) {
 				Config: testAccConfig(map[string]interface{}{
 					"node_class":        "mdb.shard.4x.large.d",
 					"readonly_replicas": "0",
-					"db_instance_id":    "${alicloud_mongodb_sharding_instance.default.id}",
+					"db_instance_id":    "${alicloud_mongodb_instance.default4kU8ZI.id}",
 					"node_type":         "shard",
 					"account_name":      "root",
 					"account_password":  "q1w2e3r4!",
 					"shard_direct":      "false",
 					"business_info":     "1234",
 					"auto_pay":          "true",
-					"node_storage":      "40",
+					"node_storage":      "20",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -204,7 +183,7 @@ func TestAccAliCloudMongodbNode_basic6201(t *testing.T) {
 						"shard_direct":      "false",
 						"business_info":     CHECKSET,
 						"auto_pay":          "true",
-						"node_storage":      "40",
+						"node_storage":      "20",
 					}),
 				),
 			},
@@ -212,7 +191,7 @@ func TestAccAliCloudMongodbNode_basic6201(t *testing.T) {
 				Config: testAccConfig(map[string]interface{}{
 					"node_class":        "mdb.shard.8x.large.d",
 					"readonly_replicas": "1",
-					"node_storage":      "80",
+					"node_storage":      "40",
 					"order_type":        "UPGRADE",
 					"effective_time":    "Immediately",
 					"from_app":          "OpenApi",
@@ -221,7 +200,7 @@ func TestAccAliCloudMongodbNode_basic6201(t *testing.T) {
 					testAccCheck(map[string]string{
 						"node_class":        "mdb.shard.8x.large.d",
 						"readonly_replicas": "1",
-						"node_storage":      "80",
+						"node_storage":      "40",
 						"order_type":        "UPGRADE",
 						"effective_time":    "Immediately",
 						"from_app":          "OpenApi",
@@ -257,51 +236,28 @@ variable "region_id" {
   default = "cn-shanghai"
 }
 
-variable "ipv4_cidr" {
+variable "ipv4网段-b" {
   default = "10.0.0.0/24"
 }
 
-resource "alicloud_vpc" "default" {
-  description = "bgg-test"
-  vpc_name    = "bgg-vpc-shanghai-b"
-  cidr_block  = "10.0.0.0/8"
+resource "alicloud_vpc" "defaultvAkfWC" {
+  vpc_name   = "bgg-vpc-shanghai-b"
+  cidr_block = "10.0.0.0/8"
 }
 
-resource "alicloud_vswitch" "default" {
-  vpc_id       = alicloud_vpc.default.id
+resource "alicloud_vswitch" "defaultd9fTxe" {
+  vpc_id       = alicloud_vpc.defaultvAkfWC.id
   zone_id      = var.zone_id
-  cidr_block   = var.ipv4_cidr
+  cidr_block   = var.ipv4网段-b
   vswitch_name = "bgg-shanghai-B"
 }
 
-resource "alicloud_mongodb_sharding_instance" "default" {
-  engine_version = "4.2"
-  vswitch_id     = alicloud_vswitch.default.id
+resource "alicloud_mongodb_instance" "default4kU8ZI" {
   zone_id        = var.zone_id
-  name           = var.name
-  storage_type = "cloud_auto"
-  provisioned_iops = 60
-  config_server_list {
-    node_class = "mdb.shard.2x.xlarge.d"
-    node_storage = 40
-  }
-  mongo_list {
-   node_class = "mdb.shard.2x.xlarge.d"
-  }
-  mongo_list {
-   node_class = "mdb.shard.2x.xlarge.d"
-  }
-  shard_list {
-    node_class        = "mdb.shard.2x.xlarge.d"
-    node_storage      = 40
-  }
-  shard_list {
-    node_class        = "mdb.shard.2x.xlarge.d"
-    node_storage      = 40
-  }
-  lifecycle {
-    ignore_changes = [shard_list]
-  }
+  engine_version = "4.4"
+  storage_type   = "cloud_essd1"
+  vswitch_id     = alicloud_vswitch.defaultd9fTxe.id
+  vpc_id         = alicloud_vpc.defaultvAkfWC.id
 }
 
 
