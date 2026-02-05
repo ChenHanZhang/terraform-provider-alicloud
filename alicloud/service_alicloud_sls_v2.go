@@ -462,15 +462,16 @@ func (s *SlsServiceV2) DescribeSlsCollectionPolicy(id string) (object map[string
 	var response map[string]interface{}
 	var query map[string]*string
 	policyName := id
-	action := fmt.Sprintf("/collectionpolicy/%s", policyName)
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	hostMap := make(map[string]*string)
-	request["policyName"] = id
+
+	action := fmt.Sprintf("/collectionpolicy/%s", policyName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetCollectionPolicy", action), query, nil, nil, hostMap, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -478,14 +479,13 @@ func (s *SlsServiceV2) DescribeSlsCollectionPolicy(id string) (object map[string
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"PolicyNotExist"}) {
 			return object, WrapErrorf(NotFoundErr("CollectionPolicy", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -498,20 +498,24 @@ func (s *SlsServiceV2) DescribeSlsCollectionPolicy(id string) (object map[string
 }
 
 func (s *SlsServiceV2) SlsCollectionPolicyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SlsCollectionPolicyStateRefreshFuncWithApi(id, field, failStates, s.DescribeSlsCollectionPolicy)
+}
+
+func (s *SlsServiceV2) SlsCollectionPolicyStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSlsCollectionPolicy(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
-		if field == "#policyName" {
-			if currentStatus != "" {
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
 				currentStatus = "#CHECKSET"
 			}
 		}

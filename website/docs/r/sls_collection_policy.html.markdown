@@ -3,28 +3,22 @@ subcategory: "Log Service (SLS)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_sls_collection_policy"
 description: |-
-  Provides a Alicloud SLS Collection Policy resource.
+  Provides a Alicloud Log Service (SLS) Collection Policy resource.
 ---
 
 # alicloud_sls_collection_policy
 
-Provides a SLS Collection Policy resource.
+Provides a Log Service (SLS) Collection Policy resource.
 
 Orchestration policies for cloud product log collection.
 
-For information about SLS Collection Policy and how to use it, see [What is Collection Policy](https://www.alibabacloud.com/help/zh/sls/developer-reference/api-sls-2020-12-30-upsertcollectionpolicy).
+For information about Log Service (SLS) Collection Policy and how to use it, see [What is Collection Policy](https://www.alibabacloud.com/help/zh/sls/developer-reference/api-sls-2020-12-30-upsertcollectionpolicy).
 
 -> **NOTE:** Available since v1.232.0.
 
 ## Example Usage
 
-Enable real-time log query for all of OSS buckets.
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_sls_collection_policy&exampleId=260f3fed-9de1-c582-2eee-b0c0657d8292b81d0b6e&activeTab=example&spm=docs.r.sls_collection_policy.0.260f3fed9d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "name" {
@@ -91,89 +85,26 @@ resource "alicloud_sls_collection_policy" "default" {
 }
 ```
 
-Enable real-time log query for one or more specific OSS buckets
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_sls_collection_policy&exampleId=e25b6303-35ac-56a7-2958-d62c50ced91418e2ad80&activeTab=example&spm=docs.r.sls_collection_policy.1.e25b630335&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
-```terraform
-variable "name" {
-  default = "terraform-example-on-single-bucket"
-}
-
-provider "alicloud" {
-  region = "cn-shanghai"
-}
-
-resource "random_integer" "default" {
-  min = 10000
-  max = 99999
-}
-
-resource "alicloud_log_project" "project_create_01" {
-  description  = var.name
-  project_name = format("%s1%s", var.name, random_integer.default.result)
-}
-
-resource "alicloud_log_store" "logstore_create_01" {
-  retention_period = "30"
-  shard_count      = "2"
-  project_name     = alicloud_log_project.project_create_01.project_name
-  logstore_name    = format("%s1%s", var.name, random_integer.default.result)
-}
-
-resource "alicloud_log_project" "update_01" {
-  description  = var.name
-  project_name = format("%s2%s", var.name, random_integer.default.result)
-}
-
-resource "alicloud_log_store" "logstore002" {
-  retention_period = "30"
-  shard_count      = "2"
-  project_name     = alicloud_log_project.update_01.project_name
-  logstore_name    = format("%s2%s", var.name, random_integer.default.result)
-}
-
-resource "alicloud_oss_bucket" "bucket" {
-  bucket = format("%s1%s", var.name, random_integer.default.result)
-}
-resource "alicloud_sls_collection_policy" "default" {
-  policy_config {
-    resource_mode = "instanceMode"
-    instance_ids  = [alicloud_oss_bucket.bucket.id]
-  }
-  data_code          = "access_log"
-  centralize_enabled = false
-  product_code       = "oss"
-  policy_name        = "xc-example-oss-01"
-  enabled            = true
-}
-```
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_sls_collection_policy&spm=docs.r.sls_collection_policy.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `centralize_config` - (Optional, List) Centralized transfer configuration. See [`centralize_config`](#centralize_config) below.
-* `centralize_enabled` - (Optional) Whether to enable centralized Conversion. The default value is false.
-* `data_code` - (Required, ForceNew) Log type encoding.
-* `data_config` - (Optional, ForceNew, List) The configuration is supported only when the log type is global. For example, if the productCode is sls, global logs will be collected to the corresponding region during the first configuration. See [`data_config`](#data_config) below.
+* `centralize_config` - (Optional, Computed, Set) Centralized transfer configuration. See [`centralize_config`](#centralize_config) below.
+* `centralize_enabled` - (Optional) Specifies whether to enable centralized storage. Default value: false.
+* `data_code` - (Required, ForceNew) The code of the log type.
+* `data_config` - (Optional, ForceNew, Computed, Set) The configuration is supported only when the log type is global. For example, if the productCode is sls, global logs will be collected to the corresponding region during the first configuration. See [`data_config`](#data_config) below.
 * `enabled` - (Required) Whether to open.
-* `policy_config` - (Required, List) Collection rule configuration. See [`policy_config`](#policy_config) below.
+* `policy_config` - (Required, Set) Collection rule configuration. See [`policy_config`](#policy_config) below.
 * `policy_name` - (Required, ForceNew) The name of the rule, with a minimum of 3 characters and a maximum of 63 characters, must start with a letter.
-* `product_code` - (Required, ForceNew) Product code.
-* `resource_directory` - (Optional, List) For Resource Directory configuration, the account must have opened the resource directory and be an administrator or a delegated administrator. See [`resource_directory`](#resource_directory) below.
+* `product_code` - (Required, ForceNew) The code of the service.
+* `resource_directory` - (Optional, Computed, Set) For Resource Directory configuration, the account must have opened the resource directory and be an administrator or a delegated administrator. See [`resource_directory`](#resource_directory) below.
 
 ### `centralize_config`
 
 The centralize_config supports the following:
 * `dest_logstore` - (Optional) When the central logstore is transferred to the destination logstore, its geographical attribute should be consistent with the destRegion and belong to the destProject.
-* `dest_project` - (Optional) The geographical attributes of the centralized transfer project should be consistent with the destRegion.
+* `dest_project` - (Optional) The destination project for centralized storage. Make sure that the region of the destination project is consistent with the region specified by destRegion.
 * `dest_region` - (Optional) Centralized transfer destination area.
-* `dest_ttl` - (Optional, Int) The number of days for the central transfer destination. This is valid only if the central transfer destination log store is not created for the first time.
+* `dest_ttl` - (Optional, Int) The data retention period for centralized storage. Unit: days. This parameter takes effect only when you use an existing logstore for centralized storage.
 
 ### `data_config`
 
@@ -185,12 +116,8 @@ The data_config supports the following:
 The policy_config supports the following:
 * `instance_ids` - (Optional, List) A collection of instance IDs, valid only if resourceMode is instanceMode. Only instances whose instance ID is in the instance ID collection are collected.
 * `regions` - (Optional, List) The region collection to which the instance belongs. Valid only when resourceMode is set to attributeMode. Wildcard characters are supported. If the region collection filter item is an empty array, it means that you do not need to filter by region, and all instances meet the filtering condition of the region collection. Otherwise, only instances with region attributes in the region collection are collected. The region collection and resource label of the instance. The instance objects are collected only when all of them are met.
-* `resource_mode` - (Required) Resource collection mode. If all is configured, all instances under the account will be collected to the default logstore. If attributeMode is configured, filtering will be performed according to the region attribute and resource label of the instance. If instanceMode is configured, filtering will be performed according to the instance ID.
-* `resource_tags` - (Optional, Map) Resource label, valid if and only if resourceMode is attributeMode.
-
-  If the resource label filter item is empty, it means that you do not need to filter by resource label, and all instances meet the resource label filter condition. Otherwise, only instances whose resource label attributes meet the resource label configuration are collected.
-
-  The resource tag and the region collection to which the instance belongs work together. The instance objects are collected only when all of them are met.
+* `resource_mode` - (Required) The resource collection mode. Valid values: all, attributeMode, and instanceMode. The value all specifies that logs of all instances within your account are collected to the default logstore. The value attributeMode specifies that logs are collected based on the regions of instances and resource tags. The value instanceMode specifies that logs are collected based on instance IDs.
+* `resource_tags` - (Optional, Map) The resource tags. This parameter takes effect only when resourceMode is set to attributeMode. If you leave this parameter empty, resource tag-based filtering is not performed. The system considers that all instances are matched. If you specify a value for this parameter, logs of instances that use the specified resource tags are collected. Logs are collected from an instance only if the resource tags and region of the instance match the specified conditions.
 
 ### `resource_directory`
 
@@ -201,9 +128,9 @@ The resource_directory supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `data_config` - The configuration is supported only when the log type is global. For example, if the productCode is sls, global logs will be collected to the corresponding region during the first configuration.
-  * `data_project` - Valid only when the log type is global. For example, if the productCode is sls, the log is collected to the default dedicated Project of the account in a specific dataRegion.
+* `id` - The ID of the resource supplied above. 
+* `data_config` - The configuration is supported only when the log type is global.
+  * `data_project` - Valid only when the log type is global.
 
 ## Timeouts
 
@@ -214,8 +141,8 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-SLS Collection Policy can be imported using the id, e.g.
+Log Service (SLS) Collection Policy can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_sls_collection_policy.example <id>
+$ terraform import alicloud_sls_collection_policy.example <policy_name>
 ```

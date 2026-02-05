@@ -163,84 +163,84 @@ func resourceAliCloudSlsCollectionPolicyCreate(d *schema.ResourceData, meta inte
 		request["policyName"] = v
 	}
 
-	if v, ok := d.GetOkExists("centralize_enabled"); ok {
-		request["centralizeEnabled"] = v
-	}
-	request["enabled"] = d.Get("enabled")
 	request["productCode"] = d.Get("product_code")
-	request["dataCode"] = d.Get("data_code")
-	objectDataLocalMap := make(map[string]interface{})
-
-	if v := d.Get("policy_config"); v != nil {
-		resourceMode1, _ := jsonpath.Get("$[0].resource_mode", d.Get("policy_config"))
-		if resourceMode1 != nil && resourceMode1 != "" {
-			objectDataLocalMap["resourceMode"] = resourceMode1
-		}
-		resourceTags1, _ := jsonpath.Get("$[0].resource_tags", d.Get("policy_config"))
-		if resourceTags1 != nil && resourceTags1 != "" {
-			objectDataLocalMap["resourceTags"] = resourceTags1
-		}
-		regions1, _ := jsonpath.Get("$[0].regions", v)
-		if regions1 != nil && regions1 != "" {
-			objectDataLocalMap["regions"] = regions1
-		}
-		instanceIds1, _ := jsonpath.Get("$[0].instance_ids", v)
-		if instanceIds1 != nil && instanceIds1 != "" {
-			objectDataLocalMap["instanceIds"] = instanceIds1
-		}
-
-		request["policyConfig"] = objectDataLocalMap
-	}
-
-	objectDataLocalMap1 := make(map[string]interface{})
-
-	if v := d.Get("centralize_config"); !IsNil(v) {
-		destRegion1, _ := jsonpath.Get("$[0].dest_region", d.Get("centralize_config"))
-		if destRegion1 != nil && destRegion1 != "" {
-			objectDataLocalMap1["destRegion"] = destRegion1
-		}
-		destProject1, _ := jsonpath.Get("$[0].dest_project", d.Get("centralize_config"))
-		if destProject1 != nil && destProject1 != "" {
-			objectDataLocalMap1["destProject"] = destProject1
-		}
-		destLogstore1, _ := jsonpath.Get("$[0].dest_logstore", d.Get("centralize_config"))
-		if destLogstore1 != nil && destLogstore1 != "" {
-			objectDataLocalMap1["destLogstore"] = destLogstore1
-		}
-		destTtl, _ := jsonpath.Get("$[0].dest_ttl", d.Get("centralize_config"))
-		if destTtl != nil && destTtl != "" {
-			objectDataLocalMap1["destTTL"] = destTtl
-		}
-
-		request["centralizeConfig"] = objectDataLocalMap1
-	}
-
-	objectDataLocalMap2 := make(map[string]interface{})
-
-	if v := d.Get("data_config"); !IsNil(v) {
-		dataRegion1, _ := jsonpath.Get("$[0].data_region", d.Get("data_config"))
-		if dataRegion1 != nil && dataRegion1 != "" {
-			objectDataLocalMap2["dataRegion"] = dataRegion1
-		}
-
-		request["dataConfig"] = objectDataLocalMap2
-	}
-
-	objectDataLocalMap3 := make(map[string]interface{})
+	resourceDirectory := make(map[string]interface{})
 
 	if v := d.Get("resource_directory"); !IsNil(v) {
-		accountGroupType1, _ := jsonpath.Get("$[0].account_group_type", d.Get("resource_directory"))
+		accountGroupType1, _ := jsonpath.Get("$[0].account_group_type", v)
 		if accountGroupType1 != nil && accountGroupType1 != "" {
-			objectDataLocalMap3["accountGroupType"] = accountGroupType1
+			resourceDirectory["accountGroupType"] = accountGroupType1
 		}
 		members1, _ := jsonpath.Get("$[0].members", v)
 		if members1 != nil && members1 != "" {
-			objectDataLocalMap3["members"] = members1
+			resourceDirectory["members"] = members1
 		}
 
-		request["resourceDirectory"] = objectDataLocalMap3
+		request["resourceDirectory"] = resourceDirectory
 	}
 
+	centralizeConfig := make(map[string]interface{})
+
+	if v := d.Get("centralize_config"); !IsNil(v) {
+		destTtl, _ := jsonpath.Get("$[0].dest_ttl", v)
+		if destTtl != nil && destTtl != "" {
+			centralizeConfig["destTTL"] = destTtl
+		}
+		destRegion1, _ := jsonpath.Get("$[0].dest_region", v)
+		if destRegion1 != nil && destRegion1 != "" {
+			centralizeConfig["destRegion"] = destRegion1
+		}
+		destLogstore1, _ := jsonpath.Get("$[0].dest_logstore", v)
+		if destLogstore1 != nil && destLogstore1 != "" {
+			centralizeConfig["destLogstore"] = destLogstore1
+		}
+		destProject1, _ := jsonpath.Get("$[0].dest_project", v)
+		if destProject1 != nil && destProject1 != "" {
+			centralizeConfig["destProject"] = destProject1
+		}
+
+		request["centralizeConfig"] = centralizeConfig
+	}
+
+	policyConfig := make(map[string]interface{})
+
+	if v := d.Get("policy_config"); v != nil {
+		instanceIds1, _ := jsonpath.Get("$[0].instance_ids", v)
+		if instanceIds1 != nil && instanceIds1 != "" {
+			policyConfig["instanceIds"] = instanceIds1
+		}
+		regions1, _ := jsonpath.Get("$[0].regions", v)
+		if regions1 != nil && regions1 != "" {
+			policyConfig["regions"] = regions1
+		}
+		resourceTags1, _ := jsonpath.Get("$[0].resource_tags", v)
+		if resourceTags1 != nil && resourceTags1 != "" {
+			policyConfig["resourceTags"] = resourceTags1
+		}
+		resourceMode1, _ := jsonpath.Get("$[0].resource_mode", v)
+		if resourceMode1 != nil && resourceMode1 != "" {
+			policyConfig["resourceMode"] = resourceMode1
+		}
+
+		request["policyConfig"] = policyConfig
+	}
+
+	request["enabled"] = d.Get("enabled")
+	if v, ok := d.GetOkExists("centralize_enabled"); ok {
+		request["centralizeEnabled"] = v
+	}
+	dataConfig := make(map[string]interface{})
+
+	if v := d.Get("data_config"); !IsNil(v) {
+		dataRegion1, _ := jsonpath.Get("$[0].data_region", v)
+		if dataRegion1 != nil && dataRegion1 != "" {
+			dataConfig["dataRegion"] = dataRegion1
+		}
+
+		request["dataConfig"] = dataConfig
+	}
+
+	request["dataCode"] = d.Get("data_code")
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -252,9 +252,9 @@ func resourceAliCloudSlsCollectionPolicyCreate(d *schema.ResourceData, meta inte
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_sls_collection_policy", action, AlibabaCloudSdkGoERROR)
@@ -285,108 +285,90 @@ func resourceAliCloudSlsCollectionPolicyRead(d *schema.ResourceData, meta interf
 		return WrapError(err)
 	}
 
-	if objectRaw["centralizeEnabled"] != nil {
-		d.Set("centralize_enabled", objectRaw["centralizeEnabled"])
-	}
-	if objectRaw["dataCode"] != nil {
-		d.Set("data_code", objectRaw["dataCode"])
-	}
-	if objectRaw["enabled"] != nil {
-		d.Set("enabled", objectRaw["enabled"])
-	}
-	if objectRaw["productCode"] != nil {
-		d.Set("product_code", objectRaw["productCode"])
-	}
-	if objectRaw["policyName"] != nil {
-		d.Set("policy_name", objectRaw["policyName"])
-	}
+	d.Set("centralize_enabled", objectRaw["centralizeEnabled"])
+	d.Set("data_code", objectRaw["dataCode"])
+	d.Set("enabled", objectRaw["enabled"])
+	d.Set("product_code", objectRaw["productCode"])
+	d.Set("policy_name", objectRaw["policyName"])
 
 	centralizeConfigMaps := make([]map[string]interface{}, 0)
 	centralizeConfigMap := make(map[string]interface{})
-	centralizeConfig1Raw := make(map[string]interface{})
+	centralizeConfigRaw := make(map[string]interface{})
 	if objectRaw["centralizeConfig"] != nil {
-		centralizeConfig1Raw = objectRaw["centralizeConfig"].(map[string]interface{})
+		centralizeConfigRaw = objectRaw["centralizeConfig"].(map[string]interface{})
 	}
-	if len(centralizeConfig1Raw) > 0 {
-		centralizeConfigMap["dest_logstore"] = centralizeConfig1Raw["destLogstore"]
-		centralizeConfigMap["dest_project"] = centralizeConfig1Raw["destProject"]
-		centralizeConfigMap["dest_region"] = centralizeConfig1Raw["destRegion"]
-		centralizeConfigMap["dest_ttl"] = centralizeConfig1Raw["destTTL"]
+	if len(centralizeConfigRaw) > 0 {
+		centralizeConfigMap["dest_logstore"] = centralizeConfigRaw["destLogstore"]
+		centralizeConfigMap["dest_project"] = centralizeConfigRaw["destProject"]
+		centralizeConfigMap["dest_region"] = centralizeConfigRaw["destRegion"]
+		centralizeConfigMap["dest_ttl"] = centralizeConfigRaw["destTTL"]
 
 		centralizeConfigMaps = append(centralizeConfigMaps, centralizeConfigMap)
 	}
-	if objectRaw["centralizeConfig"] != nil {
-		if err := d.Set("centralize_config", centralizeConfigMaps); err != nil {
-			return err
-		}
+	if err := d.Set("centralize_config", centralizeConfigMaps); err != nil {
+		return err
 	}
 	dataConfigMaps := make([]map[string]interface{}, 0)
 	dataConfigMap := make(map[string]interface{})
-	dataConfig1Raw := make(map[string]interface{})
+	dataConfigRaw := make(map[string]interface{})
 	if objectRaw["dataConfig"] != nil {
-		dataConfig1Raw = objectRaw["dataConfig"].(map[string]interface{})
+		dataConfigRaw = objectRaw["dataConfig"].(map[string]interface{})
 	}
-	if len(dataConfig1Raw) > 0 {
-		dataConfigMap["data_project"] = dataConfig1Raw["dataProject"]
-		dataConfigMap["data_region"] = dataConfig1Raw["dataRegion"]
+	if len(dataConfigRaw) > 0 {
+		dataConfigMap["data_project"] = dataConfigRaw["dataProject"]
+		dataConfigMap["data_region"] = dataConfigRaw["dataRegion"]
 
 		dataConfigMaps = append(dataConfigMaps, dataConfigMap)
 	}
-	if objectRaw["dataConfig"] != nil {
-		if err := d.Set("data_config", dataConfigMaps); err != nil {
-			return err
-		}
+	if err := d.Set("data_config", dataConfigMaps); err != nil {
+		return err
 	}
 	policyConfigMaps := make([]map[string]interface{}, 0)
 	policyConfigMap := make(map[string]interface{})
-	policyConfig1Raw := make(map[string]interface{})
+	policyConfigRaw := make(map[string]interface{})
 	if objectRaw["policyConfig"] != nil {
-		policyConfig1Raw = objectRaw["policyConfig"].(map[string]interface{})
+		policyConfigRaw = objectRaw["policyConfig"].(map[string]interface{})
 	}
-	if len(policyConfig1Raw) > 0 {
-		policyConfigMap["resource_mode"] = policyConfig1Raw["resourceMode"]
-		policyConfigMap["resource_tags"] = policyConfig1Raw["resourceTags"]
+	if len(policyConfigRaw) > 0 {
+		policyConfigMap["resource_mode"] = policyConfigRaw["resourceMode"]
+		policyConfigMap["resource_tags"] = policyConfigRaw["resourceTags"]
 
-		instanceIds1Raw := make([]interface{}, 0)
-		if policyConfig1Raw["instanceIds"] != nil {
-			instanceIds1Raw = policyConfig1Raw["instanceIds"].([]interface{})
+		instanceIdsRaw := make([]interface{}, 0)
+		if policyConfigRaw["instanceIds"] != nil {
+			instanceIdsRaw = convertToInterfaceArray(policyConfigRaw["instanceIds"])
 		}
 
-		policyConfigMap["instance_ids"] = instanceIds1Raw
-		regions1Raw := make([]interface{}, 0)
-		if policyConfig1Raw["regions"] != nil {
-			regions1Raw = policyConfig1Raw["regions"].([]interface{})
+		policyConfigMap["instance_ids"] = instanceIdsRaw
+		regionsRaw := make([]interface{}, 0)
+		if policyConfigRaw["regions"] != nil {
+			regionsRaw = convertToInterfaceArray(policyConfigRaw["regions"])
 		}
 
-		policyConfigMap["regions"] = regions1Raw
+		policyConfigMap["regions"] = regionsRaw
 		policyConfigMaps = append(policyConfigMaps, policyConfigMap)
 	}
-	if objectRaw["policyConfig"] != nil {
-		if err := d.Set("policy_config", policyConfigMaps); err != nil {
-			return err
-		}
+	if err := d.Set("policy_config", policyConfigMaps); err != nil {
+		return err
 	}
 	resourceDirectoryMaps := make([]map[string]interface{}, 0)
 	resourceDirectoryMap := make(map[string]interface{})
-	resourceDirectory1Raw := make(map[string]interface{})
-	if objectRaw["resourceDirectory"] != nil {
-		resourceDirectory1Raw = objectRaw["resourceDirectory"].(map[string]interface{})
+	resourceDirectoryRaw := make(map[string]interface{})
+	if objectRaw["resourceDirectory"] != nil && objectRaw["resourceDirectory"].(map[string]interface{})["accountGroupType"] != "" {
+		resourceDirectoryRaw = objectRaw["resourceDirectory"].(map[string]interface{})
 	}
-	if len(resourceDirectory1Raw) > 0 {
-		resourceDirectoryMap["account_group_type"] = resourceDirectory1Raw["accountGroupType"]
+	if len(resourceDirectoryRaw) > 0 {
+		resourceDirectoryMap["account_group_type"] = resourceDirectoryRaw["accountGroupType"]
 
-		members1Raw := make([]interface{}, 0)
-		if resourceDirectory1Raw["members"] != nil {
-			members1Raw = resourceDirectory1Raw["members"].([]interface{})
+		membersRaw := make([]interface{}, 0)
+		if resourceDirectoryRaw["members"] != nil {
+			membersRaw = convertToInterfaceArray(resourceDirectoryRaw["members"])
 		}
 
-		resourceDirectoryMap["members"] = members1Raw
+		resourceDirectoryMap["members"] = membersRaw
 		resourceDirectoryMaps = append(resourceDirectoryMaps, resourceDirectoryMap)
 	}
-	if objectRaw["resourceDirectory"] != nil && objectRaw["resourceDirectory"].(map[string]interface{})["accountGroupType"] != "" {
-		if err := d.Set("resource_directory", resourceDirectoryMaps); err != nil {
-			return err
-		}
+	if err := d.Set("resource_directory", resourceDirectoryMaps); err != nil {
+		return err
 	}
 
 	d.Set("policy_name", d.Id())
@@ -401,116 +383,117 @@ func resourceAliCloudSlsCollectionPolicyUpdate(d *schema.ResourceData, meta inte
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/collectionpolicy")
+
 	var err error
+	action := fmt.Sprintf("/collectionpolicy")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	request["policyName"] = d.Id()
 
+	if d.HasChange("product_code") {
+		update = true
+	}
+	request["productCode"] = d.Get("product_code")
+	if d.HasChange("resource_directory") {
+		update = true
+	}
+	resourceDirectory := make(map[string]interface{})
+
+	if v := d.Get("resource_directory"); !IsNil(v) || d.HasChange("resource_directory") {
+		accountGroupType1, _ := jsonpath.Get("$[0].account_group_type", v)
+		if accountGroupType1 != nil && accountGroupType1 != "" {
+			resourceDirectory["accountGroupType"] = accountGroupType1
+		}
+		members1, _ := jsonpath.Get("$[0].members", v)
+		if members1 != nil && members1 != "" {
+			resourceDirectory["members"] = members1
+		}
+
+		request["resourceDirectory"] = resourceDirectory
+	}
+
+	if d.HasChange("centralize_config") {
+		update = true
+	}
+	centralizeConfig := make(map[string]interface{})
+
+	if v := d.Get("centralize_config"); !IsNil(v) || d.HasChange("centralize_config") {
+		destTtl, _ := jsonpath.Get("$[0].dest_ttl", v)
+		if destTtl != nil && destTtl != "" {
+			centralizeConfig["destTTL"] = destTtl
+		}
+		destRegion1, _ := jsonpath.Get("$[0].dest_region", v)
+		if destRegion1 != nil && destRegion1 != "" {
+			centralizeConfig["destRegion"] = destRegion1
+		}
+		destLogstore1, _ := jsonpath.Get("$[0].dest_logstore", v)
+		if destLogstore1 != nil && destLogstore1 != "" {
+			centralizeConfig["destLogstore"] = destLogstore1
+		}
+		destProject1, _ := jsonpath.Get("$[0].dest_project", v)
+		if destProject1 != nil && destProject1 != "" {
+			centralizeConfig["destProject"] = destProject1
+		}
+
+		request["centralizeConfig"] = centralizeConfig
+	}
+
+	if d.HasChange("policy_config") {
+		update = true
+	}
+	policyConfig := make(map[string]interface{})
+
+	if v := d.Get("policy_config"); v != nil {
+		instanceIds1, _ := jsonpath.Get("$[0].instance_ids", v)
+		if instanceIds1 != nil && instanceIds1 != "" {
+			policyConfig["instanceIds"] = instanceIds1
+		}
+		regions1, _ := jsonpath.Get("$[0].regions", v)
+		if regions1 != nil && regions1 != "" {
+			policyConfig["regions"] = regions1
+		}
+		resourceTags1, _ := jsonpath.Get("$[0].resource_tags", v)
+		if resourceTags1 != nil && resourceTags1 != "" {
+			policyConfig["resourceTags"] = resourceTags1
+		}
+		resourceMode1, _ := jsonpath.Get("$[0].resource_mode", v)
+		if resourceMode1 != nil && resourceMode1 != "" {
+			policyConfig["resourceMode"] = resourceMode1
+		}
+
+		request["policyConfig"] = policyConfig
+	}
+
+	if d.HasChange("enabled") {
+		update = true
+	}
+	request["enabled"] = d.Get("enabled")
 	if d.HasChange("centralize_enabled") {
 		update = true
 	}
 	if v, ok := d.GetOkExists("centralize_enabled"); ok || d.HasChange("centralize_enabled") {
 		request["centralizeEnabled"] = v
 	}
-	if d.HasChange("enabled") {
+	if d.HasChange("data_config") {
 		update = true
 	}
-	request["enabled"] = d.Get("enabled")
-	if d.HasChange("product_code") {
-		update = true
+	dataConfig := make(map[string]interface{})
+
+	if v := d.Get("data_config"); !IsNil(v) || d.HasChange("data_config") {
+		dataRegion1, _ := jsonpath.Get("$[0].data_region", v)
+		if dataRegion1 != nil && dataRegion1 != "" {
+			dataConfig["dataRegion"] = dataRegion1
+		}
+
+		request["dataConfig"] = dataConfig
 	}
-	request["productCode"] = d.Get("product_code")
+
 	if d.HasChange("data_code") {
 		update = true
 	}
 	request["dataCode"] = d.Get("data_code")
-	if d.HasChange("policy_config") {
-		update = true
-	}
-	objectDataLocalMap := make(map[string]interface{})
-
-	if v := d.Get("policy_config"); v != nil {
-		resourceMode1, _ := jsonpath.Get("$[0].resource_mode", v)
-		if resourceMode1 != nil && (d.HasChange("policy_config.0.resource_mode") || resourceMode1 != "") {
-			objectDataLocalMap["resourceMode"] = resourceMode1
-		}
-		resourceTags1, _ := jsonpath.Get("$[0].resource_tags", v)
-		if resourceTags1 != nil && (d.HasChange("policy_config.0.resource_tags") || resourceTags1 != "") {
-			objectDataLocalMap["resourceTags"] = resourceTags1
-		}
-		regions1, _ := jsonpath.Get("$[0].regions", d.Get("policy_config"))
-		if regions1 != nil && (d.HasChange("policy_config.0.regions") || regions1 != "") {
-			objectDataLocalMap["regions"] = regions1
-		}
-		instanceIds1, _ := jsonpath.Get("$[0].instance_ids", d.Get("policy_config"))
-		if instanceIds1 != nil && (d.HasChange("policy_config.0.instance_ids") || instanceIds1 != "") {
-			objectDataLocalMap["instanceIds"] = instanceIds1
-		}
-
-		request["policyConfig"] = objectDataLocalMap
-	}
-
-	if d.HasChange("centralize_config") {
-		update = true
-	}
-	objectDataLocalMap1 := make(map[string]interface{})
-
-	if v := d.Get("centralize_config"); !IsNil(v) || d.HasChange("centralize_config") {
-		destRegion1, _ := jsonpath.Get("$[0].dest_region", v)
-		if destRegion1 != nil && (d.HasChange("centralize_config.0.dest_region") || destRegion1 != "") {
-			objectDataLocalMap1["destRegion"] = destRegion1
-		}
-		destProject1, _ := jsonpath.Get("$[0].dest_project", v)
-		if destProject1 != nil && (d.HasChange("centralize_config.0.dest_project") || destProject1 != "") {
-			objectDataLocalMap1["destProject"] = destProject1
-		}
-		destLogstore1, _ := jsonpath.Get("$[0].dest_logstore", v)
-		if destLogstore1 != nil && (d.HasChange("centralize_config.0.dest_logstore") || destLogstore1 != "") {
-			objectDataLocalMap1["destLogstore"] = destLogstore1
-		}
-		destTtl, _ := jsonpath.Get("$[0].dest_ttl", v)
-		if destTtl != nil && (d.HasChange("centralize_config.0.dest_ttl") || destTtl != "") {
-			objectDataLocalMap1["destTTL"] = destTtl
-		}
-
-		request["centralizeConfig"] = objectDataLocalMap1
-	}
-
-	if d.HasChange("resource_directory") {
-		update = true
-	}
-	objectDataLocalMap2 := make(map[string]interface{})
-
-	if v := d.Get("resource_directory"); !IsNil(v) || d.HasChange("resource_directory") {
-		accountGroupType1, _ := jsonpath.Get("$[0].account_group_type", v)
-		if accountGroupType1 != nil && (d.HasChange("resource_directory.0.account_group_type") || accountGroupType1 != "") {
-			objectDataLocalMap2["accountGroupType"] = accountGroupType1
-		}
-		members1, _ := jsonpath.Get("$[0].members", d.Get("resource_directory"))
-		if members1 != nil && (d.HasChange("resource_directory.0.members") || members1 != "") {
-			objectDataLocalMap2["members"] = members1
-		}
-
-		request["resourceDirectory"] = objectDataLocalMap2
-	}
-
-	if d.HasChange("data_config") {
-		update = true
-	}
-	objectDataLocalMap3 := make(map[string]interface{})
-
-	if v := d.Get("data_config"); !IsNil(v) || d.HasChange("data_config") {
-		dataRegion1, _ := jsonpath.Get("$[0].data_region", v)
-		if dataRegion1 != nil && (d.HasChange("data_config.0.data_region") || dataRegion1 != "") {
-			objectDataLocalMap3["dataRegion"] = dataRegion1
-		}
-
-		request["dataConfig"] = objectDataLocalMap3
-	}
-
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -523,9 +506,9 @@ func resourceAliCloudSlsCollectionPolicyUpdate(d *schema.ResourceData, meta inte
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -550,7 +533,6 @@ func resourceAliCloudSlsCollectionPolicyDelete(d *schema.ResourceData, meta inte
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
-	request["policyName"] = d.Id()
 
 	if v, ok := d.GetOk("product_code"); ok {
 		query["productCode"] = StringPointer(v.(string))
@@ -570,9 +552,9 @@ func resourceAliCloudSlsCollectionPolicyDelete(d *schema.ResourceData, meta inte
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		if IsExpectedErrors(err, []string{"PolicyNotExist"}) || NotFoundError(err) {
@@ -582,7 +564,7 @@ func resourceAliCloudSlsCollectionPolicyDelete(d *schema.ResourceData, meta inte
 	}
 
 	slsServiceV2 := SlsServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, slsServiceV2.SlsCollectionPolicyStateRefreshFunc(d.Id(), "policyName", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, slsServiceV2.SlsCollectionPolicyStateRefreshFunc(d.Id(), "policyName", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
