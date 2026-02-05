@@ -150,13 +150,10 @@ func resourceAliCloudEfloExperimentPlanUpdate(d *schema.ResourceData, meta inter
 	query = make(map[string]interface{})
 	request["ResourceId"] = d.Id()
 	request["RegionId"] = client.RegionId
-
-	if d.HasChange("resource_group_id") {
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
 		update = true
 	}
-	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["ResourceGroupId"] = v
-	}
+	request["ResourceGroupId"] = d.Get("resource_group_id")
 	request["ResourceType"] = "ExperimentPlan"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -190,10 +187,7 @@ func resourceAliCloudEfloExperimentPlanUpdate(d *schema.ResourceData, meta inter
 	if d.HasChange("plan_name") {
 		update = true
 	}
-	if v, ok := d.GetOk("plan_name"); ok {
-		request["PlanTemplateName"] = v
-	}
-
+	request["PlanTemplateName"] = d.Get("plan_name")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
@@ -238,7 +232,6 @@ func resourceAliCloudEfloExperimentPlanDelete(d *schema.ResourceData, meta inter
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("eflo-cnp", "2023-08-28", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

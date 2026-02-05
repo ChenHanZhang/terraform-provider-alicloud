@@ -397,7 +397,7 @@ func (s *EfloServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("eflo-controller", "2022-12-15", action, query, request, true)
+				response, err = client.RpcPost("eflo-cnp", "2023-08-28", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -430,7 +430,7 @@ func (s *EfloServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("eflo-controller", "2022-12-15", action, query, request, true)
+				response, err = client.RpcPost("eflo-cnp", "2023-08-28", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -908,15 +908,18 @@ func (s *EfloServiceV2) DescribeEfloExperimentPlan(id string) (object map[string
 }
 
 func (s *EfloServiceV2) EfloExperimentPlanStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EfloExperimentPlanStateRefreshFuncWithApi(id, field, failStates, s.DescribeEfloExperimentPlan)
+}
+
+func (s *EfloServiceV2) EfloExperimentPlanStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeEfloExperimentPlan(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

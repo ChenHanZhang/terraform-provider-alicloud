@@ -20,12 +20,6 @@ For information about Eflo Experiment Plan and how to use it, see [What is Exper
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_eflo_experiment_plan&exampleId=24bb02bc-489e-e03d-6b04-dc8d18d0c9ea061b843c&activeTab=example&spm=docs.r.eflo_experiment_plan.0.24bb02bc48&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -94,22 +88,23 @@ resource "alicloud_eflo_experiment_plan" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_eflo_experiment_plan&spm=docs.r.eflo_experiment_plan.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `external_params` - (Optional, Map) Additional operating parameters. You can include information about the specified node.
-* `plan_name` - (Optional) Indicates the name of the experiment plan, which is used to distinguish different experiment plans.
-* `resource_group_id` - (Optional) The ID of the resource group.
-* `resource_id` - (Required, ForceNew, Int) The ID of the resource.
-* `tags` - (Optional, Map) The tag of the resource.
-* `template_id` - (Required, ForceNew, Int) The ID of the template.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `plan_name` - (Optional, Computed) Indicates the name of the experiment plan, which is used to distinguish different experiment plans.
+* `resource_group_id` - (Optional, Computed) The ID of the resource group
+* `resource_id` - (Required, ForceNew, Int) The id of the resource.
+* `tags` - (Optional, Map) The tag of the resource
+* `template_id` - (Required, ForceNew, Int) Template ID
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - The creation time of the resource.
 
 ## Timeouts
@@ -124,5 +119,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Eflo Experiment Plan can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_eflo_experiment_plan.example <id>
+$ terraform import alicloud_eflo_experiment_plan.example <experiment_plan_id>
 ```
