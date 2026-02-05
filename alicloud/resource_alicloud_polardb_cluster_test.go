@@ -11,6 +11,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/polardb"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -106,6 +107,251 @@ func testSweepPolarDBClusters(region string) error {
 
 	return nil
 }
+
+// Test Polardb DbCluster. >>> Resource test cases, automatically generated.
+// Case DBCluster_pg 11952
+func TestAccAliCloudPolardbDbCluster_basic11952(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_polardb_cluster.default"
+	ra := resourceAttrInit(resourceId, AlicloudPolardbDbClusterMap11952)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PolardbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePolardbDbCluster")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccpolardb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPolardbDbClusterBasicDependence11952)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"default_time_zone":   "SYSTEM",
+					"category":            "Normal",
+					"creation_option":     "Normal",
+					"db_node_class":       "polar.pg.x4.medium",
+					"hot_standby_cluster": "OFF",
+					"db_version":          "14",
+					"payment_type":        "PostPaid",
+					"zone_id":             "cn-beijing-k",
+					"db_type":             "PostgreSQL",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"default_time_zone":   "SYSTEM",
+						"category":            "Normal",
+						"creation_option":     "Normal",
+						"db_node_class":       "polar.pg.x4.medium",
+						"hot_standby_cluster": "OFF",
+						"db_version":          CHECKSET,
+						"payment_type":        "PostPaid",
+						"zone_id":             "cn-beijing-k",
+						"db_type":             "PostgreSQL",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auto_renew", "backup_retention_policy_on_cluster_deletion", "clone_data_point", "creation_option", "db_node_num", "db_cluster_ip_array_attribute", "db_cluster_ip_array_name", "db_node_class", "db_node_type", "default_time_zone", "existed_endpoint_switch_type", "from_time_service", "gdn_id", "is_switch_over_for_disaster", "loose_polar_log_bin", "loose_xengine", "loose_xengine_use_memory_pct", "lower_case_table_names", "modify_mode", "modify_type", "parameter_group_id", "period", "planned_end_time", "planned_flashing_off_time", "planned_start_time", "proxy_class", "role_arn", "security_group_ids", "source_resource_id", "standby_az", "storage_auto_scale", "storage_upper_bound", "used_time", "white_list_type", "zone_type"},
+			},
+		},
+	})
+}
+
+var AlicloudPolardbDbClusterMap11952 = map[string]string{
+	"status":                   CHECKSET,
+	"parameters.#":             CHECKSET,
+	"create_time":              CHECKSET,
+	"region_id":                CHECKSET,
+	"seconds_until_auto_pause": CHECKSET,
+}
+
+func AlicloudPolardbDbClusterBasicDependence11952(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case DBCluster 9393
+func TestAccAliCloudPolardbDbCluster_basic9393(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_polardb_cluster.default"
+	ra := resourceAttrInit(resourceId, AlicloudPolardbDbClusterMap9393)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PolardbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePolardbDbCluster")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccpolardb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPolardbDbClusterBasicDependence9393)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_node_class":     "polar.mysql.x4.large",
+					"category":          "Normal",
+					"db_version":        "8.0",
+					"payment_type":      "Postpaid",
+					"creation_option":   "Normal",
+					"db_type":           "MySQL",
+					"zone_id":           "cn-beijing-k",
+					"default_time_zone": "SYSTEM",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_node_class":     "polar.mysql.x4.large",
+						"category":          "Normal",
+						"db_version":        CHECKSET,
+						"payment_type":      "Postpaid",
+						"creation_option":   "Normal",
+						"db_type":           "MySQL",
+						"zone_id":           "cn-beijing-k",
+						"default_time_zone": "SYSTEM",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"zone_type": "Primary",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"zone_type": "Primary",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auto_renew", "backup_retention_policy_on_cluster_deletion", "clone_data_point", "creation_option", "db_node_num", "db_cluster_ip_array_attribute", "db_cluster_ip_array_name", "db_node_class", "db_node_type", "default_time_zone", "existed_endpoint_switch_type", "from_time_service", "gdn_id", "is_switch_over_for_disaster", "loose_polar_log_bin", "loose_xengine", "loose_xengine_use_memory_pct", "lower_case_table_names", "modify_mode", "modify_type", "parameter_group_id", "period", "planned_end_time", "planned_flashing_off_time", "planned_start_time", "proxy_class", "role_arn", "security_group_ids", "source_resource_id", "standby_az", "storage_auto_scale", "storage_upper_bound", "used_time", "white_list_type", "zone_type"},
+			},
+		},
+	})
+}
+
+var AlicloudPolardbDbClusterMap9393 = map[string]string{
+	"status":                   CHECKSET,
+	"parameters.#":             CHECKSET,
+	"create_time":              CHECKSET,
+	"region_id":                CHECKSET,
+	"seconds_until_auto_pause": CHECKSET,
+}
+
+func AlicloudPolardbDbClusterBasicDependence9393(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Polardb DbCluster. <<< Resource test cases, automatically generated.
 
 func TestAccAliCloudPolarDBCluster_Update(t *testing.T) {
 	var v *polardb.DescribeDBClusterAttributeResponse

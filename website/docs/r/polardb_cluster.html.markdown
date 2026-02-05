@@ -2,28 +2,23 @@
 subcategory: "PolarDB"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_polardb_cluster"
-sidebar_current: "docs-alicloud-resource-polardb-cluster"
 description: |-
-  Provides a PolarDB cluster resource.
+  Provides a Alicloud Polardb Db Cluster resource.
 ---
 
 # alicloud_polardb_cluster
 
-Provides an PolarDB cluster resource. An PolarDB cluster is an isolated database
-environment in the cloud. An PolarDB cluster can contain multiple user-created
-databases.
+Provides a Polardb Db Cluster resource.
+
+POLARDB uses a cluster architecture. A cluster contains a master node and multiple read nodes.
+
+For information about Polardb Db Cluster and how to use it, see [What is Db Cluster](https://next.api.alibabacloud.com/document/polardb/2017-08-01/CreateDBCluster).
 
 -> **NOTE:** Available since v1.66.0.
 
 ## Example Usage
 
-Create a PolarDB MySQL cluster
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_cluster&exampleId=14aedf61-7507-af1c-c239-50c54127fb66a22cd321&activeTab=example&spm=docs.r.polardb_cluster.0.14aedf6175&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 data "alicloud_polardb_node_classes" "default" {
@@ -62,227 +57,548 @@ resource "alicloud_polardb_cluster" "default" {
     security_ips             = ["1.2.3.6"]
   }
 }
-
 ```
-
-When enabling TDE encryption, it is necessary to ensure that there is an AliyunRDSInstanceEncryptionDefaultRole role, and it is authorized under the account. If not, the following code can be used to create it.
-Note: If there is only the role AliyunRDSSInceEncryptionDefaultRole under the account, this example may not be applicable.
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_cluster&exampleId=ad8f542a-4a74-b8d8-7a2c-228ccb357ce050ece07e&activeTab=example&spm=docs.r.polardb_cluster.1.ad8f542a4a&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
-```terraform
-data "alicloud_account" "current" {
-}
-
-data "alicloud_ram_roles" "roles" {
-  name_regex = "AliyunRDSInstanceEncryptionDefaultRole"
-}
-
-resource "alicloud_ram_role" "default" {
-  count       = length(data.alicloud_ram_roles.roles.roles) > 0 ? 0 : 1
-  name        = "AliyunRDSInstanceEncryptionDefaultRole"
-  document    = <<DEFINITION
-    {
-        "Statement": [
-            {
-               "Action": "sts:AssumeRole",
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": [
-                        "rds.aliyuncs.com"
-                    ]
-                }
-            }
-        ],
-        "Version": "1"
-    }
-	DEFINITION
-  description = "RDS使用此角色来访问您在其他云产品中的资源"
-}
-
-resource "alicloud_resource_manager_policy_attachment" "default" {
-  count             = length(data.alicloud_ram_roles.roles.roles) > 0 ? 0 : 1
-  policy_name       = "AliyunRDSInstanceEncryptionRolePolicy"
-  policy_type       = "System"
-  principal_name    = length(data.alicloud_ram_roles.roles.roles) > 0 ? "${data.alicloud_ram_roles.roles.roles.0.name}@role.${data.alicloud_account.current.id}.onaliyunservice.com" : "${alicloud_ram_role.default[0].name}@role.${data.alicloud_account.current.id}.onaliyunservice.com"
-  principal_type    = "ServiceRole"
-  resource_group_id = "${data.alicloud_account.current.id}"
-}
-
-```
-
-### Removing alicloud_polardb_cluster from your configuration
-
-The alicloud_polardb_cluster resource allows you to manage your polardb cluster, but Terraform cannot destroy it if your cluster type is pre paid(post paid type can destroy normally). Removing this resource from your configuration will remove it from your statefile and management, but will not destroy the cluster. You can resume managing the cluster via the polardb Console.
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_polardb_cluster&spm=docs.r.polardb_cluster.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
+* `allow_shut_down` - (Optional, ForceNew, Available since v1.204.0) Specifies whether to enable auto-pause when inactive. Valid values:
+  - `true`: Enables auto-pause.
+  - `false`: Disables auto-pause (default).
 
-* `db_type` - (Required, ForceNew) Database type. Value options: MySQL, Oracle, PostgreSQL.
-* `db_version` - (Required, ForceNew) Database version. Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `DBVersion`.
-* `db_minor_version` - (Optional, ForceNew, Available since 1.247.0) Database minor version. Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `DBMinorVersion`. This parameter takes effect only when `db_type` is MySQL and `db_version` is 8.0.
-* `db_node_class` - (Required) The db_node_class of cluster node.
--> **NOTE:** Node specifications are divided into cluster version, single node version and History Library version. They can't change each other, but the general specification and exclusive specification of cluster version can be changed. 
-  From version 1.204.0, If you need to create a Serverless cluster with MySQL , `db_node_class` can be set to `polar.mysql.sl.small`.
-  From version 1.229.1, If you need to create a Serverless cluster with PostgreSQL 14 using the SENormal edition, `db_node_class` can be set to `polar.pg.sl.small.c`(x86 Architecture). Region can refer to the latest docs(https://help.aliyun.com/zh/polardb/polardb-for-postgresql/the-public-preview-of-polardb-for-postgresql-serverless-ends?spm=a2c4g.11186623.0.0.2e9f6cf0B4rIfC).
-* `modify_type` - (Optional, Available since 1.71.2) Use as `db_node_class` change class, define upgrade or downgrade. Valid values are `Upgrade`, `Downgrade`, Default to `Upgrade`.
-* `db_node_count` - (Optional, Available since 1.95.0)Number of the PolarDB cluster nodes, default is 2(Each cluster must contain at least a primary node and a read-only node). Add/remove nodes by modifying this parameter, valid values: [2~16].  
--> **NOTE:** To avoid adding or removing multiple read-only nodes by mistake, the system allows you to add or remove one read-only node at a time.
-* `zone_id` - (Optional, ForceNew) The Zone to launch the DB cluster. it supports multiple zone.
-* `pay_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, Default to `PostPaid`.
-* `renewal_status` - (Optional) Valid values are `AutoRenewal`, `Normal`, `NotRenewal`, Default to `NotRenewal`.
-* `auto_renew_period` - (Optional) Auto-renewal period of an cluster, in the unit of the month. It is valid when pay_type is `PrePaid`. Valid value:1, 2, 3, 6, 12, 24, 36, Default to 1.
-* `period` - (Optional) The duration that you will buy DB cluster (in month). It is valid when pay_type is `PrePaid`. Valid values: [1~9], 12, 24, 36.
--> **NOTE:** The attribute `period` is only used to create Subscription instance or modify the PayAsYouGo instance to Subscription. Once effect, it will not be modified that means running `terraform apply` will not effect the resource.
-* `db_cluster_ip_array` - (Optional, Type: list, Available since 1.130.0) db_cluster_ip_array defines how users can send requests to your API. See [`db_cluster_ip_array`](#db_cluster_ip_array) below.
-* `security_ips` - (Optional, Deprecated) This attribute has been deprecated from v1.130.0 and using `db_cluster_ip_array` sub-element `security_ips` instead.
-  Its value is same as `db_cluster_ip_array` sub-element `security_ips` value and its db_cluster_ip_array_name is "default".
-* `resource_group_id` (Optional, Computed, Available since 1.96.0) The ID of resource group which the PolarDB cluster belongs. If not specified, then it belongs to the default resource group.
--> **NOTE:** From version 1.250.0, `resource_group_id` can be modified.
-* `vswitch_id` - (Optional, ForceNew) The virtual switch ID to launch DB instances in one VPC.
--> **NOTE:** If vswitch_id is not specified, system will get a vswitch belongs to the user automatically.
-* `maintain_time` - (Optional) Maintainable time period format of the instance: HH:MMZ-HH:MMZ (UTC time)
-* `description` - (Optional, Computed) The description of cluster.
-* `collector_status` - (Optional, Available since 1.114.0) Specifies whether to enable or disable SQL data collector. Valid values are `Enable`, `Disabled`.
-* `parameters` - (Optional) Set of parameters needs to be set after DB cluster was launched. Available parameters can refer to the latest docs [View database parameter templates](https://www.alibabacloud.com/help/en/polardb/latest/modifydbclusterparameters) .See [`parameters`](#parameters) below.
-* `tags` - (Optional, Available since 1.68.0) A mapping of tags to assign to the resource.
-  - Key: It can be up to 64 characters in length. It cannot begin with "aliyun", "acs:", "http://", or "https://". It cannot be a null string.
-  - Value: It can be up to 128 characters in length. It cannot begin with "aliyun", "acs:", "http://", or "https://". It can be a null string.
-* `tde_status` - (Optional, Available since 1.121.3) turn on TDE encryption. Valid values are `Enabled`, `Disabled`. Default to `Disabled`. TDE cannot be closed after it is turned on. 
--> **NOTE:** `tde_status` Cannot modify after created when `db_type` is `PostgreSQL` or `Oracle`.`tde_status` only support modification from `Disabled` to `Enabled` when `db_type` is `MySQL`.
-* `encrypt_new_tables` - (Optional, Available since 1.124.1) turn on table auto encryption. Valid values are `ON`, `OFF`. Only MySQL 8.0 supports. 
--> **NOTE:** `encrypt_new_tables` Polardb MySQL 8.0 cluster, after TDE and Automatic Encryption are enabled, all newly created tables are automatically encrypted in the cluster.
-* `encryption_key` - (Optional, Available since 1.200.0) The ID of the custom key. `encryption_key` cannot be modified after TDE is opened.
-* `role_arn` - (Optional, Available since 1.200.0) The Alibaba Cloud Resource Name (ARN) of the RAM role. A RAM role is a virtual identity that you can create within your Alibaba Cloud account. For more information see [RAM role overview](https://www.alibabacloud.com/help/en/resource-access-management/latest/ram-role-overview).
-* `security_group_ids` - (Optional, Available since 1.128.0) The ID of the security group. Separate multiple security groups with commas (,). You can add a maximum of three security groups to a cluster.
--> **NOTE:** Because of data backup and migration, change DB cluster type and storage would cost 15~20 minutes. Please make full preparation before changing them.
-* `deletion_lock` - (Optional, Available since 1.169.0) turn on table deletion_lock. Valid values are 0, 1. 1 means to open the cluster protection lock, 0 means to close the cluster protection lock
--> **NOTE:**  Cannot modify after created when `pay_type` is `PrePaid` .`deletion_lock` the cluster protection lock can be turned on or off when `pay_type` is `PostPaid`.
-* `backup_retention_policy_on_cluster_deletion` - (Optional, Available since 1.170.0) The retention policy for the backup sets when you delete the cluster.  Valid values are `ALL`, `LATEST`, `NONE`. Value options can refer to the latest docs [DeleteDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/deletedbcluster-1)
-* `imci_switch` - (Optional, Available since 1.173.0) Specifies whether to enable the In-Memory Column Index (IMCI) feature. Valid values are `ON`, `OFF`.
--> **NOTE:**  Only polardb MySQL Cluster version is available. The cluster with minor version number of 8.0.1 supports the column index feature, and the specific kernel version must be 8.0.1.1.22 or above.
--> **NOTE:**  The single node, the single node version of the history library, and the cluster version of the history library do not support column save indexes.
-* `sub_category` - (Optional, Available since 1.177.0)  The category of the cluster. Valid values are `Exclusive`, `General`. Only MySQL supports.
-* `creation_option` - (Optional, Available since 1.179.0) The method that is used to create a cluster. Valid values are `Normal`,`CloneFromPolarDB`,`CloneFromRDS`,`MigrationFromRDS`,`CreateGdnStandby`,`RecoverFromRecyclebin`,`UpgradeFromPolarDB`. **NOTE:** From version 1.233.0, `creation_option` can be set to `RecoverFromRecyclebin`. From version 1.255.0, `creation_option` can be set to `UpgradeFromPolarDB`. Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `CreationOption`.
-* -> **NOTE:** The default value is Normal. If DBType is set to MySQL and DBVersion is set to 5.6 or 5.7, this parameter can be set to CloneFromRDS or MigrationFromRDS. If DBType is set to MySQL and DBVersion is set to 8.0, this parameter can be set to CreateGdnStandby. If `creation_option` is RecoverFromRecyclebin, you need to pass in the released source PolarDB cluster ID for this parameter. The DBType of the cluster recovered from the recycle bin and the source cluster must be consistent. For example, if the source cluster is MySQL 8.0, the cluster recovered from the recycle bin also needs to have its DBType set to MySQL and DBVersion set to 8.0.
-* `creation_category` - (Optional, ForceNew, Computed, Available since 1.179.0) The edition of the PolarDB service. Valid values are `Normal`,`Basic`,`ArchiveNormal`,`NormalMultimaster`,`SENormal`.Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `CreationCategory`.
--> **NOTE:** You can set this parameter to Basic only when DBType is set to MySQL and DBVersion is set to 5.6, 5.7, or 8.0. You can set this parameter to Archive only when DBType is set to MySQL and DBVersion is set to 8.0. From version 1.188.0, `creation_category` can be set to `NormalMultimaster`. From version 1.203.0, `creation_category` can be set to `SENormal`.
-* `source_resource_id` - (Optional, Available since 1.179.0) The ID of the source RDS instance or the ID of the source PolarDB cluster. This parameter is required only when CreationOption is set to MigrationFromRDS, CloneFromRDS, or CloneFromPolarDB.Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `SourceResourceId`.
-* `gdn_id` - (Optional, Available since 1.179.0) The ID of the global database network (GDN).
--> **NOTE:** This parameter is required if CreationOption is set to CreateGdnStandby.
-* `clone_data_point` - (Optional, Available since 1.179.0) The time point of data to be cloned. Valid values are `LATEST`,`BackupID`,`Timestamp`.Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `CloneDataPoint`.
--> **NOTE:** If CreationOption is set to CloneFromRDS, the value of this parameter must be `LATEST`. When clone to a historical backup set, you must specify a specific backup set ID. When clone to a specific point in time, specify a YYYY-MM-DDThh:mm:ssZ format UTC timestamp.
-* `vpc_id` - (Optional, ForceNew, Computed, Available since v1.185.0) The id of the VPC.
-* `storage_type` - (Optional, Available since v1.203.0) The storage type of the cluster. Enterprise storage type values are `PSL5`, `PSL4`. The standard version storage type values are `ESSDPL1`, `ESSDPL2`, `ESSDPL3`, `ESSDPL0`, `ESSDAUTOPL`. The standard version only supports MySQL and PostgreSQL.
-* `provisioned_iops` - (Optional, Available since v1.229.1) The provisioned read/write IOPS of the ESSD AutoPL disk. Valid values: 0 to min{50,000, 1,000 × Capacity - Baseline IOPS}. Baseline IOPS = min{1,800 + 50 × Capacity, 50,000}.
--> **NOTE:** This parameter is available only if the StorageType parameter is set to ESSDAUTOPL.
-* `storage_space` - (Optional, Computed, Available since v1.203.0) Storage space charged by space (monthly package). Unit: GB.
--> **NOTE:**  Valid values for PolarDB for MySQL Standard Edition: 20 to 32000. It is valid when pay_type are `PrePaid` ,`PostPaid`.
--> **NOTE:**  Valid values for PolarDB for MySQL Enterprise Edition: 50 to 100000.It is valid when pay_type is `PrePaid`.
-* `storage_pay_type` - (Optional, ForceNew, Computed, Available since v1.210.0) The billing method of the storage. Valid values `PostPaid`, `PrePaid`.
-* `hot_standby_cluster` - (Optional, Computed, ForceNew, Available since v1.203.0) Whether to enable the hot standby cluster. Valid values are `ON`, `OFF`, `EQUAL`.
--> **NOTE:** From version 1.249.0, `hot_standby_cluster` can be set to `EQUAL`, and this value is only valid for MySQL.
-* `standby_az` - (Optional, Computed, Available since 1.249.0) The availability zone where the hot standby cluster is stored, takes effect when `hot_standby_cluster` is `ON` or `EQUAL`.
--> **NOTE:** `standby_az` is required when `hot_standby_cluster` is `EQUAL`.
-* `strict_consistency` - (Optional, Computed, ForceNew, Available since v1.239.0) Whether the cluster has enabled strong data consistency across multiple zones. Valid values are `ON`, `OFF`. Available parameters can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1)
-* `serverless_type` - (Optional, Available since v1.204.0) The type of the serverless cluster. Valid values `AgileServerless`, `SteadyServerless`. This parameter is valid only for serverless clusters.
-* `serverless_steady_switch` - (Optional, Available since v1.211.1) Serverless steady-state switch. Valid values are `ON`, `OFF`. This parameter is valid only for serverless clusters.
-  -> **NOTE:** When serverless_steady_switch is `ON` and serverless_type is `SteadyServerless`, parameters `scale_min`, `scale_max`, `scale_ro_num_min` and `scale_ro_num_max` are all required.
-* `scale_min` - (Optional, Available since v1.204.0) The minimum number of PCUs per node for scaling. Valid values: 1 PCU to 31 PCUs when serverless_type is `AgileServerless` and 0 PCU to 8 PCUs when serverless_type is `SteadyServerless`. This parameter is valid only for serverless clusters.
-* `scale_max` - (Optional, Available since v1.204.0) The maximum number of PCUs per node for scaling. Valid values: 1 PCU to 32 PCUs when serverless_type is `AgileServerless` and 0 PCU to 8 PCUs when serverless_type is `SteadyServerless`. This parameter is valid only for serverless clusters.
-* `scale_ro_num_min` - (Optional, Available since v1.204.0) The minimum number of read-only nodes for scaling. Valid values: 0 to 15 when serverless_type is `AgileServerless` and 0 to 7 when serverless_type is `SteadyServerless`. This parameter is valid only for serverless clusters.
-* `scale_ro_num_max` - (Optional, Available since v1.204.0) The maximum number of read-only nodes for scaling. Valid values: 0 to 15 when serverless_type is `AgileServerless` and 0 to 7 when serverless_type is `SteadyServerless`. This parameter is valid only for serverless clusters.
-* `allow_shut_down` - (Optional, Available since v1.204.0) Specifies whether to enable the no-activity suspension feature. Default value: false. Valid values are `true`, `false`. This parameter is valid only for serverless clusters.
-* `seconds_until_auto_pause` - (Optional, Computed, Available since v1.204.0) The detection period for No-activity Suspension. Valid values: 300 to 86,4005. Unit: seconds. The detection duration must be a multiple of 300 seconds. This parameter is valid only for serverless clusters.
-* `scale_ap_ro_num_min` - (Optional, Available since v1.211.1) Number of Read-only Columnar Nodes. Valid values: 0 to 7. This parameter is valid only for serverless clusters. This parameter is required when there are column nodes that support steady-state serverless.
-* `scale_ap_ro_num_max` - (Optional, Available since v1.211.1) Number of Read-only Columnar Nodes. Valid values: 0 to 7. This parameter is valid only for serverless clusters. This parameter is required when there are column nodes that support steady-state serverless.
-* `serverless_rule_mode` - (Optional, Computed, Available since v1.250.0) Elasticity sensitivity. Valid values: `normal` for standard and `flexible` for sensitive. This parameter is valid only for serverless clusters.
-* `serverless_rule_cpu_shrink_threshold` - (Optional, Computed, Available since v1.250.0) CPU downscale threshold. Valid values: 10 to 100. This parameter is valid only for serverless clusters.
-* `serverless_rule_cpu_enlarge_threshold` - (Optional, Computed, Available since v1.250.0) CPU upscale threshold. Valid values: 40 to 100. This parameter is valid only for serverless clusters.
--> **NOTE:** `serverless_rule_cpu_enlarge_threshold` should be at least 30 greater than `serverless_rule_cpu_shrink_threshold`.
-* `upgrade_type` - (Optional, Available since v1.208.1) Version upgrade type. Valid values are PROXY, DB, ALL. PROXY means upgrading the proxy version, DB means upgrading the db version, ALL means upgrading both db and proxy versions simultaneously.
-* `from_time_service` - (Optional, Available since v1.208.1) Immediate or scheduled kernel version upgrade. Valid values are `true`, `false`. True means immediate execution, False means scheduled execution.
-* `planned_start_time` - (Optional, Available since v1.208.1) The earliest time to start executing a scheduled (i.e. within the target time period) kernel version upgrade task. The format is YYYY-MM-DDThh: mm: ssZ (UTC).
--> **NOTE:** The starting time range is any time point within the next 24 hours. For example, the current time is 2021-01-14T09:00:00Z, and the allowed start time range for filling in here is 2021-01-14T09:00:00Z~2021-01-15T09:00:00Z. If this parameter is left blank, the kernel version upgrade task will be executed immediately by default.
-* `planned_end_time` - (Optional, Available since v1.208.1) The latest time to start executing the target scheduled task. The format is YYYY-MM-DDThh: mm: ssZ (UTC).
--> **NOTE:** The latest time must be 30 minutes or more later than the start time. If PlannedStartTime is set but this parameter is not specified, the latest time to execute the target task defaults to the start time+30 minutes. For example, when the PlannedStartTime is set to 2021-01-14T09:00:00Z and this parameter is left blank, the target task will start executing at the latest on 2021-01-14T09:30:00Z.
-* `proxy_type` - (Optional, Available since 1.210.0) The type of PolarProxy. Valid values are `EXCLUSIVE` `GENERAL`.
-  -> **NOTE:** This parameter is valid for both standard and enterprise clusters.
-* `proxy_class` - (Optional, Available since 1.210.0) The specifications of the Standard Edition PolarProxy. Available parameters can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1)
-  -> **NOTE:** This parameter is valid only for standard edition clusters.
-* `loose_polar_log_bin` - (Optional, Computed, Available since 1.210.0) Enable the Binlog function. Default value: `OFF`. Valid values are `OFF`, `ON`.
-  -> **NOTE:** This parameter is valid only MySQL Engine supports.
-* `loose_xengine` - (Optional, Available since v1.232.0) Specifies whether to enable X-Engine. Valid values are `ON`, `OFF`.
-  -> **NOTE:** This parameter takes effect only if you do not set `creation_option` to CreateGdnStandby and you set `db_type` to MySQL and `db_version` to 8.0. To enable X-Engine on a node, make sure that the memory of the node is greater than or equal to 8 GB in size.
-* `loose_xengine_use_memory_pct` - (Optional, Available since v1.232.0) Set the ratio to enable the X-Engine storage engine. Valid values: 10 to 90.
-  -> **NOTE:** When the parameter `loose_xengine` is ON, `loose_xengine_use_memory_pct` takes effect.
-* `db_node_num` - (Optional, Available since 1.210.0) The number of Standard Edition nodes. Default value: `1`. Valid values are `1`, `2`. From version 1.235.0, Valid values for PolarDB for MySQL Standard Edition: `1` to `8`. Valid values for PolarDB for MySQL Enterprise Edition: `1` to `16`.
-* `parameter_group_id` - (Optional, Available since 1.210.0) The ID of the parameter template
-  -> **NOTE:** You can call the [DescribeParameterGroups](https://www.alibabacloud.com/help/en/polardb/latest/describeparametergroups) operation to query the details of all parameter templates of a specified region, such as the ID of a parameter template.
-* `lower_case_table_names`  - (Optional, ForceNew, Computed, Available since 1.210.0)  Specifies whether the table names are case-sensitive. Default value: `1`.  Valid values are `1`, `0`.
-  -> **NOTE:** This parameter is valid only when the DBType parameter is set to MySQL.
-* `default_time_zone` - (Optional, Computed, Available since 1.210.0) The time zone of the cluster. You can set the parameter to a value that is on the hour from -12:00 to +13:00 based on UTC. Example: 00:00. Default value: SYSTEM. This value indicates that the time zone of the cluster is the same as the time zone of the region.
-  -> **NOTE:** This parameter is valid only when the DBType parameter is set to MySQL.
-* `db_node_id` - (Optional, Available since v1.211.2) The ID of the node or node subscript. Node subscript values: 1 to 15.
-* `hot_replica_mode` - (Optional, Available since v1.211.2) Indicates whether the hot standby feature is enabled. Valid values are `ON`, `OFF`. Only MySQL supports.
-* `target_db_revision_version_code` - (Optional, Available since v1.216.0) The Version Code of the target version, whose parameter values can be obtained from the [DescribeDBClusterVersion](https://www.alibabacloud.com/help/en/polardb/latest/describedbclusterversion) interface.
-* `compress_storage` - (Optional, Available since v1.232.0) Enable storage compression function. The value of this parameter is `ON`. Only MySQL supports.
-  -> **NOTE:** When the value of db_type is not MySQL, the value of creation_option is neither empty nor Normal, and the value of storage_type is not PSL4, this field will be ignored.
-### `db_cluster_ip_array`
+-> **NOTE:**  This parameter is supported only for Serverless clusters.
 
-The db_cluster_ip_array supports the following:
+* `architecture` - (Optional, ForceNew, Available since v1.271.0) The CPU architecture. Valid values:
+  - `X86`
+  - `ARM`
+* `auto_renew` - (Optional, Available since v1.271.0) Specifies whether auto-renewal is enabled. Valid values:
+  - `true`: Auto-renewal is enabled.
+  - `false`: Auto-renewal is disabled.
 
-* `security_ips` - (Optional) List of IP addresses allowed to access all databases of a cluster. The list contains up to 1,000 IP addresses, separated by commas. Supported formats include 0.0.0.0/0, 10.23.12.24 (IP), and 10.23.12.24/24 (Classless Inter-Domain Routing (CIDR) mode. /24 represents the length of the prefix in an IP address. The range of the prefix length is [1,32]).
-* `db_cluster_ip_array_name` - (Optional) The name of the IP whitelist group. The group name must be 2 to 120 characters in length and consists of lowercase letters and digits. It must start with a letter, and end with a letter or a digit.
-  **NOTE:** If the specified whitelist group name does not exist, the whitelist group is created. If the specified whitelist group name exists, the whitelist group is modified. If you do not specify this parameter, the default group is modified. You can create a maximum of 50 IP whitelist groups for a cluster.
-* `modify_mode` - (Optional) The method for modifying the IP whitelist. Valid values are `Cover`, `Append`, `Delete`.
-  **NOTE:** There does not recommend setting modify_mode to `Append` or `Delete` and it will bring a potential diff error.  
+Default value: `false`.
 
-### `parameters`
+-> **NOTE:**  This parameter takes effect only when the `PayType` parameter is set to `Prepaid`.
 
-The parameters supports the following:
 
-* `name` - (Required) Kernel parameter name.
-* `value` - (Required) Kernel parameter value.
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `backup_retention_policy_on_cluster_deletion` - (Optional, Computed) Backup retention policy when the cluster is deleted. Valid values:
+* `ALL`: Retain all backups permanently.
+* `LATEST`: Retain only the last backup permanently (an automatic backup is created before deletion).
+* `NONE`: Do not retain any backups when the cluster is deleted.
+
+When you create a cluster, the default value is `NONE`, which means no backups are retained after cluster deletion.
+
+-> **NOTE:** * This parameter takes effect only when `DBType` is `MySQL`.
+
+-> **NOTE:** * This parameter is not supported for Serverless clusters.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `category` - (Optional, ForceNew, Computed, Available since v1.271.0) The database edition. Valid values:
+
+* `Normal`: Cluster Edition (default)
+* `Basic`: Single-node Edition
+* `ArchiveNormal`: X-Engine (high-compression storage engine)
+* `NormalMultimaster`: Multi-master Cluster Edition
+* `SENormal`: Standard Edition
+
+-> **NOTE:**  * `Basic` is supported by **MySQL 5.6**, **5.7**, **8.0**, **PostgreSQL 14**, and **Oracle-compatible syntax version 2.0**.
+
+-> **NOTE:**  * `ArchiveNormal` and `NormalMultimaster` are supported by **MySQL 8.0**.
+
+-> **NOTE:**  * `SENormal` is supported by **MySQL 5.6**, **5.7**, **8.0**, and **PostgreSQL 14**.
+
+For more information about database editions, see [Database Editions](https://help.aliyun.com/document_detail/183258.html).
+* `clone_data_point` - (Optional) The point in time for cloning data. Valid values:
+  - `LATEST`: Data at the latest point in time.
+  - `BackupID`: Historical backup set ID. Specify an actual backup set ID.
+  - `Timestamp`: Historical point in time. Specify an actual timestamp in the format `YYYY-MM-DDThh:mm:ssZ` (UTC time).
+
+Default value: `LATEST`.
+
+-> **NOTE:**  If `CreationOption` is set to `CloneFromRDS`, this parameter can only be `LATEST`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `cluster_network_type` - (Optional, ForceNew, Available since v1.271.0) The network type of the cluster.  
+* `collector_status` - (Optional, Computed) The status of the SQL collection feature. Valid values:
+  - Enable: enabled
+  - Disabled: disabled
+* `creation_option` - (Optional, Computed) The creation method. Valid values are as follows:
+
+* `Normal`: Creates a brand-new PolarDB cluster. For instructions on how to perform this operation in the console, see the following topics:
+
+    * [Create a PolarDB for MySQL cluster](https://help.aliyun.com/document_detail/58769.html)
+    * [Create a PolarDB for PostgreSQL cluster](https://help.aliyun.com/document_detail/118063.html)
+    * [Create a PolarDB for PostgreSQL (compatible with Oracle) cluster](https://help.aliyun.com/document_detail/118182.html)
+
+* `CloneFromPolarDB`: Clones data from an existing PolarDB cluster to a new PolarDB cluster. For instructions on how to perform this operation in the console, see the following topics:
+
+    * [Clone a PolarDB for MySQL cluster](https://help.aliyun.com/document_detail/87966.html)
+    * [Clone a PolarDB for PostgreSQL cluster](https://help.aliyun.com/document_detail/118108.html)
+    * [Clone a PolarDB for PostgreSQL (compatible with Oracle) cluster](https://help.aliyun.com/document_detail/118221.html)
+
+* `RecoverFromRecyclebin`: Restores data from a released PolarDB cluster to a new PolarDB cluster. For instructions on how to perform this operation in the console, see the following topics:
+
+    * [Restore a released PolarDB for MySQL cluster](https://help.aliyun.com/document_detail/164880.html)
+    * [Restore a released PolarDB for PostgreSQL cluster](https://help.aliyun.com/document_detail/432844.html)
+    * [Restore a released PolarDB for PostgreSQL (compatible with Oracle) cluster](https://help.aliyun.com/document_detail/424632.html)
+
+* `CloneFromRDS`: Clones data from an existing ApsaraDB RDS instance to a new PolarDB cluster. For instructions on how to perform this operation in the console, see [One-click cloning from RDS for MySQL to PolarDB for MySQL](https://help.aliyun.com/document_detail/121812.html).
+
+* `MigrationFromRDS`: Migrates data from an existing ApsaraDB RDS instance to a new PolarDB cluster. The created PolarDB cluster is in read-only mode and has binary logging enabled by default. For instructions on how to perform this operation in the console, see [One-click upgrade from RDS for MySQL to PolarDB for MySQL](https://help.aliyun.com/document_detail/121582.html).
+
+* `CreateGdnStandby`: Creates a secondary cluster. For instructions on how to perform this operation in the console, see [Add a secondary cluster](https://help.aliyun.com/document_detail/160381.html).
+
+* `UpgradeFromPolarDB`: Upgrades and migrates data from an existing PolarDB cluster. For instructions on how to perform this operation in the console, see [Major version upgrade](https://help.aliyun.com/document_detail/459712.html).
+
+The default value is `Normal`.
+
+-> **NOTE:**  When `DBType` is set to `MySQL` and `DBVersion` is set to **8.0**, this parameter can be set to `CreateGdnStandby`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `db_node_num` - (Optional, Int) The number of nodes for Standard Edition and Enterprise Edition. Valid values:
+  - Standard Edition: 1 to 8 (supports 1 read-write node and up to 7 read-only nodes).
+  - Enterprise Edition: 1 to 16 (supports 1 read-write node and up to 15 read-only nodes).
+
+-> **NOTE:**  - Enterprise Edition has 2 nodes by default, while Standard Edition has 1 node by default.
+
+-> **NOTE:**  - This parameter is supported only for PolarDB for MySQL.
+
+-> **NOTE:**  - Changing the number of nodes for multi-primary clusters is currently not supported.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `db_cluster_ip_array_attribute` - (Optional, Available since v1.271.0) IP allowlist group attribute. When set to `hidden`, it is not visible in the console.
+
+-> **NOTE:**  - IP allowlist groups already displayed in the console cannot be hidden.
+
+-> **NOTE:**  - This parameter can only be configured when `WhiteListType` is set to `IP`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_cluster_ip_array_name` - (Optional, Available since v1.271.0) The name of the IP address whitelist group. The name must be 2 to 120 characters in length, contain only lowercase letters and digits, start with a letter, and end with a letter or digit.
+  - If the specified whitelist group name does not exist, a new whitelist group is created.
+  - If the specified whitelist group name already exists, the existing whitelist group is modified.
+  - If this parameter is not specified, the default group is modified.
+
+-> **NOTE:**  - A cluster supports up to 50 IP address whitelist groups.
+
+-> **NOTE:**  - This parameter is configurable only when `WhiteListType` is set to `IP`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_minor_version` - (Optional, ForceNew, Computed) Minor version number of the database engine.
+  - When `DBVersion` is **8.0**, valid values are:
+    * **8.0.2**
+    * **8.0.1**
+  - When `DBVersion` is **5.7**, the value is **5.7.28**.
+
+  - When `DBVersion` is **5.6**, the value is **5.6.16**.
+* `db_node_class` - (Required) The node specification. For more information, see the following documentation:
+  - PolarDB for MySQL: [Compute Node Specifications](https://help.aliyun.com/document_detail/102542.html).
+  - PolarDB for PostgreSQL (compatible with Oracle): [Compute Node Specifications](https://help.aliyun.com/document_detail/207921.html).
+  - PolarDB for PostgreSQL: [Compute Node Specifications](https://help.aliyun.com/document_detail/209380.html).
+
+-> **NOTE:**  - To create a Serverless cluster for PolarDB for MySQL Cluster Edition, specify **polar.mysql.sl.small**.
+
+-> **NOTE:**  - To create a Serverless cluster for PolarDB for MySQL Standard Edition, specify **polar.mysql.sl.small.c**.
+
+-> **NOTE:**  - To create a Serverless cluster for PolarDB for PostgreSQL Cluster Edition, specify **polar.pg.sl.small**.
+
+-> **NOTE:**  - To create a Serverless cluster for PolarDB for PostgreSQL Standard Edition, specify **polar.pg.sl.small.c**.
+
+-> **NOTE:**  - To create a Serverless cluster for PolarDB for PostgreSQL (compatible with Oracle), specify **polar.o.sl.small**.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `db_node_type` - (Optional, Available since v1.271.0) The node type. When you modify the specifications of an AI node, this parameter must be set to DLNode.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `db_type` - (Required, ForceNew) The database engine type. Valid values are as follows:
+  - `MySQL`
+  - `PostgreSQL`
+  - `Oracle`
+* `db_version` - (Required, ForceNew) The database engine version number.  
+* Valid MySQL versions are as follows:  
+    * **5.6**  
+    * **5.7**  
+    * **8.0**  
+* Valid PostgreSQL versions are as follows:  
+    * `11`  
+    * `14`  
+    * `15`  
+  
+
+-> **NOTE:**  To create a Serverless cluster in PolarDB for PostgreSQL, only version 14 is supported.  
+  
+* Valid Oracle versions are as follows:  
+    * `11`  
+    * `14`
+* `default_time_zone` - (Optional, Computed) Cluster time zone (UTC). You can select any full-hour time within the range **-12:00 to +13:00**, such as **00:00**. The default value is `SYSTEM`, which uses the same time zone as the region.  
+
+-> **NOTE:**  This parameter takes effect only when `DBType` is `MySQL`.  
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `description` - (Optional, Computed) Cluster description.
+* `duration` - (Optional, Available since v1.271.0) The auto-renewal duration for the instance. Valid values:
+  - When `PeriodUnit` is `Month`, valid values are `[1,2,3,6,12]`.
+  - When `PeriodUnit` is `Year`, valid values are `[1-3]`.
+
+The default value is `1`.
+* `encrypt_new_tables` - (Optional) Whether automatic encryption is enabled for all newly created tables. Valid values:
+  - `ON`: Enabled  
+  - `OFF`: Disabled  
+
+-> **NOTE:**  This parameter takes effect only when the database engine is MySQL-compatible.
+
+* `encryption_key` - (Optional) The custom key ID.
+* `existed_endpoint_switch_type` - (Optional, Available since v1.271.0) Whether to switch existing endpoint addresses. Valid values:  
+  - `NONE`: Do not switch existing endpoint addresses.  
+  - `ALL`: Switch existing endpoint addresses.  
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `from_time_service` - (Optional, Available since v1.208.1) Specifies whether to immediately or schedule a zone change. Valid values:  
+  - false (default): Schedule the operation.  
+  - true: Execute immediately.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `gdn_id` - (Optional) The global database network ID.
+
+-> **NOTE:**  This parameter is required when `CreationOption` is set to `CreateGdnStandby`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `hot_standby_cluster` - (Optional, ForceNew, Computed, Available since v1.203.0) Specifies whether to enable a hot standby cluster. Valid values:
+  - `ON` (default): Enable storage hot standby.
+  - `OFF`: Disable hot standby.
+  - `STANDBY`: Enable hot standby cluster.
+  - `EQUAL`: Enable both storage and compute hot standby.
+  - `3AZ`: Achieve strong data consistency across multiple zones.
+
+-> **NOTE:**  `STANDBY` applies only to PolarDB for PostgreSQL.
+
+* `is_switch_over_for_disaster` - (Optional, Available since v1.271.0) Specifies whether to switch back to the original zone. Valid values:
+  - true: Switch back to the original zone.
+  - false: Do not switch back to the original zone.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `loose_polar_log_bin` - (Optional, Computed) Enables the binary log (binlog) feature. Valid values:
+  - `ON`: Enables binlog for the cluster.
+  - `OFF`: Disables binlog for the cluster.
+
+-> **NOTE:**  This parameter takes effect only when `DBType` is `MySQL`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `loose_xengine` - (Optional, Computed, Available since v1.232.0) Enables the X-Engine storage engine. Valid values:  
+  - `ON`: X-Engine is enabled for the cluster.  
+  - `OFF`: X-Engine is disabled for the cluster.  
+
+-> **NOTE:**  This parameter takes effect only when the `CreationOption` parameter is not `CreateGdnStandby`, the `DBType` parameter is `MySQL`, and the `DBVersion` parameter is **8.0**. The memory capacity of nodes with X-Engine enabled must be at least 8 GB.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `loose_xengine_use_memory_pct` - (Optional, Computed, Available since v1.232.0) Specifies the percentage of memory allocated to the X-Engine storage engine. The value must be an integer between 10 and 90.
+
+-> **NOTE:**  This parameter takes effect only when the `LooseXEngine` parameter is set to `ON`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `lower_case_table_names` - (Optional, Computed) Specifies whether table names are case-sensitive. Valid values are as follows:
+* `1`: Case-insensitive
+* `0`: Case-sensitive
+
+The default value is `1`.
+
+-> **NOTE:**  This parameter takes effect only when `DBType` is `MySQL`.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `maintain_time` - (Optional, Computed) Maintenance window for the cluster, in the format `HH:mmZ-HH:mmZ`. For example, `16:00Z-17:00Z` indicates that routine maintenance can be performed from 00:00 to 01:00 (UTC+08:00).
+
+-> **NOTE:**  The maintenance window must start on the hour and last for one hour.
+
+* `modify_mode` - (Optional, Available since v1.271.0) The modification mode for the IP whitelist. Valid values:
+  - `Cover`: Overwrites the existing IP whitelist (default).
+  - `Append`: Adds new IP addresses.
+  - `Delete`: Removes specified IP addresses.
+
+-> **NOTE:**  This parameter can be configured only when `WhiteListType` is set to `IP`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `modify_type` - (Optional) Modification type. Valid values:
+  - `Upgrade`: Upgrade specifications
+  - `Downgrade`: Downgrade specifications.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `parameter_group_id` - (Optional) The parameter template ID.
+
+-> **NOTE:**  You can call the [DescribeParameterGroups](https://help.aliyun.com/document_detail/207178.html) operation to view the list of parameter templates in the target region, including the parameter template ID.
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `payment_type` - (Required, Available since v1.271.0) The billing method of the instance. Valid values:
+  - `Postpaid`: Pay-as-you-go
+  - `Prepaid`: Subscription (monthly or yearly)
+* `period` - (Optional) Specifies whether a subscription instance is billed on a yearly or monthly basis. Valid values:
+  - `Year`: Yearly billing
+  - `Month`: Monthly billing
+
+-> **NOTE:**  This parameter is required when `PayType` is set to `Prepaid`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `period_unit` - (Optional, Available since v1.271.0) The unit of the renewal period. Valid values:
+  - `Year`: Year
+  - `Month`: Month
+
+Default value: `Month`.
+* `planned_end_time` - (Optional, Available since v1.208.1) The latest time to start executing the scheduled task. The time must be in the format `YYYY-MM-DDThh:mm:ssZ` (UTC).
+
+-> **NOTE:**  * The latest start time must be at least 30 minutes later than the planned start time.
+
+-> **NOTE:**  * If `PlannedStartTime` is specified but this parameter is not, the default latest start time is `PlannedStartTime + 30 minutes`. For example, if `PlannedStartTime` is set to `2021-01-14T09:00:00Z` and this parameter is left empty, the scheduled task will start no later than `2021-01-14T09:30:00Z`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `planned_flashing_off_time` - (Optional, Available since v1.271.0) Specifies the start time of a planned flash disconnection. The format is YYYY-MM-DDThh:mm:ssZ (UTC).
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `planned_start_time` - (Optional, Available since v1.208.1) The earliest time to start executing a scheduled scale-up or scale-down task within the specified time window. The time must be in the format `YYYY-MM-DDThh:mm:ssZ` (UTC).
+
+-> **NOTE:**  * This parameter takes effect only when `ModifyType` is set to `Upgrade` or `Downgrade`.
+
+-> **NOTE:**  * The start time must be within the next 24 hours. For example, if the current time is `2021-01-14T09:00:00Z`, the valid start time range is from `2021-01-14T09:00:00Z` to `2021-01-15T09:00:00Z`.
+
+-> **NOTE:**  * If this parameter is left empty, the upgrade task is executed immediately.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `provisioned_iops` - (Optional, Computed, Int, Available since v1.229.1) The provisioned read/write IOPS for ESSD AutoPL cloud disks. Valid values: 0 to min{50,000, 1,000 × capacity − baseline performance}.
+Baseline performance = min{1,800 + 50 × capacity, 50,000}.
+This parameter is supported only when StorageType is set to ESSDAUTOPL.
+* `proxy_class` - (Optional) The specification of the Standard Edition database proxy. Valid values:
+  - **polar.maxscale.g2.medium.c**: 2 cores.
+  - **polar.maxscale.g2.large.c**: 4 cores.
+  - **polar.maxscale.g2.xlarge.c**: 8 cores.
+  - **polar.maxscale.g2.2xlarge.c**: 16 cores.
+  - **polar.maxscale.g2.3xlarge.c**: 24 cores.
+  - **polar.maxscale.g2.4xlarge.c**: 32 cores.
+  - **polar.maxscale.g2.8xlarge.c**: 64 cores.
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `proxy_type` - (Optional, ForceNew) The database proxy type. Valid values:
+  - `EXCLUSIVE`: Enterprise Dedicated Edition
+  - `GENERAL`: Enterprise General-purpose Edition
+
+-> **NOTE:**  The proxy type must match the type corresponding to the cluster's node specifications:
+
+-> **NOTE:**  - If the node specification is general-purpose, the proxy type must be Enterprise General-purpose Edition.
+
+-> **NOTE:**  - If the node specification is dedicated, the proxy type must be Enterprise Dedicated Edition.
+
+* `renewal_status` - (Optional) The auto-renewal status. Valid values:
+  - `AutoRenewal`: Auto-renewal is enabled.
+  - `Normal`: Manual renewal is required.
+  - `NotRenewal`: The instance will not be renewed.
+
+The default value is `AutoRenewal`.
+
+-> **NOTE:**  If you set this parameter to `NotRenewal`, the system stops sending expiration reminders and sends only a non-renewal reminder three days before expiration.
+
+* `resource_group_id` - (Optional, Computed) Resource group ID.
+* `role_arn` - (Optional, Computed) The Alibaba Cloud Resource Name (ARN) of the role used to specify a particular role. For more information, see [Overview of RAM roles](https://help.aliyun.com/document_detail/93689.html).
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `scale_max` - (Optional, ForceNew, Available since v1.204.0) The maximum scaling capacity per node. Valid values: 1 PCU to 32 PCU.
+
+-> **NOTE:**  This parameter is supported only for Serverless clusters.
+
+* `scale_min` - (Optional, ForceNew, Available since v1.204.0) Minimum scaling limit per node. Valid values: 1 PCU to 31 PCU.  
+
+-> **NOTE:**  This parameter is supported only for Serverless clusters.  
+
+* `scale_ro_num_max` - (Optional, ForceNew, Available since v1.204.0) The maximum number of read-only nodes allowed for scaling. Valid values: 0 to 15.
+
+-> **NOTE:**  This parameter is supported only for Serverless clusters.
+
+* `scale_ro_num_min` - (Optional, ForceNew, Available since v1.204.0) The minimum number of read-only nodes for auto-scaling. Valid values: 0 to 15.
+
+-> **NOTE:**  This parameter is supported only for Serverless clusters.
+
+* `security_group_ids` - (Optional, Computed) The IDs of security groups, separated by commas (,).  
+
+-> **NOTE:**  - A cluster can be associated with up to three security groups.  
+
+-> **NOTE:**  - This parameter is configurable only when `WhiteListType` is set to `SecurityGroup`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `security_ips` - (Optional, Computed) The IP addresses or CIDR blocks in the IP whitelist group. A maximum of 1,000 IP addresses or CIDR blocks are supported across all IP whitelist groups. Separate multiple IP addresses with commas (,). The following two formats are supported:
+  - IP address format, for example: 10.23.12.24.
+  - CIDR format, for example: 10.23.12.24/24 (Classless Inter-Domain Routing; 24 indicates the prefix length, which can range from 1 to 32).
+
+-> **NOTE:**  This parameter is configurable only when `WhiteListType` is set to `IP`.
+
+* `serverless_type` - (Optional, ForceNew, Available since v1.204.0) Serverless type. The current value is fixed as `AgileServerless` (Agile).  
+
+-> **NOTE:**  This parameter is supported only for Serverless clusters.
+
+* `source_resource_id` - (Optional) The ID of the source ApsaraDB RDS instance or the source PolarDB cluster. This parameter is required only when `CreationOption` is set to `MigrationFromRDS`, `CloneFromRDS`, `CloneFromPolarDB`, or `RecoverFromRecyclebin`.  
+  - If `CreationOption` is set to `MigrationFromRDS` or `CloneFromRDS`, you must specify the ID of the source ApsaraDB RDS instance for this parameter. The source RDS instance must be a High-availability Edition instance of ApsaraDB RDS for MySQL 5.6, 5.7, or 8.0.  
+
+  - If `CreationOption` is set to `CloneFromPolarDB`, you must specify the ID of the source PolarDB cluster for this parameter. By default, the `DBType` of the cloned cluster is the same as that of the source cluster. For example, if the source cluster uses MySQL 8.0, you must set `DBType` to `MySQL` and `DBVersion` to **8.0** for the cloned cluster.  
+  - If `CreationOption` is set to `RecoverFromRecyclebin`, you must specify the ID of the deleted source PolarDB cluster for this parameter. The `DBType` of the cluster restored from the recycle bin must be the same as that of the source cluster. For example, if the source cluster uses MySQL 8.0, you must set `DBType` to `MySQL` and `DBVersion` to **8.0** for the restored cluster.  
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `standby_az` - (Optional, Computed) Availability zone of the hot standby cluster.  
+
+-> **NOTE:**  This parameter takes effect only when the hot standby cluster or multi-zone strong data consistency is enabled.  
+
+
+-> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+
+* `storage_auto_scale` - (Optional, Available since v1.271.0) Indicates whether to enable automatic storage scaling for Standard Edition clusters. Valid values:
+  - Enable: Enables automatic storage scaling.
+  - Disable: Disables automatic storage scaling.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `storage_pay_type` - (Optional, ForceNew, Computed, Available since v1.210.0) Storage billing type. Valid values:  
+  - Postpaid: Pay-as-you-go (billed by capacity).  
+  - Prepaid: Subscription (billed by allocated space).
+* `storage_space` - (Optional, Computed, Int, Available since v1.203.0) Storage space for storage-based billing (subscription). Unit: GB.  
+
+-> **NOTE:**  - For PolarDB MySQL Enterprise Edition, the valid range is 10 to 50,000.  
+
+-> **NOTE:**  - For PolarDB MySQL Standard Edition, the valid range is 20 to 64,000.  
+
+-> **NOTE:**  - When the storage type of Standard Edition is ESSDAUTOPL, the valid range is 40 to 64,000 with a minimum step size of 10 (for example, 40, 50, 60, and so on).
+
+* `storage_type` - (Optional, ForceNew, Computed, Available since v1.203.0) For Enterprise Edition, valid storage types are:
+  - `PSL5`
+  - `PSL4`
+
+For Standard Edition, valid storage types are:
+  - `ESSDPL0`
+  - `ESSDPL1`
+  - `ESSDPL2`
+  - `ESSDPL3`
+  - `ESSDAUTOPL`.
+* `storage_upper_bound` - (Optional, Int, Available since v1.271.0) The upper limit for automatic storage scaling of Standard Edition clusters. Unit: GB.
+
+-> **NOTE:**  This parameter takes effect only when the `StorageAutoScale` parameter is set to `Enable`.
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `strict_consistency` - (Optional, ForceNew, Computed, Available since v1.239.0) Indicates whether multi-zone strong data consistency is enabled for the cluster. Valid values:
+  - `ON`: Multi-zone strong data consistency is enabled, applicable to Standard Edition clusters deployed across three availability zones.
+  - `OFF`: Multi-zone strong data consistency is not enabled.
+* `sub_category` - (Optional, Computed) Cluster sub-series. Valid values:
+  - `normal_exclusive`: Dedicated specification  
+  - `normal_general`: General-purpose specification  
+
+If you switch between dedicated and general-purpose specifications, this field is required.
+* `tags` - (Optional, Map) A list of tags.
+* `tde_status` - (Optional) Specifies whether Transparent Data Encryption (TDE) is enabled. Valid values:
+  - `Enabled`: TDE is enabled.
+  - `Disabled`: TDE is disabled.
+* `used_time` - (Optional, Available since v1.271.0) Subscription duration. Valid values:  
+  - When `Period` is `Year`, `UsedTime` can be 1 to 3.  
+  - When `Period` is `Month`, `UsedTime` can be 1 to 9.  
+
+-> **NOTE:**  You must specify this parameter when `PayType` is `Prepaid`.  
+
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `vswitch_id` - (Optional, Computed) The ID of the vSwitch.  
+
+-> **NOTE:**  If VPCId is specified, VSwitchId is required.
+
+* `vpc_id` - (Optional, Computed, Available since v1.185.0) VPC ID.
+* `white_list_type` - (Optional, Available since v1.271.0) Whitelist type. Valid values:
+  - `IP`: IP whitelist group  
+  - `SecurityGroup`: Security group  
+
+Default value: `IP`
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
+* `zone_id` - (Optional, Computed) Zone ID.
+
+-> **NOTE:**  You can call the [DescribeRegions](https://help.aliyun.com/document_detail/98041.html) operation to view available zones.
+
+* `zone_type` - (Optional, Available since v1.271.0) The type of zone to switch to. Valid values:
+  - `Primary`: Primary zone.
+  - `Standby`: Standby zone.
+
+-> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The PolarDB cluster ID.
-* `connection_string` - (Available since 1.81.0) PolarDB cluster connection string. 
-* `port` - (Available since 1.196.0) PolarDB cluster connection port. 
-* `status` - (Available since 1.204.1) PolarDB cluster status.
-* `create_time` - (Available since 1.204.1) PolarDB cluster creation time.
-* `tde_region` - (Available since 1.200.0) The region where the TDE key resides.
--> **NOTE:** TDE can be enabled on clusters that have joined a global database network (GDN). After TDE is enabled on the primary cluster in a GDN, TDE is enabled on the secondary clusters in the GDN by default. The key used by the secondary clusters and the region for the key resides must be the same as the primary cluster. The region of the key cannot be modified.
--> **NOTE:** You cannot enable TDE for the secondary clusters in a GDN. Used to view user KMS activation status.
-
-* `db_revision_version_list` - (Available since v1.216.0) The db_revision_version_list supports the following:
-  * `release_type` - (Available since v1.216.0) Database version release status. Valid values are `Stable`, `Old`, `HighRisk`.
-  * `revision_version_code` - (Available since v1.216.0) The revised version Code of the database engine is used to specify the upgrade to the target version.
-  * `revision_version_name` - (Available since v1.216.0) The revision version number of the database engine.
-  * `release_note` - (Available since v1.216.0) The revised version Code of the database engine is used to specify the upgrade to the target version.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The time when the cluster was created.
+* `parameters` - Parameters that describe the PolarDB cluster.
+  * `checking_code` - The valid range of values for the target parameter.
+  * `data_type` - The data type of the parameter value.
+  * `force_restart` - Indicates whether a restart is required for the change to take effect.
+  * `is_modifiable` - Indicates whether the parameter is modifiable.
+  * `name` - The name of the parameter.
+  * `parameter_description` - The description of the parameter.
+  * `parameter_status` - The status of the parameter.
+  * `value` - The value of the parameter.
+* `region_id` - The region ID.
+* `seconds_until_auto_pause` - The detection duration for auto-pausing due to inactivity.
+* `status` - The cluster status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 50 mins) Used when creating the polardb cluster (until it reaches the initial `Running` status).
-* `update` - (Defaults to 50 mins) Used when updating the polardb cluster (until it reaches the initial `Running` status).
-* `delete` - (Defaults to 10 mins) Used when terminating the polardb cluster.
+* `create` - (Defaults to 17 mins) Used when create the Db Cluster.
+* `delete` - (Defaults to 10 mins) Used when delete the Db Cluster.
+* `update` - (Defaults to 29 mins) Used when update the Db Cluster.
 
 ## Import
 
-PolarDB cluster can be imported using the id, e.g.
+Polardb Db Cluster can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_polardb_cluster.example pc-abc12345678
+$ terraform import alicloud_polardb_cluster.example <db_cluster_id>
 ```
