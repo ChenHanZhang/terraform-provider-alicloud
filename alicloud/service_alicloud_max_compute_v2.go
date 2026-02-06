@@ -689,6 +689,7 @@ func (s *MaxComputeServiceV2) MaxComputeQuotaStateRefreshFunc(id string, field s
 }
 
 // DescribeMaxComputeQuota >>> Encapsulated.
+
 // DescribeMaxComputeTenantRoleUserAttachment <<< Encapsulated get interface for MaxCompute TenantRoleUserAttachment.
 
 func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id string) (object map[string]interface{}, err error) {
@@ -696,7 +697,6 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id stri
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
-	var header map[string]*string
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
@@ -704,14 +704,13 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id stri
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
-	header = make(map[string]*string)
 	query["accountId"] = StringPointer(parts[0])
 
 	action := fmt.Sprintf("/api/v1/tenants/user")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, header, nil)
+		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -728,23 +727,16 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id stri
 	}
 
 	v, err := jsonpath.Get("$.data.roles", response)
-	if err != nil || v == nil {
+	if err != nil {
 		return object, WrapErrorf(NotFoundErr("TenantRoleUserAttachment", id), NotFoundMsg, response)
 	}
 
-	currentStatus := v.([]interface{})
-	if currentStatus == nil || len(currentStatus) == 0 {
+	currentStatus := v.(map[string]interface{})["objectChild"]
+	if currentStatus == nil {
 		return object, WrapErrorf(NotFoundErr("TenantRoleUserAttachment", id), NotFoundMsg, response)
 	}
 
-	targetRole := parts[1]
-	for _, item := range currentStatus {
-		if roleName, ok := item.(string); ok && roleName == targetRole {
-			return object, nil
-		}
-	}
-
-	return object, WrapErrorf(NotFoundErr("TenantRoleUserAttachment", id), NotFoundMsg, response)
+	return v.(map[string]interface{}), nil
 }
 
 func (s *MaxComputeServiceV2) MaxComputeTenantRoleUserAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {

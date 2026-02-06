@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -91,7 +92,7 @@ func resourceAliCloudMaxComputeTenantRoleUserAttachmentRead(d *schema.ResourceDa
 	client := meta.(*connectivity.AliyunClient)
 	maxComputeServiceV2 := MaxComputeServiceV2{client}
 
-	_, err := maxComputeServiceV2.DescribeMaxComputeTenantRoleUserAttachment(d.Id())
+	objectRaw, err := maxComputeServiceV2.DescribeMaxComputeTenantRoleUserAttachment(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
 			log.Printf("[DEBUG] Resource alicloud_max_compute_tenant_role_user_attachment DescribeMaxComputeTenantRoleUserAttachment Failed!!! %s", err)
@@ -101,9 +102,10 @@ func resourceAliCloudMaxComputeTenantRoleUserAttachmentRead(d *schema.ResourceDa
 		return WrapError(err)
 	}
 
+	d.Set("tenant_role", objectRaw["objectChild"])
+
 	parts := strings.Split(d.Id(), ":")
 	d.Set("account_id", parts[0])
-	d.Set("tenant_role", parts[1])
 
 	return nil
 }
