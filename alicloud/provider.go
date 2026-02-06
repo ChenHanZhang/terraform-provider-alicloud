@@ -1513,7 +1513,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_adb_cluster":                                           resourceAliCloudAdbDbCluster(),
 			"alicloud_adb_backup_policy":                                     resourceAlicloudAdbBackupPolicy(),
 			"alicloud_adb_account":                                           resourceAlicloudAdbAccount(),
-			"alicloud_adb_connection":                                        resourceAlicloudAdbConnection(),
+			"alicloud_adb_connection":                                        resourceAliCloudAdbConnection(),
 			"alicloud_cen_flowlog":                                           resourceAliCloudCenFlowLog(),
 			"alicloud_kms_secret":                                            resourceAliCloudKmsSecret(),
 			"alicloud_maxcompute_project":                                    resourceAliCloudMaxComputeProject(),
@@ -2736,7 +2736,6 @@ func init() {
 	}
 }
 
-// lintignore: S018
 func assumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
@@ -2831,7 +2830,6 @@ func assumeRoleWithOidcSchema() *schema.Schema {
 	}
 }
 
-// lintignore: S018
 func signVersionSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
