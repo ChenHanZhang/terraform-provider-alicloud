@@ -24,6 +24,7 @@ func (s *AdbServiceV2) DescribeAdbLakeAccount(id string) (object map[string]inte
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -47,7 +48,7 @@ func (s *AdbServiceV2) DescribeAdbLakeAccount(id string) (object map[string]inte
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"ACS.Account.NotExist", "InvalidDBClusterId.NotFound"}) {
+		if IsExpectedErrors(err, []string{"ACS.Account.NotExist"}) {
 			return object, WrapErrorf(NotFoundErr("LakeAccount", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
@@ -55,7 +56,6 @@ func (s *AdbServiceV2) DescribeAdbLakeAccount(id string) (object map[string]inte
 
 	return response, nil
 }
-
 func (s *AdbServiceV2) DescribeLakeAccountDescribeAccounts(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -64,6 +64,7 @@ func (s *AdbServiceV2) DescribeLakeAccountDescribeAccounts(id string) (object ma
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -103,15 +104,18 @@ func (s *AdbServiceV2) DescribeLakeAccountDescribeAccounts(id string) (object ma
 }
 
 func (s *AdbServiceV2) AdbLakeAccountStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.AdbLakeAccountStateRefreshFuncWithApi(id, field, failStates, s.DescribeAdbLakeAccount)
+}
+
+func (s *AdbServiceV2) AdbLakeAccountStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeLakeAccountDescribeAccounts(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

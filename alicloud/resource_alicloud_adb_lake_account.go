@@ -44,7 +44,7 @@ func resourceAliCloudAdbLakeAccount() *schema.Resource {
 				Sensitive: true,
 			},
 			"account_privileges": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -95,6 +95,19 @@ func resourceAliCloudAdbLakeAccount() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"engine": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"AnalyticDB", "Clickhouse"}, false),
+			},
+			"ram_user_list": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -120,8 +133,21 @@ func resourceAliCloudAdbLakeAccountCreate(d *schema.ResourceData, meta interface
 		request["DBClusterId"] = v
 	}
 
+	if v, ok := d.GetOk("ram_user_list"); ok {
+		ramUserListMapsArray := convertToInterfaceArray(v)
+
+		ramUserListMapsJson, err := json.Marshal(ramUserListMapsArray)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["RamUserList"] = string(ramUserListMapsJson)
+	}
+
 	if v, ok := d.GetOk("account_description"); ok {
 		request["AccountDescription"] = v
+	}
+	if v, ok := d.GetOk("engine"); ok {
+		request["Engine"] = v
 	}
 	request["AccountPassword"] = d.Get("account_password")
 	request["AccountType"] = d.Get("account_type")
@@ -146,7 +172,7 @@ func resourceAliCloudAdbLakeAccountCreate(d *schema.ResourceData, meta interface
 	d.SetId(fmt.Sprintf("%v:%v", request["DBClusterId"], request["AccountName"]))
 
 	adbServiceV2 := AdbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, adbServiceV2.AdbLakeAccountStateRefreshFunc(d.Id(), "AccountStatus", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, adbServiceV2.AdbLakeAccountStateRefreshFuncWithApi(d.Id(), "AccountStatus", []string{}, adbServiceV2.DescribeLakeAccountDescribeAccounts))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -170,9 +196,10 @@ func resourceAliCloudAdbLakeAccountRead(d *schema.ResourceData, meta interface{}
 
 	resultRaw, _ := jsonpath.Get("$.Data.Result", objectRaw)
 
+	resultRaw, _ := jsonpath.Get("$.Data.Result", objectRaw)
 	accountPrivilegesMaps := make([]map[string]interface{}, 0)
 	if resultRaw != nil {
-		for _, resultChildRaw := range resultRaw.([]interface{}) {
+		for _, resultChildRaw := range convertToInterfaceArray(resultRaw) {
 			accountPrivilegesMap := make(map[string]interface{})
 			resultChildRaw := resultChildRaw.(map[string]interface{})
 			accountPrivilegesMap["privilege_type"] = resultChildRaw["PrivilegeType"]
@@ -192,9 +219,8 @@ func resourceAliCloudAdbLakeAccountRead(d *schema.ResourceData, meta interface{}
 				privilegeObjectMaps = append(privilegeObjectMaps, privilegeObjectMap)
 			}
 			accountPrivilegesMap["privilege_object"] = privilegeObjectMaps
-
-			privileges1Raw, _ := jsonpath.Get("$.Privileges", resultChildRaw)
-			accountPrivilegesMap["privileges"] = privileges1Raw
+			privilegesRaw, _ := jsonpath.Get("$.Privileges", resultChildRaw)
+			accountPrivilegesMap["privileges"] = privilegesRaw
 			accountPrivilegesMaps = append(accountPrivilegesMaps, accountPrivilegesMap)
 		}
 	}
@@ -209,8 +235,12 @@ func resourceAliCloudAdbLakeAccountRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("account_description", objectRaw["AccountDescription"])
 	d.Set("account_type", objectRaw["AccountType"])
+	d.Set("engine", objectRaw["Engine"])
 	d.Set("status", objectRaw["AccountStatus"])
 	d.Set("account_name", objectRaw["AccountName"])
+
+	ramUserListRaw, _ := jsonpath.Get("$.RamUserList.RamUserList", objectRaw)
+	d.Set("ram_user_list", ramUserListRaw)
 
 	parts := strings.Split(d.Id(), ":")
 	d.Set("db_cluster_id", parts[0])
@@ -238,6 +268,11 @@ func resourceAliCloudAdbLakeAccountUpdate(d *schema.ResourceData, meta interface
 		update = true
 	}
 	request["AccountDescription"] = d.Get("account_description")
+	if !d.IsNewResource() && d.HasChange("engine") {
+		update = true
+		request["Engine"] = d.Get("engine")
+	}
+
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
@@ -269,6 +304,11 @@ func resourceAliCloudAdbLakeAccountUpdate(d *schema.ResourceData, meta interface
 		request["AccountDescription"] = d.Get("account_description")
 	}
 
+	if !d.IsNewResource() && d.HasChange("engine") {
+		update = true
+		request["Engine"] = d.Get("engine")
+	}
+
 	if !d.IsNewResource() && d.HasChange("account_password") {
 		update = true
 	}
@@ -296,33 +336,108 @@ func resourceAliCloudAdbLakeAccountUpdate(d *schema.ResourceData, meta interface
 	action = "ModifyAccountPrivileges"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["DBClusterId"] = parts[0]
-	query["AccountName"] = parts[1]
+	request["AccountName"] = parts[1]
+	request["DBClusterId"] = parts[0]
 	request["RegionId"] = client.RegionId
 	if d.HasChange("account_privileges") {
 		update = true
-		if v, ok := d.GetOk("account_privileges"); ok {
-			accountPrivilegesMaps := make([]map[string]interface{}, 0)
-			for _, dataLoop := range v.(*schema.Set).List() {
-				dataLoopTmp := dataLoop.(map[string]interface{})
-				dataLoopMap := make(map[string]interface{})
-				dataLoopMap["PrivilegeType"] = dataLoopTmp["privilege_type"]
-				dataLoopMap["Privileges"] = dataLoopTmp["privileges"]
-				privilegeObjectMap := make(map[string]interface{})
-				database, _ := jsonpath.Get("$[0].database", dataLoopTmp["privilege_object"])
-				privilegeObjectMap["Database"] = database
-				table, _ := jsonpath.Get("$[0].table", dataLoopTmp["privilege_object"])
-				privilegeObjectMap["Table"] = table
-				column, _ := jsonpath.Get("$[0].column", dataLoopTmp["privilege_object"])
-				privilegeObjectMap["Column"] = column
-				dataLoopMap["PrivilegeObject"] = privilegeObjectMap
-				accountPrivilegesMaps = append(accountPrivilegesMaps, dataLoopMap)
+	}
+	if v, ok := d.GetOk("account_privileges"); ok || d.HasChange("account_privileges") {
+		accountPrivilegesMapsArray := make([]interface{}, 0)
+		for _, dataLoop := range convertToInterfaceArray(v) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			dataLoopMap := make(map[string]interface{})
+			dataLoopMap["PrivilegeType"] = dataLoopTmp["privilege_type"]
+			dataLoopMap["Privileges"] = dataLoopTmp["privileges"]
+			if !IsNil(dataLoopTmp["privilege_object"]) {
+				localData1 := make(map[string]interface{})
+				column1, _ := jsonpath.Get("$[0].column", dataLoopTmp["privilege_object"])
+				if column1 != nil && column1 != "" {
+					localData1["Column"] = column1
+				}
+				database1, _ := jsonpath.Get("$[0].database", dataLoopTmp["privilege_object"])
+				if database1 != nil && database1 != "" {
+					localData1["Database"] = database1
+				}
+				table1, _ := jsonpath.Get("$[0].table", dataLoopTmp["privilege_object"])
+				if table1 != nil && table1 != "" {
+					localData1["Table"] = table1
+				}
+				if len(localData1) > 0 {
+					dataLoopMap["PrivilegeObject"] = localData1
+				}
 			}
-			accountPrivilegesMapsJson, err := json.Marshal(accountPrivilegesMaps)
+			accountPrivilegesMapsArray = append(accountPrivilegesMapsArray, dataLoopMap)
+		}
+		accountPrivilegesMapsJson, err := json.Marshal(accountPrivilegesMapsArray)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["AccountPrivileges"] = string(accountPrivilegesMapsJson)
+	}
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2021-12-01", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	parts = strings.Split(d.Id(), ":")
+	action = "UnbindAccount"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["AccountName"] = parts[1]
+	request["DBClusterId"] = parts[0]
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2021-12-01", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	parts = strings.Split(d.Id(), ":")
+	action = "BindAccount"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["AccountName"] = parts[1]
+	request["DBClusterId"] = parts[0]
+
+	if !d.IsNewResource() && d.HasChange("ram_user_list") {
+		update = true
+		if v, ok := d.GetOk("ram_user_list"); ok || d.HasChange("ram_user_list") {
+			ramUserListMapsArray := convertToInterfaceArray(v)
+
+			ramUserListMapsJson, err := json.Marshal(ramUserListMapsArray)
 			if err != nil {
 				return WrapError(err)
 			}
-			query["AccountPrivileges"] = string(accountPrivilegesMapsJson)
+			request["RamUserList"] = string(ramUserListMapsJson)
 		}
 	}
 
@@ -365,7 +480,6 @@ func resourceAliCloudAdbLakeAccountDelete(d *schema.ResourceData, meta interface
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("adb", "2021-12-01", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
