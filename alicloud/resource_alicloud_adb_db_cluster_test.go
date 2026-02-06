@@ -95,6 +95,393 @@ func testSweepAdbDbInstances(region string) error {
 	return nil
 }
 
+// Test Adb DbCluster. >>> Resource test cases, automatically generated.
+// Case C8变E32测试用例正式 11900
+func TestAccAliCloudAdbDbCluster_basic11900(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_adb_db_cluster.default"
+	ra := resourceAttrInit(resourceId, AlicloudAdbDbClusterMap11900)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AdbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAdbDbCluster")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccadb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudAdbDbClusterBasicDependence11900)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_cluster_category":     "Cluster",
+					"zone_id":                 "cn-beijing-k",
+					"mode":                    "reserver",
+					"db_cluster_version":      "3.0",
+					"payment_type":            "Subscription",
+					"disk_performance_level":  "PL1",
+					"db_cluster_network_type": "vpc",
+					"enable_ssl":              "false",
+					"period":                  "Month",
+					"used_time":               "1",
+					"vswitch_id":              "${alicloud_vswitch.VSWITCHID.id}",
+					"vpc_id":                  "${alicloud_vpc.VPCID.id}",
+					"db_node_count":           "1",
+					"db_node_storage":         "200",
+					"renewal_status":          "Normal",
+					"db_node_class":           "C8",
+					"db_cluster_name":         name,
+					"resource_group_id":       "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"disk_encryption":         "false",
+					"maintain_time":           "18:00Z-19:00Z",
+					"kernel_version":          "3.2.4",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_cluster_category":     "Cluster",
+						"zone_id":                 "cn-beijing-k",
+						"mode":                    "reserver",
+						"db_cluster_version":      CHECKSET,
+						"payment_type":            "Subscription",
+						"disk_performance_level":  "PL1",
+						"db_cluster_network_type": "vpc",
+						"enable_ssl":              "false",
+						"period":                  "Month",
+						"used_time":               CHECKSET,
+						"vswitch_id":              CHECKSET,
+						"vpc_id":                  CHECKSET,
+						"db_node_count":           "1",
+						"db_node_storage":         "200",
+						"renewal_status":          "Normal",
+						"db_node_class":           "C8",
+						"db_cluster_name":         name,
+						"resource_group_id":       CHECKSET,
+						"disk_encryption":         "false",
+						"maintain_time":           "18:00Z-19:00Z",
+						"kernel_version":          "3.2.4",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"used_time":      "2",
+					"renewal_status": "NotRenewal",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"used_time":      CHECKSET,
+						"renewal_status": "NotRenewal",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_cluster_category":      "MIXED_STORAGE",
+					"mode":                     "flexible",
+					"payment_type":             "PayAsYouGo",
+					"db_node_class":            "E32",
+					"db_cluster_name":          name + "_update",
+					"resource_group_id":        "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"maintain_time":            "22:00Z-23:00Z",
+					"switch_mode":              "0",
+					"elastic_io_resource":      "1",
+					"executor_count":           "3",
+					"auto_renew_period":        "2",
+					"elastic_io_resource_size": "8Core64GB",
+					"compute_resource":         "48Core192GBNEW",
+					"period_unit":              "Month",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_cluster_category":      "MIXED_STORAGE",
+						"mode":                     "flexible",
+						"payment_type":             "PayAsYouGo",
+						"db_node_class":            "E32",
+						"db_cluster_name":          name + "_update",
+						"resource_group_id":        CHECKSET,
+						"maintain_time":            "22:00Z-23:00Z",
+						"switch_mode":              "0",
+						"elastic_io_resource":      CHECKSET,
+						"executor_count":           CHECKSET,
+						"auto_renew_period":        "2",
+						"elastic_io_resource_size": "8Core64GB",
+						"compute_resource":         "48Core192GBNEW",
+						"period_unit":              "Month",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auto_renew_period", "backup_set_id", "connection_string", "db_cluster_ip_array_attribute", "db_cluster_ip_array_name", "modify_mode", "modify_type", "period", "period_unit", "restore_time", "restore_type", "source_db_instance_name", "storage_type", "switch_mode", "used_time"},
+			},
+		},
+	})
+}
+
+var AlicloudAdbDbClusterMap11900 = map[string]string{
+	"port":        CHECKSET,
+	"status":      CHECKSET,
+	"pay_type":    CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudAdbDbClusterBasicDependence11900(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "VPCID" {
+  cidr_block = "172.16.0.0/12"
+  vpc_name   = "adb北京vpc-tf-test"
+}
+
+resource "alicloud_vswitch" "VSWITCHID" {
+  description  = "北京测试-tf"
+  vpc_id       = alicloud_vpc.VPCID.id
+  zone_id      = "cn-beijing-k"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "北京k测试tf"
+}
+
+
+`, name)
+}
+
+// Case C8磁盘变配相关测试用例 11858
+func TestAccAliCloudAdbDbCluster_basic11858(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_adb_db_cluster.default"
+	ra := resourceAttrInit(resourceId, AlicloudAdbDbClusterMap11858)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AdbServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAdbDbCluster")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccadb%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudAdbDbClusterBasicDependence11858)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_cluster_category":     "Cluster",
+					"zone_id":                 "cn-beijing-k",
+					"mode":                    "reserver",
+					"db_cluster_version":      "3.0",
+					"payment_type":            "Subscription",
+					"disk_performance_level":  "PL1",
+					"db_cluster_network_type": "vpc",
+					"enable_ssl":              "false",
+					"period":                  "Month",
+					"used_time":               "1",
+					"vswitch_id":              "${alicloud_vswitch.VSWITCHID.id}",
+					"vpc_id":                  "${alicloud_vpc.VPCID.id}",
+					"db_node_count":           "1",
+					"db_node_storage":         "200",
+					"renewal_status":          "Normal",
+					"db_node_class":           "C8",
+					"db_cluster_name":         name,
+					"resource_group_id":       "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"disk_encryption":         "false",
+					"maintain_time":           "18:00Z-19:00Z",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_cluster_category":     "Cluster",
+						"zone_id":                 "cn-beijing-k",
+						"mode":                    "reserver",
+						"db_cluster_version":      CHECKSET,
+						"payment_type":            "Subscription",
+						"disk_performance_level":  "PL1",
+						"db_cluster_network_type": "vpc",
+						"enable_ssl":              "false",
+						"period":                  "Month",
+						"used_time":               CHECKSET,
+						"vswitch_id":              CHECKSET,
+						"vpc_id":                  CHECKSET,
+						"db_node_count":           "1",
+						"db_node_storage":         "200",
+						"renewal_status":          "Normal",
+						"db_node_class":           "C8",
+						"db_cluster_name":         name,
+						"resource_group_id":       CHECKSET,
+						"disk_encryption":         "false",
+						"maintain_time":           "18:00Z-19:00Z",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_node_storage": "500",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_node_storage": "500",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_node_count": "2",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_node_count": "2",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auto_renew_period", "backup_set_id", "connection_string", "db_cluster_ip_array_attribute", "db_cluster_ip_array_name", "modify_mode", "modify_type", "period", "period_unit", "restore_time", "restore_type", "source_db_instance_name", "storage_type", "switch_mode", "used_time"},
+			},
+		},
+	})
+}
+
+var AlicloudAdbDbClusterMap11858 = map[string]string{
+	"port":        CHECKSET,
+	"status":      CHECKSET,
+	"pay_type":    CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudAdbDbClusterBasicDependence11858(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "VPCID" {
+  cidr_block = "172.16.0.0/12"
+  vpc_name   = "adb北京vpc-tf-test"
+}
+
+resource "alicloud_vswitch" "VSWITCHID" {
+  description  = "北京测试-tf"
+  vpc_id       = alicloud_vpc.VPCID.id
+  zone_id      = "cn-beijing-k"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "北京k测试tf"
+}
+
+
+`, name)
+}
+
+// Test Adb DbCluster. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudADBDbCluster_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_adb_db_cluster.default"

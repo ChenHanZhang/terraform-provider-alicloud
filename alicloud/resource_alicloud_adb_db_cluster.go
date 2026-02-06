@@ -1,16 +1,17 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 func resourceAliCloudAdbDbCluster() *schema.Resource {
@@ -23,54 +24,50 @@ func resourceAliCloudAdbDbCluster() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(120 * time.Minute),
-			Update: schema.DefaultTimeout(6 * time.Hour),
-			Delete: schema.DefaultTimeout(3 * time.Hour),
+			Create: schema.DefaultTimeout(65 * time.Minute),
+			Update: schema.DefaultTimeout(134 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"auto_renew_period": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				Computed:         true,
-				ValidateFunc:     IntInSlice([]int{1, 2, 3, 6, 12, 24, 36}),
-				DiffSuppressFunc: adbPostPaidAndRenewDiffSuppressFunc,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"backup_set_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"compute_resource": {
 				Type:     schema.TypeString,
 				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("mode"); ok && v.(string) == "reserver" {
-						return true
-					}
-					return false
-				},
 			},
-			"db_cluster_category": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: StringInSlice([]string{"Basic", "Cluster", "MixedStorage"}, false),
-			},
-			"db_cluster_class": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "It duplicates with attribute db_node_class and is deprecated from 1.121.2.",
-			},
-			"db_cluster_version": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: StringInSlice([]string{"3.0"}, false),
-				Default:      "3.0",
-			},
-			"kernel_version": {
+			"connection_string": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"switch_mode": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntInSlice([]int{0, 1}),
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"db_cluster_category": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"db_cluster_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_cluster_network_type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"db_cluster_version": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"db_node_class": {
 				Type:     schema.TypeString,
@@ -87,22 +84,54 @@ func resourceAliCloudAdbDbCluster() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"description": {
+			"db_cluster_ip_array_attribute": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"db_cluster_ip_array_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disk_encryption": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"disk_performance_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringLenBetween(2, 256),
+				ValidateFunc: StringInSlice([]string{"PL1", "PL2", "PL3"}, false),
 			},
 			"elastic_io_resource": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("mode"); ok && v.(string) == "reserver" {
-						return true
-					}
-					return false
-				},
+			},
+			"elastic_io_resource_size": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"8Core64GB", "12Core96GB", "16Core128GB"}, false),
+			},
+			"enable_ssl": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"executor_count": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"kernel_version": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"kms_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 			"maintain_time": {
 				Type:     schema.TypeString,
@@ -112,57 +141,102 @@ func resourceAliCloudAdbDbCluster() *schema.Resource {
 			"mode": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: StringInSlice([]string{"reserver", "flexible"}, false),
+				ValidateFunc: StringInSlice([]string{"Reserver", "Flexible", "flexible", "reserver"}, false),
+			},
+			"modify_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"0", "1", "2"}, false),
 			},
 			"modify_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"payment_type": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ValidateFunc:  StringInSlice([]string{"PayAsYouGo", "Subscription"}, false),
-				ConflictsWith: []string{"pay_type"},
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Upgrade", "Downgrade"}, false),
 			},
 			"pay_type": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"payment_type"},
-				ValidateFunc:  StringInSlice([]string{"PostPaid", "PrePaid"}, false),
-				Deprecated:    "Attribute 'pay_type' has been deprecated from the provider version 1.166.0 and it will be remove in the future version. Please use the new attribute 'payment_type' instead.",
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"payment_type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: StringInSlice([]string{"PayAsYouGo", "Subscription"}, false),
 			},
 			"period": {
-				Type:             schema.TypeInt,
-				ValidateFunc:     IntInSlice([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 24, 36}),
-				DiffSuppressFunc: adbPostPaidDiffSuppressFunc,
-				Optional:         true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Year", "Month"}, false),
+			},
+			"period_unit": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Year", "Month"}, false),
+			},
+			"port": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"renewal_status": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Computed:         true,
-				ValidateFunc:     StringInSlice([]string{"AutoRenewal", "Normal", "NotRenewal"}, false),
-				DiffSuppressFunc: adbPostPaidDiffSuppressFunc,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+			"restore_time": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"restore_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"security_ips": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			},
+			"source_db_instance_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"storage_resource": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"storage_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"switch_mode": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntInSlice([]int{0, 1}),
+			},
+			"tags": tagsSchema(),
+			"used_time": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"vswitch_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
+			},
+			"vpc_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"zone_id": {
 				Type:     schema.TypeString,
@@ -170,168 +244,102 @@ func resourceAliCloudAdbDbCluster() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
-			"vpc_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
-			},
-			"elastic_io_resource_size": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"8Core64GB", "12Core96GB", "16Core128GB"}, false),
-			},
-			"disk_performance_level": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"PL1", "PL2", "PL3"}, false),
-			},
-			"disk_encryption": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
-			"kms_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"enable_ssl": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"tags": tagsSchema(),
-			"connection_string": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"port": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
 
 func resourceAliCloudAdbDbClusterCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	adbService := AdbService{client}
-	var response map[string]interface{}
-	var err error
-	action := "CreateDBCluster"
-	request := make(map[string]interface{})
-	if v, ok := d.GetOk("compute_resource"); ok {
-		request["ComputeResource"] = v
-	}
 
-	request["DBClusterCategory"] = d.Get("db_cluster_category")
+	client := meta.(*connectivity.AliyunClient)
+
+	action := "CreateDBCluster"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+
 	if v, ok := d.GetOk("db_node_class"); ok {
 		request["DBClusterClass"] = v
-	} else if v, ok := d.GetOk("db_cluster_class"); ok {
-		request["DBClusterClass"] = v
 	}
-
-	request["DBClusterVersion"] = d.Get("db_cluster_version")
-	if v, ok := d.GetOk("db_node_count"); ok {
-		request["DBNodeGroupCount"] = v
+	if v, ok := d.GetOk("backup_set_id"); ok {
+		request["BackupSetID"] = v
 	}
-
-	if v, ok := d.GetOk("db_node_storage"); ok {
-		request["DBNodeStorage"] = v
+	request["DBClusterNetworkType"] = d.Get("db_cluster_network_type")
+	request["PayType"] = convertAdbDbClusterPayTypeRequest(d.Get("payment_type").(string))
+	if v, ok := d.GetOk("storage_type"); ok {
+		request["StorageType"] = v
 	}
-
-	if v, ok := d.GetOk("description"); ok {
+	if v, ok := d.GetOk("vswitch_id"); ok {
+		request["VSwitchId"] = v
+	}
+	if v, ok := d.GetOk("used_time"); ok {
+		request["UsedTime"] = v
+	}
+	if v, ok := d.GetOkExists("disk_encryption"); ok {
+		request["DiskEncryption"] = v
+	}
+	if v, ok := d.GetOk("kms_id"); ok {
+		request["KmsId"] = v
+	}
+	if v, ok := d.GetOk("restore_type"); ok {
+		request["RestoreType"] = v
+	}
+	if v, ok := d.GetOk("source_db_instance_name"); ok {
+		request["SourceDBInstanceName"] = v
+	}
+	if v, ok := d.GetOk("db_cluster_name"); ok {
 		request["DBClusterDescription"] = v
 	}
-
-	if v, ok := d.GetOk("mode"); ok {
-		request["Mode"] = v
+	request["Mode"] = d.Get("mode")
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
 	}
 
-	if v, ok := d.GetOk("payment_type"); ok {
-		request["PayType"] = convertAdbDBClusterPaymentTypeRequest(v.(string))
-		if request["PayType"] != string(Postpaid) {
-			request["PayType"] = string(Prepaid)
-			period := d.Get("period").(int)
-			request["UsedTime"] = strconv.Itoa(period)
-			request["Period"] = string(Month)
-			if period > 9 {
-				request["UsedTime"] = strconv.Itoa(period / 12)
-				request["Period"] = string(Year)
-			}
-		}
-	} else if v, ok := d.GetOk("pay_type"); ok {
-		request["PayType"] = convertAdbDbClusterDBClusterPayTypeRequest(v.(string))
-		if request["PayType"] != string(Postpaid) {
-			request["PayType"] = string(Prepaid)
-			period := d.Get("period").(int)
-			request["UsedTime"] = strconv.Itoa(period)
-			request["Period"] = string(Month)
-			if period > 9 {
-				request["UsedTime"] = strconv.Itoa(period / 12)
-				request["Period"] = string(Year)
-			}
-		}
-	} else {
-		request["PayType"] = "Postpaid"
+	if v, ok := d.GetOk("storage_resource"); ok {
+		request["StorageResource"] = v
 	}
-
-	if v, ok := d.GetOkExists("elastic_io_resource"); ok {
-		request["ElasticIOResource"] = v
+	if v, ok := d.GetOkExists("db_node_storage"); ok {
+		request["DBNodeStorage"] = v
 	}
-
-	request["RegionId"] = client.RegionId
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
-
-	if v, ok := d.GetOk("zone_id"); ok {
-		request["ZoneId"] = v
+	if v, ok := d.GetOk("executor_count"); ok {
+		request["ExecutorCount"] = v
+	}
+	request["DBClusterVersion"] = d.Get("db_cluster_version")
+	request["DBClusterCategory"] = d.Get("db_cluster_category")
+	if v, ok := d.GetOkExists("db_node_count"); ok {
+		request["DBNodeGroupCount"] = v
 	}
 	if v, ok := d.GetOk("vpc_id"); ok {
 		request["VPCId"] = v
 	}
-	if v, ok := d.GetOk("vswitch_id"); ok {
-		request["DBClusterNetworkType"] = "VPC"
-		request["VSwitchId"] = v
-	}
-
-	if (request["ZoneId"] == nil || request["VPCId"] == nil) && request["VSwitchId"] != nil {
-		vpcService := VpcService{client}
-		vsw, err := vpcService.DescribeVSwitchWithTeadsl(request["VSwitchId"].(string))
-		if err != nil {
-			return WrapError(err)
-		}
-		if request["VPCId"] == nil {
-			request["VPCId"] = vsw["VpcId"]
-		}
-		if request["ZoneId"] == nil {
-			request["ZoneId"] = vsw["ZoneId"]
-		}
-	}
-
-	if v, ok := d.GetOkExists("disk_encryption"); ok {
-		request["DiskEncryption"] = v
-	}
-
-	if v, ok := d.GetOk("kms_id"); ok {
-		request["KmsId"] = v
-	}
-
 	if v, ok := d.GetOkExists("enable_ssl"); ok {
 		request["EnableSSL"] = v
 	}
-
-	request["ClientToken"] = buildClientToken("CreateDBCluster")
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, true)
+	if v, ok := d.GetOk("elastic_io_resource"); ok {
+		request["ElasticIOResource"] = v
+	}
+	if v, ok := d.GetOk("period"); ok {
+		request["Period"] = v
+	}
+	if v, ok := d.GetOk("zone_id"); ok {
+		request["ZoneId"] = v
+	}
+	if v, ok := d.GetOk("restore_time"); ok {
+		request["RestoreTime"] = v
+	}
+	if v, ok := d.GetOk("compute_resource"); ok {
+		request["ComputeResource"] = v
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -349,7 +357,8 @@ func resourceAliCloudAdbDbClusterCreate(d *schema.ResourceData, meta interface{}
 
 	d.SetId(fmt.Sprint(response["DBClusterId"]))
 
-	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 300*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{"Deleting"}))
+	adbServiceV2 := AdbServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 15*time.Minute, adbServiceV2.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{"Deleting"}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -359,482 +368,183 @@ func resourceAliCloudAdbDbClusterCreate(d *schema.ResourceData, meta interface{}
 
 func resourceAliCloudAdbDbClusterRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	adbService := AdbService{client}
-	object, err := adbService.DescribeAdbDbCluster(d.Id())
+	adbServiceV2 := AdbServiceV2{client}
+
+	objectRaw, err := adbServiceV2.DescribeAdbDbCluster(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_analyticdb_for_mysql3.0_db_cluster adbService.DescribeAdbDbCluster Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_adb_db_cluster DescribeAdbDbCluster Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("compute_resource", object["ComputeResource"])
-	d.Set("connection_string", object["ConnectionString"])
-	d.Set("port", object["Port"])
-	d.Set("db_cluster_category", convertAdbDBClusterCategoryResponse(object["Category"].(string)))
-	d.Set("db_node_class", object["DBNodeClass"])
-	d.Set("db_node_count", object["DBNodeCount"])
-	d.Set("db_node_storage", object["DBNodeStorage"])
-	d.Set("description", object["DBClusterDescription"])
-	d.Set("elastic_io_resource", formatInt(object["ElasticIOResource"]))
-	d.Set("maintain_time", object["MaintainTime"])
-	d.Set("mode", object["Mode"])
-	d.Set("payment_type", convertAdbDBClusterPaymentTypeResponse(object["PayType"].(string)))
-	d.Set("pay_type", convertAdbDbClusterDBClusterPayTypeResponse(object["PayType"].(string)))
-	d.Set("resource_group_id", object["ResourceGroupId"])
-	d.Set("status", object["DBClusterStatus"])
-	d.Set("tags", tagsToMap(object["Tags"].(map[string]interface{})["Tag"]))
-	d.Set("vswitch_id", object["VSwitchId"])
-	d.Set("zone_id", object["ZoneId"])
-	d.Set("vpc_id", object["VPCId"])
-	d.Set("elastic_io_resource_size", object["ElasticIOResourceSize"])
-	d.Set("disk_performance_level", object["DiskPerformanceLevel"])
-	d.Set("db_cluster_version", object["DBVersion"])
-	d.Set("disk_encryption", object["DiskEncryption"])
-	d.Set("kms_id", object["KmsId"])
+	d.Set("compute_resource", objectRaw["ComputeResource"])
+	d.Set("create_time", objectRaw["CreationTime"])
+	d.Set("db_cluster_category", objectRaw["Category"])
+	d.Set("db_cluster_name", objectRaw["DBClusterDescription"])
+	d.Set("db_cluster_network_type", objectRaw["DBClusterNetworkType"])
+	d.Set("db_node_class", objectRaw["DBNodeClass"])
+	d.Set("db_node_count", objectRaw["DBNodeCount"])
+	d.Set("db_node_storage", objectRaw["DBNodeStorage"])
+	d.Set("disk_encryption", objectRaw["DiskEncryption"])
+	d.Set("disk_performance_level", objectRaw["DiskPerformanceLevel"])
+	d.Set("elastic_io_resource", objectRaw["ElasticIOResource"])
+	d.Set("elastic_io_resource_size", objectRaw["ElasticIOResourceSize"])
+	d.Set("executor_count", objectRaw["ExecutorCount"])
+	d.Set("kms_id", objectRaw["KmsId"])
+	d.Set("maintain_time", objectRaw["MaintainTime"])
+	d.Set("mode", objectRaw["Mode"])
+	d.Set("payment_type", convertAdbDbClusterItemsDBClusterPayTypeResponse(objectRaw["PayType"]))
+	d.Set("port", objectRaw["Port"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
+	d.Set("status", objectRaw["DBClusterStatus"])
+	d.Set("storage_resource", objectRaw["StorageResource"])
+	d.Set("vswitch_id", objectRaw["VSwitchId"])
+	d.Set("vpc_id", objectRaw["VPCId"])
+	d.Set("zone_id", objectRaw["ZoneId"])
 
-	if object["PayType"].(string) == string(Prepaid) {
-		describeAutoRenewAttributeObject, err := adbService.DescribeAutoRenewAttribute(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
-		renewPeriod := 1
-		if describeAutoRenewAttributeObject != nil {
-			renewPeriod = formatInt(describeAutoRenewAttributeObject["Duration"])
-		}
-		if describeAutoRenewAttributeObject != nil && describeAutoRenewAttributeObject["PeriodUnit"] == string(Year) {
-			renewPeriod = renewPeriod * 12
-		}
-		d.Set("auto_renew_period", renewPeriod)
-		//period, err := computePeriodByUnit(object["CreationTime"], object["ExpireTime"], d.Get("period").(int), "Month")
-		//if err != nil {
-		//	return WrapError(err)
-		//}
-		//d.Set("period", period)
-		d.Set("renewal_status", describeAutoRenewAttributeObject["RenewalStatus"])
-	}
+	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
 
-	describeDBClusterAccessWhiteListObject, err := adbService.DescribeDBClusterAccessWhiteList(d.Id())
-	if err != nil {
+	objectRaw, err = adbServiceV2.DescribeDbClusterDescribeDBClusters(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	d.Set("security_ips", strings.Split(describeDBClusterAccessWhiteListObject["SecurityIPList"].(string), ","))
+	d.Set("compute_resource", objectRaw["ComputeResource"])
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("db_cluster_category", objectRaw["Category"])
+	d.Set("db_cluster_name", objectRaw["DBClusterDescription"])
+	d.Set("db_cluster_network_type", objectRaw["DBClusterNetworkType"])
+	d.Set("db_cluster_version", objectRaw["DBVersion"])
+	d.Set("db_node_class", objectRaw["DBNodeClass"])
+	d.Set("db_node_count", objectRaw["DBNodeCount"])
+	d.Set("db_node_storage", objectRaw["DBNodeStorage"])
+	d.Set("elastic_io_resource", objectRaw["ElasticIOResource"])
+	d.Set("executor_count", objectRaw["ExecutorCount"])
+	d.Set("pay_type", objectRaw["PayType"])
+	d.Set("port", formatInt(objectRaw["Port"]))
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("status", objectRaw["DBClusterStatus"])
+	d.Set("storage_resource", objectRaw["StorageResource"])
+	d.Set("vswitch_id", objectRaw["VSwitchId"])
+	d.Set("vpc_id", objectRaw["VPCId"])
+	d.Set("zone_id", objectRaw["ZoneId"])
 
-	sslObject, err := adbService.DescribeAdbDbClusterSSL(d.Id())
-	if err != nil {
-		log.Printf("[WARN] Resource alicloud_adb_db_cluster DescribeAdbDbClusterSSL Failed!!! %s", err)
-	} else {
-		d.Set("enable_ssl", sslObject["SSLEnabled"])
-	}
-	kernelObject, err := adbService.DescribeAdbDbClusterKernelVersion(d.Id())
-	if err != nil {
+	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
+
+	objectRaw, err = adbServiceV2.DescribeDbClusterDescribeAutoRenewAttribute(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	d.Set("kernel_version", kernelObject["KernelVersion"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("renewal_status", objectRaw["RenewalStatus"])
+
+	objectRaw, err = adbServiceV2.DescribeDbClusterDescribeDBClusterAccessWhiteList(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("security_ips", objectRaw["SecurityIPList"])
+
+	objectRaw, err = adbServiceV2.DescribeDbClusterDescribeDBClusterSSL(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("enable_ssl", objectRaw["SSLEnabled"])
+
+	objectRaw, err = adbServiceV2.DescribeDbClusterDescribeKernelVersion(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("kernel_version", objectRaw["KernelVersion"])
 
 	return nil
 }
 
 func resourceAliCloudAdbDbClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	adbService := AdbService{client}
+	var request map[string]interface{}
 	var response map[string]interface{}
-	var err error
+	var query map[string]interface{}
+	update := false
 	d.Partial(true)
 
-	if d.HasChange("tags") {
-		if err := adbService.SetResourceTags(d, "ALIYUN::ADB::CLUSTER"); err != nil {
-			return WrapError(err)
-		}
-		d.SetPartial("tags")
-	}
-
-	if !d.IsNewResource() && d.HasChange("description") {
-		request := map[string]interface{}{
-			"DBClusterId": d.Id(),
-		}
-		request["DBClusterDescription"] = d.Get("description")
-		action := "ModifyDBClusterDescription"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetPartial("description")
-	}
-
-	if d.HasChange("maintain_time") {
-		request := map[string]interface{}{
-			"DBClusterId": d.Id(),
-		}
-		request["MaintainTime"] = d.Get("maintain_time")
-		action := "ModifyDBClusterMaintainTime"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetPartial("maintain_time")
-	}
-
-	if !d.IsNewResource() && d.HasChange("resource_group_id") {
-		request := map[string]interface{}{
-			"DBClusterId": d.Id(),
-		}
-		request["NewResourceGroupId"] = d.Get("resource_group_id")
-		action := "ModifyDBClusterResourceGroup"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetPartial("resource_group_id")
-	}
-
-	update := false
-	request := map[string]interface{}{
-		"DbClusterId": d.Id(),
-	}
+	var err error
+	action := "ModifyDBCluster"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
 	request["RegionId"] = client.RegionId
-
-	if !d.IsNewResource() && (d.HasChange("pay_type") || d.HasChange("payment_type")) {
-		update = true
-	}
-
-	if paymentType, ok := d.GetOk("payment_type"); ok {
-		request["PayType"] = convertAdbDBClusterPaymentTypeRequest(paymentType.(string))
-	} else if payType, ok := d.GetOk("pay_type"); ok {
-		request["PayType"] = convertAdbDbClusterDBClusterPayTypeRequest(payType.(string))
-	}
-	if request["PayType"] == "Prepaid" {
-		request["Period"] = d.Get("period")
-		period := d.Get("period").(int)
-		request["UsedTime"] = strconv.Itoa(period)
-		request["Period"] = string(Month)
-		if period > 9 {
-			request["UsedTime"] = strconv.Itoa(period / 12)
-			request["Period"] = string(Year)
-		}
-	}
-
-	if update {
-		action := "ModifyDBClusterPayType"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) || IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		stateConf := BuildStateConf([]string{"Preparing", "ClassChanging"}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 120*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-
-		d.SetPartial("payment_type")
-		d.SetPartial("pay_type")
-	}
-
-	update = false
-	request = map[string]interface{}{
-		"DBClusterId": d.Id(),
-	}
-	request["RegionId"] = client.RegionId
-	if (d.Get("pay_type").(string) == string(PrePaid) || d.Get("payment_type").(string) == "Subscription") && d.HasChange("auto_renew_period") {
-		update = true
-		if d.Get("renewal_status").(string) == string(RenewAutoRenewal) {
-			period := d.Get("auto_renew_period").(int)
-			request["Duration"] = strconv.Itoa(period)
-			request["PeriodUnit"] = string(Month)
-			if period > 9 {
-				request["Duration"] = strconv.Itoa(period / 12)
-				request["PeriodUnit"] = string(Year)
-			}
-		}
-	}
-	if (d.Get("pay_type").(string) == string(PrePaid) || d.Get("payment_type").(string) == "Subscription") && d.HasChange("renewal_status") {
-		update = true
-		request["RenewalStatus"] = d.Get("renewal_status")
-	}
-	if update {
-		action := "ModifyAutoRenewAttribute"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		stateConf := BuildStateConf([]string{"Preparing", "ClassChanging"}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 120*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-
-		d.SetPartial("auto_renew_period")
-		d.SetPartial("renewal_status")
-	}
-
-	update = false
-	modifyDBClusterAccessWhiteListReq := map[string]interface{}{
-		"DBClusterId": d.Id(),
-	}
-	if d.HasChange("security_ips") {
-		update = true
-	}
-	modifyDBClusterAccessWhiteListReq["SecurityIps"] = convertListToCommaSeparate(d.Get("security_ips").(*schema.Set).List())
-	if update {
-		action := "ModifyDBClusterAccessWhiteList"
-		if modifyDBClusterAccessWhiteListReq["SecurityIps"].(string) == "" {
-			modifyDBClusterAccessWhiteListReq["SecurityIps"] = LOCAL_HOST_IP
-		}
-
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, modifyDBClusterAccessWhiteListReq, false)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, modifyDBClusterAccessWhiteListReq)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		d.SetPartial("security_ips")
-	}
-
-	update = false
-	modifyDBClusterReq := map[string]interface{}{
-		"DBClusterId": d.Id(),
-	}
-	if !d.IsNewResource() && d.HasChange("compute_resource") {
-		update = true
-		modifyDBClusterReq["ComputeResource"] = d.Get("compute_resource")
-	}
-	if !d.IsNewResource() && d.HasChange("db_cluster_category") {
-		update = true
-		modifyDBClusterReq["DBClusterCategory"] = d.Get("db_cluster_category")
-	}
 	if !d.IsNewResource() && d.HasChange("db_node_class") {
 		update = true
-		modifyDBClusterReq["DBNodeClass"] = d.Get("db_node_class")
-	}
-	if !d.IsNewResource() && d.HasChange("db_node_count") {
-		update = true
-		modifyDBClusterReq["DBNodeGroupCount"] = d.Get("db_node_count")
-	}
-	if !d.IsNewResource() && d.HasChange("elastic_io_resource") {
-		update = true
-		modifyDBClusterReq["ElasticIOResource"] = d.Get("elastic_io_resource")
-	}
-
-	object, err := adbService.DescribeAdbDbCluster(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
-
-	if d.HasChange("elastic_io_resource_size") {
-		if v, ok := d.GetOk("elastic_io_resource_size"); ok && v.(string) != object["ElasticIOResourceSize"] {
-			update = true
-
-			modifyDBClusterReq["ElasticIOResourceSize"] = v
-		}
-	}
-
-	modifyDBClusterReq["RegionId"] = client.RegionId
-	if update {
-		if _, ok := d.GetOk("mode"); ok {
-			modifyDBClusterReq["Mode"] = d.Get("mode")
-		}
-		if _, ok := d.GetOk("modify_type"); ok {
-			modifyDBClusterReq["ModifyType"] = d.Get("modify_type")
-		}
-		action := "ModifyDBCluster"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, modifyDBClusterReq, false)
-			if err != nil {
-				if NeedRetry(err) || IsExpectedErrors(err, []string{"IncorrectDBInstanceState", "OperationDenied.OrderProcessing"}) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, modifyDBClusterReq)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		stateConf := BuildStateConf([]string{"Preparing", "ClassChanging"}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 120*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-
-		if d.HasChange("compute_resource") {
-			stateConf = BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("compute_resource"))}, d.Timeout(schema.TimeoutUpdate), 0*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "ComputeResource", []string{}))
-			if _, err := stateConf.WaitForState(); err != nil {
-				return WrapErrorf(err, IdMsg, d.Id())
-			}
-		}
-
-		d.SetPartial("compute_resource")
-		d.SetPartial("db_cluster_category")
-		d.SetPartial("db_node_class")
-		d.SetPartial("db_node_count")
-		d.SetPartial("elastic_io_resource")
-		d.SetPartial("elastic_io_resource_size")
-	}
-
-	update = false
-	modifyDBClusterReq = map[string]interface{}{
-		"DBClusterId": d.Id(),
+		request["DBNodeClass"] = d.Get("db_node_class")
 	}
 
 	if !d.IsNewResource() && d.HasChange("db_node_storage") {
 		update = true
-		modifyDBClusterReq["DBNodeStorage"] = d.Get("db_node_storage")
+		request["DBNodeStorage"] = d.Get("db_node_storage")
 	}
 
-	modifyDBClusterReq["RegionId"] = client.RegionId
-	if update {
-		if _, ok := d.GetOk("mode"); ok {
-			modifyDBClusterReq["Mode"] = d.Get("mode")
-		}
-		if _, ok := d.GetOk("modify_type"); ok {
-			modifyDBClusterReq["ModifyType"] = d.Get("modify_type")
-		}
-		action := "ModifyDBCluster"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, modifyDBClusterReq, false)
-			if err != nil {
-				// There is service bug and needs checking IncorrectDBInstanceState.
-				// If the bug is fixed, the IncorrectDBInstanceState checking can be removed.
-				if NeedRetry(err) || IsExpectedErrors(err, []string{"IncorrectDBInstanceState", "OperationDenied.OrderProcessing"}) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, modifyDBClusterReq)
-
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-
-		stateConf := BuildStateConf([]string{"Preparing", "ClassChanging"}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 120*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
-
-		d.SetPartial("db_node_storage")
+	if v, ok := d.GetOk("modify_type"); ok {
+		request["ModifyType"] = v
+	}
+	if !d.IsNewResource() && d.HasChange("executor_count") {
+		update = true
+		request["ExecutorCount"] = d.Get("executor_count")
 	}
 
-	update = false
-	modifyDBClusterReq = map[string]interface{}{
-		"DBClusterId": d.Id(),
+	if d.HasChange("elastic_io_resource_size") {
+		update = true
+		request["ElasticIOResourceSize"] = d.Get("elastic_io_resource_size")
+	}
+
+	if !d.IsNewResource() && d.HasChange("db_cluster_category") {
+		update = true
+	}
+	request["DBClusterCategory"] = d.Get("db_cluster_category")
+	if !d.IsNewResource() && d.HasChange("db_node_count") {
+		update = true
+		request["DBNodeGroupCount"] = d.Get("db_node_count")
+	}
+
+	if !d.IsNewResource() && d.HasChange("mode") {
+		update = true
+	}
+	request["Mode"] = d.Get("mode")
+	if !d.IsNewResource() && d.HasChange("elastic_io_resource") {
+		update = true
+		request["ElasticIOResource"] = d.Get("elastic_io_resource")
+	}
+
+	if !d.IsNewResource() && d.HasChange("storage_resource") {
+		update = true
+		request["StorageResource"] = d.Get("storage_resource")
+	}
+
+	if !d.IsNewResource() && d.HasChange("compute_resource") {
+		update = true
+		request["ComputeResource"] = d.Get("compute_resource")
 	}
 
 	if d.HasChange("disk_performance_level") {
-		if v, ok := d.GetOk("disk_performance_level"); ok && v.(string) != object["DiskPerformanceLevel"] {
-			update = true
-
-			modifyDBClusterReq["DiskPerformanceLevel"] = v
-		}
+		update = true
+		request["DiskPerformanceLevel"] = d.Get("disk_performance_level")
 	}
 
-	modifyDBClusterReq["RegionId"] = client.RegionId
 	if update {
-		if _, ok := d.GetOk("mode"); ok {
-			modifyDBClusterReq["Mode"] = d.Get("mode")
-		}
-		if _, ok := d.GetOk("modify_type"); ok {
-			modifyDBClusterReq["ModifyType"] = d.Get("modify_type")
-		}
-		action := "ModifyDBCluster"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, modifyDBClusterReq, false)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 			if err != nil {
-				// There is service bug and needs checking IncorrectDBInstanceState.
-				// If the bug is fixed, the IncorrectDBInstanceState checking can be removed.
-				if NeedRetry(err) || IsExpectedErrors(err, []string{"IncorrectDBInstanceState", "OperationDenied.OrderProcessing"}) {
+				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -842,38 +552,30 @@ func resourceAliCloudAdbDbClusterUpdate(d *schema.ResourceData, meta interface{}
 			}
 			return nil
 		})
-		addDebug(action, response, modifyDBClusterReq)
-
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-
-		stateConf := BuildStateConf([]string{"Preparing", "ClassChanging"}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 120*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
+		adbServiceV2 := AdbServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 15*time.Minute, adbServiceV2.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-
-		d.SetPartial("disk_performance_level")
 	}
-
 	update = false
-	upgradeKernelVersionReq := map[string]interface{}{
-		"DBClusterId": d.Id(),
-	}
+	action = "ModifyDBClusterMaintainTime"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
 
-	if !d.IsNewResource() && d.HasChange("kernel_version") {
+	if d.HasChange("maintain_time") {
 		update = true
-		upgradeKernelVersionReq["DBVersion"] = d.Get("kernel_version")
-		if v, ok := d.GetOkExists("switch_mode"); ok {
-			upgradeKernelVersionReq["SwitchMode"] = v
-		}
 	}
-
+	request["MaintainTime"] = d.Get("maintain_time")
 	if update {
-		action := "UpgradeKernelVersion"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, upgradeKernelVersionReq, false)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -881,42 +583,164 @@ func resourceAliCloudAdbDbClusterUpdate(d *schema.ResourceData, meta interface{}
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, upgradeKernelVersionReq)
 			return nil
 		})
-
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
+	}
+	update = false
+	action = "ModifyDBClusterDescription"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
 
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 1*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+	if !d.IsNewResource() && d.HasChange("db_cluster_name") {
+		update = true
+	}
+	request["DBClusterDescription"] = d.Get("db_cluster_name")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
-
 	update = false
-	modifyDBClusterSSLReq := map[string]interface{}{
-		"DBClusterId": d.Id(),
+	action = "ModifyDBClusterAccessWhiteList"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	if v, ok := d.GetOk("db_cluster_ip_array_attribute"); ok {
+		request["DBClusterIPArrayAttribute"] = v
+	}
+	if v, ok := d.GetOk("modify_mode"); ok {
+		request["ModifyMode"] = v
+	}
+	if v, ok := d.GetOk("db_cluster_ip_array_name"); ok {
+		request["DBClusterIPArrayName"] = v
+	}
+	if d.HasChange("security_ips") {
+		update = true
+	}
+	request["SecurityIps"] = d.Get("security_ips")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyAutoRenewAttribute"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if v, ok := d.GetOk("period_unit"); ok {
+		request["PeriodUnit"] = v
+	}
+	if d.HasChange("renewal_status") {
+		update = true
+		request["RenewalStatus"] = d.Get("renewal_status")
 	}
 
+	if v, ok := d.GetOkExists("auto_renew_period"); ok {
+		request["Duration"] = v
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyDBClusterPayType"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DbClusterId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if !d.IsNewResource() && d.HasChange("payment_type") {
+		update = true
+	}
+	request["PayType"] = convertAdbDbClusterPayTypeRequest(d.Get("payment_type").(string))
+	if v, ok := d.GetOk("used_time"); ok {
+		request["UsedTime"] = v
+	}
+	if v, ok := d.GetOk("period"); ok {
+		request["Period"] = v
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyDBClusterSSL"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	if v, ok := d.GetOk("connection_string"); ok {
+		request["ConnectionString"] = v
+	}
 	if !d.IsNewResource() && d.HasChange("enable_ssl") {
 		update = true
-
-		if v, ok := d.GetOkExists("enable_ssl"); ok {
-			modifyDBClusterSSLReq["EnableSSL"] = v
-
-			if fmt.Sprint(v) == "true" {
-				modifyDBClusterSSLReq["ConnectionString"] = d.Get("connection_string")
-			}
-		}
 	}
-
+	request["EnableSSL"] = d.Get("enable_ssl")
 	if update {
-		action := "ModifyDBClusterSSL"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("adb", "2019-03-15", action, nil, modifyDBClusterSSLReq, false)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -926,114 +750,304 @@ func resourceAliCloudAdbDbClusterUpdate(d *schema.ResourceData, meta interface{}
 			}
 			return nil
 		})
-		addDebug(action, response, modifyDBClusterSSLReq)
-
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 1*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
+		adbServiceV2 := AdbServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, adbServiceV2.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
+	}
+	update = false
+	action = "UpgradeKernelVersion"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
 
-		d.SetPartial("enable_ssl")
+	if d.HasChange("kernel_version") {
+		update = true
+		request["DBVersion"] = d.Get("kernel_version")
 	}
 
+	if v, ok := d.GetOkExists("switch_mode"); ok {
+		request["SwitchMode"] = v
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyDBClusterVip"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if v, ok := d.GetOk("connection_string"); ok {
+		request["ConnectionString"] = v
+	}
+	if !d.IsNewResource() && d.HasChange("vpc_id") {
+		update = true
+	}
+	request["VPCId"] = d.Get("vpc_id")
+	if !d.IsNewResource() && d.HasChange("vswitch_id") {
+		update = true
+	}
+	request["VSwitchId"] = d.Get("vswitch_id")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "AttachUserENI"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "DetachUserENI"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyDBClusterResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
+		update = true
+	}
+	request["NewResourceGroupId"] = d.Get("resource_group_id")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	if d.HasChange("tags") {
+		adbServiceV2 := AdbServiceV2{client}
+		if err := adbServiceV2.SetResourceTags(d, "ALIYUN::ADB::CLUSTER"); err != nil {
+			return WrapError(err)
+		}
+	}
+	if !d.IsNewResource() && d.HasChange("region_id") {
+		oldEntry, newEntry := d.GetChange("region_id")
+		oldValue := oldEntry.(string)
+		newValue := newEntry.(string)
+
+		if oldValue != "" {
+			action := "UntagResources"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RegionId"] = client.RegionId
+			localData := removed.List()
+			rightDeltaData, err := jsonpath.Get("$[*].tag_key", localData)
+			if err != nil {
+				return WrapError(err)
+			}
+			localDataArray := rightDeltaData
+			request["TagKey"] = localDataArray
+
+			request["ResourceType"] = "ALIYUN::ADB::CLUSTER"
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+
+		if newValue != "" {
+			action := "TagResources"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RegionId"] = client.RegionId
+			localData := added.List()
+			tagMapsArray := make([]interface{}, 0)
+			for _, dataLoop := range localData {
+				dataLoopTmp := dataLoop.(map[string]interface{})
+				dataLoopMap := make(map[string]interface{})
+				dataLoopMap["Value"] = dataLoopTmp["tag_value"]
+				dataLoopMap["Key"] = dataLoopTmp["tag_key"]
+				tagMapsArray = append(tagMapsArray, dataLoopMap)
+			}
+			request["Tag"] = tagMapsArray
+
+			request["ResourceType"] = "ALIYUN::ADB::CLUSTER"
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", d.Id())
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+	}
 	d.Partial(false)
-
-	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 1*time.Second, adbService.AdbDbClusterStateRefreshFunc(d.Id(), "DBClusterStatus", []string{"Deleting"}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
-	}
-
 	return resourceAliCloudAdbDbClusterRead(d, meta)
 }
 
 func resourceAliCloudAdbDbClusterDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	adbService := AdbService{client}
 	action := "DeleteDBCluster"
+	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
-	request := map[string]interface{}{
-		"DBClusterId": d.Id(),
-	}
-	var taskId string
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+	request = make(map[string]interface{})
+	request["DBClusterId"] = d.Id()
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("adb", "2019-03-15", action, nil, request, false)
+		response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) || IsExpectedErrors(err, []string{"IncorrectDBInstanceState", "OperationDenied.OrderProcessing"}) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		taskId = response["TaskId"].(json.Number).String()
 		return nil
 	})
 	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidDBCluster.NotFound", "InvalidDBClusterId.NotFound"}) {
+		if IsExpectedErrors(err, []string{"InvalidDBCluster.NotFound"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
-	stateConf := BuildStateConf([]string{"Waiting", "Running", "Failed", "Retry", "Pause", "Stop"}, []string{"Finished", "Closed", "Cancel"}, d.Timeout(schema.TimeoutDelete), 1*time.Minute, adbService.AdbTaskStateRefreshFunc(d.Id(), taskId))
-	if _, err = stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
-	}
-
 	return nil
 }
 
-func convertAdbDbClusterDBClusterPayTypeRequest(source string) string {
+func convertAdbDbClusterItemsDBClusterPayTypeResponse(source interface{}) interface{} {
+	source = fmt.Sprint(source)
 	switch source {
-	case "PostPaid":
-		return "Postpaid"
-	case "PrePaid":
-		return "Prepaid"
-	}
-	return source
-}
-
-func convertAdbDbClusterDBClusterPayTypeResponse(source string) string {
-	switch source {
-	case "Postpaid":
-		return "PostPaid"
-	case "Prepaid":
-		return "PrePaid"
-	}
-	return source
-}
-
-func convertAdbDBClusterPaymentTypeRequest(source string) string {
-	switch source {
-	case "PayAsYouGo":
-		return "Postpaid"
-	case "Subscription":
-		return "Prepaid"
-	}
-	return source
-}
-
-func convertAdbDBClusterPaymentTypeResponse(source string) string {
-	switch source {
-	case "Postpaid":
-		return "PayAsYouGo"
 	case "Prepaid":
 		return "Subscription"
+	case "Postpaid":
+		return "PayAsYouGo"
 	}
 	return source
 }
-
-func convertAdbDBClusterCategoryResponse(source string) string {
+func convertAdbDbClusterPayTypeRequest(source interface{}) interface{} {
+	source = fmt.Sprint(source)
 	switch source {
-	case "MIXED_STORAGE":
-		return "MixedStorage"
+	case "Subscription":
+		return "Prepaid"
+	case "PayAsYouGo":
+		return "Postpaid"
 	}
 	return source
 }
