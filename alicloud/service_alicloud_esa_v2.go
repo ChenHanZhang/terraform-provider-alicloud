@@ -632,15 +632,15 @@ func (s *EsaServiceV2) DescribeEsaRatePlanInstance(id string) (object map[string
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "ListUserRatePlanInstances"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["InstanceId"] = id
-	query["RegionId"] = client.RegionId
+
+	action := "ListUserRatePlanInstances"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("ESA", "2024-09-10", action, query, nil)
+		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -666,25 +666,26 @@ func (s *EsaServiceV2) DescribeEsaRatePlanInstance(id string) (object map[string
 	}
 
 	currentStatus := v.([]interface{})[0].(map[string]interface{})["Status"]
-	if currentStatus == "offline" {
+	if fmt.Sprint(currentStatus) == "offline" {
 		return object, WrapErrorf(NotFoundErr("RatePlanInstance", id), NotFoundMsg, response)
 	}
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
-func (s *EsaServiceV2) DescribeDescribeRatePlanInstanceStatus(id string) (object map[string]interface{}, err error) {
+func (s *EsaServiceV2) DescribeRatePlanInstanceDescribeRatePlanInstanceStatus(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeRatePlanInstanceStatus"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["InstanceId"] = id
+	request["InstanceId"] = id
+
+	action := "DescribeRatePlanInstanceStatus"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, nil, true)
+		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -702,17 +703,55 @@ func (s *EsaServiceV2) DescribeDescribeRatePlanInstanceStatus(id string) (object
 
 	return response, nil
 }
+func (s *EsaServiceV2) DescribeRatePlanInstanceDescribeDdosMaxBurstGbps(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	query["InstanceId"] = id
+
+	action := "DescribeDdosMaxBurstGbps"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"InstanceNotExist"}) {
+			return object, WrapErrorf(NotFoundErr("RatePlanInstance", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
 
 func (s *EsaServiceV2) EsaRatePlanInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EsaRatePlanInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaRatePlanInstance)
+}
+
+func (s *EsaServiceV2) EsaRatePlanInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeDescribeRatePlanInstanceStatus(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
+		object["BillingMode"] = convertEsaRatePlanInstanceInstanceInfoBillingModeResponse(object["BillingMode"])
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
