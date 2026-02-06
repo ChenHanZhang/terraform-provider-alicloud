@@ -2,27 +2,23 @@
 subcategory: "AnalyticDB for MySQL (ADB)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_adb_connection"
-sidebar_current: "docs-alicloud-resource-adb-connection"
 description: |-
-  Provides an ADB cluster connection resource.
+  Provides a Alicloud AnalyticDB for MySQL (ADB) Connection resource.
 ---
 
 # alicloud_adb_connection
 
-Provides an ADB connection resource to allocate an Internet connection string for ADB cluster.
+Provides a AnalyticDB for MySQL (ADB) Connection resource.
 
--> **NOTE:** Each ADB instance will allocate a intranet connnection string automatically and its prifix is ADB instance ID.
- To avoid unnecessary conflict, please specified a internet connection prefix before applying the resource.
+The access connection of the ADB instance. Users can access the ADB instance through the connection address.
+
+For information about AnalyticDB for MySQL (ADB) Connection and how to use it, see [What is Connection](https://next.api.alibabacloud.com/document/adb/2019-03-15/AllocateClusterPublicConnection).
 
 -> **NOTE:** Available since v1.81.0.
 
 ## Example Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_adb_connection&exampleId=28d0f9f6-fdbe-710b-3d91-1e6ffe52d36cbdcfa06e&activeTab=example&spm=docs.r.adb_connection.0.28d0f9f6fd&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "name" {
@@ -57,28 +53,40 @@ resource "alicloud_adb_connection" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_adb_connection&spm=docs.r.adb_connection.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `connection_string` - (Optional, Computed) Connection string of the Data Warehouse Edition cluster to be modified.  
 
-* `db_cluster_id` - (Required, ForceNew) The Id of cluster that can run database.
-* `connection_prefix` - (Optional, ForceNew) Prefix of the cluster public endpoint. The prefix must be 6 to 30 characters in length, and can contain lowercase letters, digits, and hyphens (-), must start with a letter and end with a digit or letter. Default to `<db_cluster_id> + tf`.
+-> **NOTE:**  You can call the [DescribeDBClusterNetInfo](https://help.aliyun.com/document_detail/143384.html) operation to view the cluster's connection strings.
+
+* `connection_string_prefix` - (Optional, ForceNew, Available since v1.271.0) Prefix of the public endpoint.  
+  - Must start with a lowercase letter and consist only of lowercase letters, digits, and hyphens (-).  
+  - Must be no longer than 30 characters.  
+  - Defaults to the cluster name.
+* `db_cluster_id` - (Required, ForceNew) AnalyticDB for MySQL Data Warehouse Edition cluster ID.  
+
+-> **NOTE:**  You can call the [DescribeDBClusters](https://help.aliyun.com/document_detail/129857.html) operation to view the cluster IDs of all Data Warehouse Edition clusters in the target region.
+
+* `port` - (Optional, ForceNew, Computed, Int) Port number, fixed as `3306`. Modification is not currently supported.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `ip_address` - IP address.
 
-* `id` - The current cluster connection resource ID. Composed of cluster ID and connection string with format `<db_cluster_id>:<connection_prefix>`.
-* `port` - Connection cluster port.
-* `connection_string` - Connection cluster string.
-* `ip_address` - The ip address of connection string.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Connection.
+* `delete` - (Defaults to 5 mins) Used when delete the Connection.
+* `update` - (Defaults to 5 mins) Used when update the Connection.
 
 ## Import
 
-ADB connection can be imported using the id, e.g.
+AnalyticDB for MySQL (ADB) Connection can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_adb_connection.example am-12345678
+$ terraform import alicloud_adb_connection.example <db_cluster_id>
 ```
