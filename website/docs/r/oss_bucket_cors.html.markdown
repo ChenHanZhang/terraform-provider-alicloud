@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_oss_bucket_cors
 
-Provides a OSS Bucket Cors resource. Cross-Origin Resource Sharing (CORS) allows web applications to access resources in other regions.
+Provides a OSS Bucket Cors resource.
+
+Cross-Origin Resource Sharing (CORS) allows web applications to access resources in other regions.
 
 For information about OSS Bucket Cors and how to use it, see [What is Bucket Cors](https://www.alibabacloud.com/help/en/oss/developer-reference/putbucketcors).
 
@@ -17,12 +19,6 @@ For information about OSS Bucket Cors and how to use it, see [What is Bucket Cor
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_cors&exampleId=efee4706-8728-22cc-95cf-07c5f321a8a2e5a05f33&activeTab=example&spm=docs.r.oss_bucket_cors.0.efee470687&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -61,28 +57,27 @@ resource "alicloud_oss_bucket_cors" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_oss_bucket_cors&spm=docs.r.oss_bucket_cors.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `bucket` - (Required, ForceNew) The name of the Bucket.
-* `cors_rule` - (Required) The Cross-Origin Resource Sharing (CORS) configuration of the Bucket. See [`cors_rule`](#cors_rule) below.
-* `response_vary` - (Optional, Computed) Specifies whether to return the Vary: Origin header. Valid values: true: returns the Vary: Origin header, regardless of whether the request is a cross-origin request or whether the cross-origin request succeeds. false: does not return the Vary: Origin header. This element is valid only when at least one CORS rule is configured.
+* `bucket` - (Required, ForceNew) The name of the Bucket
+* `cors_rule` - (Required, List) The Cross-Origin Resource Sharing (CORS) configuration of the Bucket See [`cors_rule`](#cors_rule) below.
+* `response_vary` - (Optional, Computed) Specifies whether to return the Vary: Origin header. Valid values: true: returns the Vary: Origin header, regardless of whether the request is a cross-origin request or whether the cross-origin request succeeds. false: does not return the Vary: Origin header.
+This element is valid only when at least one CORS rule is configured.
 
 ### `cors_rule`
 
 The cors_rule supports the following:
-* `allowed_headers` - (Optional) Specifies whether the headers specified by Access-Control-Request-Headers in the OPTIONS preflight request are allowed. You can use only one asterisk (*) as the wildcard for allowed header. .
-* `allowed_methods` - (Required) The cross-origin request method that is allowed. Valid values: GET, PUT, DELETE, POST, and HEAD.
-* `allowed_origins` - (Optional) The origins from which cross-origin requests are allowed. .
-* `expose_header` - (Optional) The response headers for allowed access requests from applications, such as an XMLHttpRequest object in JavaScript. .
-* `max_age_seconds` - (Optional) The period of time within which the browser can cache the response to an OPTIONS preflight request for the specified resource. Unit: seconds.
+* `allowed_headers` - (Optional, List) Specifies whether the headers specified by Access-Control-Request-Headers in the OPTIONS preflight request are allowed. You can use only one asterisk (*) as the wildcard for allowed header. 
+* `allowed_methods` - (Required, List) The cross-origin request method that is allowed. Valid values: GET, PUT, DELETE, POST, and HEAD.
+* `allowed_origins` - (Optional, List) The origins from which cross-origin requests are allowed. 
+* `expose_headers` - (Optional, List, Available since v1.271.0) The response headers for allowed access requests from applications, such as an XMLHttpRequest object in JavaScript. 
+* `max_age_seconds` - (Optional, Int) The period of time within which the browser can cache the response to an OPTIONS preflight request for the specified resource. Unit: seconds.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
 
@@ -96,5 +91,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 OSS Bucket Cors can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_oss_bucket_cors.example <id>
+$ terraform import alicloud_oss_bucket_cors.example <bucket>
 ```
