@@ -14,17 +14,11 @@ After you enable and configure logging for a bucket, Object Storage Service (OSS
 
 For information about OSS Bucket Logging and how to use it, see [What is Bucket Logging](https://next.api.alibabacloud.com/document/Oss/2019-05-17/PutBucketLogging).
 
--> **NOTE:** Available since v1.222.0.
+-> **NOTE:** Available since v1.271.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_logging&exampleId=cc51cd4a-2444-5f8e-220e-c632e98582a7eaaee009&activeTab=example&spm=docs.r.oss_bucket_logging.0.cc51cd4a24&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -58,20 +52,18 @@ resource "alicloud_oss_bucket_logging" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_oss_bucket_logging&spm=docs.r.oss_bucket_logging.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `bucket` - (Required, ForceNew) The name of the bucket
-* `logging_role` - (Optional, Available since v1.262.0) Authorization role used for bucket logging
+* `logging_role` - (Optional) Authorization role used for bucket logging
 * `target_bucket` - (Required) The bucket that stores access logs.
 * `target_prefix` - (Optional) The prefix of the saved log objects. This element can be left empty.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
 
@@ -85,5 +77,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 OSS Bucket Logging can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_oss_bucket_logging.example <id>
+$ terraform import alicloud_oss_bucket_logging.example <bucket>
 ```

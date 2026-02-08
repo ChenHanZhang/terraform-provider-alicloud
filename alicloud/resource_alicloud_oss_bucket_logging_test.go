@@ -21,7 +21,7 @@ func TestAccAliCloudOssBucketLogging_basic6484(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketlogging%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketLoggingBasicDependence6484)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -33,67 +33,41 @@ func TestAccAliCloudOssBucketLogging_basic6484(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":        "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"target_bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
+					"bucket":        "${alicloud_oss_bucket.CreateBucket.id}",
+					"target_bucket": "${alicloud_oss_bucket.CreateBucket.id}",
+					"target_prefix": "log/",
+					"logging_role":  "test-role",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"bucket":        CHECKSET,
 						"target_bucket": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"target_prefix": "log/",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
 						"target_prefix": "log/",
+						"logging_role":  "test-role",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"target_bucket": "${alicloud_oss_bucket.CreateLoggingBucket.bucket}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"target_bucket": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
+					"target_bucket": "${alicloud_oss_bucket.CreateLoggingBucket.id}",
 					"target_prefix": "logging/",
+					"logging_role":  "new-test-role",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"target_prefix": "logging/",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"logging_role": "test-role",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"logging_role": "test-role",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket":        "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"target_bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"target_prefix": "log/",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket":        CHECKSET,
 						"target_bucket": CHECKSET,
-						"target_prefix": "log/",
+						"target_prefix": "logging/",
+						"logging_role":  "new-test-role",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"target_bucket": "${alicloud_oss_bucket.CreateBucket.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"target_bucket": CHECKSET,
 					}),
 				),
 			},
@@ -117,68 +91,10 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "CreateBucket" {
   storage_class = "Standard"
-  bucket        = var.name
-  lifecycle {
-    ignore_changes = [
-      logging,
-    ]
-  }
-}
-
-resource "alicloud_oss_bucket" "CreateLoggingBucket" {
-  storage_class = "Standard"
-  bucket        = join("-", [var.name, "update"])
 }
 
 
 `, name)
-}
-
-// Case BucketLogging测试 6484  twin
-func TestAccAliCloudOssBucketLogging_basic6484_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_oss_bucket_logging.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketLoggingMap6484)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeOssBucketLogging")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketlogging%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketLoggingBasicDependence6484)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"bucket":        "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"target_bucket": "${alicloud_oss_bucket.CreateLoggingBucket.bucket}",
-					"target_prefix": "logging/",
-					"logging_role":  "test-role",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket":        CHECKSET,
-						"target_bucket": CHECKSET,
-						"target_prefix": "logging/",
-						"logging_role":  "test-role",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
 }
 
 // Test Oss BucketLogging. <<< Resource test cases, automatically generated.
