@@ -53,11 +53,11 @@ func resourceAliCloudOssBucketAccessMonitorCreate(d *schema.ResourceData, meta i
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	accessMonitorConfiguration := make(map[string]interface{})
 
 	if v := d.Get("status"); v != nil {
-		objectDataLocalMap["Status"] = v
-		request["AccessMonitorConfiguration"] = objectDataLocalMap
+		accessMonitorConfiguration["Status"] = v
+		request["AccessMonitorConfiguration"] = accessMonitorConfiguration
 	}
 
 	body = request
@@ -130,14 +130,14 @@ func resourceAliCloudOssBucketAccessMonitorUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("status") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	accessMonitorConfiguration := make(map[string]interface{})
 
 	if v := d.Get("status"); v != nil {
 		if v, ok := d.GetOk("status"); ok {
-			objectDataLocalMap["Status"] = v
+			accessMonitorConfiguration["Status"] = v
 		}
 
-		request["AccessMonitorConfiguration"] = objectDataLocalMap
+		request["AccessMonitorConfiguration"] = accessMonitorConfiguration
 	}
 
 	body = request

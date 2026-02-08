@@ -289,8 +289,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpn_connections":                                  dataSourceAlicloudVpnConnections(),
 			"alicloud_ssl_vpn_servers":                                  dataSourceAlicloudSslVpnServers(),
 			"alicloud_ssl_vpn_client_certs":                             dataSourceAlicloudSslVpnClientCerts(),
-			"alicloud_mongo_instances":                                  dataSourceAliCloudMongoDBInstances(),
-			"alicloud_mongodb_instances":                                dataSourceAliCloudMongoDBInstances(),
+			"alicloud_mongo_instances":                                  dataSourceAlicloudMongoDBInstances(),
+			"alicloud_mongodb_instances":                                dataSourceAlicloudMongoDBInstances(),
 			"alicloud_mongodb_zones":                                    dataSourceAlicloudMongoDBZones(),
 			"alicloud_gpdb_instances":                                   dataSourceAlicloudGpdbInstances(),
 			"alicloud_gpdb_zones":                                       dataSourceAlicloudGpdbZones(),
@@ -915,7 +915,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_ddoscoo_domain_precise_access_rule":                   resourceAliCloudDdosCooDomainPreciseAccessRule(),
 			"alicloud_ssl_certificates_service_pca_cert":                    resourceAliCloudSslCertificatesServicePcaCert(),
 			"alicloud_max_compute_tenant_role_user_attachment":              resourceAliCloudMaxComputeTenantRoleUserAttachment(),
 			"alicloud_click_house_enterprise_db_cluster_computing_group":    resourceAliCloudClickHouseEnterpriseDbClusterComputingGroup(),
@@ -2737,7 +2736,6 @@ func init() {
 	}
 }
 
-// lintignore: S018
 func assumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
@@ -2832,7 +2830,6 @@ func assumeRoleWithOidcSchema() *schema.Schema {
 	}
 }
 
-// lintignore: S018
 func signVersionSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
