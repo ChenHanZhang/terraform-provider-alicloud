@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -83,7 +84,7 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validation.StringIsJSON,
+				ValidateFunc: validation.ValidateJsonString,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					equal, _ := compareJsonTemplateAreEquivalent(old, new)
 					return equal
@@ -98,7 +99,7 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validation.StringIsJSON,
+				ValidateFunc: validation.ValidateJsonString,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					equal, _ := compareJsonTemplateAreEquivalent(old, new)
 					return equal
@@ -166,6 +167,7 @@ func resourceAliCloudDdosCooDomainResourceCreate(d *schema.ResourceData, meta in
 	if v, ok := d.GetOk("domain"); ok {
 		request["Domain"] = v
 	}
+	request["RegionId"] = client.RegionId
 
 	if v, ok := d.GetOk("instance_ids"); ok {
 		instanceIdsMapsArray := convertToInterfaceArray(v)
@@ -306,7 +308,9 @@ func resourceAliCloudDdosCooDomainResourceRead(d *schema.ResourceData, meta inte
 		return WrapError(err)
 	}
 
-	d.Set("custom_headers", convertObjectToJsonString(objectRaw["Headers"]))
+	d.Set("custom_headers", objectRaw["Headers"])
+
+	d.Set("domain", d.Id())
 
 	return nil
 }
@@ -324,6 +328,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("instance_ids") {
 		update = true
 	}
@@ -389,7 +394,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
-
+	request["RegionId"] = client.RegionId
 	if d.HasChange("ocsp_enabled") {
 		update = true
 	}
@@ -417,6 +422,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 	if d.HasChange("cert_region") {
 		update = true
 		request["CertRegion"] = d.Get("cert_region")
@@ -510,7 +516,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 		config["AiMode"] = v
 	}
 
-	request["Config"] = convertObjectToJsonString(config)
+	request["Config"] = config
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -536,20 +542,17 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
 
-	ddosCooServiceV2 := DdosCooServiceV2{client}
-
-	objectRaw, err := ddosCooServiceV2.DescribeDomainResourceDescribeDomainCcProtectSwitch(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
-
-	v, ok := d.GetOkExists("bw_list_enable")
-	if fmt.Sprint(objectRaw["BlackWhiteListEnable"]) != fmt.Sprint(d.Get("bw_list_enable")) && ok {
+	if d.HasChange("bw_list_enable") {
 		update = true
+	}
+	config := make(map[string]interface{})
 
-		config = make(map[string]interface{})
-		config["bwlist_enable"] = v
-		request["Config"] = convertObjectToJsonString(config)
+	if v := d.Get("bw_list_enable"); v != nil {
+		if v, ok := d.GetOkExists("bw_list_enable"); ok {
+			config["bwlist_enable"] = v
+		}
+
+		request["Config"] = config
 	}
 
 	if update {
@@ -578,20 +581,20 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request["RegionId"] = client.RegionId
 	if d.HasChange("black_list") {
 		update = true
-	}
-	if v, ok := d.GetOk("black_list"); ok || d.HasChange("black_list") {
-		blackListMapsArray := convertToInterfaceArray(v)
+		if v, ok := d.GetOk("black_list"); ok || d.HasChange("black_list") {
+			blackListMapsArray := convertToInterfaceArray(v)
 
-		request["BlackList"] = blackListMapsArray
+			request["BlackList"] = blackListMapsArray
+		}
 	}
 
 	if d.HasChange("white_list") {
 		update = true
-	}
-	if v, ok := d.GetOk("white_list"); ok || d.HasChange("white_list") {
-		whiteListMapsArray := convertToInterfaceArray(v)
+		if v, ok := d.GetOk("white_list"); ok || d.HasChange("white_list") {
+			whiteListMapsArray := convertToInterfaceArray(v)
 
-		request["WhiteList"] = whiteListMapsArray
+			request["WhiteList"] = whiteListMapsArray
+		}
 	}
 
 	if update {
@@ -655,11 +658,11 @@ func resourceAliCloudDdosCooDomainResourceDelete(d *schema.ResourceData, meta in
 	var err error
 	request = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ddoscoo", "2020-01-01", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -687,7 +690,6 @@ func convertDdosCooDomainResourceWebRulesOcspEnabledResponse(source interface{})
 	}
 	return source
 }
-
 func convertDdosCooDomainResourceEnableRequest(source interface{}) interface{} {
 	source = fmt.Sprint(source)
 	switch source {
