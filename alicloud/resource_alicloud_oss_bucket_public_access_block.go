@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -54,10 +53,11 @@ func resourceAliCloudOssBucketPublicAccessBlockCreate(d *schema.ResourceData, me
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	publicAccessBlockConfiguration := make(map[string]interface{})
+
 	if v := d.Get("block_public_access"); v != nil {
-		objectDataLocalMap["BlockPublicAccess"] = v
-		request["PublicAccessBlockConfiguration"] = objectDataLocalMap
+		publicAccessBlockConfiguration["BlockPublicAccess"] = v
+		request["PublicAccessBlockConfiguration"] = publicAccessBlockConfiguration
 	}
 
 	body = request
@@ -71,9 +71,9 @@ func resourceAliCloudOssBucketPublicAccessBlockCreate(d *schema.ResourceData, me
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_public_access_block", action, AlibabaCloudSdkGoERROR)
@@ -98,14 +98,8 @@ func resourceAliCloudOssBucketPublicAccessBlockRead(d *schema.ResourceData, meta
 		return WrapError(err)
 	}
 
-	publicAccessBlockConfiguration1RawObj, _ := jsonpath.Get("$.PublicAccessBlockConfiguration", objectRaw)
-	publicAccessBlockConfiguration1Raw := make(map[string]interface{})
-	if publicAccessBlockConfiguration1RawObj != nil {
-		publicAccessBlockConfiguration1Raw = publicAccessBlockConfiguration1RawObj.(map[string]interface{})
-	}
-	if len(publicAccessBlockConfiguration1Raw) > 0 {
-		d.Set("block_public_access", formatBool(publicAccessBlockConfiguration1Raw["BlockPublicAccess"]))
-	}
+	d.Set("block_public_access", objectRaw["BlockPublicAccess"])
+
 	d.Set("bucket", d.Id())
 
 	return nil
@@ -118,20 +112,26 @@ func resourceAliCloudOssBucketPublicAccessBlockUpdate(d *schema.ResourceData, me
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?publicAccessBlock")
+
 	var err error
+	action := fmt.Sprintf("/?publicAccessBlock")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
+
 	if d.HasChange("block_public_access") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	publicAccessBlockConfiguration := make(map[string]interface{})
+
 	if v := d.Get("block_public_access"); v != nil {
-		objectDataLocalMap["BlockPublicAccess"] = d.Get("block_public_access")
-		request["PublicAccessBlockConfiguration"] = objectDataLocalMap
+		if v, ok := d.GetOkExists("block_public_access"); ok {
+			publicAccessBlockConfiguration["BlockPublicAccess"] = v
+		}
+
+		request["PublicAccessBlockConfiguration"] = publicAccessBlockConfiguration
 	}
 
 	body = request
@@ -146,9 +146,9 @@ func resourceAliCloudOssBucketPublicAccessBlockUpdate(d *schema.ResourceData, me
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -164,16 +164,14 @@ func resourceAliCloudOssBucketPublicAccessBlockDelete(d *schema.ResourceData, me
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]*string)
-	body := make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Id())
 
-	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeleteBucketPublicAccessBlock", action), query, body, nil, hostMap, false)
+		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeleteBucketPublicAccessBlock", action), query, nil, nil, hostMap, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -181,11 +179,14 @@ func resourceAliCloudOssBucketPublicAccessBlockDelete(d *schema.ResourceData, me
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 

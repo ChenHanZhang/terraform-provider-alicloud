@@ -449,8 +449,72 @@ func (s *OssServiceV2) OssBucketVersioningStateRefreshFunc(id string, field stri
 }
 
 // DescribeOssBucketVersioning >>> Encapsulated.
+// DescribeOssBucketArchiveDirectRead
+func (s *OssServiceV2) DescribeOssBucketArchiveDirectRead(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	action := fmt.Sprintf("/?bucketArchiveDirectRead")
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	hostMap := make(map[string]*string)
+	hostMap["bucket"] = StringPointer(id)
 
-// DescribeOssBucketRequestPayment <<< Encapsulated get interface for Oss BucketRequestPayment.
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketArchiveDirectRead", action), query, nil, nil, hostMap, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		addDebug(action, response, request)
+		return nil
+	})
+	if response == nil {
+		return object, WrapErrorf(NotFoundErr("BucketArchiveDirect", id), NotFoundMsg, response)
+	}
+	if err != nil {
+		addDebug(action, response, request)
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.ArchiveDirectReadConfiguration", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ArchiveDirectReadConfiguration", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *OssServiceV2) OssBucketArchiveDirectReadStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeOssBucketArchiveDirectRead(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeOssBucketArchiveDirectRead >>> Encapsulated.
+
+// DescribeOssBucketRequestPayment
 func (s *OssServiceV2) DescribeOssBucketRequestPayment(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -515,7 +579,7 @@ func (s *OssServiceV2) OssBucketRequestPaymentStateRefreshFunc(id string, field 
 
 // DescribeOssBucketRequestPayment >>> Encapsulated.
 
-// DescribeOssBucketTransferAcceleration <<< Encapsulated get interface for Oss BucketTransferAcceleration.
+// DescribeOssBucketTransferAcceleration
 func (s *OssServiceV2) DescribeOssBucketTransferAcceleration(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -725,8 +789,7 @@ func (s *OssServiceV2) OssBucketServerSideEncryptionStateRefreshFunc(id string, 
 }
 
 // DescribeOssBucketServerSideEncryption >>> Encapsulated.
-
-// DescribeOssBucketUserDefinedLogFields <<< Encapsulated get interface for Oss BucketUserDefinedLogFields.
+// DescribeOssBucketUserDefinedLogFields
 func (s *OssServiceV2) DescribeOssBucketUserDefinedLogFields(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -788,8 +851,7 @@ func (s *OssServiceV2) OssBucketUserDefinedLogFieldsStateRefreshFunc(id string, 
 }
 
 // DescribeOssBucketUserDefinedLogFields >>> Encapsulated.
-
-// DescribeOssBucketMetaQuery <<< Encapsulated get interface for Oss BucketMetaQuery.
+// DescribeOssBucketMetaQuery
 func (s *OssServiceV2) DescribeOssBucketMetaQuery(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -857,7 +919,7 @@ func (s *OssServiceV2) OssBucketMetaQueryStateRefreshFunc(id string, field strin
 
 // DescribeOssBucketMetaQuery >>> Encapsulated.
 
-// DescribeOssBucketDataRedundancyTransition <<< Encapsulated get interface for Oss BucketDataRedundancyTransition.
+// DescribeOssBucketDataRedundancyTransition
 func (s *OssServiceV2) DescribeOssBucketDataRedundancyTransition(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -925,7 +987,7 @@ func (s *OssServiceV2) OssBucketDataRedundancyTransitionStateRefreshFunc(id stri
 
 // DescribeOssBucketDataRedundancyTransition >>> Encapsulated.
 
-// DescribeOssAccountPublicAccessBlock <<< Encapsulated get interface for Oss AccountPublicAccessBlock.
+// DescribeOssAccountPublicAccessBlock
 func (s *OssServiceV2) DescribeOssAccountPublicAccessBlock(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -995,8 +1057,7 @@ func (s *OssServiceV2) OssAccountPublicAccessBlockStateRefreshFunc(id string, fi
 }
 
 // DescribeOssAccountPublicAccessBlock >>> Encapsulated.
-
-// DescribeOssBucketPublicAccessBlock <<< Encapsulated get interface for Oss BucketPublicAccessBlock.
+// DescribeOssBucketPublicAccessBlock
 func (s *OssServiceV2) DescribeOssBucketPublicAccessBlock(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1059,9 +1120,7 @@ func (s *OssServiceV2) OssBucketPublicAccessBlockStateRefreshFunc(id string, fie
 	}
 }
 
-// DescribeOssBucketPublicAccessBlock >>> Encapsulated.
-
-// DescribeOssBucketCname <<< Encapsulated get interface for Oss BucketCname.
+// DescribeOssBucketCname
 func (s *OssServiceV2) DescribeOssBucketCname(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1146,7 +1205,7 @@ func (s *OssServiceV2) OssBucketCnameStateRefreshFunc(id string, field string, f
 
 // DescribeOssBucketCname >>> Encapsulated.
 
-// DescribeOssBucketCnameToken <<< Encapsulated get interface for Oss BucketCnameToken.
+// DescribeOssBucketCnameToken
 func (s *OssServiceV2) DescribeOssBucketCnameToken(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1222,7 +1281,7 @@ func (s *OssServiceV2) OssBucketCnameTokenStateRefreshFunc(id string, field stri
 
 // DescribeOssBucketCnameToken >>> Encapsulated.
 
-// DescribeOssBucketWebsite <<< Encapsulated get interface for Oss BucketWebsite.
+// DescribeOssBucketWebsite
 func (s *OssServiceV2) DescribeOssBucketWebsite(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1296,7 +1355,7 @@ func (s *OssServiceV2) OssBucketWebsiteStateRefreshFunc(id string, field string,
 
 // DescribeOssBucketWebsite >>> Encapsulated.
 
-// DescribeOssAccessPoint <<< Encapsulated get interface for Oss AccessPoint.
+// DescribeOssAccessPoint
 func (s *OssServiceV2) DescribeOssAccessPoint(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1374,8 +1433,7 @@ func (s *OssServiceV2) OssAccessPointStateRefreshFunc(id string, field string, f
 }
 
 // DescribeOssAccessPoint >>> Encapsulated.
-
-// DescribeOssBucketLifecycle <<< Encapsulated get interface for Oss BucketLifecycle.
+// DescribeOssBucketLifecycle
 func (s *OssServiceV2) DescribeOssBucketLifecycle(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1448,8 +1506,7 @@ func (s *OssServiceV2) OssBucketLifecycleStateRefreshFunc(id string, field strin
 }
 
 // DescribeOssBucketLifecycle >>> Encapsulated.
-
-// DescribeOssBucketWorm <<< Encapsulated get interface for Oss BucketWorm.
+// DescribeOssBucketWorm
 func (s *OssServiceV2) DescribeOssBucketWorm(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1684,9 +1741,9 @@ func (s *OssServiceV2) OssBucketLoggingStateRefreshFuncWithApi(id string, field 
 }
 
 // DescribeOssBucketLogging >>> Encapsulated.
-// DescribeOssBucketArchiveDirectRead <<< Encapsulated get interface for Oss BucketArchiveDirectRead.
+// DescribeOssBucketPublicAccessBlock <<< Encapsulated get interface for Oss BucketPublicAccessBlock.
 
-func (s *OssServiceV2) DescribeOssBucketArchiveDirectRead(id string) (object map[string]interface{}, err error) {
+func (s *OssServiceV2) DescribeOssBucketPublicAccessBlock(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -1696,11 +1753,11 @@ func (s *OssServiceV2) DescribeOssBucketArchiveDirectRead(id string) (object map
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(id)
 
-	action := fmt.Sprintf("/?bucketArchiveDirectRead")
+	action := fmt.Sprintf("/?publicAccessBlock")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketArchiveDirectRead", action), query, nil, nil, hostMap, true)
+		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketPublicAccessBlock", action), query, nil, nil, hostMap, true)
 
 		if err != nil {
 			if NeedRetry(err) {
@@ -1713,25 +1770,27 @@ func (s *OssServiceV2) DescribeOssBucketArchiveDirectRead(id string) (object map
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"NoSuchBucket"}) {
-			return object, WrapErrorf(NotFoundErr("BucketArchiveDirectRead", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
-	v, err := jsonpath.Get("$.ArchiveDirectReadConfiguration", response)
+	v, err := jsonpath.Get("$.PublicAccessBlockConfiguration", response)
 	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ArchiveDirectReadConfiguration", response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.PublicAccessBlockConfiguration", response)
+	}
+
+	currentStatus := v.(map[string]interface{})["BlockPublicAccess"]
+	if fmt.Sprint(currentStatus) == "false" {
+		return object, WrapErrorf(NotFoundErr("BucketPublicAccessBlock", id), NotFoundMsg, response)
 	}
 
 	return v.(map[string]interface{}), nil
 }
 
-func (s *OssServiceV2) OssBucketArchiveDirectReadStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.OssBucketArchiveDirectReadStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketArchiveDirectRead)
+func (s *OssServiceV2) OssBucketPublicAccessBlockStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketPublicAccessBlockStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketPublicAccessBlock)
 }
 
-func (s *OssServiceV2) OssBucketArchiveDirectReadStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *OssServiceV2) OssBucketPublicAccessBlockStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -1759,4 +1818,4 @@ func (s *OssServiceV2) OssBucketArchiveDirectReadStateRefreshFuncWithApi(id stri
 	}
 }
 
-// DescribeOssBucketArchiveDirectRead >>> Encapsulated.
+// DescribeOssBucketPublicAccessBlock >>> Encapsulated.

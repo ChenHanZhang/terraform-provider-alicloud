@@ -289,8 +289,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpn_connections":                                  dataSourceAlicloudVpnConnections(),
 			"alicloud_ssl_vpn_servers":                                  dataSourceAlicloudSslVpnServers(),
 			"alicloud_ssl_vpn_client_certs":                             dataSourceAlicloudSslVpnClientCerts(),
-			"alicloud_mongo_instances":                                  dataSourceAliCloudMongoDBInstances(),
-			"alicloud_mongodb_instances":                                dataSourceAliCloudMongoDBInstances(),
+			"alicloud_mongo_instances":                                  dataSourceAlicloudMongoDBInstances(),
+			"alicloud_mongodb_instances":                                dataSourceAlicloudMongoDBInstances(),
 			"alicloud_mongodb_zones":                                    dataSourceAlicloudMongoDBZones(),
 			"alicloud_gpdb_instances":                                   dataSourceAlicloudGpdbInstances(),
 			"alicloud_gpdb_zones":                                       dataSourceAlicloudGpdbZones(),
@@ -915,10 +915,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_cloud_firewall_user_alarm_config":                     resourceAliCloudCloudFirewallUserAlarmConfig(),
-			"alicloud_oss_bucket_archive_direct_read":                       resourceAliCloudOssBucketArchiveDirectRead(),
-			"alicloud_ddoscoo_web_cc_rule":                                  resourceAliCloudDdosCooWebCcRule(),
-			"alicloud_ddoscoo_domain_precise_access_rule":                   resourceAliCloudDdosCooDomainPreciseAccessRule(),
 			"alicloud_ssl_certificates_service_pca_cert":                    resourceAliCloudSslCertificatesServicePcaCert(),
 			"alicloud_max_compute_tenant_role_user_attachment":              resourceAliCloudMaxComputeTenantRoleUserAttachment(),
 			"alicloud_click_house_enterprise_db_cluster_computing_group":    resourceAliCloudClickHouseEnterpriseDbClusterComputingGroup(),
@@ -1631,7 +1627,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_adb_db_cluster":                                        resourceAliCloudAdbDbCluster(),
 			"alicloud_ecs_disk":                                              resourceAliCloudEcsDisk(),
 			"alicloud_ecs_disk_attachment":                                   resourceAlicloudEcsDiskAttachment(),
-			"alicloud_ecs_auto_snapshot_policy_attachment":                   resourceAliCloudEcsAutoSnapshotPolicyAttachment(),
+			"alicloud_ecs_auto_snapshot_policy_attachment":                   resourceAlicloudEcsAutoSnapshotPolicyAttachment(),
 			"alicloud_ddoscoo_domain_resource":                               resourceAliCloudDdosCooDomainResource(),
 			"alicloud_ddoscoo_port":                                          resourceAliCloudDdosCooPort(),
 			"alicloud_slb_load_balancer":                                     resourceAlicloudSlbLoadBalancer(),
@@ -2740,7 +2736,6 @@ func init() {
 	}
 }
 
-// lintignore: S018
 func assumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
@@ -2835,7 +2830,6 @@ func assumeRoleWithOidcSchema() *schema.Schema {
 	}
 }
 
-// lintignore: S018
 func signVersionSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
