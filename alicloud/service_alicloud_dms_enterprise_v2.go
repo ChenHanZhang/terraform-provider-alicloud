@@ -152,3 +152,75 @@ func (s *DMSEnterpriseServiceV2) DmsEnterpriseWorkspaceStateRefreshFunc(id strin
 }
 
 // DescribeDmsEnterpriseWorkspace >>> Encapsulated.
+// DescribeDmsEnterpriseDifyInstance <<< Encapsulated get interface for DmsEnterprise DifyInstance.
+
+func (s *DmsEnterpriseServiceV2) DescribeDmsEnterpriseDifyInstance(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["AppUuid"] = id
+	request["DataRegion"] = client.RegionId
+	action := "DescribeDifyAttribute"
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("dms-enterprise", "2018-11-01", action, query, request, true)
+		request["ClientToken"] = buildClientToken(action)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"DMS.MLOPS.RESOURCE_DOES_NOT_EXIST"}) {
+			return object, WrapErrorf(NotFoundErr("DifyInstance", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *DmsEnterpriseServiceV2) DmsEnterpriseDifyInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.DmsEnterpriseDifyInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeDmsEnterpriseDifyInstance)
+}
+
+func (s *DmsEnterpriseServiceV2) DmsEnterpriseDifyInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeDmsEnterpriseDifyInstance >>> Encapsulated.
