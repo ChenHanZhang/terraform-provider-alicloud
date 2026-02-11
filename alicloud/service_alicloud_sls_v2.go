@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 type SlsServiceV2 struct {
@@ -219,17 +221,20 @@ func (s *SlsServiceV2) DescribeSlsLogStore(id string) (object map[string]interfa
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	logstore := parts[1]
-	action := fmt.Sprintf("/logstores/%s", logstore)
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["project"] = StringPointer(parts[0])
 
+	action := fmt.Sprintf("/logstores/%s", logstore)
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetLogStore", action), query, nil, nil, hostMap, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -237,20 +242,19 @@ func (s *SlsServiceV2) DescribeSlsLogStore(id string) (object map[string]interfa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"LogStoreNotExist"}) {
 			return object, WrapErrorf(NotFoundErr("LogStore", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
 	return response, nil
 }
-func (s *SlsServiceV2) DescribeGetLogStoreMeteringMode(id string) (object map[string]interface{}, err error) {
+func (s *SlsServiceV2) DescribeLogStoreListTagResources(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
@@ -258,17 +262,23 @@ func (s *SlsServiceV2) DescribeGetLogStoreMeteringMode(id string) (object map[st
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
-	logstore := parts[1]
-	action := fmt.Sprintf("/logstores/%s/meteringmode", logstore)
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	hostMap := make(map[string]*string)
-	hostMap["project"] = StringPointer(parts[0])
+
+	query["resourceType"] = StringPointer("LOGSTORE")
+	jsonString := convertObjectToJsonString(request)
+	jsonString, _ = sjson.Set(jsonString, "resourceId.0", parts[1])
+	_ = json.Unmarshal([]byte(jsonString), &request)
+
+	action := fmt.Sprintf("/tags")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(3*time.Minute, func() *resource.RetryError {
-		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetLogStoreMeteringMode", action), query, nil, nil, hostMap, true)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "ListTagResources", action), query, nil, nil, hostMap, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -276,14 +286,51 @@ func (s *SlsServiceV2) DescribeGetLogStoreMeteringMode(id string) (object map[st
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+func (s *SlsServiceV2) DescribeLogStoreGetLogStoreMeteringMode(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
+	}
+	logstore := parts[1]
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	hostMap := make(map[string]*string)
+	hostMap["project"] = StringPointer(parts[0])
+
+	action := fmt.Sprintf("/logstores/%s/meteringmode", logstore)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.Do("Sls", roaParam("GET", "2020-12-30", "GetLogStoreMeteringMode", action), query, nil, nil, hostMap, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"LogStoreNotExist"}) {
 			return object, WrapErrorf(NotFoundErr("LogStore", id), NotFoundMsg, response)
 		}
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -291,17 +338,27 @@ func (s *SlsServiceV2) DescribeGetLogStoreMeteringMode(id string) (object map[st
 }
 
 func (s *SlsServiceV2) SlsLogStoreStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.SlsLogStoreStateRefreshFuncWithApi(id, field, failStates, s.DescribeSlsLogStore)
+}
+
+func (s *SlsServiceV2) SlsLogStoreStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeSlsLogStore(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
