@@ -9,6 +9,119 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
+// Test Hbr PolicyBinding. >>> Resource test cases, automatically generated.
+// Case ECS File Backup 7242
+func TestAccAliCloudHbrPolicyBinding_basic7242(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_hbr_policy_binding.default"
+	ra := resourceAttrInit(resourceId, AlicloudHbrPolicyBindingMap7242)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &HbrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeHbrPolicyBinding")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacchbr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudHbrPolicyBindingBasicDependence7242)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"source_type":                "ECS_FILE",
+					"disabled":                   "false",
+					"policy_id":                  "${alicloud_hbr_policy.defaultoqWvHQ.id}",
+					"data_source_id":             "i-******************",
+					"policy_binding_description": "policy binding example",
+					"exclude":                    "[\\\"*.pdf\\\",\\\"*.docx\\\"]",
+					"include":                    "[\\\"*.sh\\\",\\\"*.xml\\\"]",
+					"source":                     "/root",
+					"speed_limit":                "0:24:1024",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"source_type":                "ECS_FILE",
+						"disabled":                   "false",
+						"policy_id":                  CHECKSET,
+						"data_source_id":             "i-******************",
+						"policy_binding_description": "policy binding example",
+						"exclude":                    CHECKSET,
+						"include":                    CHECKSET,
+						"source":                     "/root",
+						"speed_limit":                "0:24:1024",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"disabled":                   "true",
+					"policy_binding_description": "policy binding example (update)",
+					"exclude":                    "[\\\"*.pdf\\\"]",
+					"include":                    "[\\\"*.sh\\\"]",
+					"source":                     "/opt",
+					"speed_limit":                "0:24:2048",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"disabled":                   "true",
+						"policy_binding_description": "policy binding example (update)",
+						"exclude":                    CHECKSET,
+						"include":                    CHECKSET,
+						"source":                     "/opt",
+						"speed_limit":                "0:24:2048",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudHbrPolicyBindingMap7242 = map[string]string{
+	"create_time": CHECKSET,
+}
+
+func AlicloudHbrPolicyBindingBasicDependence7242(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_hbr_vault" "defaultQNFISO" {
+  vault_type = "STANDARD"
+  vault_name = "vault-example-1770809543"
+}
+
+resource "alicloud_hbr_policy" "defaultoqWvHQ" {
+  policy_name = "policy-example-1770809543"
+  rules {
+    rule_type    = "BACKUP"
+    backup_type  = "COMPLETE"
+    schedule     = "I|1631685600|P1D"
+    retention    = "7"
+    archive_days = "0"
+    vault_id     = alicloud_hbr_vault.defaultQNFISO.id
+  }
+  policy_description = "policy example"
+}
+
+
+`, name)
+}
+
+// Test Hbr PolicyBinding. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudHbrPolicyBinding_basic6295(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_hbr_policy_binding.default"

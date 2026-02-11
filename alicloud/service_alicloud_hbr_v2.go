@@ -108,57 +108,43 @@ func (s *HbrServiceV2) DescribeHbrPolicyBinding(id string) (object map[string]in
 	query = make(map[string]interface{})
 	request["PolicyId"] = parts[0]
 	request["SourceType"] = parts[1]
-	request["MaxResults"] = PageSizeLarge
 
 	action := "DescribePolicyBindings"
-	for {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-			response, err = client.RpcPost("hbr", "2017-09-08", action, query, request, true)
 
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("hbr", "2017-09-08", action, query, request, true)
+
 		if err != nil {
-			return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-		}
-
-		v, err := jsonpath.Get("$.PolicyBindings[*]", response)
-		if err != nil {
-			return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.PolicyBindings[*]", response)
-		}
-
-		if len(v.([]interface{})) == 0 {
-			return object, WrapErrorf(NotFoundErr("PolicyBinding", id), NotFoundMsg, response)
-		}
-
-		result, _ := v.([]interface{})
-		for _, v := range result {
-			item := v.(map[string]interface{})
-			if fmt.Sprint(item["DataSourceId"]) != parts[2] {
-				continue
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
 			}
-			if fmt.Sprint(item["PolicyId"]) != parts[0] {
-				continue
-			}
-			if fmt.Sprint(item["SourceType"]) != parts[1] {
-				continue
-			}
-			return item, nil
+			return resource.NonRetryableError(err)
 		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
 
-		if nextToken, ok := response["NextToken"].(string); ok && nextToken != "" {
-			request["NextToken"] = nextToken
-		} else {
-			break
+	v, err := jsonpath.Get("$.PolicyBindings[*]", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.PolicyBindings[*]", response)
+	}
+
+	if len(v.([]interface{})) == 0 {
+		return object, WrapErrorf(NotFoundErr("PolicyBinding", id), NotFoundMsg, response)
+	}
+
+	result, _ := v.([]interface{})
+	for _, v := range result {
+		item := v.(map[string]interface{})
+		if fmt.Sprint(item["DataSourceId"]) != parts[2] {
+			continue
 		}
+		return item, nil
 	}
 	return object, WrapErrorf(NotFoundErr("PolicyBinding", id), NotFoundMsg, response)
 }
