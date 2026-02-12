@@ -116,10 +116,13 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicy() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"old_order": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"order": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 			"proto": {
 				Type:     schema.TypeString,
@@ -188,7 +191,6 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyCreate(d *schema.Resou
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	var endpoint string
 	if v, ok := d.GetOk("vpc_firewall_id"); ok {
 		request["VpcFirewallId"] = v
 	}
@@ -254,18 +256,14 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyCreate(d *schema.Resou
 	request["Source"] = d.Get("source")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-
 		return nil
 	})
 	addDebug(action, response, request)
@@ -363,8 +361,8 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+	d.Partial(true)
 
-	var endpoint string
 	var err error
 	parts := strings.Split(d.Id(), ":")
 	action := "ModifyVpcFirewallControlPolicy"
@@ -375,10 +373,10 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 
 	if d.HasChange("application_name") {
 		update = true
-
-		request["ApplicationName"] = d.Get("application_name")
 	}
-
+	if v, ok := d.GetOk("application_name"); ok || d.HasChange("application_name") {
+		request["ApplicationName"] = v
+	}
 	if d.HasChange("proto") {
 		update = true
 	}
@@ -396,60 +394,59 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 	request["Description"] = d.Get("description")
 	if d.HasChange("start_time") {
 		update = true
-		request["StartTime"] = d.Get("start_time")
 	}
-
+	if v, ok := d.GetOkExists("start_time"); ok || d.HasChange("start_time") {
+		request["StartTime"] = v
+	}
 	if d.HasChange("dest_port") {
 		update = true
 	}
-	if v, ok := d.GetOk("dest_port"); ok {
+	if v, ok := d.GetOk("dest_port"); ok || d.HasChange("dest_port") {
 		request["DestPort"] = v
 	}
-
 	if d.HasChange("dest_port_group") {
 		update = true
 	}
-	if v, ok := d.GetOk("dest_port_group"); ok {
+	if v, ok := d.GetOk("dest_port_group"); ok || d.HasChange("dest_port_group") {
 		request["DestPortGroup"] = v
 	}
-
 	if d.HasChange("repeat_start_time") {
 		update = true
-		request["RepeatStartTime"] = d.Get("repeat_start_time")
 	}
-
+	if v, ok := d.GetOk("repeat_start_time"); ok || d.HasChange("repeat_start_time") {
+		request["RepeatStartTime"] = v
+	}
 	if d.HasChange("destination") {
 		update = true
 	}
 	request["Destination"] = d.Get("destination")
 	if d.HasChange("application_name_list") {
 		update = true
-		if v, ok := d.GetOk("application_name_list"); ok || d.HasChange("application_name_list") {
-			applicationNameListMapsArray := convertToInterfaceArray(v)
+	}
+	if v, ok := d.GetOk("application_name_list"); ok || d.HasChange("application_name_list") {
+		applicationNameListMapsArray := convertToInterfaceArray(v)
 
-			request["ApplicationNameList"] = applicationNameListMapsArray
-		}
+		request["ApplicationNameList"] = applicationNameListMapsArray
 	}
 
 	if d.HasChange("dest_port_type") {
 		update = true
 	}
-	if v, ok := d.GetOk("dest_port_type"); ok {
+	if v, ok := d.GetOk("dest_port_type"); ok || d.HasChange("dest_port_type") {
 		request["DestPortType"] = v
 	}
-
 	if d.HasChange("repeat_end_time") {
 		update = true
-		request["RepeatEndTime"] = d.Get("repeat_end_time")
 	}
-
+	if v, ok := d.GetOk("repeat_end_time"); ok || d.HasChange("repeat_end_time") {
+		request["RepeatEndTime"] = v
+	}
 	if d.HasChange("release") {
 		update = true
 	}
-	if v, ok := d.GetOk("release"); ok {
+	if v, ok := d.GetOk("release"); ok || d.HasChange("release") {
 		request["Release"] = v
 	}
-
 	if d.HasChange("acl_action") {
 		update = true
 	}
@@ -460,47 +457,82 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 	request["SourceType"] = d.Get("source_type")
 	if d.HasChange("domain_resolve_type") {
 		update = true
-		request["DomainResolveType"] = d.Get("domain_resolve_type")
 	}
-
+	if v, ok := d.GetOk("domain_resolve_type"); ok || d.HasChange("domain_resolve_type") {
+		request["DomainResolveType"] = v
+	}
 	if d.HasChange("source") {
 		update = true
 	}
 	request["Source"] = d.Get("source")
 	if d.HasChange("repeat_days") {
 		update = true
-		if v, ok := d.GetOk("repeat_days"); ok || d.HasChange("repeat_days") {
-			repeatDaysMapsArray := convertToInterfaceArray(v)
+	}
+	if v, ok := d.GetOk("repeat_days"); ok || d.HasChange("repeat_days") {
+		repeatDaysMapsArray := convertToInterfaceArray(v)
 
-			request["RepeatDays"] = repeatDaysMapsArray
-		}
+		request["RepeatDays"] = repeatDaysMapsArray
 	}
 
 	if d.HasChange("repeat_type") {
 		update = true
-		request["RepeatType"] = d.Get("repeat_type")
 	}
-
+	if v, ok := d.GetOk("repeat_type"); ok || d.HasChange("repeat_type") {
+		request["RepeatType"] = v
+	}
 	if d.HasChange("end_time") {
 		update = true
-		request["EndTime"] = d.Get("end_time")
 	}
-
+	if v, ok := d.GetOkExists("end_time"); ok || d.HasChange("end_time") {
+		request["EndTime"] = v
+	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
-				} else if IsExpectedErrors(err, []string{"not buy user"}) {
-					endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	parts = strings.Split(d.Id(), ":")
+	action = "ModifyVpcFirewallControlPolicyPosition"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["VpcFirewallId"] = parts[0]
+	request["AclUuid"] = parts[1]
+
+	if v, ok := d.GetOk("old_order"); ok {
+		request["OldOrder"] = v
+	}
+	if v, ok := d.GetOk("lang"); ok {
+		request["Lang"] = v
+	}
+	if d.HasChange("order") {
+		update = true
+	}
+	request["NewOrder"] = d.Get("order")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-
 			return nil
 		})
 		addDebug(action, response, request)
@@ -509,6 +541,7 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyUpdate(d *schema.Resou
 		}
 	}
 
+	d.Partial(false)
 	return resourceAliCloudCloudFirewallVpcFirewallControlPolicyRead(d, meta)
 }
 
@@ -521,7 +554,6 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyDelete(d *schema.Resou
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
-	var endpoint string
 	request = make(map[string]interface{})
 	request["VpcFirewallId"] = parts[0]
 	request["AclUuid"] = parts[1]
@@ -531,18 +563,14 @@ func resourceAliCloudCloudFirewallVpcFirewallControlPolicyDelete(d *schema.Resou
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-
 		return nil
 	})
 	addDebug(action, response, request)
