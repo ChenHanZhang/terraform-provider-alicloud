@@ -35,7 +35,7 @@ func TestAccAliCloudOssBucketStyle_basic6688(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"bucket":     "${alicloud_oss_bucket.CreateBucket.id}",
-					"style_name": "style-771",
+					"style_name": "style-294",
 					"content":    "image/resize,p_75,w_75",
 					"category":   "document",
 				}),
@@ -113,7 +113,7 @@ func TestAccAliCloudOssBucketStyle_basic6687(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"bucket":     "${alicloud_oss_bucket.CreateBucket.id}",
-					"style_name": "style-140",
+					"style_name": "style-877",
 					"content":    "image/resize,p_75,w_75",
 				}),
 				Check: resource.ComposeTestCheckFunc(

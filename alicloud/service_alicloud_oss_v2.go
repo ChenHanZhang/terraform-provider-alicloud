@@ -1537,6 +1537,7 @@ func (s *OssServiceV2) DescribeOssBucketStyle(id string) (object map[string]inte
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
@@ -1576,15 +1577,18 @@ func (s *OssServiceV2) DescribeOssBucketStyle(id string) (object map[string]inte
 }
 
 func (s *OssServiceV2) OssBucketStyleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketStyleStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketStyle)
+}
+
+func (s *OssServiceV2) OssBucketStyleStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeOssBucketStyle(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

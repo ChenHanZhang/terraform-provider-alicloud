@@ -70,11 +70,11 @@ func resourceAliCloudOssBucketStyleCreate(d *schema.ResourceData, meta interface
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 	query["styleName"] = StringPointer(d.Get("style_name").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	style := make(map[string]interface{})
 
 	if v := d.Get("content"); v != nil {
-		objectDataLocalMap["Content"] = v
-		request["Style"] = objectDataLocalMap
+		style["Content"] = v
+		request["Style"] = style
 	}
 
 	if v, ok := d.GetOk("category"); ok {
@@ -151,11 +151,14 @@ func resourceAliCloudOssBucketStyleUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("content") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
+	style := make(map[string]interface{})
 
 	if v := d.Get("content"); v != nil {
-		objectDataLocalMap["Content"] = d.Get("content")
-		request["Style"] = objectDataLocalMap
+		if v, ok := d.GetOk("content"); ok {
+			style["Content"] = v
+		}
+
+		request["Style"] = style
 	}
 
 	if d.HasChange("category") {

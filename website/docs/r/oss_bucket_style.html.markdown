@@ -20,12 +20,6 @@ For information about OSS Bucket Style and how to use it, see [What is Bucket St
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_oss_bucket_style&exampleId=7cc355b7-630c-7238-2198-3c3be026163cb25757e8&activeTab=example&spm=docs.r.oss_bucket_style.0.7cc355b763&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -53,8 +47,6 @@ resource "alicloud_oss_bucket_style" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_oss_bucket_style&spm=docs.r.oss_bucket_style.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -66,8 +58,8 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<bucket>:<style_name>`.
-* `create_time` - Image Style Creation Time
+* `id` - The ID of the resource supplied above. The value is formulated as `<bucket>:<style_name>`.
+* `create_time` - Image Style Creation Time.
 
 ## Timeouts
 
