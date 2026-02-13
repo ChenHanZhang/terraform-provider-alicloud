@@ -53,10 +53,11 @@ func resourceAliCloudOssBucketTransferAccelerationCreate(d *schema.ResourceData,
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	transferAccelerationConfiguration := make(map[string]interface{})
+
 	if v := d.Get("enabled"); !IsNil(v) {
-		objectDataLocalMap["Enabled"] = v
-		request["TransferAccelerationConfiguration"] = objectDataLocalMap
+		transferAccelerationConfiguration["Enabled"] = v
+		request["TransferAccelerationConfiguration"] = transferAccelerationConfiguration
 	}
 
 	body = request
@@ -70,9 +71,9 @@ func resourceAliCloudOssBucketTransferAccelerationCreate(d *schema.ResourceData,
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_transfer_acceleration", action, AlibabaCloudSdkGoERROR)
@@ -111,20 +112,26 @@ func resourceAliCloudOssBucketTransferAccelerationUpdate(d *schema.ResourceData,
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?transferAcceleration")
+
 	var err error
+	action := fmt.Sprintf("/?transferAcceleration")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
+
 	if d.HasChange("enabled") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
-	if v := d.Get("enabled"); v != nil {
-		objectDataLocalMap["Enabled"] = d.Get("enabled")
-		request["TransferAccelerationConfiguration"] = objectDataLocalMap
+	transferAccelerationConfiguration := make(map[string]interface{})
+
+	if v := d.Get("enabled"); !IsNil(v) || d.HasChange("enabled") {
+		if v, ok := d.GetOkExists("enabled"); ok {
+			transferAccelerationConfiguration["Enabled"] = v
+		}
+
+		request["TransferAccelerationConfiguration"] = transferAccelerationConfiguration
 	}
 
 	body = request
@@ -139,9 +146,9 @@ func resourceAliCloudOssBucketTransferAccelerationUpdate(d *schema.ResourceData,
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
