@@ -60,29 +60,34 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsCreate(d *schema.ResourceData,
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	userDefinedLogFieldsConfiguration := make(map[string]interface{})
 
 	if v := d.Get("header_set"); !IsNil(v) {
 		headerSet := make(map[string]interface{})
-		nodeNative, _ := jsonpath.Get("$", v)
-		if nodeNative != nil && nodeNative != "" {
-			headerSet["header"] = nodeNative.(*schema.Set).List()
+		headerSet1, _ := jsonpath.Get("$", d.Get("header_set"))
+		if headerSet1 != nil && headerSet1 != "" {
+			headerSet["header"] = convertToInterfaceArray(headerSet1)
 		}
 
-		objectDataLocalMap["HeaderSet"] = headerSet
+		if len(headerSet) > 0 {
+			userDefinedLogFieldsConfiguration["HeaderSet"] = headerSet
+		}
 	}
 
 	if v := d.Get("param_set"); !IsNil(v) {
 		paramSet := make(map[string]interface{})
-		nodeNative1, _ := jsonpath.Get("$", v)
-		if nodeNative1 != nil && nodeNative1 != "" {
-			paramSet["parameter"] = nodeNative1.(*schema.Set).List()
+		paramSet1, _ := jsonpath.Get("$", d.Get("param_set"))
+		if paramSet1 != nil && paramSet1 != "" {
+			paramSet["parameter"] = convertToInterfaceArray(paramSet1)
 		}
 
-		objectDataLocalMap["ParamSet"] = paramSet
+		if len(paramSet) > 0 {
+			userDefinedLogFieldsConfiguration["ParamSet"] = paramSet
+		}
 	}
 
-	request["UserDefinedLogFieldsConfiguration"] = objectDataLocalMap
+	request["UserDefinedLogFieldsConfiguration"] = userDefinedLogFieldsConfiguration
+
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -94,9 +99,9 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsCreate(d *schema.ResourceData,
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_user_defined_log_fields", action, AlibabaCloudSdkGoERROR)
@@ -121,35 +126,9 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsRead(d *schema.ResourceData, m
 		return WrapError(err)
 	}
 
-	header1RawObj, _ := jsonpath.Get("$.UserDefinedLogFieldsConfiguration.HeaderSet.header[*]", objectRaw)
-	header1Raw := make([]interface{}, 0)
-	if header1RawObj != nil {
-		header1Raw = header1RawObj.([]interface{})
-	}
-	if len(header1Raw) == 0 {
-		header1RawObj, _ := jsonpath.Get("$.UserDefinedLogFieldsConfiguration.HeaderSet.header", objectRaw)
-		if header1RawObj != nil && fmt.Sprint(header1RawObj) != "" {
-			header1Raw = append(header1Raw, header1RawObj)
-		}
-	}
-	if len(header1Raw) > 0 {
-		d.Set("header_set", header1Raw)
-	}
-	parameter1RawObj, _ := jsonpath.Get("$.UserDefinedLogFieldsConfiguration.ParamSet.parameter[*]", objectRaw)
-	parameter1Raw := make([]interface{}, 0)
-	if parameter1RawObj != nil {
-		parameter1Raw = parameter1RawObj.([]interface{})
-	}
-	if len(parameter1Raw) == 0 {
-		parameter1RawObj, _ := jsonpath.Get("$.UserDefinedLogFieldsConfiguration.ParamSet.parameter", objectRaw)
-		if parameter1RawObj != nil && fmt.Sprint(parameter1RawObj) != "" {
-			parameter1Raw = append(parameter1Raw, parameter1RawObj)
-		}
-	}
+	d.Set("header_set", headerRaw)
 
-	if len(parameter1Raw) > 0 {
-		d.Set("param_set", parameter1Raw)
-	}
+	d.Set("param_set", parameterRaw)
 
 	d.Set("bucket", d.Id())
 
@@ -163,42 +142,49 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsUpdate(d *schema.ResourceData,
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?userDefinedLogFieldsConfig")
+
 	var err error
+	action := fmt.Sprintf("/?userDefinedLogFieldsConfig")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
-	objectDataLocalMap := make(map[string]interface{})
+
+	userDefinedLogFieldsConfiguration := make(map[string]interface{})
 
 	if d.HasChange("header_set") {
 		update = true
 	}
-	if v := d.Get("header_set"); v != nil {
+	if v := d.Get("header_set"); !IsNil(v) || d.HasChange("header_set") {
 		headerSet := make(map[string]interface{})
-		nodeNative, _ := jsonpath.Get("$", d.Get("header_set"))
-		if nodeNative != nil && nodeNative != "" {
-			headerSet["header"] = nodeNative.(*schema.Set).List()
+		headerSet1, _ := jsonpath.Get("$", d.Get("header_set"))
+		if headerSet1 != nil && headerSet1 != "" {
+			headerSet["header"] = convertToInterfaceArray(headerSet1)
 		}
 
-		objectDataLocalMap["HeaderSet"] = headerSet
+		if len(headerSet) > 0 {
+			userDefinedLogFieldsConfiguration["HeaderSet"] = headerSet
+		}
 	}
 
 	if d.HasChange("param_set") {
 		update = true
 	}
-	if v := d.Get("param_set"); v != nil {
+	if v := d.Get("param_set"); !IsNil(v) || d.HasChange("param_set") {
 		paramSet := make(map[string]interface{})
-		nodeNative1, _ := jsonpath.Get("$", d.Get("param_set"))
-		if nodeNative1 != nil && nodeNative1 != "" {
-			paramSet["parameter"] = nodeNative1.(*schema.Set).List()
+		paramSet1, _ := jsonpath.Get("$", d.Get("param_set"))
+		if paramSet1 != nil && paramSet1 != "" {
+			paramSet["parameter"] = convertToInterfaceArray(paramSet1)
 		}
 
-		objectDataLocalMap["ParamSet"] = paramSet
+		if len(paramSet) > 0 {
+			userDefinedLogFieldsConfiguration["ParamSet"] = paramSet
+		}
 	}
 
-	request["UserDefinedLogFieldsConfiguration"] = objectDataLocalMap
+	request["UserDefinedLogFieldsConfiguration"] = userDefinedLogFieldsConfiguration
+
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -211,9 +197,9 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsUpdate(d *schema.ResourceData,
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -229,16 +215,14 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsDelete(d *schema.ResourceData,
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]*string)
-	body := make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	var err error
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Id())
 
-	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeleteUserDefinedLogFieldsConfig", action), query, body, nil, hostMap, false)
+		response, err = client.Do("Oss", xmlParam("DELETE", "2019-05-17", "DeleteUserDefinedLogFieldsConfig", action), query, nil, nil, hostMap, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -246,11 +230,14 @@ func resourceAliCloudOssBucketUserDefinedLogFieldsDelete(d *schema.ResourceData,
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if IsExpectedErrors(err, []string{"NoSuchBucket", "NoSuchUserDefinedLogFieldsConfig"}) || NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
