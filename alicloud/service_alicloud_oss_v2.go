@@ -386,15 +386,17 @@ func (s *OssServiceV2) DescribeOssBucketVersioning(id string) (object map[string
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
-	action := fmt.Sprintf("/?versioning")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(id)
 
+	action := fmt.Sprintf("/?versioning")
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.Do("Oss", xmlParam("GET", "2019-05-17", "GetBucketVersioning", action), query, nil, nil, hostMap, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -402,15 +404,11 @@ func (s *OssServiceV2) DescribeOssBucketVersioning(id string) (object map[string
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-	if response == nil {
-		return object, WrapErrorf(NotFoundErr("BucketVersioning", id), NotFoundMsg, response)
 	}
 
 	v, err := jsonpath.Get("$.VersioningConfiguration", response)
@@ -427,17 +425,27 @@ func (s *OssServiceV2) DescribeOssBucketVersioning(id string) (object map[string
 }
 
 func (s *OssServiceV2) OssBucketVersioningStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.OssBucketVersioningStateRefreshFuncWithApi(id, field, failStates, s.DescribeOssBucketVersioning)
+}
+
+func (s *OssServiceV2) OssBucketVersioningStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeOssBucketVersioning(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {

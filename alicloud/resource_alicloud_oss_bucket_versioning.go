@@ -35,7 +35,7 @@ func resourceAliCloudOssBucketVersioning() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"Enabled", "Suspended"}, true),
+				ValidateFunc: StringInSlice([]string{"Enabled", "Suspended"}, false),
 			},
 		},
 	}
@@ -55,10 +55,11 @@ func resourceAliCloudOssBucketVersioningCreate(d *schema.ResourceData, meta inte
 	request = make(map[string]interface{})
 	hostMap["bucket"] = StringPointer(d.Get("bucket").(string))
 
-	objectDataLocalMap := make(map[string]interface{})
+	versioningConfiguration := make(map[string]interface{})
+
 	if v := d.Get("status"); !IsNil(v) {
-		objectDataLocalMap["Status"] = v
-		request["VersioningConfiguration"] = objectDataLocalMap
+		versioningConfiguration["Status"] = v
+		request["VersioningConfiguration"] = versioningConfiguration
 	}
 
 	body = request
@@ -72,9 +73,9 @@ func resourceAliCloudOssBucketVersioningCreate(d *schema.ResourceData, meta inte
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oss_bucket_versioning", action, AlibabaCloudSdkGoERROR)
@@ -113,20 +114,26 @@ func resourceAliCloudOssBucketVersioningUpdate(d *schema.ResourceData, meta inte
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	action := fmt.Sprintf("/?versioning")
+
 	var err error
+	action := fmt.Sprintf("/?versioning")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
 	body = make(map[string]interface{})
 	hostMap := make(map[string]*string)
 	hostMap["bucket"] = StringPointer(d.Id())
+
 	if d.HasChange("status") {
 		update = true
 	}
-	objectDataLocalMap := make(map[string]interface{})
-	if v := d.Get("status"); v != nil {
-		objectDataLocalMap["Status"] = d.Get("status")
-		request["VersioningConfiguration"] = objectDataLocalMap
+	versioningConfiguration := make(map[string]interface{})
+
+	if v := d.Get("status"); !IsNil(v) || d.HasChange("status") {
+		if v, ok := d.GetOk("status"); ok {
+			versioningConfiguration["Status"] = v
+		}
+
+		request["VersioningConfiguration"] = versioningConfiguration
 	}
 
 	body = request
@@ -141,9 +148,9 @@ func resourceAliCloudOssBucketVersioningUpdate(d *schema.ResourceData, meta inte
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}

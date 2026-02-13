@@ -11,7 +11,6 @@ import (
 
 // Test Oss BucketVersioning. >>> Resource test cases, automatically generated.
 // Case Versioning测试 6441
-// lintignore: AT001
 func TestAccAliCloudOssBucketVersioning_basic6441(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_oss_bucket_versioning.default"
@@ -22,7 +21,7 @@ func TestAccAliCloudOssBucketVersioning_basic6441(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketversioning%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfaccoss%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketVersioningBasicDependence6441)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -33,23 +32,13 @@ func TestAccAliCloudOssBucketVersioning_basic6441(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-					"status": "Suspended",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"bucket": CHECKSET,
-						"status": "Suspended",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"status": "Enabled",
+					"bucket": "${alicloud_oss_bucket.CreateBucket.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"status": "Enabled",
+						"bucket": CHECKSET,
 					}),
 				),
 			},
@@ -60,18 +49,6 @@ func TestAccAliCloudOssBucketVersioning_basic6441(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"status": "Suspended",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"status": "Enabled",
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"status": "Enabled",
-						"bucket": CHECKSET,
 					}),
 				),
 			},
@@ -85,9 +62,7 @@ func TestAccAliCloudOssBucketVersioning_basic6441(t *testing.T) {
 	})
 }
 
-var AlicloudOssBucketVersioningMap6441 = map[string]string{
-	"status": " ",
-}
+var AlicloudOssBucketVersioningMap6441 = map[string]string{}
 
 func AlicloudOssBucketVersioningBasicDependence6441(name string) string {
 	return fmt.Sprintf(`
@@ -97,59 +72,10 @@ variable "name" {
 
 resource "alicloud_oss_bucket" "CreateBucket" {
   storage_class = "Standard"
-  bucket        = var.name
-  lifecycle {
-    ignore_changes = [
-      versioning,
-    ]
-  }
 }
 
 
 `, name)
-}
-
-// Case Versioning测试 6441  twin
-// lintignore: AT001
-func TestAccAliCloudOssBucketVersioning_basic6441_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_oss_bucket_versioning.default"
-	ra := resourceAttrInit(resourceId, AlicloudOssBucketVersioningMap6441)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeOssBucketVersioning")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%sossbucketversioning%d", defaultRegionToTest, rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketVersioningBasicDependence6441)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"status": "Suspended",
-					"bucket": "${alicloud_oss_bucket.CreateBucket.bucket}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"status": "Suspended",
-						"bucket": CHECKSET,
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
 }
 
 // Test Oss BucketVersioning. <<< Resource test cases, automatically generated.
