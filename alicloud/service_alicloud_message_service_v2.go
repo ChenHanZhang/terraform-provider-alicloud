@@ -239,19 +239,27 @@ func (s *MessageServiceServiceV2) DescribeMessageServiceEndpoint(id string) (obj
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Data", response)
 	}
 
+	currentStatus := v.(map[string]interface{})["EndpointEnabled"]
+	if fmt.Sprint(currentStatus) == "false" {
+		return object, WrapErrorf(NotFoundErr("Endpoint", id), NotFoundMsg, response)
+	}
+
 	return v.(map[string]interface{}), nil
 }
 
 func (s *MessageServiceServiceV2) MessageServiceEndpointStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.MessageServiceEndpointStateRefreshFuncWithApi(id, field, failStates, s.DescribeMessageServiceEndpoint)
+}
+
+func (s *MessageServiceServiceV2) MessageServiceEndpointStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeMessageServiceEndpoint(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
