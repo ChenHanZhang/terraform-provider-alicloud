@@ -915,6 +915,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_polardb_lake_cache":                                   resourceAliCloudPolardbLakeCache(),
 			"alicloud_live_domain":                                          resourceAliCloudLiveDomain(),
 			"alicloud_oss_bucket_overwrite_config":                          resourceAliCloudOssBucketOverwriteConfig(),
 			"alicloud_cloud_firewall_user_alarm_config":                     resourceAliCloudCloudFirewallUserAlarmConfig(),
