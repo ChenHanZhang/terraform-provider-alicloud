@@ -20,12 +20,6 @@ For information about ECS Snapshot and how to use it, see [What is Snapshot](htt
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ecs_snapshot&exampleId=c82d2dc4-2b3d-fdf4-0d61-629fc1ecfb4c664174cd&activeTab=example&spm=docs.r.ecs_snapshot.0.c82d2dc42b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -100,41 +94,85 @@ resource "alicloud_ecs_snapshot" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ecs_snapshot&spm=docs.r.ecs_snapshot.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `category` - (Optional, ForceNew) The category of the snapshot. Valid values:
-  - `standard`: Normal snapshot.
-  - `flash`: Local snapshot.
-* `description` - (Optional) The description of the snapshot.
-* `disk_id` - (Required, ForceNew) The ID of the disk.
-* `force` - (Optional, Bool) Specifies whether to force delete the snapshot that has been used to create disks. Valid values:
-  - `true`: Force deletes the snapshot. After the snapshot is force deleted, the disks created from the snapshot cannot be re-initialized.
-  - `false`: Does not force delete the snapshot.
-* `instant_access` - (Optional, Deprecated since v1.231.0) Field `instant_access` has been deprecated from provider version 1.231.0.
-* `instant_access_retention_days` - (Optional, Deprecated since v1.231.0) Field `instant_access_retention_days` has been deprecated from provider version 1.231.0.
-* `resource_group_id` - (Optional) The ID of the resource group. **NOTE:** From version 1.239.0, `resource_group_id` can be modified.
-* `retention_days` - (Optional, Int) The retention period of the snapshot. Valid values: `1` to `65536`. **NOTE:** From version 1.231.0, `retention_days` can be modified.
-* `snapshot_name` - (Optional) The name of the snapshot.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
-* `name` - (Optional, Deprecated since v1.120.0) Field `name` has been deprecated from provider version 1.120.0. New field `snapshot_name` instead.
+* `category` - (Optional, ForceNew, Computed) The snapshot type. Valid values:  
+  - Standard: Standard snapshot.  
+  - Flash: Local snapshot.  
+
+-> **NOTE:**  This parameter will soon be deprecated. Standard snapshots for ESSD cloud disks have been upgraded to [instant access by default](https://help.aliyun.com/document_detail/193667.html). You do not need to configure this feature explicitly, and no additional cost is incurred.  
+
+* `cool_off_period` - (Optional, Int, Available since v1.272.0) Compliance mode cool-off period. Unit: hours.
+* `description` - (Required) The description of the new snapshot. The description must be 2 to 256 characters in length and cannot start with http:// or https://.  
+Default value: empty.  
+* `disk_id` - (Optional, ForceNew) The ID of the specified disk device.
+* `encrypted` - (Optional, ForceNew, Available since v1.272.0) Specifies whether to filter encrypted snapshots. Default value: false.  
+* `force` - (Optional) Specifies whether to forcibly delete a snapshot that has already been used to create a cloud disk. Valid values:  
+  - true: Forces deletion. After forced deletion, the disk cannot be reinitialized.  
+  - false: Does not force deletion.  
+
+Default value: false.  
+
+-> **NOTE:** This parameter configures deletion behavior and is only evaluated when Terraform attempts to destroy the resource. Changes to this parameter during updates are stored but have no immediate effect.
+
+* `instant_access` - (Optional, Deprecated since v1.272.0) Specifies whether to enable the snapshot instant access feature. Valid values:  
+  - true: Enables the feature. This feature is supported only for ESSD cloud disks.  
+  - false: Disables the feature. A standard snapshot is created.  
+
+Default value: false.  
+
+-> **NOTE:**  This parameter is deprecated. Standard snapshots for ESSD cloud disks have been upgraded to [instant access by default](https://help.aliyun.com/document_detail/193667.html). You do not need to configure this feature explicitly, and no additional cost is incurred.  
+
+* `instant_access_retention_days` - (Optional, ForceNew, Int, Deprecated since v1.272.0) Specifies the retention period for the snapshot instant access feature. After the retention period expires, the snapshot is automatically released. This parameter takes effect only when `InstantAccess=true`. Unit: days. Valid values: 1 to 65535.
+
+By default, this parameter uses the same value as `RetentionDays`.
+
+-> **NOTE:**  This parameter is deprecated. Standard snapshots of ESSD disks now support [instant access by default](https://help.aliyun.com/document_detail/193667.html). You do not need to configure this feature explicitly, and no additional charges apply.
+
+* `kms_key_id` - (Optional, ForceNew, Available since v1.272.0) The customer master key (CMK) of Key Management Service (KMS) in the destination region.
+* `lock_duration` - (Optional, Int, Available since v1.272.0) Lock duration. After this duration expires, the snapshot lock automatically becomes invalid. Unit: days.
+* `lock_mode` - (Optional, Available since v1.272.0) Lock mode. Valid values: 
+  - compliance: Locks the snapshot in compliance mode. A snapshot locked in compliance mode cannot be unlocked by any user and can only be deleted after the lock duration expires. Users cannot shorten the lock duration, but users with appropriate RAM permissions can extend the lock duration at any time. When locking a snapshot in compliance mode, you can optionally specify a cool-down period.
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `lock_status` - (Optional, Available since v1.272.0) Lock status. Valid values: 
+  - compliance-cooloff: The snapshot is locked in compliance mode but is still within the cool-off period. The snapshot cannot be deleted, but users with appropriate RAM permissions can unlock it, extend or shorten the cool-off period, or extend or shorten the lock duration. 
+  - compliance: The snapshot is locked in compliance mode and the cool-off period has ended. The snapshot cannot be unlocked or deleted, but users with appropriate RAM permissions can extend the lock duration. 
+  - expired: The snapshot was previously locked, but the lock duration has ended and the lock has expired. The snapshot is currently unlocked and can be deleted.
+* `resource_group_id` - (Optional, Computed) The resource group ID. When you use this parameter to filter resources, the number of returned resources cannot exceed 1,000.  
+
+-> **NOTE:**  Filtering by the default resource group is not supported.  
+
+* `retention_days` - (Optional, Int) Number of days to retain the snapshot. The retention period starts from the snapshot's creation time (CreationTime). After a standard snapshot is created, it must be retained for at least 14 days before it can be archived.
+
+Archived snapshots have a minimum retention requirement of 60 days in the archive tier. When calculating the retention duration for an archived snapshot, the time already spent in the standard tier is deducted. If you delete an archived snapshot before it has been retained in the archive tier for at least 60 days, you will be charged for 60 days of archive storage fees. For more information, see [Snapshot billing](https://help.aliyun.com/document_detail/56159.html).
+
+Valid values: [74, 65536].
+
+-> **NOTE:** If this parameter is not specified, the snapshot is retained permanently.
+
+* `snapshot_name` - (Required) The name of the snapshot. The name must be 2 to 128 characters in length, and must start with a letter (uppercase or lowercase) or a Chinese character. It can contain letters (including English and Chinese characters as defined in the Unicode Letter category), ASCII digits (0–9), colons (:), underscores (_), periods (.), or hyphens (-).  
+
+-> **NOTE:**  The name cannot start with http:// or https://. To avoid conflicts with automatic snapshot names, the name cannot start with `auto`.  
+
+* `source_region_id` - (Optional, ForceNew, Available since v1.272.0) The region ID of the source snapshot. You can call [DescribeRegions](https://help.aliyun.com/document_detail/25609.html) to view the latest list of Alibaba Cloud regions.
+* `source_snapshot_id` - (Optional, ForceNew, Available since v1.272.0) Source snapshot ID.
+* `tags` - (Optional, Map) Tag information for the new snapshot.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The resource ID in terraform of Snapshot.
-* `create_time` - (Available since v1.239.0) The time when the snapshot was created.
-* `region_id` - (Available since v1.239.0) The region ID of the snapshot.
-* `status` - The status of the Snapshot.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Creation time.
+* `region_id` - The ID of the destination region for the new snapshot.
+* `status` - The status of the snapshot.
 
 ## Timeouts
 
--> **NOTE:** Available since v1.231.0.
-
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Snapshot.
+* `create` - (Defaults to 10 mins) Used when create the Snapshot.
 * `delete` - (Defaults to 5 mins) Used when delete the Snapshot.
 * `update` - (Defaults to 5 mins) Used when update the Snapshot.
 
@@ -143,5 +181,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 ECS Snapshot can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_ecs_snapshot.example <id>
+$ terraform import alicloud_ecs_snapshot.example <snapshot_id>
 ```
