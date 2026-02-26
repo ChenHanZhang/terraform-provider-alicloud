@@ -1935,7 +1935,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ga_access_log":                                         resourceAlicloudGaAccessLog(),
 			"alicloud_ebs_disk_replica_group":                                resourceAliCloudEbsDiskReplicaGroup(),
 			"alicloud_nlb_security_policy":                                   resourceAliCloudNlbSecurityPolicy(),
-			"alicloud_vod_editing_project":                                   resourceAlicloudVodEditingProject(),
+			"alicloud_vod_editing_project":                                   resourceAliCloudVodEditingProject(),
 			"alicloud_api_gateway_model":                                     resourceAlicloudApiGatewayModel(),
 			"alicloud_cen_transit_router_grant_attachment":                   resourceAlicloudCenTransitRouterGrantAttachment(),
 			"alicloud_api_gateway_plugin":                                    resourceAliCloudApiGatewayPlugin(),

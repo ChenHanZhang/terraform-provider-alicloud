@@ -18,6 +18,89 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test Vod EditingProject. >>> Resource test cases, automatically generated.
+// Case TF111 9862
+func TestAccAliCloudVodEditingProject_basic9862(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_vod_editing_project.default"
+	ra := resourceAttrInit(resourceId, AlicloudVodEditingProjectMap9862)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VodServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVodEditingProject")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccvod%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVodEditingProjectBasicDependence9862)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"timeline":             "{\\\"VideoTracks\\\":[{\\\"VideoTrackClips\\\":[{\\\"MediaId\\\":\\\"60b6f4efc1dd71ef80105017f0e90102\\\",\\\"In\\\":2811}]}]}",
+					"title":                "tf-test-test",
+					"editing_project_name": name,
+					"cover_url":            "http://tftest.jpg",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"timeline":             CHECKSET,
+						"title":                "tf-test-test",
+						"editing_project_name": name,
+						"cover_url":            "http://tftest.jpg",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"timeline":             "{\\\"VideoTracks\\\":[{\\\"VideoTrackClips\\\":[{\\\"MediaId\\\":\\\"60b6f4efc1dd71ef80105017f0e90102\\\",\\\"In\\\":2812}]}]}",
+					"title":                "tf-test-test-update",
+					"editing_project_name": name + "_update",
+					"cover_url":            "http://tftest1.jpg",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"timeline":             CHECKSET,
+						"title":                "tf-test-test-update",
+						"editing_project_name": name + "_update",
+						"cover_url":            "http://tftest1.jpg",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudVodEditingProjectMap9862 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudVodEditingProjectBasicDependence9862(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Vod EditingProject. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudVODEditingProject_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_vod_editing_project.default"
@@ -250,7 +333,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudVodEditingProjectCreate(dInit, rawClient)
+	err = resourceAliCloudVodEditingProjectCreate(dInit, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	ReadMockResponseDiff := map[string]interface{}{}
@@ -273,7 +356,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudVodEditingProjectCreate(dInit, rawClient)
+		err := resourceAliCloudVodEditingProjectCreate(dInit, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -300,7 +383,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudVodEditingProjectUpdate(dExisted, rawClient)
+	err = resourceAliCloudVodEditingProjectUpdate(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	attributesDiff := map[string]interface{}{
@@ -340,7 +423,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudVodEditingProjectUpdate(dExisted, rawClient)
+		err := resourceAliCloudVodEditingProjectUpdate(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -384,7 +467,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudVodEditingProjectRead(dExisted, rawClient)
+		err := resourceAliCloudVodEditingProjectRead(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -403,7 +486,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudVodEditingProjectDelete(dExisted, rawClient)
+	err = resourceAliCloudVodEditingProjectDelete(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	attributesDiff = map[string]interface{}{}
@@ -431,7 +514,7 @@ func TestUnitAccAlicloudVodEditingProject(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudVodEditingProjectDelete(dExisted, rawClient)
+		err := resourceAliCloudVodEditingProjectDelete(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":

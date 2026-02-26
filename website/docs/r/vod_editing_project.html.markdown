@@ -2,7 +2,6 @@
 subcategory: "ApsaraVideo VoD (VOD)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_vod_editing_project"
-sidebar_current: "docs-alicloud-resource-vod-editing-project"
 description: |-
   Provides a Alicloud VOD Editing Project resource.
 ---
@@ -11,6 +10,8 @@ description: |-
 
 Provides a VOD Editing Project resource.
 
+
+
 For information about VOD Editing Project and how to use it, see [What is Editing Project](https://www.alibabacloud.com/help/en/apsaravideo-for-vod/latest/addeditingproject#doc-api-vod-AddEditingProject).
 
 -> **NOTE:** Available since v1.187.0.
@@ -18,12 +19,6 @@ For information about VOD Editing Project and how to use it, see [What is Editin
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_vod_editing_project&exampleId=f0e8df38-bb3c-d8b4-c822-14eced3b4bfda1bfabf3&activeTab=example&spm=docs.r.vod_editing_project.0.f0e8df38bb&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -54,38 +49,33 @@ resource "alicloud_vod_editing_project" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vod_editing_project&spm=docs.r.vod_editing_project.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-
-* `cover_url` - (Optional) The thumbnail URL of the online editing project. If you do not specify this parameter and the video track in the timeline has mezzanine files, the thumbnail of the first mezzanine file in the timeline is used.
-* `division` - (Optional) The region where you want to create the online editing project.
-* `editing_project_name` - (Optional, Computed) The description of the online editing project.
-* `timeline` - (Optional) The timeline of the online editing project, in JSON format. For more information about the structure, see [Timeline](https://www.alibabacloud.com/help/en/apsaravideo-for-vod/latest/basic-structures). If you do not specify this parameter, an empty timeline is created and the duration of the online editing project is zero.
-* `title` - (Required) The title of the online editing project.
+* `cover_url` - (Optional) Cover url
+* `editing_project_name` - (Optional, Computed) The name of the resource
+* `timeline` - (Optional, Computed) Timeline
+* `title` - (Required) Title
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Editing Project.
-* `status` - The Status of the resource.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the resource.
+* `region_id` - The region ID of the resource.
+* `status` - Status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 1 mins) Used when create the Editing Project.
-* `update` - (Defaults to 1 mins) Used when update the Editing Project.
-* `delete` - (Defaults to 1 mins) Used when delete the Editing Project.
-
+* `create` - (Defaults to 5 mins) Used when create the Editing Project.
+* `delete` - (Defaults to 5 mins) Used when delete the Editing Project.
+* `update` - (Defaults to 5 mins) Used when update the Editing Project.
 
 ## Import
 
 VOD Editing Project can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_vod_editing_project.example <id>
+$ terraform import alicloud_vod_editing_project.example <editing_project_id>
 ```
