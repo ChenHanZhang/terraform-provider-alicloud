@@ -20,12 +20,6 @@ For information about RDS Custom Disk and how to use it, see [What is Custom Dis
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_rds_custom_disk&exampleId=1d1c1d87-40c4-9be8-e1fd-6315ae33fa5812959a3e&activeTab=example&spm=docs.r.rds_custom_disk.0.1d1c1d8740&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -55,99 +49,112 @@ resource "alicloud_rds_custom_disk" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_rds_custom_disk&spm=docs.r.rds_custom_disk.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `auto_pay` - (Optional) Whether to pay automatically. Value range:
-  - `true`: automatic payment. You need to ensure that your account balance is sufficient.
-  - `false`: only orders are generated without deduction.
+* `auto_pay` - (Optional) Specifies whether to enable automatic payment. Valid values: 
+  - **true (default)**: automatically completes the payment. Make sure that your account balance is sufficient. 
+  - `false`: does not automatically complete the payment. An unpaid order is generated. 
+&gt; If your account balance is insufficient, you can set the AutoPay parameter to false. In this case, an unpaid order is generated. You can complete the payment in the Expenses and Costs console. 
 
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
+* `auto_renew` - (Optional) Specifies whether to enable auto-renewal. You must specify this parameter only when the data disk uses the subscription billing method. Valid values:
+ * `true` 
+  - `false` 
 
--> **NOTE:**  The default value is true. If the balance of your payment method is insufficient, you can set the AutoPay parameter to false. In this case, unpaid orders will be generated. You can log on to the RDS management console to pay by yourself.
+&gt; The auto-renewal cycle is one month for a monthly subscription. The auto-renewal cycle is one year for a yearly subscription.
 
--> **NOTE:** >
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `auto_renew` - (Optional) Whether to automatically renew. This parameter is passed in only when you create a data disk. Valid values:
-  - `true`: Yes
-  - `false`: No
+* `delete_with_instance` - (Optional, Available since v1.272.0) Whether to release with the instance. Value range of this parameter:
+  - true: When the instance is released, the disk is released along with the instance.
+  - false: When the instance is released, the disk is reserved and not released.
 
--> **NOTE:**  When purchasing by month, the automatic renewal period is 1 month.
-When purchasing by year, the automatic renewal period is 1 year.
-* `description` - (Optional, ForceNew) The disk description. It must be 2 to 256 characters in length and cannot start with 'http:// 'or 'https.
-Default value: empty.
-* `disk_category` - (Required) The type of the data disk. Value range:
-  - `cloud` (default): a normal cloud disk.
-  - `cloud_efficiency`: The ultra cloud disk.
-  - `cloud_ssd`:SSD cloud disk.
-  - `cloud_essd`: the ESSD cloud disk.
-  - `cloud_auto`:ESSD AutoPL cloud disk.
-  - `Cloud_essd_entry`: the ESSD Entry disk.
-  - `Elastic_ephemeral_disk_standard`: Elastic temporary disk-standard version.
-  - `Elastic_ephemeral_disk_premium`: Elastic temporary disk-Pro version.
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `description` - (Optional, ForceNew) The disk description. The description must be 2 to 256 characters in length and cannot start with `http://` or `https://`.
+* `disk_category` - (Required) The data disk type. Valid values: 
+  - `cloud_efficiency`: ultra disk. 
+  - `cloud_ssd`: standard SSD 
+  - `cloud_essd`: ESSD 
+  - `cloud_auto` (default): Premium ESSD
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `disk_name` - (Optional, ForceNew) The disk name. It can be 2 to 128 characters in length. It supports letters in Unicode (including English, Chinese, and numbers). Can contain a colon (:), an underscore (_), a period (.), or a dash (-).
 Default value: empty.
 * `dry_run` - (Optional) Whether to pre-check the instance creation operation. Valid values:
   - `true`: The PreCheck operation is performed without creating an instance. Check items include request parameters, request formats, business restrictions, and inventory.
   - `false` (default): Sends a normal request and directly creates an instance after the check is passed.
-* `instance_charge_type` - (Optional) The Payment type. Only `Postpaid`: Pay-As-You-Go is supported.
-* `performance_level` - (Optional, ForceNew) When creating an ESSD cloud disk, set the performance level of the disk. Value range:
-  - `PL0`: The maximum random read/write IOPS 10000 for a single disk.
-  - `PL1` (default): The maximum number of random read/write IOPS 50000 for a single disk.
-  - `PL2`: maximum random read/write IOPS 100000 for a single disk.
-  - `PL3`: The maximum random read/write IOPS 1 million for a single disk.
 
-For more information about how to select an ESSD performance level, see [ESSD cloud disk](~~ 122389 ~~).
-* `period` - (Optional, Int) Reserved parameters, no need to fill in.
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `instance_charge_type` - (Optional) The billing method. Valid values: 
+  - `Postpaid`: pay-as-you-go Pay-as-you-go disks do not require to be attached. You can also attach the pay-as-you-go disk to an instance of any billing method based on your business requirements. 
+  - `Prepaid`: subscription Subscription disks must be attached to a subscription instance. Set `InstanceId` to the ID of a subscription instance. 
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `instance_id` - (Optional, Available since v1.272.0) The instance ID.
+
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
+* `performance_level` - (Optional) The PL of the disk. Valid values: 
+  - `PL1` (default): A single ESSD can deliver up to 50,000 random read/write IOPS. 
+  - `PL2`: A single ESSD delivers up to 100,000 random read/write IOPS. 
+  - `PL3`: A single ESSD delivers up to 1,000,000 random read/write IOPS.
+* `period` - (Optional, Int) A reserved parameter. You do not need to specify this parameter. 
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `period_unit` - (Optional) Reserved parameters, no need to fill in.
-* `size` - (Required, Int) Capacity size. Unit: GiB. You must pass in a parameter value for this parameter. Value range:
-  - `cloud`:5~2,000.
-  - `cloud_efficiency`:20 to 32,768.
-  - `cloud_ssd`:20 to 32,768.
-  - `cloud_essd`: The specific value range is related to the value of PerformanceLevel.
-  - PL0:1~65,536.
-  - PL1:20~65,536.
-  - PL2:461~65,536.
-  - PL3:1,261~65,536.
-  - `cloud_auto`:1~65,536.
-  - `Cloud_essd_entry`:10 to 32,768.
-  - `Elastic_ephemeral_disk_standard`:64-8,192.
-  - `Elastic_ephemeral_disk_premium`:64 to 8,192.
 
-If you specify the 'SnapshotId' parameter, the 'SnapshotId' parameter and the 'Size' parameter have the following limitations:
-  - If the snapshot capacity corresponding to the 'SnapshotId' parameter is greater than the set 'Size' parameter value, the actual size of the cloud disk created is the size of the specified snapshot.
-  - If the snapshot capacity corresponding to the 'SnapshotId' parameter is less than the set 'Size' parameter value, the size of the cloud disk created is the specified 'Size' parameter value.
-* `snapshot_id` - (Optional) The snapshot used to create the cloud disk. Snapshots made on or before July 15, 2013 cannot be used to create cloud disks. The 'SnapshotId' parameter and the 'Size' parameter have the following limitations:
-  - If the snapshot capacity corresponding to the 'SnapshotId' parameter is greater than the set 'Size' parameter value, the actual size of the cloud disk created is the size of the specified snapshot.
-  - If the snapshot capacity corresponding to the 'SnapshotId' parameter is less than the set 'Size' parameter value, the size of the cloud disk created is the specified 'Size' parameter value.
-  - Snapshots are not supported for creating elastic temporary disks.
-* `type` - (Optional) The method of expanding the disk. Value range:
-offline (default): offline expansion. After the expansion, the instance must be restarted to take effect.
-online: online expansion, which can be completed without restarting the instance.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `resource_group_id` - (Optional, Computed) The resource group ID. You can call the ListResourceGroups operation to obtain the resource group ID.
+* `size` - (Required, Int) The new disk size. Unit: GiB.
+* `snapshot_id` - (Optional) The snapshot that you want to use to create the disk. 
+  - The snapshots of RDS Custom instances and the non-shared snapshots of ECS instances are supported. 
+  - If the size of the snapshot specified by `SnapshotId` is greater than the value of `Size`, the size of the created disk is equal to the specified snapshot size. If the snapshot size is less than the `Size` value, the size of the created disk is equal to the `Size` value. 
+  - You cannot create elastic ephemeral disks from snapshots. * Snapshots that were created on or before July 15, 2013 cannot be used to create disks.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `status` - (Optional, Computed) Disk status. Value Description:
+  - In_use: In use.
+  - Available: to be mounted.
+  - Attaching: Attaching.
+  - Detaching: uninstalling.
+  - Creating: Creating.
+  - ReIniting: Initializing.
+* `tags` - (Optional, Map, Available since v1.272.0) The tag of the resource
+* `type` - (Optional) The method that you want to use to resize the disk. Valid values: 
+  - `offline` (default): resizes disks offline. After you resize a disk offline, you must restart the instance for the resizing operation to take effect. 
+  - `online`: resizes disks online. After you resize a disk online, the resizing operation takes effect immediately and you do not need to restart the instance. 
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
 * `zone_id` - (Required, ForceNew) The zone ID.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - Creation time.
-* `region_id` - The region ID. You can view the region ID through the DescribeRegions interface.
-* `resource_group_id` - The ID of the resource group to which the disk belongs.
-* `status` - Disk status. Value Description:_use: In use.
+* `region_id` - The region ID.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Custom Disk.
+* `create` - (Defaults to 6 mins) Used when create the Custom Disk.
 * `delete` - (Defaults to 5 mins) Used when delete the Custom Disk.
-* `update` - (Defaults to 5 mins) Used when update the Custom Disk.
+* `update` - (Defaults to 10 mins) Used when update the Custom Disk.
 
 ## Import
 
 RDS Custom Disk can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_rds_custom_disk.example <id>
+$ terraform import alicloud_rds_custom_disk.example <disk_id>
 ```
