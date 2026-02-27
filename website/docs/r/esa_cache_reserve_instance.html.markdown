@@ -14,17 +14,11 @@ Provides a ESA Cache Reserve Instance resource.
 
 For information about ESA Cache Reserve Instance and how to use it, see [What is Cache Reserve Instance](https://next.api.alibabacloud.com/document/ESA/2024-09-10/PurchaseCacheReserve).
 
--> **NOTE:** Available since v1.247.0.
+-> **NOTE:** Available since v1.272.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_cache_reserve_instance&exampleId=47a5e858-308c-c1b4-9ebd-c694f5b5915c37c9017c&activeTab=example&spm=docs.r.esa_cache_reserve_instance.0.47a5e85830&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -46,15 +40,19 @@ resource "alicloud_esa_cache_reserve_instance" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_cache_reserve_instance&spm=docs.r.esa_cache_reserve_instance.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `auto_pay` - (Optional) Automatic payment.
+
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
 * `auto_renew` - (Optional) Whether to auto-renew:
   - `true`: Auto-renew.
   - `false`: Do not auto-renew.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `cr_region` - (Optional, ForceNew) Cache holding area
   - `HK`: Hong Kong, China
   - `CN`: Mainland China
@@ -65,9 +63,9 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - Instance purchase time.
-* `status` - The status of the cache reserve instance. , it is unavailable.
+* `status` - The status of the cache reserve instance.
 
 ## Timeouts
 
@@ -81,5 +79,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 ESA Cache Reserve Instance can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_esa_cache_reserve_instance.example <id>
+$ terraform import alicloud_esa_cache_reserve_instance.example <cache_reserve_instance_id>
 ```
