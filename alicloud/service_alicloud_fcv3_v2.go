@@ -799,4 +799,119 @@ func (s *Fcv3ServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 	return nil
 }
 
+// DescribeFcv3Service <<< Encapsulated get interface for Fcv3 Service.
+
+func (s *Fcv3ServiceV2) DescribeFcv3Service(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	serviceName := id
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+
+	action := fmt.Sprintf("/2023-03-30/services/%s", serviceName)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RoaGet("FC", "2023-03-30", action, query, header, nil)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"ServiceNotFound"}) {
+			return object, WrapErrorf(NotFoundErr("Fcv3Service", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *Fcv3ServiceV2) Fcv3ServiceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.Fcv3ServiceStateRefreshFuncWithApi(id, field, failStates, s.DescribeFcv3Service)
+}
+
+func (s *Fcv3ServiceV2) Fcv3ServiceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeFcv3Service >>> Encapsulated.
+
+// DescribeFcv3ServiceTags <<< Encapsulated get interface for Fcv3 Service Tags.
+
+func (s *Fcv3ServiceV2) DescribeFcv3ServiceTags(id string) (tags map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	serviceName := id
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+
+	action := fmt.Sprintf("/2023-03-30/services/%s/tags", serviceName)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RoaGet("FC", "2023-03-30", action, query, header, nil)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return tags, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	if response["tags"] != nil {
+		tags = response["tags"].(map[string]interface{})
+	}
+
+	return tags, nil
+}
+
+// DescribeFcv3ServiceTags >>> Encapsulated.
+
 // SetResourceTags >>> tag function encapsulated.

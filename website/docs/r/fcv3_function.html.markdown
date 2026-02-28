@@ -10,11 +10,15 @@ description: |-
 
 Provides a Function Compute Service V3 (FCV3) Function resource.
 
+Function Compute Service V3 (FCV3) is the latest version of Alibaba Cloud's serverless computing service, offering enhanced performance, improved networking capabilities, and advanced security features compared to the previous FC service. FCV3 provides better scalability, faster cold start times, and more flexible configuration options.
+
 The resource scheduling and running of Function Compute is based on functions. The FC function consists of function code and function configuration.
 
 For information about Function Compute Service V3 (FCV3) Function and how to use it, see [What is Function](https://www.alibabacloud.com/help/en/functioncompute/developer-reference/api-fc-2023-03-30-getfunction).
 
 -> **NOTE:** Available since v1.228.0.
+
+-> **NOTE:** **FCV3 is the recommended version for all new projects. It offers improved performance, enhanced security, and additional features compared to the legacy FC service.**
 
 ## Example Usage
 

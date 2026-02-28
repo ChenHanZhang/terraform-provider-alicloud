@@ -10,12 +10,16 @@ description: |-
 
 Provides a Function Compute Service V3 (FCV3) Custom Domain resource.
 
+Function Compute Service V3 (FCV3) is the latest version of Alibaba Cloud's serverless computing service, offering enhanced performance, improved networking capabilities, and advanced security features compared to the previous FC service. FCV3 provides better scalability, faster cold start times, and more flexible configuration options.
+
 Custom Domain names allow users to access FC functions through custom domain names, providing convenience for building Web services using function compute.
 You can bind a custom domain name to Function Compute and set different paths to different functions of different services.
 
 For information about Function Compute Service V3 (FCV3) Custom Domain and how to use it, see [What is Custom Domain](https://www.alibabacloud.com/help/en/functioncompute/developer-reference/api-fc-2023-03-30-getcustomdomain).
 
 -> **NOTE:** Available since v1.228.0.
+
+-> **NOTE:** **FCV3 is the recommended version for all new projects. It offers improved performance, enhanced security, and additional features compared to the legacy FC service.**
 
 ## Example Usage
 

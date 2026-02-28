@@ -4,15 +4,19 @@ layout: "alicloud"
 page_title: "Alicloud: alicloud_fc_custom_domain"
 sidebar_current: "docs-alicloud-resource-fc"
 description: |-
-  Provides an Alicloud Function Compute Custom Domain resource. 
+  Provides an Alicloud Function Compute Custom Domain resource.
 ---
 
 # alicloud_fc_custom_domain
 
-Provides an Alicloud Function Compute custom domain resource. 
+Provides an Alicloud Function Compute custom domain resource.
  For the detailed information, please refer to the [developer guide](https://www.alibabacloud.com/help/en/fc/developer-reference/api-fc-open-2021-04-06-createcustomdomain).
 
 -> **NOTE:** Available since v1.98.0.
+
+-> **NOTE:** **Recommendation: For new projects, please consider using FCV3 resources (e.g., `alicloud_fcv3_custom_domain`) as they provide enhanced capabilities and are actively maintained. The traditional FC resources are maintained for backward compatibility.**
+
+-> **NOTE:** **Migration Guide: To migrate from FC to FCV3, please note that FCV3 uses a different API version (2023-03-30) and has extended features like improved networking, enhanced security, and better performance. Check the FCV3 documentation for detailed differences.**
 
 
 ## Example Usage

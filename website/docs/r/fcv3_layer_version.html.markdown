@@ -10,11 +10,15 @@ description: |-
 
 Provides a FCV3 Layer Version resource.
 
+Function Compute Service V3 (FCV3) is the latest version of Alibaba Cloud's serverless computing service, offering enhanced performance, improved networking capabilities, and advanced security features compared to the previous FC service. FCV3 provides better scalability, faster cold start times, and more flexible configuration options.
+
 Layer provides you with the ability to publish and deploy common dependency libraries, runtime environments, and function extensions.
 
 For information about FCV3 Layer Version and how to use it, see [What is Layer Version](https://www.alibabacloud.com/help/en/functioncompute/api-fc-2023-03-30-createlayerversion).
 
 -> **NOTE:** Available since v1.230.0.
+
+-> **NOTE:** **FCV3 is the recommended version for all new projects. It offers improved performance, enhanced security, and additional features compared to the legacy FC service.**
 
 ## Example Usage
 

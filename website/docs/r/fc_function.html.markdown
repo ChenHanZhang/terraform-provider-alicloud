@@ -16,6 +16,10 @@ Provides a Alicloud Function Compute Function resource. Function allows you to t
 
 -> **NOTE:** Available since v1.10.0.
 
+-> **NOTE:** **Recommendation: For new projects, please consider using FCV3 resources (e.g., `alicloud_fcv3_function`) as they provide enhanced capabilities and are actively maintained. The traditional FC resources are maintained for backward compatibility.**
+
+-> **NOTE:** **Migration Guide: To migrate from FC to FCV3, please note that FCV3 uses a different API version (2023-03-30) and has extended features like improved networking, enhanced security, and better performance. Check the FCV3 documentation for detailed differences.**
+
 ## Example Usage
 
 Basic Usage

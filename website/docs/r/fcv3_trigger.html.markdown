@@ -10,11 +10,15 @@ description: |-
 
 Provides a FCV3 Trigger resource.
 
+Function Compute Service V3 (FCV3) is the latest version of Alibaba Cloud's serverless computing service, offering enhanced performance, improved networking capabilities, and advanced security features compared to the previous FC service. FCV3 provides better scalability, faster cold start times, and more flexible configuration options.
+
 A trigger is a way of triggering the execution of a function. In the event-driven computing model, the event source is the producer of the event, the function is the handler of the event, and the trigger provides a centralized and unified way to manage different event sources. In the event source, when the event occurs, if the rules defined by the trigger are met,.
 
 For information about FCV3 Trigger and how to use it, see [What is Trigger](https://www.alibabacloud.com/help/en/functioncompute/api-fc-2023-03-30-createtrigger).
 
 -> **NOTE:** Available since v1.228.0.
+
+-> **NOTE:** **FCV3 is the recommended version for all new projects. It offers improved performance, enhanced security, and additional features compared to the legacy FC service.**
 
 ## Example Usage
 

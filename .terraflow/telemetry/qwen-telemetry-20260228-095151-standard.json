@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "source": "qwen-code",
+    "source_file": "/Users/tfhnia/go/src/github.com/chenhanzhang/terraform-provider-alicloud/.terraflow/telemetry/qwen-telemetry-20260228-095151.log",
+    "converted_at": "2026-02-28T09:51:57.641686",
+    "format_version": "1.0"
+  },
+  "summary": {
+    "total_tool_calls": 0,
+    "total_file_operations": 0,
+    "total_api_responses": 1,
+    "successful_tool_calls": 0,
+    "failed_tool_calls": 0
+  },
+  "tool_calls": [],
+  "file_operations": [],
+  "api_responses": [
+    {
+      "model": "qwen3-coder-plus",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "sequence": 0,
+      "timestamp": "2026-02-28T01:51:57.566Z",
+      "duration_ms": 2605
+    }
+  ]
+}

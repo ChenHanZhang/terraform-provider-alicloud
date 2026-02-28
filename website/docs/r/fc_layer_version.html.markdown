@@ -17,6 +17,10 @@ For information about FC Layer Version and how to use it, see [What is Layer Ver
 
 -> **NOTE: Setting `skip_destroy` to `true` means that the Alicloud Provider will not destroy any layer version, even when running `terraform destroy`. Layer versions are thus intentional dangling resources that are not managed by Terraform and may incur extra expense in your Alicloud account.
 
+-> **NOTE:** **Recommendation: For new projects, please consider using FCV3 resources (e.g., `alicloud_fcv3_layer_version`) as they provide enhanced capabilities and are actively maintained. The traditional FC resources are maintained for backward compatibility.**
+
+-> **NOTE:** **Migration Guide: To migrate from FC to FCV3, please note that FCV3 uses a different API version (2023-03-30) and has extended features like improved networking, enhanced security, and better performance. Check the FCV3 documentation for detailed differences.**
+
 ## Example Usage
 
 Basic Usage
