@@ -1147,6 +1147,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_fcv3_alias":                                           resourceAliCloudFcv3Alias(),
 			"alicloud_fcv3_custom_domain":                                   resourceAliCloudFcv3CustomDomain(),
 			"alicloud_fcv3_function":                                        resourceAliCloudFcv3Function(),
+			"alicloud_fcv3_service":                                         resourceAlicloudFcv3Service(),
 			"alicloud_aligreen_oss_stock_task":                              resourceAliCloudAligreenOssStockTask(),
 			"alicloud_aligreen_keyword_lib":                                 resourceAliCloudAligreenKeywordLib(),
 			"alicloud_aligreen_image_lib":                                   resourceAliCloudAligreenImageLib(),

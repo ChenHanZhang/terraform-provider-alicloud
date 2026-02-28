@@ -2048,3 +2048,40 @@ func convertYamlToObject(configured interface{}) (map[string]interface{}, error)
 
 	return result, nil
 }
+
+// GetInterfaceItemFromList gets the value of a field from an item in a list
+func GetInterfaceItemFromList(list interface{}, index int, field string) (interface{}, error) {
+	if list == nil {
+		return nil, nil
+	}
+
+	listVal := reflect.ValueOf(list)
+	if listVal.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("expected a slice, got %T", list)
+	}
+
+	if index >= listVal.Len() {
+		return nil, nil
+	}
+
+	item := listVal.Index(index)
+	if item.Kind() == reflect.Interface {
+		item = item.Elem()
+	}
+
+	if item.Kind() == reflect.Map {
+		mapValue := item.MapIndex(reflect.ValueOf(field))
+		if !mapValue.IsValid() {
+			return nil, nil
+		}
+		return mapValue.Interface(), nil
+	} else if item.Kind() == reflect.Struct {
+		fieldValue := item.FieldByName(field)
+		if !fieldValue.IsValid() {
+			return nil, nil
+		}
+		return fieldValue.Interface(), nil
+	}
+
+	return nil, nil
+}

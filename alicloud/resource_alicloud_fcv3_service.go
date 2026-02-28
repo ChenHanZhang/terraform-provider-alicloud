@@ -155,7 +155,6 @@ func resourceAlicloudFcv3ServiceCreate(d *schema.ResourceData, meta interface{})
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]*string)
-	body := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
 	if v, ok := d.GetOk("service_name"); ok {
@@ -173,15 +172,24 @@ func resourceAlicloudFcv3ServiceCreate(d *schema.ResourceData, meta interface{})
 
 	vpcConfig := make(map[string]interface{})
 	if v := d.Get("vpc_config"); !IsNil(v) {
-		vpcId1, _ := GetInterfaceItemFromList(v, 0, "vpc_id")
+		vpcId1, err := GetInterfaceItemFromList(v, 0, "vpc_id")
+		if err != nil {
+			return WrapError(err)
+		}
 		if vpcId1 != nil && vpcId1.(string) != "" {
 			vpcConfig["vpcId"] = vpcId1
 		}
-		vswitchIds1, _ := GetInterfaceItemFromList(v, 0, "vswitch_ids")
+		vswitchIds1, err := GetInterfaceItemFromList(v, 0, "vswitch_ids")
+		if err != nil {
+			return WrapError(err)
+		}
 		if vswitchIds1 != nil {
 			vpcConfig["vswitchIds"] = vswitchIds1
 		}
-		securityGroupId1, _ := GetInterfaceItemFromList(v, 0, "security_group_id")
+		securityGroupId1, err := GetInterfaceItemFromList(v, 0, "security_group_id")
+		if err != nil {
+			return WrapError(err)
+		}
 		if securityGroupId1 != nil && securityGroupId1.(string) != "" {
 			vpcConfig["securityGroupId"] = securityGroupId1
 		}
@@ -191,11 +199,17 @@ func resourceAlicloudFcv3ServiceCreate(d *schema.ResourceData, meta interface{})
 
 	nasConfig := make(map[string]interface{})
 	if v := d.Get("nas_config"); !IsNil(v) {
-		userId1, _ := GetInterfaceItemFromList(v, 0, "user_id")
+		userId1, err := GetInterfaceItemFromList(v, 0, "user_id")
+		if err != nil {
+			return WrapError(err)
+		}
 		if userId1 != nil && userId1.(int) != 0 {
 			nasConfig["userId"] = userId1
 		}
-		groupId1, _ := GetInterfaceItemFromList(v, 0, "group_id")
+		groupId1, err := GetInterfaceItemFromList(v, 0, "group_id")
+		if err != nil {
+			return WrapError(err)
+		}
 		if groupId1 != nil && groupId1.(int) != 0 {
 			nasConfig["groupId"] = groupId1
 		}
@@ -205,23 +219,38 @@ func resourceAlicloudFcv3ServiceCreate(d *schema.ResourceData, meta interface{})
 
 	logConfig := make(map[string]interface{})
 	if v := d.Get("log_config"); !IsNil(v) {
-		project1, _ := GetInterfaceItemFromList(v, 0, "project")
+		project1, err := GetInterfaceItemFromList(v, 0, "project")
+		if err != nil {
+			return WrapError(err)
+		}
 		if project1 != nil && project1.(string) != "" {
 			logConfig["project"] = project1
 		}
-		logstore1, _ := GetInterfaceItemFromList(v, 0, "logstore")
+		logstore1, err := GetInterfaceItemFromList(v, 0, "logstore")
+		if err != nil {
+			return WrapError(err)
+		}
 		if logstore1 != nil && logstore1.(string) != "" {
 			logConfig["logstore"] = logstore1
 		}
-		logBeginRule1, _ := GetInterfaceItemFromList(v, 0, "log_begin_rule")
+		logBeginRule1, err := GetInterfaceItemFromList(v, 0, "log_begin_rule")
+		if err != nil {
+			return WrapError(err)
+		}
 		if logBeginRule1 != nil && logBeginRule1.(string) != "" {
 			logConfig["logBeginRule"] = logBeginRule1
 		}
-		enableRequestMetrics1, _ := GetInterfaceItemFromList(v, 0, "enable_request_metrics")
+		enableRequestMetrics1, err := GetInterfaceItemFromList(v, 0, "enable_request_metrics")
+		if err != nil {
+			return WrapError(err)
+		}
 		if enableRequestMetrics1 != nil {
 			logConfig["enableRequestMetrics"] = enableRequestMetrics1
 		}
-		enableInstanceMetrics1, _ := GetInterfaceItemFromList(v, 0, "enable_instance_metrics")
+		enableInstanceMetrics1, err := GetInterfaceItemFromList(v, 0, "enable_instance_metrics")
+		if err != nil {
+			return WrapError(err)
+		}
 		if enableInstanceMetrics1 != nil {
 			logConfig["enableInstanceMetrics"] = enableInstanceMetrics1
 		}
@@ -249,7 +278,7 @@ func resourceAlicloudFcv3ServiceCreate(d *schema.ResourceData, meta interface{})
 	id := fmt.Sprint(request["serviceName"])
 	d.SetId(id)
 
-	if v, ok := d.GetOk("tags"); ok {
+	if d.Get("tags").(map[string]interface{}) != nil && len(d.Get("tags").(map[string]interface{})) > 0 {
 		fcv3ServiceV2 := Fcv3ServiceV2{client}
 		err := fcv3ServiceV2.SetResourceTags(d, "service")
 		if err != nil {
@@ -367,15 +396,24 @@ func resourceAlicloudFcv3ServiceUpdate(d *schema.ResourceData, meta interface{})
 		update = true
 		vpcConfig := make(map[string]interface{})
 		if v := d.Get("vpc_config"); !IsNil(v) {
-			vpcId1, _ := GetInterfaceItemFromList(v, 0, "vpc_id")
+			vpcId1, err := GetInterfaceItemFromList(v, 0, "vpc_id")
+			if err != nil {
+				return WrapError(err)
+			}
 			if vpcId1 != nil && vpcId1.(string) != "" {
 				vpcConfig["vpcId"] = vpcId1
 			}
-			vswitchIds1, _ := GetInterfaceItemFromList(v, 0, "vswitch_ids")
+			vswitchIds1, err := GetInterfaceItemFromList(v, 0, "vswitch_ids")
+			if err != nil {
+				return WrapError(err)
+			}
 			if vswitchIds1 != nil {
 				vpcConfig["vswitchIds"] = vswitchIds1
 			}
-			securityGroupId1, _ := GetInterfaceItemFromList(v, 0, "security_group_id")
+			securityGroupId1, err := GetInterfaceItemFromList(v, 0, "security_group_id")
+			if err != nil {
+				return WrapError(err)
+			}
 			if securityGroupId1 != nil && securityGroupId1.(string) != "" {
 				vpcConfig["securityGroupId"] = securityGroupId1
 			}
@@ -387,11 +425,17 @@ func resourceAlicloudFcv3ServiceUpdate(d *schema.ResourceData, meta interface{})
 		update = true
 		nasConfig := make(map[string]interface{})
 		if v := d.Get("nas_config"); !IsNil(v) {
-			userId1, _ := GetInterfaceItemFromList(v, 0, "user_id")
+			userId1, err := GetInterfaceItemFromList(v, 0, "user_id")
+			if err != nil {
+				return WrapError(err)
+			}
 			if userId1 != nil && userId1.(int) != 0 {
 				nasConfig["userId"] = userId1
 			}
-			groupId1, _ := GetInterfaceItemFromList(v, 0, "group_id")
+			groupId1, err := GetInterfaceItemFromList(v, 0, "group_id")
+			if err != nil {
+				return WrapError(err)
+			}
 			if groupId1 != nil && groupId1.(int) != 0 {
 				nasConfig["groupId"] = groupId1
 			}
@@ -403,23 +447,38 @@ func resourceAlicloudFcv3ServiceUpdate(d *schema.ResourceData, meta interface{})
 		update = true
 		logConfig := make(map[string]interface{})
 		if v := d.Get("log_config"); !IsNil(v) {
-			project1, _ := GetInterfaceItemFromList(v, 0, "project")
+			project1, err := GetInterfaceItemFromList(v, 0, "project")
+			if err != nil {
+				return WrapError(err)
+			}
 			if project1 != nil && project1.(string) != "" {
 				logConfig["project"] = project1
 			}
-			logstore1, _ := GetInterfaceItemFromList(v, 0, "logstore")
+			logstore1, err := GetInterfaceItemFromList(v, 0, "logstore")
+			if err != nil {
+				return WrapError(err)
+			}
 			if logstore1 != nil && logstore1.(string) != "" {
 				logConfig["logstore"] = logstore1
 			}
-			logBeginRule1, _ := GetInterfaceItemFromList(v, 0, "log_begin_rule")
+			logBeginRule1, err := GetInterfaceItemFromList(v, 0, "log_begin_rule")
+			if err != nil {
+				return WrapError(err)
+			}
 			if logBeginRule1 != nil && logBeginRule1.(string) != "" {
 				logConfig["logBeginRule"] = logBeginRule1
 			}
-			enableRequestMetrics1, _ := GetInterfaceItemFromList(v, 0, "enable_request_metrics")
+			enableRequestMetrics1, err := GetInterfaceItemFromList(v, 0, "enable_request_metrics")
+			if err != nil {
+				return WrapError(err)
+			}
 			if enableRequestMetrics1 != nil {
 				logConfig["enableRequestMetrics"] = enableRequestMetrics1
 			}
-			enableInstanceMetrics1, _ := GetInterfaceItemFromList(v, 0, "enable_instance_metrics")
+			enableInstanceMetrics1, err := GetInterfaceItemFromList(v, 0, "enable_instance_metrics")
+			if err != nil {
+				return WrapError(err)
+			}
 			if enableInstanceMetrics1 != nil {
 				logConfig["enableInstanceMetrics"] = enableInstanceMetrics1
 			}
@@ -459,19 +518,18 @@ func resourceAlicloudFcv3ServiceDelete(d *schema.ResourceData, meta interface{})
 
 	action := fmt.Sprintf("/2023-03-30/services/%s", d.Id())
 	var request map[string]interface{}
-	var response map[string]interface{}
 	query := make(map[string]*string)
 	request = make(map[string]interface{})
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RoaDelete("FC", "2023-03-30", action, query, nil, request, true)
-		if err != nil {
-			if NeedRetry(err) {
+		response, requestErr := client.RoaDelete("FC", "2023-03-30", action, query, nil, request, true)
+		if requestErr != nil {
+			if NeedRetry(requestErr) {
 				wait()
-				return resource.RetryableError(err)
+				return resource.RetryableError(requestErr)
 			}
-			return resource.NonRetryableError(err)
+			return resource.NonRetryableError(requestErr)
 		}
 		addDebug(action, response, query, request)
 		return nil
