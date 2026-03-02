@@ -10,6 +10,8 @@ description: |-
 
 Provides a AnalyticDB for MySQL (ADB) Resource Group resource.
 
+ADB MySQL cluster resource group.
+
 For information about AnalyticDB for MySQL (ADB) Resource Group and how to use it, see [What is Resource Group](https://www.alibabacloud.com/help/en/analyticdb-for-mysql/latest/api-doc-adb-2019-03-15-api-doc-createdbresourcegroup).
 
 -> **NOTE:** Available since v1.195.0.
@@ -17,12 +19,6 @@ For information about AnalyticDB for MySQL (ADB) Resource Group and how to use i
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_adb_resource_group&exampleId=b585e2dc-7099-5d61-5285-d0cca6665da8440cfdc2&activeTab=example&spm=docs.r.adb_resource_group.0.b585e2dc70&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -76,36 +72,55 @@ resource "alicloud_adb_resource_group" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_adb_resource_group&spm=docs.r.adb_resource_group.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `cluster_mode` - (Optional, Available since v1.261.0) The working mode of the resource group. Default value: `Disable`. Valid values: `Disable`, `AutoScale`.
-* `cluster_size_resource` - (Optional, Available since v1.261.0) The resource specifications of a single compute cluster. Unit: ACU.
-* `db_cluster_id` - (Required, ForceNew) The ID of the DBCluster.
-* `engine` - (Optional, ForceNew, Available since v1.261.0) The engine of the resource group. Default value: `AnalyticDB`. Valid values: `AnalyticDB`, `SparkWarehouse`.
-* `engine_params` - (Optional, Map, Available since v1.261.0) The Spark application configuration parameters that can be applied to all Spark jobs executed in the resource group.
-* `group_name` - (Required, ForceNew) The name of the resource group. The `group_name` can be up to 255 characters in length and can contain digits, uppercase letters, hyphens (-), and underscores (_). It must start with a digit or uppercase letter.
-* `group_type` - (Optional) The query execution mode. Default value: `interactive`. Valid values: `interactive`, `batch`.
-* `max_cluster_count` - (Optional, Int, Available since v1.261.0) The maximum number of compute clusters that are allowed in the resource group.
-* `max_compute_resource` - (Optional, Available since v1.261.0) The maximum amount of reserved computing resources, which refers to the amount of resources that are not allocated in the cluster.
-* `min_cluster_count` - (Optional, Int, Available since v1.261.0) The minimum number of compute clusters that are required in the resource group.
-* `min_compute_resource` - (Optional, Available since v1.261.0) The minimum amount of reserved computing resources. Unit: AnalyticDB compute unit (ACU).
-* `node_num` - (Optional, Int) The number of nodes.
-* `users` - (Optional, List, Available since v1.227.0) The database accounts with which to associate the resource group.
+* `cluster_mode` - (Optional, Computed, Available since v1.261.0) The mode of the resource group. Valid values:  
+  - `Disable` (default): Standard mode.  
+  - `AutoScale`: Auto-scaling mode.  
+* `cluster_size_resource` - (Optional, Computed, Available since v1.261.0) Resource specification per cluster, measured in ACUs.  
+* `db_cluster_id` - (Required, ForceNew) Data Warehouse Edition cluster ID.  
+
+-> **NOTE:**  You can call the [DescribeDBClusters](https://help.aliyun.com/document_detail/129857.html) operation to query the IDs of all Data Warehouse Edition clusters in the specified region.  
+
+* `engine` - (Optional, ForceNew, Computed, Available since v1.261.0) The engine type of the resource group. Valid values:
+  - `AnalyticDB` (default): AnalyticDB for MySQL engine.
+  - `SparkWarehouse`: SparkWarehouse engine.
+* `engine_params` - (Optional, Map, Available since v1.261.0) Spark application configuration parameters applied to all Spark jobs executed by this resource group. To configure parameters for a specific Spark job, you can set them in code when submitting the job.  
+* `group_name` - (Required, ForceNew) The resource group name.  
+  - Must be no longer than 255 characters.  
+  - Must start with a digit or an uppercase letter.  
+  - Can contain digits, uppercase letters, hyphens (-), and underscores (_).  
+* `group_type` - (Optional, Computed) Query type. Valid values:  
+  - `interactive` (default): Interactive query mode.  
+  - `batch`: Batch query mode.  
+  - `Job`: Offline query mode.  
+
+-> **NOTE:**  For more information, see [Query Execution Modes](https://help.aliyun.com/document_detail/189502.html).  
+
+* `max_cluster_count` - (Optional, Int, Available since v1.261.0) The maximum number of clusters that can run in the resource group, up to 10.
+* `max_compute_resource` - (Optional, Computed, Available since v1.261.0) Maximum reserved compute resources, measured in ACUs.  
+  - When the resource group type is `Interactive`, the maximum reserved compute resources cannot exceed the cluster's currently unallocated resources, with a step size of 16 ACUs.  
+  - When the resource group type is `Job`, the maximum reserved compute resources cannot exceed the cluster's currently unallocated resources, with a step size of 8 ACUs.  
+* `min_cluster_count` - (Optional, Int, Available since v1.261.0) The minimum number of clusters that must be running in the resource group. The minimum value is 1.  
+* `min_compute_resource` - (Optional, Computed, Available since v1.261.0) Minimum reserved compute resources, measured in ACUs.  
+  - When `GroupType` is `Interactive`, the minimum reserved compute resources are 16 ACUs.  
+  - When `GroupType` is `Job`, the minimum reserved compute resources are 0 ACUs.  
+* `node_num` - (Optional, Computed, Int) Number of nodes. Default value is 0.  
+  - Each node provides 16 vCPUs and 64 GB of memory.  
+  - The number of nodes must not be too large; it must satisfy the condition: number of nodes × (16 vCPUs and 64 GB) ≤ remaining available resources in the cluster.  
+* `user` - (Optional, ForceNew, Computed) List of database accounts bound to the resource group, separated by commas (,).  
+* `user_list` - (Optional, List, Available since v1.272.0) A list of database accounts to be bound. Both standard and privileged database accounts can be bound.
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Resource Group. It formats as `<db_cluster_id>:<group_name>`.
-* `user` - The database accounts that are associated with the resource group.
-* `port` - (Available since v1.261.0) The port number of the resource group.
-* `connection_string` - (Available since v1.261.0) The endpoint of the resource group.
-* `create_time` - The time when the resource group was created.
-* `update_time` - The time when the resource group was updated.
-* `status` - (Available since v1.261.0) The status of the resource group.
+* `id` - The ID of the resource supplied above. The value is formulated as `<db_cluster_id>:<group_name>`.
+* `connection_string` - The connection string for the resource group.
+* `create_time` - Creation time.
+* `port` - Port number of the resource group.
+* `status` - The status of the resource group.
+* `update_time` - Update time.
 
 ## Timeouts
 
@@ -116,7 +131,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Adb Resource Group can be imported using the id, e.g.
+AnalyticDB for MySQL (ADB) Resource Group can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_adb_resource_group.example <db_cluster_id>:<group_name>

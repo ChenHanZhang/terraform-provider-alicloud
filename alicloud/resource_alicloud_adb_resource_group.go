@@ -37,6 +37,10 @@ func resourceAliCloudAdbResourceGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"connection_string": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -49,10 +53,9 @@ func resourceAliCloudAdbResourceGroup() *schema.Resource {
 			"engine": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+				ForceNew: true,
 			},
-			// lintignore: S006
 			"engine_params": {
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -61,18 +64,12 @@ func resourceAliCloudAdbResourceGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if old != "" && new != "" && old != new {
-						return strings.ToUpper(old) == strings.ToUpper(new)
-					}
-					return false
-				},
 			},
 			"group_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"interactive", "batch", "job", "default_type"}, false),
+				ValidateFunc: StringInSlice([]string{"batch", "interactive", "default_type", "job"}, false),
 			},
 			"max_cluster_count": {
 				Type:     schema.TypeInt,
@@ -97,6 +94,10 @@ func resourceAliCloudAdbResourceGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"port": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -107,20 +108,14 @@ func resourceAliCloudAdbResourceGroup() *schema.Resource {
 			},
 			"user": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
-			"users": {
+			"user_list": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"connection_string": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"port": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 		},
 	}
@@ -136,8 +131,13 @@ func resourceAliCloudAdbResourceGroupCreate(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["GroupName"] = d.Get("group_name")
-	request["DBClusterId"] = d.Get("db_cluster_id")
+	if v, ok := d.GetOk("group_name"); ok {
+		request["GroupName"] = v
+	}
+	if v, ok := d.GetOk("db_cluster_id"); ok {
+		request["DBClusterId"] = v
+	}
+
 	request["ClientToken"] = buildClientToken(action)
 
 	if v, ok := d.GetOkExists("max_cluster_count"); ok {
@@ -150,12 +150,7 @@ func resourceAliCloudAdbResourceGroupCreate(d *schema.ResourceData, meta interfa
 		request["MinClusterCount"] = v
 	}
 	if v, ok := d.GetOk("engine_params"); ok {
-		engineParamsJson, err := convertMaptoJsonString(v.(map[string]interface{}))
-		if err != nil {
-			return WrapError(err)
-		}
-
-		request["EngineParams"] = engineParamsJson
+		request["EngineParams"] = v
 	}
 	if v, ok := d.GetOk("group_type"); ok {
 		request["GroupType"] = v
@@ -179,7 +174,7 @@ func resourceAliCloudAdbResourceGroupCreate(d *schema.ResourceData, meta interfa
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"ResourceNotEnough", "ACS.ServerError"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -220,6 +215,7 @@ func resourceAliCloudAdbResourceGroupRead(d *schema.ResourceData, meta interface
 
 	d.Set("cluster_mode", objectRaw["ClusterMode"])
 	d.Set("cluster_size_resource", objectRaw["ClusterSizeResource"])
+	d.Set("connection_string", objectRaw["ConnectionString"])
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("engine", objectRaw["Engine"])
 	d.Set("engine_params", objectRaw["EngineParams"])
@@ -229,19 +225,18 @@ func resourceAliCloudAdbResourceGroupRead(d *schema.ResourceData, meta interface
 	d.Set("min_cluster_count", objectRaw["MinClusterCount"])
 	d.Set("min_compute_resource", objectRaw["MinComputeResource"])
 	d.Set("node_num", objectRaw["NodeNum"])
+	d.Set("port", objectRaw["Port"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("update_time", objectRaw["UpdateTime"])
 	d.Set("user", objectRaw["GroupUsers"])
 	d.Set("group_name", objectRaw["GroupName"])
-	d.Set("connection_string", objectRaw["ConnectionString"])
-	d.Set("port", objectRaw["Port"])
 
 	groupUserListRaw := make([]interface{}, 0)
 	if objectRaw["GroupUserList"] != nil {
-		groupUserListRaw = objectRaw["GroupUserList"].([]interface{})
+		groupUserListRaw = convertToInterfaceArray(objectRaw["GroupUserList"])
 	}
 
-	d.Set("users", groupUserListRaw)
+	d.Set("user_list", groupUserListRaw)
 
 	parts := strings.Split(d.Id(), ":")
 	d.Set("db_cluster_id", parts[0])
@@ -267,87 +262,47 @@ func resourceAliCloudAdbResourceGroupUpdate(d *schema.ResourceData, meta interfa
 	request["ClientToken"] = buildClientToken(action)
 	if !d.IsNewResource() && d.HasChange("max_cluster_count") {
 		update = true
-
-		if v, ok := d.GetOkExists("max_cluster_count"); ok {
-			request["MaxClusterCount"] = v
-		}
+		request["MaxClusterCount"] = d.Get("max_cluster_count")
 	}
 
 	if !d.IsNewResource() && d.HasChange("max_compute_resource") {
 		update = true
-
-		if v, ok := d.GetOk("max_compute_resource"); ok {
-			request["MaxComputeResource"] = v
-		}
+		request["MaxComputeResource"] = d.Get("max_compute_resource")
 	}
 
 	if !d.IsNewResource() && d.HasChange("min_cluster_count") {
 		update = true
-
-		if v, ok := d.GetOkExists("min_cluster_count"); ok {
-			request["MinClusterCount"] = v
-		}
+		request["MinClusterCount"] = d.Get("min_cluster_count")
 	}
 
 	if !d.IsNewResource() && d.HasChange("engine_params") {
 		update = true
-
-		if v, ok := d.GetOk("engine_params"); ok {
-			engineParamsJson, err := convertMaptoJsonString(v.(map[string]interface{}))
-			if err != nil {
-				return WrapError(err)
-			}
-
-			request["EngineParams"] = engineParamsJson
-		}
+		request["EngineParams"] = d.Get("engine_params")
 	}
 
 	if !d.IsNewResource() && d.HasChange("group_type") {
 		update = true
-
-		if v, ok := d.GetOk("group_type"); ok {
-			request["GroupType"] = v
-		}
+		request["GroupType"] = d.Get("group_type")
 	}
 
 	if !d.IsNewResource() && d.HasChange("cluster_mode") {
 		update = true
-
-		if v, ok := d.GetOk("cluster_mode"); ok {
-			request["ClusterMode"] = v
-		}
+		request["ClusterMode"] = d.Get("cluster_mode")
 	}
 
 	if !d.IsNewResource() && d.HasChange("cluster_size_resource") {
 		update = true
-
-		if v, ok := d.GetOk("cluster_size_resource"); ok {
-			request["ClusterSizeResource"] = v
-		}
+		request["ClusterSizeResource"] = d.Get("cluster_size_resource")
 	}
 
 	if !d.IsNewResource() && d.HasChange("min_compute_resource") {
 		update = true
-
-		if v, ok := d.GetOk("min_compute_resource"); ok {
-			request["MinComputeResource"] = v
-		}
+		request["MinComputeResource"] = d.Get("min_compute_resource")
 	}
 
 	if !d.IsNewResource() && d.HasChange("node_num") {
 		update = true
-
-		if v, ok := d.GetOkExists("node_num"); ok {
-			request["NodeNum"] = v
-		}
-	}
-
-	if d.HasChange("users") {
-		update = true
-
-		if v, ok := d.GetOk("users"); ok {
-			request["PoolUserList"] = convertListToJsonString(v.(*schema.Set).List())
-		}
+		request["NodeNum"] = d.Get("node_num")
 	}
 
 	if update {
@@ -374,6 +329,75 @@ func resourceAliCloudAdbResourceGroupUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	if d.HasChange("user_list") {
+		var err error
+		oldEntry, newEntry := d.GetChange("user_list")
+		oldEntrySet := oldEntry.(*schema.Set)
+		newEntrySet := newEntry.(*schema.Set)
+		removed := oldEntrySet.Difference(newEntrySet)
+		added := newEntrySet.Difference(oldEntrySet)
+
+		if removed.Len() > 0 {
+			parts := strings.Split(d.Id(), ":")
+			action := "UnbindDBResourceGroupWithUser"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["GroupName"] = parts[1]
+			request["DBClusterId"] = parts[0]
+
+			request["ClientToken"] = buildClientToken(action)
+			request["GroupUser"] = removed.([]interface{})
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+
+		if added.Len() > 0 {
+			parts := strings.Split(d.Id(), ":")
+			action := "BindDBResourceGroupWithUser"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["GroupName"] = parts[1]
+			request["DBClusterId"] = parts[0]
+
+			request["ClientToken"] = buildClientToken(action)
+			request["GroupUser"] = added.([]interface{})
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+		}
+
+	}
 	return resourceAliCloudAdbResourceGroupRead(d, meta)
 }
 
@@ -393,7 +417,6 @@ func resourceAliCloudAdbResourceGroupDelete(d *schema.ResourceData, meta interfa
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("adb", "2019-03-15", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -413,7 +436,7 @@ func resourceAliCloudAdbResourceGroupDelete(d *schema.ResourceData, meta interfa
 	}
 
 	adbServiceV2 := AdbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 30*time.Second, adbServiceV2.AdbResourceGroupStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 30*time.Second, adbServiceV2.AdbResourceGroupStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
