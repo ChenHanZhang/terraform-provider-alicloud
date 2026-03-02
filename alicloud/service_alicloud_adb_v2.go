@@ -143,6 +143,7 @@ func (s *AdbServiceV2) DescribeAdbResourceGroup(id string) (object map[string]in
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -166,9 +167,6 @@ func (s *AdbServiceV2) DescribeAdbResourceGroup(id string) (object map[string]in
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidDBCluster.NotFound", "InvalidDBClusterId.NotFound"}) {
-			return object, WrapErrorf(NotFoundErr("ResourceGroup", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -185,15 +183,18 @@ func (s *AdbServiceV2) DescribeAdbResourceGroup(id string) (object map[string]in
 }
 
 func (s *AdbServiceV2) AdbResourceGroupStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.AdbResourceGroupStateRefreshFuncWithApi(id, field, failStates, s.DescribeAdbResourceGroup)
+}
+
+func (s *AdbServiceV2) AdbResourceGroupStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeAdbResourceGroup(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
