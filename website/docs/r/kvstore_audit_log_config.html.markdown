@@ -2,7 +2,6 @@
 subcategory: "Tair (Redis OSS-Compatible) And Memcache (KVStore)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_kvstore_audit_log_config"
-sidebar_current: "docs-alicloud-resource-kvstore-audit-log-config"
 description: |-
   Provides a Alicloud Tair (Redis OSS-Compatible) And Memcache (KVStore) Audit Log Config resource.
 ---
@@ -11,17 +10,15 @@ description: |-
 
 Provides a Tair (Redis OSS-Compatible) And Memcache (KVStore) Audit Log Config resource.
 
+Set the switch and retention duration of the database instance audit log.
+
+For information about Tair (Redis OSS-Compatible) And Memcache (KVStore) Audit Log Config and how to use it, see [What is Audit Log Config](https://next.api.alibabacloud.com/document/R-kvstore/2015-01-01/ModifyAuditLogConfig).
+
 -> **NOTE:** Available since v1.130.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_kvstore_audit_log_config&exampleId=ad63c504-b420-992b-4679-a76c04fb9af6c14e0086&activeTab=example&spm=docs.r.kvstore_audit_log_config.0.ad63c504b4&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -71,37 +68,30 @@ resource "alicloud_kvstore_audit_log_config" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_kvstore_audit_log_config&spm=docs.r.kvstore_audit_log_config.example&intl_lang=EN_US)
+### Deleting `alicloud_kvstore_audit_log_config` or removing it from your configuration
+
+Terraform cannot destroy resource `alicloud_kvstore_audit_log_config`. Terraform will remove this resource from the state file, however resources may remain.
 
 ## Argument Reference
 
 The following arguments are supported:
-
-* `db_audit` - (Optional) Indicates Whether to Enable the Audit Log.  Valid value: 
-  * true: Default Value, Open. 
-  * false: Closed. 
-    
-  Note: When the Instance for the Cluster Architecture Or Read/Write Split Architecture, at the Same Time to Open Or Close the Data Node and the Proxy Node of the Audit Log Doesn't Support Separate Open.
-  
+* `db_audit` - (Optional) Indicates Whether to Enable the Audit Log Value: True: Default Value, Open. False: Closed. Note: When the Instance for the Cluster Architecture Or Read/Write Split Architecture, at the Same Time to Open Or Close the Data Node and the Proxy Node of the Audit Log Doesn't Support Separate Open.
 * `instance_id` - (Required, ForceNew) Instance ID, Call the Describeinstances Get.
-* `retention` - (Optional) Audit Log Retention Period Value: 1~365. 
-  
--> **NOTE:** When the Instance dbaudit Value Is Set to True, This Parameter Entry into Force. The Parameter Setting of the Current Region of All a Tair (Redis OSS-Compatible) And Memcache (KVStore) Instance for a Data Entry into Force.
+* `retention` - (Optional, Int) Audit Log Retention Period Value: 1~365. Note: When the Instance dbaudit Value Is Set to True, This Parameter Entry into Force. The Parameter Setting of the Current Region of All an Apsaradb for Redis Instance for a Data Entry into Force.
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Audit Log Config. Its value is same as `instance_id`.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - Instance Creation Time.
+* `region_id` - The region ID of the resource.
 * `status` - The status of the resource.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 1 mins) Used when create the Audit Log Config.
-* `update` - (Defaults to 1 mins) Used when update the Audit Log Config.
+* `create` - (Defaults to 11 mins) Used when create the Audit Log Config.
+* `update` - (Defaults to 5 mins) Used when update the Audit Log Config.
 
 ## Import
 
