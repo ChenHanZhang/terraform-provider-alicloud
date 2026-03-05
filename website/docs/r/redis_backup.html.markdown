@@ -20,12 +20,6 @@ For information about Tair (Redis OSS-Compatible) And Memcache (KVStore) Backup 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_redis_backup&exampleId=e019279b-9b89-a7dc-e6fc-1ccec567d0586d45c7af&activeTab=example&spm=docs.r.redis_backup.0.e019279b9b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 provider "alicloud" {
   region = "cn-hangzhou"
@@ -78,22 +72,19 @@ resource "alicloud_redis_backup" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_redis_backup&spm=docs.r.redis_backup.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `backup_retention_period` - (Optional, Int, Available since v1.266.0) The expiration period for this manual backup ranges from 7 to 730 days. When you pass in -1, it indicates that this manual backup will not expire (during the instance's lifecycle). If you do not pass any value (default case), it means the expiration policy will be consistent with the current automatic backup strategy.
+* `backup_retention_period` - (Optional, Int, Available since v1.266.0) 本次手动备份的过期时长，取值范围为 7~730 天。当您传入-1 时，表示本次手动备份数据不过期（实例生命周期内）；当您不传入任何值（默认情况），表示与当前自动备份策略一致。
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `instance_id` - (Required, ForceNew) InstanceId
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<backup_id>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<backup_id>`.
 * `backup_id` - Backup ID.
 * `status` - Backup status.
 
