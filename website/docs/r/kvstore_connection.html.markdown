@@ -2,26 +2,23 @@
 subcategory: "Tair (Redis OSS-Compatible) And Memcache (KVStore)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_kvstore_connection"
-sidebar_current: "docs-alicloud-resource-kvstore-connection"
 description: |-
-  Operate the public network ip of the specified resource.
+  Provides a Alicloud Tair (Redis OSS-Compatible) And Memcache (KVStore) Connection resource.
 ---
 
 # alicloud_kvstore_connection
 
-Operate the public network ip of the specified resource. How to use it, see [What is Connection](https://www.alibabacloud.com/help/en/redis/developer-reference/api-r-kvstore-2015-01-01-allocateinstancepublicconnection-redis).
+Provides a Tair (Redis OSS-Compatible) And Memcache (KVStore) Connection resource.
+
+
+
+For information about Tair (Redis OSS-Compatible) And Memcache (KVStore) Connection and how to use it, see [What is Connection](https://next.api.alibabacloud.com/document/R-kvstore/2015-01-01/AllocateInstancePublicConnection).
 
 -> **NOTE:** Available since v1.101.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_kvstore_connection&exampleId=408f87de-5b52-789b-981b-10d598c52327a8775c2b&activeTab=example&spm=docs.r.kvstore_connection.0.408f87de5b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -71,35 +68,32 @@ resource "alicloud_kvstore_connection" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_kvstore_connection&spm=docs.r.kvstore_connection.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `connection_string_prefix` - (Required) The prefix of the public endpoint. The prefix can be 8 to 64 characters in length, and can contain lowercase letters and digits. It must start with a lowercase letter.
-* `instance_id`- (Required, ForceNew) The ID of the instance.
-* `port` - (Required) The service port number of the instance.
+* `connection_string` - (Optional, Computed) Connection String
+* `connection_string_prefix` - (Required) Connection String Prefix
+* `instance_id` - (Required, ForceNew) Instance Id
+* `port` - (Required) Port
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The ID of Tair (Redis OSS-Compatible) And Memcache (KVStore) Instance.
-* `connection_string` - The public connection string of Tair (Redis OSS-Compatible) And Memcache (KVStore) Instance.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Create Time.
+* `status` - The status of the instance.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 5 mins) Used when creating the Tair (Redis OSS-Compatible) And Memcache (KVStore) connection (until it reaches the initial `Normal` status). 
-* `update` - (Defaults to 5 mins) Used when updating the Tair (Redis OSS-Compatible) And Memcache (KVStore) connection (until it reaches the initial `Normal` status). 
-* `delete` - (Defaults to 30 mins) Used when deleting the Tair (Redis OSS-Compatible) And Memcache (KVStore) connection (until it reaches the initial `Normal` status). 
+* `create` - (Defaults to 5 mins) Used when create the Connection.
+* `delete` - (Defaults to 5 mins) Used when delete the Connection.
+* `update` - (Defaults to 5 mins) Used when update the Connection.
 
 ## Import
 
-Tair (Redis OSS-Compatible) And Memcache (KVStore) connection can be imported using the id, e.g.
+Tair (Redis OSS-Compatible) And Memcache (KVStore) Connection can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_kvstore_connection.example r-abc12345678
+$ terraform import alicloud_kvstore_connection.example <instance_id>
 ```
-
