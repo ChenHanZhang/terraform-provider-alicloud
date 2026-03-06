@@ -2955,6 +2955,7 @@ func (s *EsaServiceV2) EsaScheduledPreloadJobStateRefreshFuncWithApi(id string, 
 }
 
 // DescribeEsaScheduledPreloadJob >>> Encapsulated.
+
 // DescribeEsaScheduledPreloadExecution <<< Encapsulated get interface for Esa ScheduledPreloadExecution.
 
 func (s *EsaServiceV2) DescribeEsaScheduledPreloadExecution(id string) (object map[string]interface{}, err error) {
@@ -2965,11 +2966,12 @@ func (s *EsaServiceV2) DescribeEsaScheduledPreloadExecution(id string) (object m
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["Id"] = parts[0]
-	query["RegionId"] = client.RegionId
+
 	action := "ListScheduledPreloadExecutions"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -3011,15 +3013,18 @@ func (s *EsaServiceV2) DescribeEsaScheduledPreloadExecution(id string) (object m
 }
 
 func (s *EsaServiceV2) EsaScheduledPreloadExecutionStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EsaScheduledPreloadExecutionStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaScheduledPreloadExecution)
+}
+
+func (s *EsaServiceV2) EsaScheduledPreloadExecutionStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeEsaScheduledPreloadExecution(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

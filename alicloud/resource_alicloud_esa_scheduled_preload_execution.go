@@ -75,33 +75,32 @@ func resourceAliCloudEsaScheduledPreloadExecutionCreate(d *schema.ResourceData, 
 	if v, ok := d.GetOk("scheduled_preload_job_id"); ok {
 		request["Id"] = v
 	}
-	request["RegionId"] = client.RegionId
 
-	objectDataLocalMap := make(map[string]interface{})
+	executionsDataList := make(map[string]interface{})
 
 	if v, ok := d.GetOkExists("interval"); ok {
-		objectDataLocalMap["Interval"] = v
+		executionsDataList["Interval"] = v
 	}
 
 	if v, ok := d.GetOkExists("start_time"); ok {
-		objectDataLocalMap["StartTime"] = v
+		executionsDataList["StartTime"] = v
 	}
 
 	if v, ok := d.GetOkExists("slice_len"); ok {
-		objectDataLocalMap["SliceLen"] = v
+		executionsDataList["SliceLen"] = v
 	}
 
 	if v, ok := d.GetOkExists("end_time"); ok {
-		objectDataLocalMap["EndTime"] = v
+		executionsDataList["EndTime"] = v
 	}
 
 	ExecutionsMap := make([]interface{}, 0)
-	ExecutionsMap = append(ExecutionsMap, objectDataLocalMap)
-	objectDataLocalMapJson, err := json.Marshal(ExecutionsMap)
+	ExecutionsMap = append(ExecutionsMap, executionsDataList)
+	executionsDataListJson, err := json.Marshal(ExecutionsMap)
 	if err != nil {
 		return WrapError(err)
 	}
-	request["Executions"] = string(objectDataLocalMapJson)
+	request["Executions"] = string(executionsDataListJson)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -166,7 +165,7 @@ func resourceAliCloudEsaScheduledPreloadExecutionUpdate(d *schema.ResourceData, 
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Id"] = parts[1]
-	request["RegionId"] = client.RegionId
+
 	if d.HasChange("interval") {
 		update = true
 	}
@@ -218,12 +217,10 @@ func resourceAliCloudEsaScheduledPreloadExecutionDelete(d *schema.ResourceData, 
 	var err error
 	request = make(map[string]interface{})
 	request["Id"] = parts[1]
-	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
