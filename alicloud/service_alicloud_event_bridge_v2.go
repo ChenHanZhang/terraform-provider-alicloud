@@ -203,3 +203,80 @@ func (s *EventBridgeServiceV2) EventBridgeEventSourceStateRefreshFuncWithApi(id 
 }
 
 // DescribeEventBridgeEventSource >>> Encapsulated.
+// DescribeEventBridgeApiDestination <<< Encapsulated get interface for EventBridge ApiDestination.
+
+func (s *EventBridgeServiceV2) DescribeEventBridgeApiDestination(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ApiDestinationName"] = id
+
+	action := "GetApiDestination"
+	request["ClientToken"] = buildClientToken(action)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
+		request["ClientToken"] = buildClientToken(action)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"ApiDestinationNotExist"}) {
+			return object, WrapErrorf(NotFoundErr("ApiDestination", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.Data", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Data", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *EventBridgeServiceV2) EventBridgeApiDestinationStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EventBridgeApiDestinationStateRefreshFuncWithApi(id, field, failStates, s.DescribeEventBridgeApiDestination)
+}
+
+func (s *EventBridgeServiceV2) EventBridgeApiDestinationStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeEventBridgeApiDestination >>> Encapsulated.

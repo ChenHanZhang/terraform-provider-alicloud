@@ -1,29 +1,24 @@
 ---
-subcategory: "Event Bridge"
+subcategory: "unreleased"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_event_bridge_api_destination"
-sidebar_current: "docs-alicloud-resource-event-bridge-api-destination"
 description: |-
   Provides a Alicloud Event Bridge Api Destination resource.
 ---
 
 # alicloud_event_bridge_api_destination
 
-Provides a Event Bridge Api Destination resource. 
+Provides a Event Bridge Api Destination resource.
 
-For information about Event Bridge Api Destination and how to use it, see [What is Api Destination](https://www.alibabacloud.com/help/en/eventbridge/latest/api-eventbridge-2020-04-01-createapidestination).
 
--> **NOTE:** Available since v1.211.0.
+
+For information about Event Bridge Api Destination and how to use it, see [What is Api Destination](https://next.api.alibabacloud.com/document/eventbridge/2020-04-01/CreateApiDestination).
+
+-> **NOTE:** Available since v1.273.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_event_bridge_api_destination&exampleId=2fb1b2d8-40ec-1a8a-7955-5cdab470a73af83cc4cd&activeTab=example&spm=docs.r.event_bridge_api_destination.0.2fb1b2d840&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 provider "alicloud" {
@@ -56,43 +51,47 @@ resource "alicloud_event_bridge_api_destination" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_event_bridge_api_destination&spm=docs.r.event_bridge_api_destination.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `api_destination_name` - (Required, ForceNew) The name of the api. The maximum length is 127 characters. Minimum length 2 characters.
+* `connection_name` - (Required) The connection configuration name. The maximum length is 127 characters. Minimum length 2 characters.
+  -
 
-* `connection_name` - (Required, ForceNew) The name of the connection.
-* `api_destination_name` - (Required, ForceNew) The name of the API destination.
-* `description` - (Optional) The description of the API destination.
-* `http_api_parameters` - (Required, Set) The parameters that are configured for the API destination. See [`http_api_parameters`](#http_api_parameters) below.
+Tip:
+You must first call the Connection interface to create a Connection configuration. Enter the name of the existing Connection.
+* `description` - (Optional) The description of the api. It must be no more than 255 characters.
+* `http_api_parameters` - (Required, Set) Configuration information for API endpoints See [`http_api_parameters`](#http_api_parameters) below.
 
 ### `http_api_parameters`
 
 The http_api_parameters supports the following:
-
-* `endpoint` - (Required) The endpoint of the API destination.
-* `method` - (Required) The HTTP request method. Valid values: `GET`, `POST`, `HEAD`, `DELETE`, `PUT`, `PATCH`.
+* `endpoint` - (Required) The access point address of the API endpoint. The maximum length is 127 characters.
+* `method` - (Required) HTTP request method.
+  - GET
+  - POST
+  - HEAD
+  - DELETE
+  - PUT
+  - PATCH
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Api Destination.
-* `create_time` - The creation time of the Api Destination.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Creation time.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Api Destination.
-* `update` - (Defaults to 5 mins) Used when update the Api Destination.
 * `delete` - (Defaults to 5 mins) Used when delete the Api Destination.
+* `update` - (Defaults to 5 mins) Used when update the Api Destination.
 
 ## Import
 
 Event Bridge Api Destination can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_event_bridge_api_destination.example <id>
+$ terraform import alicloud_event_bridge_api_destination.example <api_destination_name>
 ```

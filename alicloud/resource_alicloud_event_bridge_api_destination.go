@@ -1,7 +1,10 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -25,15 +28,18 @@ func resourceAliCloudEventBridgeApiDestination() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"connection_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"api_destination_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"connection_name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"create_time": {
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -50,53 +56,56 @@ func resourceAliCloudEventBridgeApiDestination() *schema.Resource {
 							Required: true,
 						},
 						"method": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: StringInSlice([]string{"GET", "POST", "HEAD", "DELETE", "PUT", "PATCH"}, false),
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
-			},
-			"create_time": {
-				Type:     schema.TypeInt,
-				Computed: true,
 			},
 		},
 	}
 }
 
 func resourceAliCloudEventBridgeApiDestinationCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	var response map[string]interface{}
+
 	action := "CreateApiDestination"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("api_destination_name"); ok {
+		request["ApiDestinationName"] = v
+	}
 
 	request["ConnectionName"] = d.Get("connection_name")
-	request["ApiDestinationName"] = d.Get("api_destination_name")
-
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
 	}
+	httpApiParameters := make(map[string]interface{})
 
-	httpApiParameters := d.Get("http_api_parameters")
-	httpApiParametersMap := map[string]interface{}{}
-	for _, httpApiParametersList := range httpApiParameters.([]interface{}) {
-		httpApiParametersArg := httpApiParametersList.(map[string]interface{})
+	if v := d.Get("http_api_parameters"); v != nil {
+		endpoint1, _ := jsonpath.Get("$[0].endpoint", v)
+		if endpoint1 != nil && endpoint1 != "" {
+			httpApiParameters["Endpoint"] = endpoint1
+		}
+		method1, _ := jsonpath.Get("$[0].method", v)
+		if method1 != nil && method1 != "" {
+			httpApiParameters["Method"] = method1
+		}
 
-		httpApiParametersMap["Endpoint"] = httpApiParametersArg["endpoint"]
-		httpApiParametersMap["Method"] = httpApiParametersArg["method"]
+		httpApiParametersJson, err := json.Marshal(httpApiParameters)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["HttpApiParameters"] = string(httpApiParametersJson)
 	}
 
-	httpApiParametersJson, err := convertMaptoJsonString(httpApiParametersMap)
-	if err != nil {
-		return WrapError(err)
-	}
-
-	request["HttpApiParameters"] = httpApiParametersJson
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, true)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -112,12 +121,8 @@ func resourceAliCloudEventBridgeApiDestinationCreate(d *schema.ResourceData, met
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_event_bridge_api_destination", action, AlibabaCloudSdkGoERROR)
 	}
 
-	if resp, err := jsonpath.Get("$.Date", response); err != nil || resp == nil {
-		return WrapErrorf(err, IdMsg, "alicloud_event_bridge_api_destination")
-	} else {
-		apiDestinationName := resp.(map[string]interface{})["ApiDestinationName"]
-		d.SetId(fmt.Sprint(apiDestinationName))
-	}
+	id, _ := jsonpath.Get("$.Date.ApiDestinationName", response)
+	d.SetId(fmt.Sprint(id))
 
 	return resourceAliCloudEventBridgeApiDestinationRead(d, meta)
 }
@@ -126,81 +131,91 @@ func resourceAliCloudEventBridgeApiDestinationRead(d *schema.ResourceData, meta 
 	client := meta.(*connectivity.AliyunClient)
 	eventBridgeServiceV2 := EventBridgeServiceV2{client}
 
-	object, err := eventBridgeServiceV2.DescribeEventBridgeApiDestination(d.Id())
+	objectRaw, err := eventBridgeServiceV2.DescribeEventBridgeApiDestination(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_event_bridge_api_destination DescribeEventBridgeApiDestination Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("connection_name", object["ConnectionName"])
-	d.Set("api_destination_name", object["ApiDestinationName"])
-	d.Set("description", object["Description"])
-	d.Set("create_time", object["GmtCreate"])
+	d.Set("connection_name", objectRaw["ConnectionName"])
+	d.Set("create_time", objectRaw["GmtCreate"])
+	d.Set("description", objectRaw["Description"])
+	d.Set("api_destination_name", objectRaw["ApiDestinationName"])
 
-	if httpApiParameters, ok := object["HttpApiParameters"]; ok {
-		httpApiParametersMaps := make([]map[string]interface{}, 0)
-		httpApiParametersArg := httpApiParameters.(map[string]interface{})
-		httpApiParametersMap := make(map[string]interface{})
-
-		if endpoint, ok := httpApiParametersArg["Endpoint"]; ok {
-			httpApiParametersMap["endpoint"] = endpoint
-		}
-
-		if method, ok := httpApiParametersArg["Method"]; ok {
-			httpApiParametersMap["method"] = method
-		}
+	httpApiParametersMaps := make([]map[string]interface{}, 0)
+	httpApiParametersMap := make(map[string]interface{})
+	httpApiParametersRaw := make(map[string]interface{})
+	if objectRaw["HttpApiParameters"] != nil {
+		httpApiParametersRaw = objectRaw["HttpApiParameters"].(map[string]interface{})
+	}
+	if len(httpApiParametersRaw) > 0 {
+		httpApiParametersMap["endpoint"] = httpApiParametersRaw["Endpoint"]
+		httpApiParametersMap["method"] = httpApiParametersRaw["Method"]
 
 		httpApiParametersMaps = append(httpApiParametersMaps, httpApiParametersMap)
-
-		d.Set("http_api_parameters", httpApiParametersMaps)
 	}
+	if err := d.Set("http_api_parameters", httpApiParametersMaps); err != nil {
+		return err
+	}
+
+	d.Set("api_destination_name", d.Id())
 
 	return nil
 }
 
 func resourceAliCloudEventBridgeApiDestinationUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
+	var request map[string]interface{}
 	var response map[string]interface{}
+	var query map[string]interface{}
 	update := false
 
-	request := map[string]interface{}{
-		"ApiDestinationName": d.Id(),
-	}
+	var err error
+	action := "UpdateApiDestination"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ApiDestinationName"] = d.Id()
 
+	request["ClientToken"] = buildClientToken(action)
 	if d.HasChange("description") {
 		update = true
-	}
-	if v, ok := d.GetOk("description"); ok {
-		request["Description"] = v
+		request["Description"] = d.Get("description")
 	}
 
+	if d.HasChange("connection_name") {
+		update = true
+	}
+	request["ConnectionName"] = d.Get("connection_name")
 	if d.HasChange("http_api_parameters") {
 		update = true
 	}
-	httpApiParameters := d.Get("http_api_parameters")
-	httpApiParametersMap := map[string]interface{}{}
-	for _, httpApiParametersList := range httpApiParameters.([]interface{}) {
-		httpApiParametersArg := httpApiParametersList.(map[string]interface{})
+	httpApiParameters := make(map[string]interface{})
 
-		httpApiParametersMap["Endpoint"] = httpApiParametersArg["endpoint"]
-		httpApiParametersMap["Method"] = httpApiParametersArg["method"]
+	if v := d.Get("http_api_parameters"); v != nil {
+		endpoint1, _ := jsonpath.Get("$[0].endpoint", v)
+		if endpoint1 != nil && endpoint1 != "" {
+			httpApiParameters["Endpoint"] = endpoint1
+		}
+		method1, _ := jsonpath.Get("$[0].method", v)
+		if method1 != nil && method1 != "" {
+			httpApiParameters["Method"] = method1
+		}
+
+		httpApiParametersJson, err := json.Marshal(httpApiParameters)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["HttpApiParameters"] = string(httpApiParametersJson)
 	}
-
-	httpApiParametersJson, err := convertMaptoJsonString(httpApiParametersMap)
-	if err != nil {
-		return WrapError(err)
-	}
-
-	request["HttpApiParameters"] = httpApiParametersJson
 
 	if update {
-		action := "UpdateApiDestination"
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, true)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -211,7 +226,6 @@ func resourceAliCloudEventBridgeApiDestinationUpdate(d *schema.ResourceData, met
 			return nil
 		})
 		addDebug(action, response, request)
-
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -221,18 +235,21 @@ func resourceAliCloudEventBridgeApiDestinationUpdate(d *schema.ResourceData, met
 }
 
 func resourceAliCloudEventBridgeApiDestinationDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteApiDestination"
+	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	request["ApiDestinationName"] = d.Id()
 
-	request := map[string]interface{}{
-		"ApiDestinationName": d.Id(),
-	}
+	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = client.RpcPost("eventbridge", "2020-04-01", action, nil, request, true)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("eventbridge", "2020-04-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -245,6 +262,9 @@ func resourceAliCloudEventBridgeApiDestinationDelete(d *schema.ResourceData, met
 	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
