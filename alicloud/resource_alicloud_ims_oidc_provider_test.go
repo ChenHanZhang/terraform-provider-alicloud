@@ -11,6 +11,226 @@ import (
 
 // NOTE: https://aliyuque.antfin.com/aliyun-subaccount/vkgfrb/ohxat6d7vn7h3gfa
 
+// Test Ims OidcProvider. >>> Resource test cases, automatically generated.
+// Case OIDCProvider CRUD测试 4349
+func TestAccAliCloudImsOidcProvider_basic4349(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ims_oidc_provider.default"
+	ra := resourceAttrInit(resourceId, AlicloudImsOidcProviderMap4349)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ImsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeImsOidcProvider")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccims%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudImsOidcProviderBasicDependence4349)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":         "${var.oidc_provider_name}",
+					"issuer_url":          "https://oauth.aliyun.com",
+					"fingerprints":        []string{},
+					"issuance_limit_time": "12",
+					"oidc_provider_name":  name,
+					"client_ids":          []string{},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":         CHECKSET,
+						"issuer_url":          "https://oauth.aliyun.com",
+						"fingerprints.#":      "40",
+						"issuance_limit_time": "12",
+						"oidc_provider_name":  name,
+						"client_ids.#":        "11",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":         "test",
+					"issuance_limit_time": "14",
+					"client_ids":          []string{},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":         "test",
+						"issuance_limit_time": "14",
+						"client_ids.#":        "7",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudImsOidcProviderMap4349 = map[string]string{
+	"create_time": CHECKSET,
+	"arn":         CHECKSET,
+}
+
+func AlicloudImsOidcProviderBasicDependence4349(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "oidc_provider_name" {
+  default = "amp-resource-test-oidc-provider"
+}
+
+
+`, name)
+}
+
+// Case OIDCProvider CRUD测试2.0.0	 4434
+func TestAccAliCloudImsOidcProvider_basic4434(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ims_oidc_provider.default"
+	ra := resourceAttrInit(resourceId, AlicloudImsOidcProviderMap4434)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ImsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeImsOidcProvider")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccims%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudImsOidcProviderBasicDependence4434)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "${var.oidc_provider_name}",
+					"issuer_url":  "https://oauth.aliyun.com",
+					"fingerprints": []string{
+						"902ef2deeb3c5b13ea4c3d5193629309e231ae55"},
+					"issuance_limit_time": "12",
+					"oidc_provider_name":  name,
+					"client_ids": []string{
+						"123", "456"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":         CHECKSET,
+						"issuer_url":          "https://oauth.aliyun.com",
+						"fingerprints.#":      "1",
+						"issuance_limit_time": "12",
+						"oidc_provider_name":  name,
+						"client_ids.#":        "2",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":         "test",
+					"issuance_limit_time": "14",
+					"client_ids": []string{
+						"123", "456", "789"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":         "test",
+						"issuance_limit_time": "14",
+						"client_ids.#":        "3",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"issuance_limit_time": "12",
+					"client_ids": []string{
+						"123"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"issuance_limit_time": "12",
+						"client_ids.#":        "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fingerprints": []string{
+						"902ef2deeb3c5b13ea4c3d5193629309e231ae55", "8A0246A2F6AA51BBC9D32A1353E3E63D0037A9DA"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fingerprints.#": "2",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fingerprints": []string{
+						"8A0246A2F6AA51BBC9D32A1353E3E63D0037A9DA"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fingerprints.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"fingerprints": []string{
+						"74EF335E5E18788307FB9D89CB704BEC112ABD23487DBFF41C4DED5070F241D9", "902ef2deeb3c5b13ea4c3d5193629309e231ae55", "8A0246A2F6AA51BBC9D32A1353E3E63D0037A9DA"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"fingerprints.#": "3",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudImsOidcProviderMap4434 = map[string]string{
+	"create_time": CHECKSET,
+	"arn":         CHECKSET,
+}
+
+func AlicloudImsOidcProviderBasicDependence4434(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "oidc_provider_name" {
+  default = "amp-resource-test-oidc-provider"
+}
+
+
+`, name)
+}
+
+// Test Ims OidcProvider. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudImsOidcProvider_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ims_oidc_provider.default"
