@@ -52,6 +52,11 @@ func resourceAliCloudGwlbListener() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchema(),
+			"tcp_idle_timeout": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -66,7 +71,7 @@ func resourceAliCloudGwlbListenerCreate(d *schema.ResourceData, meta interface{}
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["RegionId"] = client.RegionId
+
 	request["ClientToken"] = buildClientToken(action)
 
 	if v, ok := d.GetOk("tags"); ok {
@@ -74,6 +79,9 @@ func resourceAliCloudGwlbListenerCreate(d *schema.ResourceData, meta interface{}
 		request["Tags"] = tagsMap
 	}
 
+	if v, ok := d.GetOkExists("tcp_idle_timeout"); ok {
+		request["TcpIdleTimeout"] = v
+	}
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
@@ -125,21 +133,12 @@ func resourceAliCloudGwlbListenerRead(d *schema.ResourceData, meta interface{}) 
 		return WrapError(err)
 	}
 
-	if objectRaw["ListenerDescription"] != nil {
-		d.Set("listener_description", objectRaw["ListenerDescription"])
-	}
-	if objectRaw["LoadBalancerId"] != nil {
-		d.Set("load_balancer_id", objectRaw["LoadBalancerId"])
-	}
-	if objectRaw["RegionId"] != nil {
-		d.Set("region_id", objectRaw["RegionId"])
-	}
-	if objectRaw["ServerGroupId"] != nil {
-		d.Set("server_group_id", objectRaw["ServerGroupId"])
-	}
-	if objectRaw["ListenerStatus"] != nil {
-		d.Set("status", objectRaw["ListenerStatus"])
-	}
+	d.Set("listener_description", objectRaw["ListenerDescription"])
+	d.Set("load_balancer_id", objectRaw["LoadBalancerId"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("server_group_id", objectRaw["ServerGroupId"])
+	d.Set("status", objectRaw["ListenerStatus"])
+	d.Set("tcp_idle_timeout", objectRaw["TcpIdleTimeout"])
 
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -153,13 +152,19 @@ func resourceAliCloudGwlbListenerUpdate(d *schema.ResourceData, meta interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "UpdateListenerAttribute"
+
 	var err error
+	action := "UpdateListenerAttribute"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ListenerId"] = d.Id()
-	request["RegionId"] = client.RegionId
+
 	request["ClientToken"] = buildClientToken(action)
+	if d.HasChange("tcp_idle_timeout") {
+		update = true
+		request["TcpIdleTimeout"] = d.Get("tcp_idle_timeout")
+	}
+
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
@@ -215,7 +220,6 @@ func resourceAliCloudGwlbListenerDelete(d *schema.ResourceData, meta interface{}
 	var err error
 	request = make(map[string]interface{})
 	request["ListenerId"] = d.Id()
-	request["RegionId"] = client.RegionId
 
 	request["ClientToken"] = buildClientToken(action)
 
@@ -225,8 +229,6 @@ func resourceAliCloudGwlbListenerDelete(d *schema.ResourceData, meta interface{}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -246,7 +248,7 @@ func resourceAliCloudGwlbListenerDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	gwlbServiceV2 := GwlbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, gwlbServiceV2.GwlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, gwlbServiceV2.GwlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

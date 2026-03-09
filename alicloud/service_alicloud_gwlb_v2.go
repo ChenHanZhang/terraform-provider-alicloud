@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -78,8 +79,8 @@ func (s *GwlbServiceV2) GwlbLoadBalancerStateRefreshFunc(id string, field string
 // SetResourceTags <<< Encapsulated tag function for Gwlb.
 func (s *GwlbServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -97,7 +98,7 @@ func (s *GwlbServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
-			request["RegionId"] = client.RegionId
+
 			request["ClientToken"] = buildClientToken(action)
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
@@ -131,7 +132,7 @@ func (s *GwlbServiceV2) SetResourceTags(d *schema.ResourceData, resourceType str
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
-			request["RegionId"] = client.RegionId
+
 			request["ClientToken"] = buildClientToken(action)
 			count := 1
 			for key, value := range added {
@@ -176,11 +177,11 @@ func (s *GwlbServiceV2) DescribeGwlbListener(id string) (object map[string]inter
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "GetListenerAttribute"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ListenerId"] = id
-	request["RegionId"] = client.RegionId
+
+	action := "GetListenerAttribute"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -207,17 +208,27 @@ func (s *GwlbServiceV2) DescribeGwlbListener(id string) (object map[string]inter
 }
 
 func (s *GwlbServiceV2) GwlbListenerStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.GwlbListenerStateRefreshFuncWithApi(id, field, failStates, s.DescribeGwlbListener)
+}
+
+func (s *GwlbServiceV2) GwlbListenerStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeGwlbListener(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {

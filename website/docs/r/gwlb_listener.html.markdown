@@ -20,12 +20,6 @@ For information about GWLB Listener and how to use it, see [What is Listener](ht
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_gwlb_listener&exampleId=66b72a6f-c8a2-8037-d451-e75bebe536889a6e3ba3&activeTab=example&spm=docs.r.gwlb_listener.0.66b72a6fc8&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -118,8 +112,6 @@ resource "alicloud_gwlb_listener" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_gwlb_listener&spm=docs.r.gwlb_listener.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -127,20 +119,24 @@ The following arguments are supported:
 
   - `true`: performs only a dry run. The system checks the request for potential issues, including missing parameter values, incorrect request syntax, and service limits. If the request fails the dry run, an error code is returned. If the request passes the dry run, the `DryRunOperation` error code is returned.
   - `false` (default): performs a dry run and performs the actual request. If the request passes the dry run, a 2xx HTTP status code is returned and the operation is performed.
-* `listener_description` - (Optional) The description of the listener.
 
-  The description must be 2 to 256 characters in length, and can contain letters, digits, commas (,), periods (.), semicolons (;), forward slashes (/), at signs (@), underscores (\_), and hyphens (-).
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
+
+* `listener_description` - (Optional) The description of the listener.
+The description must be 2 to 256 characters in length, and can contain letters, digits, commas (,), periods (.), semicolons (;), forward slashes (/), at signs (@), underscores (\_), and hyphens (-).
 * `load_balancer_id` - (Required, ForceNew) The GWLB instance ID.
 * `server_group_id` - (Required) The server group ID.
 * `tags` - (Optional, Map) The tags. You can specify at most 20 tags in each call.
+* `tcp_idle_timeout` - (Optional, Computed, Int, Available since v1.273.0) The timeout period of an idle TCP connection.
+Valid values: `60` to `6000` seconds.
+Default value: `350` seconds.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `region_id` - The region ID.
-* `status` - The status of the listener. 
-
+* `status` - The status of the listener.
 
 ## Timeouts
 
@@ -154,5 +150,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 GWLB Listener can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_gwlb_listener.example <id>
+$ terraform import alicloud_gwlb_listener.example <listener_id>
 ```
