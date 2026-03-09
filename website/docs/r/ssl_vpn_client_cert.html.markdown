@@ -2,29 +2,23 @@
 subcategory: "VPN Gateway"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_ssl_vpn_client_cert"
-sidebar_current: "docs-alicloud-resource-ssl-vpn-client-cert"
 description: |-
-  Provides a Alicloud SSL VPN Client Cert resource.
+  Provides a Alicloud Vpn Gateway Ssl Vpn Client Cert resource.
 ---
 
 # alicloud_ssl_vpn_client_cert
 
-Provides a SSL VPN client cert resource.
+Provides a Vpn Gateway Ssl Vpn Client Cert resource.
 
--> **NOTE:** Terraform will auto build SSL VPN client certs while it uses `alicloud_ssl_vpn_client_cert` to build a ssl vpn client certs resource.
-It depends on VPN instance and SSL VPN Server.
+SSL-VPN client certificate.
+
+For information about Vpn Gateway Ssl Vpn Client Cert and how to use it, see [What is Ssl Vpn Client Cert](https://next.api.alibabacloud.com/document/Vpc/2016-04-28/CreateSslVpnClientCert).
 
 -> **NOTE:** Available since v1.15.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ssl_vpn_client_cert&exampleId=9ad0e038-db05-250a-1550-3a4658cd2c6ea72d2d9a&activeTab=example&spm=docs.r.ssl_vpn_client_cert.0.9ad0e038db&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -79,30 +73,35 @@ resource "alicloud_ssl_vpn_client_cert" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ssl_vpn_client_cert&spm=docs.r.ssl_vpn_client_cert.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-
-* `name` - (Optional) The name of the client certificate.
-* `ssl_vpn_server_id` - (Required, ForceNew) The ID of the SSL-VPN server.
-* `status` - (Optional) The status of the client certificate.
-* `ca_cert` - (Optional) The client ca cert.
-* `client_cert` - (Optional) The client cert.
-* `client_key` - (Optional) The client key.
-* `client_config` - (Optional) The vpn client config.
+* `ssl_vpn_client_cert_name` - (Optional, Available since v1.273.0) The name of the client certificate.
+* `ssl_vpn_server_id` - (Required, ForceNew) The ID of the SSL server.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `ca_cert` - The CA certificate.
+* `client_cert` - The client certificate.
+* `client_config` - The client configuration.
+* `client_key` - The client key.
+* `create_time` - The time when the SSL client certificate was created.
+* `region_id` - The region ID of the resource.
+* `status` - The status of the client certificate.
 
-* `id` - The ID of the SSL-VPN client certificate.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Ssl Vpn Client Cert.
+* `delete` - (Defaults to 5 mins) Used when delete the Ssl Vpn Client Cert.
+* `update` - (Defaults to 5 mins) Used when update the Ssl Vpn Client Cert.
 
 ## Import
 
-SSL-VPN client certificates can be imported using the id, e.g.
+Vpn Gateway Ssl Vpn Client Cert can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_ssl_vpn_client_cert.example vsc-abc123456
+$ terraform import alicloud_ssl_vpn_client_cert.example <ssl_vpn_client_cert_id>
 ```

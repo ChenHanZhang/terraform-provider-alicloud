@@ -99,6 +99,125 @@ func testSweepSslVpnClientCerts(region string) error {
 	return nil
 }
 
+// Test VpnGateway SslVpnClientCert. >>> Resource test cases, automatically generated.
+// Case SslVpnClientCert 10701
+func TestAccAliCloudVpnGatewaySslVpnClientCert_basic10701(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ssl_vpn_client_cert.default"
+	ra := resourceAttrInit(resourceId, AlicloudVpnGatewaySslVpnClientCertMap10701)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VPNGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeVpnGatewaySslVpnClientCert")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccvpngateway%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpnGatewaySslVpnClientCertBasicDependence10701)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-huhehaote"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"ssl_vpn_client_cert_name": name,
+					"ssl_vpn_server_id":        "${alicloud_ssl_vpn_server.default4bBSPC.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"ssl_vpn_client_cert_name": name,
+						"ssl_vpn_server_id":        CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"ssl_vpn_client_cert_name": name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"ssl_vpn_client_cert_name": name + "_update",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ca_cert", "client_cert", "client_key"},
+			},
+		},
+	})
+}
+
+var AlicloudVpnGatewaySslVpnClientCertMap10701 = map[string]string{
+	"status":        CHECKSET,
+	"client_key":    CHECKSET,
+	"create_time":   CHECKSET,
+	"ca_cert":       CHECKSET,
+	"client_cert":   CHECKSET,
+	"region_id":     CHECKSET,
+	"client_config": CHECKSET,
+}
+
+func AlicloudVpnGatewaySslVpnClientCertBasicDependence10701(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "az2" {
+  default = "cn-huhehaote-b"
+}
+
+variable "az1" {
+  default = "cn-huhehaote-a"
+}
+
+variable "region" {
+  default = "cn-huhehaote"
+}
+
+resource "alicloud_vpc" "defaultajvsxI" {
+  cidr_block = "192.168.0.0/16"
+}
+
+resource "alicloud_vswitch" "defaultkzWOo2" {
+  vpc_id     = alicloud_vpc.defaultajvsxI.id
+  zone_id    = var.az1
+  cidr_block = "192.168.10.0/24"
+}
+
+resource "alicloud_vswitch" "defaultWuIds5" {
+  vpc_id     = alicloud_vpc.defaultajvsxI.id
+  zone_id    = var.az2
+  cidr_block = "192.168.20.0/24"
+}
+
+resource "alicloud_vpn_gateway" "default4gJLj2" {
+  vpn_type                     = "Normal"
+  disaster_recovery_vswitch_id = alicloud_vswitch.defaultWuIds5.id
+  vswitch_id                   = alicloud_vswitch.defaultkzWOo2.id
+  vpc_id                       = alicloud_vpc.defaultajvsxI.id
+  payment_type                 = "Subscription"
+}
+
+resource "alicloud_ssl_vpn_server" "default4bBSPC" {
+  local_subnet   = "192.168.0.0/16"
+  client_ip_pool = "172.16.0.0/24"
+  vpn_gateway_id = alicloud_vpn_gateway.default4gJLj2.id
+}
+
+
+`, name)
+}
+
+// Test VpnGateway SslVpnClientCert. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudSslVpnClientCert_basic(t *testing.T) {
 	var v vpc.DescribeSslVpnClientCertResponse
 

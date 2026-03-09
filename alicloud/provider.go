@@ -1450,7 +1450,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpn_route_entry":                                       resourceAliyunVpnRouteEntry(),
 			"alicloud_vpn_connection":                                        resourceAliCloudVPNGatewayVpnConnection(),
 			"alicloud_ssl_vpn_server":                                        resourceAliyunSslVpnServer(),
-			"alicloud_ssl_vpn_client_cert":                                   resourceAliyunSslVpnClientCert(),
+			"alicloud_ssl_vpn_client_cert":                                   resourceAliCloudVpnGatewaySslVpnClientCert(),
 			"alicloud_cen_instance":                                          resourceAliCloudCenCenInstance(),
 			"alicloud_cen_instance_attachment":                               resourceAlicloudCenInstanceAttachment(),
 			"alicloud_cen_bandwidth_package":                                 resourceAlicloudCenBandwidthPackage(),
