@@ -1,236 +1,273 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
-	"strings"
+	"fmt"
+	"log"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAlicloudSlbServerCertificate() *schema.Resource {
+func resourceAliCloudSlbServerCertificate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudSlbServerCertificateCreate,
-		Read:   resourceAlicloudSlbServerCertificateRead,
-		Update: resourceAlicloudSlbServerCertificateUpdate,
-		Delete: resourceAlicloudSlbServerCertificateDelete,
+		Create: resourceAliCloudSlbServerCertificateCreate,
+		Read:   resourceAliCloudSlbServerCertificateRead,
+		Update: resourceAliCloudSlbServerCertificateUpdate,
+		Delete: resourceAliCloudSlbServerCertificateDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"ali_cloud_certificate_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
-			"server_certificate": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: slbServerCertificateDiffSuppressFunc,
+			"ali_cloud_certificate_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"private_key": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: slbServerCertificateDiffSuppressFunc,
-			},
-			"alicloud_certificate_region_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
-			"alicloud_certifacte_id": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Field 'alicloud_certifacte_id' has been deprecated from provider version 1.68.0. Use 'alicloud_certificate_id' replaces it.",
-			},
-			"alicloud_certificate_id": {
+			"region_id": {
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"alicloud_certifacte_name": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Field 'alicloud_certifacte_name' has been deprecated from provider version 1.68.0. Use 'alicloud_certificate_name' replaces it.",
-			},
-			"alicloud_certificate_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
+			},
+			"server_certificate": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"server_certificate_name": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"tags": tagsSchema(),
 		},
 	}
 }
 
-func resourceAlicloudSlbServerCertificateCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudSlbServerCertificateCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 
-	request := slb.CreateUploadServerCertificateRequest()
-	request.RegionId = client.RegionId
+	action := "UploadServerCertificate"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["RegionId"] = client.RegionId
 
-	if val, ok := d.GetOk("name"); ok && val != "" {
-		request.ServerCertificateName = val.(string)
+	if v, ok := d.GetOk("ali_cloud_certificate_id"); ok {
+		request["AliCloudCertificateId"] = v
+	}
+	if v, ok := d.GetOk("ali_cloud_certificate_name"); ok {
+		request["AliCloudCertificateName"] = v
+	}
+	if v, ok := d.GetOk("server_certificate_name"); ok {
+		request["ServerCertificateName"] = v
+	}
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
+	}
+	if v, ok := d.GetOk("private_key"); ok {
+		request["PrivateKey"] = v
+	}
+	if v, ok := d.GetOk("server_certificate"); ok {
+		request["ServerCertificate"] = v
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
 	}
 
-	if val, ok := d.GetOk("server_certificate"); ok && val != "" {
-		request.ServerCertificate = val.(string)
-	}
-
-	if val, ok := d.GetOk("private_key"); ok && val != "" {
-		request.PrivateKey = val.(string)
-	}
-
-	if val, ok := d.GetOk("alicloud_certificate_region_id"); ok && val != "" {
-		request.AliCloudCertificateRegionId = val.(string)
-	}
-
-	if val, ok := d.GetOk("alicloud_certificate_id"); ok && val != "" {
-		request.AliCloudCertificateId = val.(string)
-	}
-
-	if val, ok := d.GetOk("alicloud_certificate_name"); ok && val != "" {
-		request.AliCloudCertificateName = val.(string)
-	}
-
-	if val, ok := d.GetOk("resource_group_id"); ok && val != "" {
-		request.ResourceGroupId = val.(string)
-	}
-
-	// check server_certificate and private_key
-	if request.AliCloudCertificateId == "" {
-		if val := strings.Trim(request.ServerCertificate, " "); val == "" {
-			return WrapError(Error("UploadServerCertificate got an error, as server_certificate should be not null when alicloud_certificate_id is null."))
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Slb", "2014-05-15", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
 		}
-
-		if val := strings.Trim(request.PrivateKey, " "); val == "" {
-			return WrapError(Error("UploadServerCertificate got an error, as either private_key or private_file  should be not null when alicloud_certificate_id is null."))
-		}
-	}
-
-	raw, err := client.WithSlbClient(func(slbClient *slb.Client) (interface{}, error) {
-		return slbClient.UploadServerCertificate(request)
+		return nil
 	})
-	if err != nil {
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
-	}
-	addDebug(request.GetActionName(), raw, request.RpcRequest, request)
-	response, _ := raw.(*slb.UploadServerCertificateResponse)
-	d.SetId(response.ServerCertificateId)
+	addDebug(action, response, request)
 
-	return resourceAlicloudSlbServerCertificateUpdate(d, meta)
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_slb_server_certificate", action, AlibabaCloudSdkGoERROR)
+	}
+
+	d.SetId(fmt.Sprint(response["ServerCertificateId"]))
+
+	return resourceAliCloudSlbServerCertificateRead(d, meta)
 }
 
-func resourceAlicloudSlbServerCertificateRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudSlbServerCertificateRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	slbService := SlbService{client}
-	tags, err := slbService.ListTagResources(d.Id(), "certificate")
-	if err != nil {
-		return WrapError(err)
-	}
-	d.Set("tags", tagsToMap(tags))
+	slbServiceV2 := SlbServiceV2{client}
 
-	serverCertificate, err := slbService.DescribeSlbServerCertificate(d.Id())
+	objectRaw, err := slbServiceV2.DescribeSlbServerCertificate(d.Id())
 	if err != nil {
-		if NotFoundError(err) {
+		if !d.IsNewResource() && NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_slb_server_certificate DescribeSlbServerCertificate Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	if err := d.Set("name", serverCertificate.ServerCertificateName); err != nil {
+	d.Set("ali_cloud_certificate_id", objectRaw["AliCloudCertificateId"])
+	d.Set("ali_cloud_certificate_name", objectRaw["AliCloudCertificateName"])
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
+	d.Set("server_certificate_name", objectRaw["ServerCertificateName"])
+
+	objectRaw, err = slbServiceV2.DescribeServerCertificateDescribeServerCertificate(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	if serverCertificate.AliCloudCertificateId != "" {
-		if err := d.Set("alicloud_certificate_id", serverCertificate.AliCloudCertificateId); err != nil {
-			return WrapError(err)
-		}
-	}
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("server_certificate_name", objectRaw["ServerCertificateName"])
 
-	if serverCertificate.AliCloudCertificateName != "" {
-		if err := d.Set("alicloud_certificate_name", serverCertificate.AliCloudCertificateName); err != nil {
-			return WrapError(err)
-		}
-	}
-
-	if serverCertificate.ResourceGroupId != "" {
-		if err := d.Set("resource_group_id", serverCertificate.ResourceGroupId); err != nil {
-			return WrapError(err)
-		}
-	}
+	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
 
-func resourceAlicloudSlbServerCertificateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudSlbServerCertificateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	slbService := SlbService{client}
-	if err := slbService.setInstanceTags(d, TagResourceCertificate); err != nil {
-		return WrapError(err)
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	update := false
+	d.Partial(true)
+
+	var err error
+	action := "SetServerCertificateName"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ServerCertificateId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if d.HasChange("server_certificate_name") {
+		update = true
 	}
-	if d.IsNewResource() {
-		d.Partial(false)
-		return resourceAlicloudSlbServerCertificateRead(d, meta)
-	}
-	if !d.IsNewResource() && d.HasChange("name") {
-		request := slb.CreateSetServerCertificateNameRequest()
-		request.RegionId = client.RegionId
-		request.ServerCertificateId = d.Id()
-		request.ServerCertificateName = d.Get("name").(string)
-		raw, err := client.WithSlbClient(func(slbClient *slb.Client) (interface{}, error) {
-			return slbClient.SetServerCertificateName(request)
+	request["ServerCertificateName"] = d.Get("server_certificate_name")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Slb", "2014-05-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 	}
-	return resourceAlicloudSlbServerCertificateRead(d, meta)
+	update = false
+	action = "MoveResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
+		update = true
+	}
+	request["NewResourceGroupId"] = d.Get("resource_group_id")
+	request["ResourceType"] = "certificate"
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Slb", "2014-05-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	if d.HasChange("tags") {
+		slbServiceV2 := SlbServiceV2{client}
+		if err := slbServiceV2.SetResourceTags(d, "certificate"); err != nil {
+			return WrapError(err)
+		}
+	}
+	d.Partial(false)
+	return resourceAliCloudSlbServerCertificateRead(d, meta)
 }
 
-func resourceAlicloudSlbServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.AliyunClient)
-	slbService := SlbService{client}
+func resourceAliCloudSlbServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 
-	request := slb.CreateDeleteServerCertificateRequest()
-	request.RegionId = client.RegionId
-	request.ServerCertificateId = d.Id()
-	err := resource.Retry(3*time.Minute, func() *resource.RetryError {
-		raw, err := client.WithSlbClient(func(slbClient *slb.Client) (interface{}, error) {
-			return slbClient.DeleteServerCertificate(request)
-		})
+	client := meta.(*connectivity.AliyunClient)
+	action := "DeleteServerCertificate"
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
+	request["ServerCertificateId"] = d.Id()
+	request["RegionId"] = client.RegionId
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("Slb", "2014-05-15", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"CertificateAndPrivateKeyIsRefered"}) {
+			if NeedRetry(err) {
+				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
-
 		}
-		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"ServerCertificateId.NotFound"}) {
+		if IsExpectedErrors(err, []string{"ServerCertificateId.NotFound"}) || NotFoundError(err) {
 			return nil
 		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
-	return WrapError(slbService.WaitForSlbServerCertificate(d.Id(), Deleted, DefaultTimeoutMedium))
-
+	return nil
 }

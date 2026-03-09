@@ -2,29 +2,23 @@
 subcategory: "Classic Load Balancer (SLB)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_slb_server_certificate"
-sidebar_current: "docs-alicloud-resource-slb-server-certificate"
 description: |-
-  Provides a Load Banlancer Server Certificate resource.
+  Provides a Alicloud SLB Server Certificate resource.
 ---
 
-# alicloud\_slb\_server\_certificate
+# alicloud_slb_server_certificate
 
-A Load Balancer Server Certificate is an ssl Certificate used by the listener of the protocol https.
+Provides a SLB Server Certificate resource.
 
-For information about slb and how to use it, see [What is Server Load Balancer](https://www.alibabacloud.com/help/doc-detail/27539.htm).
+To configure HTTPS one-way authentication, you must provide a server certificate.
 
-For information about Server Certificate and how to use it, see [Configure Server Certificate](https://www.alibabacloud.com/help/doc-detail/85968.htm).
+For information about SLB Server Certificate and how to use it, see [What is Server Certificate](https://www.alibabacloud.com/help/doc-detail/85968.htm).
 
+-> **NOTE:** Available since v1.273.0.
 
 ## Example Usage
 
-* using server_certificate/private content as string example
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_slb_server_certificate&exampleId=4fad1cdc-1024-dfa2-c0f2-5d214bbc799fba0a7c4a&activeTab=example&spm=docs.r.slb_server_certificate.0.4fad1cdc10&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 # create a server certificate
@@ -35,41 +29,47 @@ resource "alicloud_slb_server_certificate" "foo" {
 }
 ```
 
-* using server_certificate/private file example
-
-```
-# create a server certificate
-resource "alicloud_slb_server_certificate" "foo" {
-  name               = "slbservercertificate"
-  server_certificate = file("${path.module}/server_certificate.pem")
-  private_key        = file("${path.module}/private_key.pem")
-}
-```
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_slb_server_certificate&spm=docs.r.slb_server_certificate.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `ali_cloud_certificate_id` - (Optional, ForceNew) The ID of the server certificate from Alibaba Cloud SSL Certificate Service.
+* `ali_cloud_certificate_name` - (Optional, ForceNew) The name of the server certificate from Alibaba Cloud SSL Certificate Service.
+* `private_key` - (Optional) The private key to be uploaded.
 
-* `name` - (Optional) Name of the Server Certificate.
-* `server_certificate` - (Optional, ForceNew) the content of the ssl certificate. where `alicloud_certificate_id` is null, it is required, otherwise it is ignored.
-* `private_key` - (Optional, ForceNew) the content of privat key of the ssl certificate specified by `server_certificate`. where `alicloud_certificate_id` is null, it is required, otherwise it is ignored.
-* `alicloud_certificate_id` - (Optional, ForceNew) an id of server certificate ssued/proxied by alibaba cloud. but it is not supported on the international site of alibaba cloud now.
-* `alicloud_certificate_name` - (Optional, ForceNew) the name of the certificate specified by `alicloud_certificate_id`.but it is not supported on the international site of alibaba cloud now.
-* `alicloud_certificate_region_id` - (Optional, ForceNew, Available in 1.69.0+) the region of the certificate specified by `alicloud_certificate_id`. but it is not supported on the international site of alibaba cloud now.
-* `resource_group_id` - (Optional, ForceNew, Available in 1.58.0+) The Id of resource group which the slb server certificate belongs.
-* `tags` - (Optional, Available in v1.66.0+) A mapping of tags to assign to the resource.
+-> **NOTE:**  If you do not use the Alibaba Cloud certificate, this parameter is required.
+
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `resource_group_id` - (Optional, Computed) The ID of the enterprise resource group.
+* `server_certificate` - (Optional) The public key certificate to be uploaded.
+
+-> **NOTE:**  If you do not use the Alibaba Cloud certificate, this parameter is required.
+
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `server_certificate_name` - (Optional) The name of the server certificate.
+* `tags` - (Optional, Map) The tag of the resource
+
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the resource.
+* `region_id` - The ID of the region to which the server certificate belongs.
 
-* `id` - The Id of Server Certificate (SSL Certificate).
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Server Certificate.
+* `delete` - (Defaults to 5 mins) Used when delete the Server Certificate.
+* `update` - (Defaults to 5 mins) Used when update the Server Certificate.
 
 ## Import
 
-Server Load balancer Server Certificate can be imported using the id, e.g.
+SLB Server Certificate can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_slb_server_certificate.example abc123456
+$ terraform import alicloud_slb_server_certificate.example <server_certificate_id>
 ```
