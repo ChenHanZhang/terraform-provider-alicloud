@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -194,12 +195,10 @@ func resourceAliCloudHbrPolicyCreate(d *schema.ResourceData, meta interface{}) e
 			}
 			dataLoopMap["RetentionRules"] = localMaps2
 			dataLoopMap["RuleType"] = dataLoopTmp["rule_type"]
+			dataLoopMap["BackupType"] = dataLoopTmp["backup_type"]
 			dataLoopMap["Schedule"] = dataLoopTmp["schedule"]
 			dataLoopMap["Retention"] = dataLoopTmp["retention"]
 			dataLoopMap["ReplicationRegionId"] = dataLoopTmp["replication_region_id"]
-			if backupType, ok := dataLoopTmp["backup_type"]; ok && backupType != "" {
-				dataLoopMap["BackupType"] = dataLoopTmp["backup_type"]
-			}
 			rulesMapsArray = append(rulesMapsArray, dataLoopMap)
 		}
 		rulesMapsJson, err := json.Marshal(rulesMapsArray)
@@ -379,12 +378,10 @@ func resourceAliCloudHbrPolicyUpdate(d *schema.ResourceData, meta interface{}) e
 				}
 				dataLoopMap["RetentionRules"] = localMaps2
 				dataLoopMap["RuleType"] = dataLoopTmp["rule_type"]
+				dataLoopMap["BackupType"] = dataLoopTmp["backup_type"]
 				dataLoopMap["Schedule"] = dataLoopTmp["schedule"]
 				dataLoopMap["Retention"] = dataLoopTmp["retention"]
 				dataLoopMap["ReplicationRegionId"] = dataLoopTmp["replication_region_id"]
-				if backupType, ok := dataLoopTmp["backup_type"]; ok && backupType != "" {
-					dataLoopMap["BackupType"] = dataLoopTmp["backup_type"]
-				}
 				rulesMapsArray = append(rulesMapsArray, dataLoopMap)
 			}
 			rulesMapsJson, err := json.Marshal(rulesMapsArray)
@@ -423,10 +420,12 @@ func resourceAliCloudHbrPolicyUpdate(d *schema.ResourceData, meta interface{}) e
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
+
 	return resourceAliCloudHbrPolicyRead(d, meta)
 }
 
 func resourceAliCloudHbrPolicyDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeletePolicyV2"
 	var request map[string]interface{}
@@ -456,5 +455,6 @@ func resourceAliCloudHbrPolicyDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+
 	return nil
 }

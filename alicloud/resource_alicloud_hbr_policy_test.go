@@ -277,7 +277,7 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "ault-example-1767865533"
+  vault_name          = "ault-example-1773049502"
   vault_storage_class = "STANDARD"
 }
 
@@ -491,14 +491,14 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865534"
+  vault_name          = "vault-example-1773049503"
   vault_storage_class = "STANDARD"
 }
 
 resource "alicloud_hbr_vault" "defaultL7kwwD" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865535"
+  vault_name          = "vault-example-1773049504"
   vault_storage_class = "STANDARD"
 }
 
@@ -630,7 +630,7 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865535"
+  vault_name          = "vault-example-1773049504"
   vault_storage_class = "STANDARD"
 }
 
@@ -744,7 +744,7 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "ault-example-1767865536"
+  vault_name          = "ault-example-1773049505"
   vault_storage_class = "STANDARD"
 }
 
@@ -876,7 +876,7 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865536"
+  vault_name          = "vault-example-1773049506"
   vault_storage_class = "STANDARD"
 }
 
@@ -1174,14 +1174,14 @@ variable "name" {
 resource "alicloud_hbr_vault" "defaulth4dKAG" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865538"
+  vault_name          = "vault-example-1773049507"
   vault_storage_class = "STANDARD"
 }
 
 resource "alicloud_hbr_vault" "defaultL7kwwD" {
   vault_type          = "STANDARD"
   encrypt_type        = "HBR_PRIVATE"
-  vault_name          = "vault-example-1767865539"
+  vault_name          = "vault-example-1773049507"
   vault_storage_class = "STANDARD"
 }
 
