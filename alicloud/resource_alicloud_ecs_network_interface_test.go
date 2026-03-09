@@ -125,6 +125,436 @@ func testAliCloudEcsNetworkInterface(region string) error {
 	return nil
 }
 
+// Test Ecs NetworkInterface. >>> Resource test cases, automatically generated.
+// Case test_NetworkInterface_10833 12614
+func TestAccAliCloudEcsNetworkInterface_basic12614(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_network_interface.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsNetworkInterfaceMap12614)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsNetworkInterface")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsNetworkInterfaceBasicDependence12614)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"delete_on_release":      "true",
+					"vswitch_id":             "${alicloud_vswitch.VSwitch_defaultUfVzHW_10833.id}",
+					"network_interface_name": name,
+					"security_group_ids": []string{
+						"${alicloud_security_group.SecurityGroup_defaultXEZ2jW_10833.id}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"delete_on_release":      "true",
+						"vswitch_id":             CHECKSET,
+						"network_interface_name": name,
+						"security_group_ids.#":   "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"delete_on_release": "false",
+					"security_group_ids": []string{
+						"${alicloud_security_group.SecurityGroup_defaultj5NppH_10833.id}"},
+					"resource_type": "eni",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"delete_on_release":    "false",
+						"security_group_ids.#": "1",
+						"resource_type":        "eni",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"resource_type"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsNetworkInterfaceMap12614 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudEcsNetworkInterfaceBasicDependence12614(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "VPC_default53CW4p_10833" {
+  enable_ipv6 = false
+}
+
+resource "alicloud_vswitch" "VSwitch_defaultUfVzHW_10833" {
+  is_default   = false
+  description  = "w_test"
+  vpc_id       = alicloud_vpc.VPC_default53CW4p_10833.id
+  zone_id      = "cn-hangzhou-i"
+  cidr_block   = "10.99.0.0/24"
+  vswitch_name = "w_test"
+}
+
+resource "alicloud_security_group" "SecurityGroup_defaultXEZ2jW_10833" {
+  vpc_id = alicloud_vpc.VPC_default53CW4p_10833.id
+}
+
+resource "alicloud_security_group" "SecurityGroup_defaultj5NppH_10833" {
+  vpc_id = alicloud_vpc.VPC_default53CW4p_10833.id
+}
+
+
+`, name)
+}
+
+// Case RDK接入_副本1688521884490_旋臂测试_副本1689132273776 3603
+func TestAccAliCloudEcsNetworkInterface_basic3603(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_network_interface.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsNetworkInterfaceMap3603)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsNetworkInterface")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccecs%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsNetworkInterfaceBasicDependence3603)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vswitch_id":             "${alicloud_vswitch.vswitch.id}",
+					"network_interface_name": name,
+					"security_group_ids":     []string{},
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vswitch_id":             CHECKSET,
+						"network_interface_name": name,
+						"security_group_ids":     CHECKSET,
+						"security_group_ids.#":   "77",
+						"resource_group_id":      CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"security_group_ids": []string{
+						"${alicloud_security_group.security.id}"},
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"queue_number":      "10",
+					"resource_type":     "eni",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"security_group_ids.#": "1",
+						"resource_group_id":    CHECKSET,
+						"queue_number":         "10",
+						"resource_type":        "eni",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"resource_type"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsNetworkInterfaceMap3603 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudEcsNetworkInterfaceBasicDependence3603(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_vpc" "vpc" {
+  enable_ipv6 = true
+  cidr_block  = "172.16.0.0/12"
+  vpc_name    = "fvt-ecs-vpc-49467622"
+}
+
+resource "alicloud_vswitch" "vswitch" {
+  enable_ipv6  = true
+  cidr_block   = "172.16.0.0/16"
+  vpc_id       = alicloud_vpc.vpc.id
+  zone_id      = "cn-hangzhou-i"
+  vswitch_name = "fvt-ecs-vswitch-e31c8dd9"
+}
+
+resource "alicloud_security_group" "security" {
+  security_group_name = "fvt-ecs-sg-5961b3e1"
+  security_group_type = "normal"
+  vpc_id              = alicloud_vpc.vpc.id
+}
+
+
+`, name)
+}
+
+// Case 网卡-NetworkInterface_作为依赖 8475
+func TestAccAliCloudEcsNetworkInterface_basic8475(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_network_interface.default"
+	ra := resourceAttrInit(resourceId, AlicloudEcsNetworkInterfaceMap8475)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsNetworkInterface")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEcsNetworkInterfaceBasicDependence8475)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":            "eni",
+					"queue_number":           "8",
+					"resource_group_id":      "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"vswitch_id":             "${alicloud_vswitch.defaultUfVzHW.id}",
+					"network_interface_name": name,
+					"security_group_ids": []string{
+						"${alicloud_security_group.defaultXEZ2jW.id}"},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":            "eni",
+						"queue_number":           "8",
+						"resource_group_id":      CHECKSET,
+						"vswitch_id":             CHECKSET,
+						"network_interface_name": name,
+						"security_group_ids.#":   "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_type": "eni",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_type": "eni",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"resource_type"},
+			},
+		},
+	})
+}
+
+var AlicloudEcsNetworkInterfaceMap8475 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudEcsNetworkInterfaceBasicDependence8475(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "default53CW4p" {
+  cidr_block = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "defaultUfVzHW" {
+  vpc_id     = alicloud_vpc.default53CW4p.id
+  zone_id    = "cn-hangzhou-e"
+  cidr_block = "172.16.2.0/24"
+}
+
+resource "alicloud_security_group" "defaultXEZ2jW" {
+  vpc_id = alicloud_vpc.default53CW4p.id
+}
+
+resource "alicloud_security_group" "defaultj5NppH" {
+  vpc_id = alicloud_vpc.default53CW4p.id
+}
+
+
+`, name)
+}
+
+// Test Ecs NetworkInterface. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudECSNetworkInterface_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_ecs_network_interface.default"
