@@ -20,12 +20,6 @@ For information about Network Load Balancer (NLB) Listener and how to use it, se
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nlb_listener&exampleId=719b36d3-b3c5-f8e2-9897-0b9972458db784c383ce&activeTab=example&spm=docs.r.nlb_listener.0.719b36d3b3&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "tf-example"
@@ -115,8 +109,6 @@ resource "alicloud_nlb_listener" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nlb_listener&spm=docs.r.nlb_listener.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -163,7 +155,7 @@ If you set the value to `0`, the listener listens by port range. If you set the 
 
 -> **NOTE:**  This parameter is supported only by TCP listeners and listeners that use SSL over TCP.
 
-* `proxy_protocol_config` - (Optional, Computed, List, Available since v1.243.0) The Proxy Protocol is used to carry the VpcId, PrivateLinkEpId, and PrivateLinkEpsId information to the backend server for configuration. See [`proxy_protocol_config`](#proxy_protocol_config) below.
+* `proxy_protocol_config` - (Optional, Computed, Set, Available since v1.243.0) The Proxy Protocol is used to carry the VpcId, PrivateLinkEpId, and PrivateLinkEpsId information to the backend server for configuration. See [`proxy_protocol_config`](#proxy_protocol_config) below.
 * `proxy_protocol_enabled` - (Optional, Computed) Specifies whether to use the Proxy protocol to pass client IP addresses to backend servers. Valid values:
   - `true`
   - `false` (default)
@@ -179,7 +171,8 @@ Valid values: `tls_cipher_policy\_1\_0` (default), `tls_cipher_policy\_1\_1`, `t
 
 -> **NOTE:**  This parameter takes effect only for listeners that use SSL over TCP.
 
-* `server_group_id` - (Required) The ID of the server group.
+* `server_group_id` - (Optional) The ID of the server group.
+* `server_group_tuples` - (Optional, List, Available since v1.273.0) Multi-server group list See [`server_group_tuples`](#server_group_tuples) below.
 * `start_port` - (Optional, ForceNew, Int) The first port in the listener port range. Valid values: `0` to `65535`.
 
 -> **NOTE:**  This parameter is required when `ListenerPort` is set to `0`.
@@ -192,14 +185,19 @@ Valid values: `tls_cipher_policy\_1\_0` (default), `tls_cipher_policy\_1\_1`, `t
 The proxy_protocol_config supports the following:
 * `proxy_protocol_config_private_link_ep_id_enabled` - (Optional, Computed, Available since v1.243.0) Whether to enable carrying PrivateLinkEpId to backend servers through Proxy Protocol.
 * `proxy_protocol_config_private_link_eps_id_enabled` - (Optional, Available since v1.243.0) Whether to enable carrying PrivateLinkEpsId to backend servers through the Proxy Protocol.
-* `proxy_protocol_config_vpc_id_enabled` - (Optional, Available since v1.243.0) Whether to enable carrying VpcId to backend servers through Proxy Protocol.
+* `proxy_protocol_config_vpc_id_enabled` - (Optional) Whether to enable carrying VpcId to backend servers through Proxy Protocol.
+
+### `server_group_tuples`
+
+The server_group_tuples supports the following:
+* `server_group_id` - (Optional, Available since v1.273.0) server group id
+* `weight` - (Optional, Int, Available since v1.273.0) weight
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `region_id` - The ID of the region where the Network Load Balancer (NLB) instance is deployed.
-You can call the [DescribeRegions](https://www.alibabacloud.com/help/en/doc-detail/443657.html) operation to query the most recent region list.
 
 ## Timeouts
 
@@ -213,5 +211,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Network Load Balancer (NLB) Listener can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_nlb_listener.example <id>
+$ terraform import alicloud_nlb_listener.example <listener_id>
 ```

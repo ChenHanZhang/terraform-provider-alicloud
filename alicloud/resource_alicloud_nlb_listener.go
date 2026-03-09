@@ -139,7 +139,23 @@ func resourceAliCloudNlbListener() *schema.Resource {
 			},
 			"server_group_id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+			},
+			"server_group_tuples": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"server_group_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"weight": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"start_port": {
 				Type:         schema.TypeInt,
@@ -171,84 +187,108 @@ func resourceAliCloudNlbListenerCreate(d *schema.ResourceData, meta interface{})
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	request["ListenerProtocol"] = d.Get("listener_protocol")
-	request["ListenerPort"] = d.Get("listener_port")
+	if v, ok := d.GetOkExists("ca_enabled"); ok {
+		request["CaEnabled"] = v
+	}
+	proxyProtocolV2Config := make(map[string]interface{})
+
+	if v := d.Get("proxy_protocol_config"); !IsNil(v) {
+		proxyProtocolConfigPrivateLinkEpIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_ep_id_enabled", v)
+		if proxyProtocolConfigPrivateLinkEpIdEnabled != nil && proxyProtocolConfigPrivateLinkEpIdEnabled != "" {
+			proxyProtocolV2Config["Ppv2PrivateLinkEpIdEnabled"] = proxyProtocolConfigPrivateLinkEpIdEnabled
+		}
+		proxyProtocolConfigVpcIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_vpc_id_enabled", v)
+		if proxyProtocolConfigVpcIdEnabled != nil && proxyProtocolConfigVpcIdEnabled != "" {
+			proxyProtocolV2Config["Ppv2VpcIdEnabled"] = proxyProtocolConfigVpcIdEnabled
+		}
+		proxyProtocolConfigPrivateLinkEpsIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_eps_id_enabled", v)
+		if proxyProtocolConfigPrivateLinkEpsIdEnabled != nil && proxyProtocolConfigPrivateLinkEpsIdEnabled != "" {
+			proxyProtocolV2Config["Ppv2PrivateLinkEpsIdEnabled"] = proxyProtocolConfigPrivateLinkEpsIdEnabled
+		}
+
+		proxyProtocolV2ConfigJson, err := json.Marshal(proxyProtocolV2Config)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["ProxyProtocolV2Config"] = string(proxyProtocolV2ConfigJson)
+	}
+
 	if v, ok := d.GetOk("listener_description"); ok {
 		request["ListenerDescription"] = v
-	}
-	request["LoadBalancerId"] = d.Get("load_balancer_id")
-	request["ServerGroupId"] = d.Get("server_group_id")
-	if v, ok := d.GetOkExists("idle_timeout"); ok && v.(int) > 0 {
-		request["IdleTimeout"] = v
-	}
-	if v, ok := d.GetOk("security_policy_id"); ok {
-		request["SecurityPolicyId"] = v
-	}
-	if v, ok := d.GetOk("certificate_ids"); ok {
-		certificateIdsMapsArray := v.([]interface{})
-		request["CertificateIds"] = certificateIdsMapsArray
-	}
-
-	if v, ok := d.GetOk("ca_certificate_ids"); ok {
-		caCertificateIdsMapsArray := v.([]interface{})
-		request["CaCertificateIds"] = caCertificateIdsMapsArray
-	}
-
-	if v, ok := d.GetOk("alpn_policy"); ok {
-		request["AlpnPolicy"] = v
 	}
 	if v, ok := d.GetOkExists("proxy_protocol_enabled"); ok {
 		request["ProxyProtocolEnabled"] = v
 	}
-	if v, ok := d.GetOkExists("sec_sensor_enabled"); ok {
-		request["SecSensorEnabled"] = v
+	if v, ok := d.GetOk("certificate_ids"); ok {
+		certificateIdsMapsArray := convertToInterfaceArray(v)
+
+		request["CertificateIds"] = certificateIdsMapsArray
 	}
-	if v, ok := d.GetOkExists("alpn_enabled"); ok {
-		request["AlpnEnabled"] = v
+
+	serverGroupTuplesDataList := make(map[string]interface{})
+
+	if v, ok := d.GetOk("server_group_tuples"); ok {
+		weight1, _ := jsonpath.Get("$.weight", v)
+		if weight1 != nil && weight1 != "" {
+			serverGroupTuplesDataList["Weight"] = weight1
+		}
 	}
-	if v, ok := d.GetOkExists("ca_enabled"); ok {
-		request["CaEnabled"] = v
+
+	if v, ok := d.GetOk("server_group_tuples"); ok {
+		serverGroupId1, _ := jsonpath.Get("$.server_group_id", v)
+		if serverGroupId1 != nil && serverGroupId1 != "" {
+			serverGroupTuplesDataList["ServerGroupId"] = serverGroupId1
+		}
 	}
-	if v, ok := d.GetOkExists("start_port"); ok {
-		request["StartPort"] = v
+
+	ServerGroupTuplesMap := make([]interface{}, 0)
+	ServerGroupTuplesMap = append(ServerGroupTuplesMap, serverGroupTuplesDataList)
+	request["ServerGroupTuples"] = ServerGroupTuplesMap
+
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
 	}
+
+	if v, ok := d.GetOk("ca_certificate_ids"); ok {
+		caCertificateIdsMapsArray := convertToInterfaceArray(v)
+
+		request["CaCertificateIds"] = caCertificateIdsMapsArray
+	}
+
+	if v, ok := d.GetOkExists("idle_timeout"); ok && v.(int) > 0 {
+		request["IdleTimeout"] = v
+	}
+	request["ListenerProtocol"] = d.Get("listener_protocol")
+	request["LoadBalancerId"] = d.Get("load_balancer_id")
 	if v, ok := d.GetOkExists("end_port"); ok {
 		request["EndPort"] = v
 	}
 	if v, ok := d.GetOkExists("cps"); ok {
 		request["Cps"] = v
 	}
+	request["ListenerPort"] = d.Get("listener_port")
+	if v, ok := d.GetOkExists("alpn_enabled"); ok {
+		request["AlpnEnabled"] = v
+	}
 	if v, ok := d.GetOkExists("mss"); ok {
 		request["Mss"] = v
 	}
-	if v, ok := d.GetOk("tags"); ok {
-		tagsMap := ConvertTags(v.(map[string]interface{}))
-		request = expandTagsToMap(request, tagsMap)
+	if v, ok := d.GetOkExists("sec_sensor_enabled"); ok {
+		request["SecSensorEnabled"] = v
 	}
-
-	objectDataLocalMap := make(map[string]interface{})
-
-	if v := d.Get("proxy_protocol_config"); !IsNil(v) {
-		proxyProtocolConfigVpcIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_vpc_id_enabled", v)
-		if proxyProtocolConfigVpcIdEnabled != nil && proxyProtocolConfigVpcIdEnabled != "" {
-			objectDataLocalMap["Ppv2VpcIdEnabled"] = proxyProtocolConfigVpcIdEnabled
-		}
-		proxyProtocolConfigPrivateLinkEpIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_ep_id_enabled", v)
-		if proxyProtocolConfigPrivateLinkEpIdEnabled != nil && proxyProtocolConfigPrivateLinkEpIdEnabled != "" {
-			objectDataLocalMap["Ppv2PrivateLinkEpIdEnabled"] = proxyProtocolConfigPrivateLinkEpIdEnabled
-		}
-		proxyProtocolConfigPrivateLinkEpsIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_eps_id_enabled", v)
-		if proxyProtocolConfigPrivateLinkEpsIdEnabled != nil && proxyProtocolConfigPrivateLinkEpsIdEnabled != "" {
-			objectDataLocalMap["Ppv2PrivateLinkEpsIdEnabled"] = proxyProtocolConfigPrivateLinkEpsIdEnabled
-		}
-
-		objectDataLocalMapJson, err := json.Marshal(objectDataLocalMap)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["ProxyProtocolV2Config"] = string(objectDataLocalMapJson)
+	if v, ok := d.GetOkExists("start_port"); ok {
+		request["StartPort"] = v
 	}
-
+	if v, ok := d.GetOk("server_group_id"); ok {
+		request["ServerGroupId"] = v
+	}
+	if v, ok := d.GetOk("alpn_policy"); ok {
+		request["AlpnPolicy"] = v
+	}
+	if v, ok := d.GetOk("security_policy_id"); ok {
+		request["SecurityPolicyId"] = v
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
@@ -270,9 +310,9 @@ func resourceAliCloudNlbListenerCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(fmt.Sprint(response["ListenerId"]))
 
 	nlbServiceV2 := NlbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, nlbServiceV2.NlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+	stateConf := BuildStateConf([]string{}, []string{"Succeeded"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, nlbServiceV2.DescribeAsyncNlbListenerStateRefreshFunc(d, response, "$.Status", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
 
 	return resourceAliCloudNlbListenerUpdate(d, meta)
@@ -292,90 +332,67 @@ func resourceAliCloudNlbListenerRead(d *schema.ResourceData, meta interface{}) e
 		return WrapError(err)
 	}
 
-	if objectRaw["AlpnEnabled"] != nil {
-		d.Set("alpn_enabled", objectRaw["AlpnEnabled"])
-	}
-	if objectRaw["AlpnPolicy"] != nil {
-		d.Set("alpn_policy", objectRaw["AlpnPolicy"])
-	}
-	if objectRaw["CaEnabled"] != nil {
-		d.Set("ca_enabled", objectRaw["CaEnabled"])
-	}
-	if objectRaw["Cps"] != nil {
-		d.Set("cps", objectRaw["Cps"])
-	}
-	if objectRaw["EndPort"] != nil {
-		d.Set("end_port", formatInt(objectRaw["EndPort"]))
-	}
-	if objectRaw["IdleTimeout"] != nil {
-		d.Set("idle_timeout", objectRaw["IdleTimeout"])
-	}
-	if objectRaw["ListenerDescription"] != nil {
-		d.Set("listener_description", objectRaw["ListenerDescription"])
-	}
-	if objectRaw["ListenerPort"] != nil {
-		d.Set("listener_port", objectRaw["ListenerPort"])
-	}
-	if objectRaw["ListenerProtocol"] != nil {
-		d.Set("listener_protocol", objectRaw["ListenerProtocol"])
-	}
-	if objectRaw["LoadBalancerId"] != nil {
-		d.Set("load_balancer_id", objectRaw["LoadBalancerId"])
-	}
-	if objectRaw["Mss"] != nil {
-		d.Set("mss", objectRaw["Mss"])
-	}
-	if objectRaw["ProxyProtocolEnabled"] != nil {
-		d.Set("proxy_protocol_enabled", objectRaw["ProxyProtocolEnabled"])
-	}
-	if objectRaw["RegionId"] != nil {
-		d.Set("region_id", objectRaw["RegionId"])
-	}
-	if objectRaw["SecSensorEnabled"] != nil {
-		d.Set("sec_sensor_enabled", objectRaw["SecSensorEnabled"])
-	}
-	if objectRaw["SecurityPolicyId"] != nil {
-		d.Set("security_policy_id", objectRaw["SecurityPolicyId"])
-	}
-	if objectRaw["ServerGroupId"] != nil {
-		d.Set("server_group_id", objectRaw["ServerGroupId"])
-	}
-	if objectRaw["StartPort"] != nil {
-		d.Set("start_port", formatInt(objectRaw["StartPort"]))
-	}
-	if objectRaw["ListenerStatus"] != nil {
-		d.Set("status", objectRaw["ListenerStatus"])
-	}
+	d.Set("alpn_enabled", objectRaw["AlpnEnabled"])
+	d.Set("alpn_policy", objectRaw["AlpnPolicy"])
+	d.Set("ca_enabled", objectRaw["CaEnabled"])
+	d.Set("cps", objectRaw["Cps"])
+	d.Set("end_port", formatInt(objectRaw["EndPort"]))
+	d.Set("idle_timeout", objectRaw["IdleTimeout"])
+	d.Set("listener_description", objectRaw["ListenerDescription"])
+	d.Set("listener_port", objectRaw["ListenerPort"])
+	d.Set("listener_protocol", objectRaw["ListenerProtocol"])
+	d.Set("load_balancer_id", objectRaw["LoadBalancerId"])
+	d.Set("mss", objectRaw["Mss"])
+	d.Set("proxy_protocol_enabled", objectRaw["ProxyProtocolEnabled"])
+	d.Set("region_id", objectRaw["RegionId"])
+	d.Set("sec_sensor_enabled", objectRaw["SecSensorEnabled"])
+	d.Set("security_policy_id", objectRaw["SecurityPolicyId"])
+	d.Set("server_group_id", objectRaw["ServerGroupId"])
+	d.Set("start_port", formatInt(objectRaw["StartPort"]))
+	d.Set("status", objectRaw["ListenerStatus"])
 
-	caCertificateIds2Raw := make([]interface{}, 0)
+	caCertificateIdsRaw := make([]interface{}, 0)
 	if objectRaw["CaCertificateIds"] != nil {
-		caCertificateIds2Raw = objectRaw["CaCertificateIds"].([]interface{})
+		caCertificateIdsRaw = convertToInterfaceArray(objectRaw["CaCertificateIds"])
 	}
 
-	d.Set("ca_certificate_ids", caCertificateIds2Raw)
-	certificateIds2Raw := make([]interface{}, 0)
+	d.Set("ca_certificate_ids", caCertificateIdsRaw)
+	certificateIdsRaw := make([]interface{}, 0)
 	if objectRaw["CertificateIds"] != nil {
-		certificateIds2Raw = objectRaw["CertificateIds"].([]interface{})
+		certificateIdsRaw = convertToInterfaceArray(objectRaw["CertificateIds"])
 	}
 
-	d.Set("certificate_ids", certificateIds2Raw)
+	d.Set("certificate_ids", certificateIdsRaw)
 	proxyProtocolConfigMaps := make([]map[string]interface{}, 0)
 	proxyProtocolConfigMap := make(map[string]interface{})
-	proxyProtocolV2Config2Raw := make(map[string]interface{})
+	proxyProtocolV2ConfigRaw := make(map[string]interface{})
 	if objectRaw["ProxyProtocolV2Config"] != nil {
-		proxyProtocolV2Config2Raw = objectRaw["ProxyProtocolV2Config"].(map[string]interface{})
+		proxyProtocolV2ConfigRaw = objectRaw["ProxyProtocolV2Config"].(map[string]interface{})
 	}
-	if len(proxyProtocolV2Config2Raw) > 0 {
-		proxyProtocolConfigMap["proxy_protocol_config_private_link_ep_id_enabled"] = proxyProtocolV2Config2Raw["Ppv2PrivateLinkEpIdEnabled"]
-		proxyProtocolConfigMap["proxy_protocol_config_private_link_eps_id_enabled"] = proxyProtocolV2Config2Raw["Ppv2PrivateLinkEpsIdEnabled"]
-		proxyProtocolConfigMap["proxy_protocol_config_vpc_id_enabled"] = proxyProtocolV2Config2Raw["Ppv2VpcIdEnabled"]
+	if len(proxyProtocolV2ConfigRaw) > 0 {
+		proxyProtocolConfigMap["proxy_protocol_config_private_link_ep_id_enabled"] = proxyProtocolV2ConfigRaw["Ppv2PrivateLinkEpIdEnabled"]
+		proxyProtocolConfigMap["proxy_protocol_config_private_link_eps_id_enabled"] = proxyProtocolV2ConfigRaw["Ppv2PrivateLinkEpsIdEnabled"]
+		proxyProtocolConfigMap["proxy_protocol_config_vpc_id_enabled"] = proxyProtocolV2ConfigRaw["Ppv2VpcIdEnabled"]
 
 		proxyProtocolConfigMaps = append(proxyProtocolConfigMaps, proxyProtocolConfigMap)
 	}
-	if objectRaw["ProxyProtocolV2Config"] != nil {
-		if err := d.Set("proxy_protocol_config", proxyProtocolConfigMaps); err != nil {
-			return err
+	if err := d.Set("proxy_protocol_config", proxyProtocolConfigMaps); err != nil {
+		return err
+	}
+	serverGroupTuplesChildRaw := serverGroupTuplesChildRaw.(map[string]interface{})
+	serverGroupTuplesMaps := make([]map[string]interface{}, 0)
+	if serverGroupTuplesChildRaw != nil {
+		for _, serverGroupIdRaw := range convertToInterfaceArray(serverGroupTuplesChildRaw) {
+			serverGroupTuplesMap := make(map[string]interface{})
+			serverGroupTuplesChildRaw := serverGroupTuplesChildRaw.(map[string]interface{})
+			serverGroupTuplesMap["server_group_id"] = serverGroupTuplesChildRaw["ServerGroupId"]
+			serverGroupTuplesMap["weight"] = serverGroupTuplesChildRaw["Weight"]
+
+			serverGroupTuplesMaps = append(serverGroupTuplesMaps, serverGroupTuplesMap)
 		}
+	}
+	if err := d.Set("server_group_tuples", serverGroupTuplesMaps); err != nil {
+		return err
 	}
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -390,15 +407,18 @@ func resourceAliCloudNlbListenerUpdate(d *schema.ResourceData, meta interface{})
 	var query map[string]interface{}
 	update := false
 
-	if d.HasChange("status") {
-		nlbServiceV2 := NlbServiceV2{client}
-		object, err := nlbServiceV2.DescribeNlbListener(d.Id())
-		if err != nil {
-			return WrapError(err)
-		}
+	nlbServiceV2 := NlbServiceV2{client}
+	objectRaw, _ := nlbServiceV2.DescribeNlbListener(d.Id())
 
+	if d.HasChange("status") {
+		var err error
 		target := d.Get("status").(string)
-		if object["ListenerStatus"].(string) != target {
+
+		currentStatus, err := jsonpath.Get("ListenerStatus", objectRaw)
+		if err != nil {
+			return WrapErrorf(err, FailedGetAttributeMsg, d.Id(), "ListenerStatus", objectRaw)
+		}
+		if fmt.Sprint(currentStatus) != target {
 			if target == "Running" {
 				action := "StartListener"
 				request = make(map[string]interface{})
@@ -423,9 +443,9 @@ func resourceAliCloudNlbListenerUpdate(d *schema.ResourceData, meta interface{})
 					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 				}
 				nlbServiceV2 := NlbServiceV2{client}
-				stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, nlbServiceV2.NlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
-				if _, err := stateConf.WaitForState(); err != nil {
-					return WrapErrorf(err, IdMsg, d.Id())
+				stateConf := BuildStateConf([]string{}, []string{"Succeeded"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, nlbServiceV2.DescribeAsyncNlbListenerStateRefreshFunc(d, response, "$.Status", []string{}))
+				if jobDetail, err := stateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 				}
 
 			}
@@ -453,50 +473,126 @@ func resourceAliCloudNlbListenerUpdate(d *schema.ResourceData, meta interface{})
 					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 				}
 				nlbServiceV2 := NlbServiceV2{client}
-				stateConf := BuildStateConf([]string{}, []string{"Stopped"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, nlbServiceV2.NlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
-				if _, err := stateConf.WaitForState(); err != nil {
-					return WrapErrorf(err, IdMsg, d.Id())
+				stateConf := BuildStateConf([]string{}, []string{"Succeeded"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, nlbServiceV2.DescribeAsyncNlbListenerStateRefreshFunc(d, response, "$.Status", []string{}))
+				if jobDetail, err := stateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 				}
 
 			}
 		}
 	}
 
-	action := "UpdateListenerAttribute"
 	var err error
+	action := "UpdateListenerAttribute"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["ListenerId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
+	if !d.IsNewResource() && d.HasChange("ca_enabled") {
+		update = true
+		request["CaEnabled"] = d.Get("ca_enabled")
+	}
+
+	if !d.IsNewResource() && d.HasChange("proxy_protocol_config") {
+		update = true
+		proxyProtocolV2Config := make(map[string]interface{})
+
+		if v := d.Get("proxy_protocol_config"); v != nil {
+			proxyProtocolConfigPrivateLinkEpsIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_eps_id_enabled", v)
+			if proxyProtocolConfigPrivateLinkEpsIdEnabled != nil && proxyProtocolConfigPrivateLinkEpsIdEnabled != "" {
+				proxyProtocolV2Config["Ppv2PrivateLinkEpsIdEnabled"] = proxyProtocolConfigPrivateLinkEpsIdEnabled
+			}
+			proxyProtocolConfigPrivateLinkEpIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_ep_id_enabled", v)
+			if proxyProtocolConfigPrivateLinkEpIdEnabled != nil && proxyProtocolConfigPrivateLinkEpIdEnabled != "" {
+				proxyProtocolV2Config["Ppv2PrivateLinkEpIdEnabled"] = proxyProtocolConfigPrivateLinkEpIdEnabled
+			}
+			proxyProtocolConfigVpcIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_vpc_id_enabled", v)
+			if proxyProtocolConfigVpcIdEnabled != nil && proxyProtocolConfigVpcIdEnabled != "" {
+				proxyProtocolV2Config["Ppv2VpcIdEnabled"] = proxyProtocolConfigVpcIdEnabled
+			}
+
+			proxyProtocolV2ConfigJson, err := json.Marshal(proxyProtocolV2Config)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["ProxyProtocolV2Config"] = string(proxyProtocolV2ConfigJson)
+		}
+	}
+
 	if !d.IsNewResource() && d.HasChange("listener_description") {
 		update = true
 		request["ListenerDescription"] = d.Get("listener_description")
 	}
 
-	if !d.IsNewResource() && d.HasChange("server_group_id") {
+	if !d.IsNewResource() && d.HasChange("cps") {
 		update = true
+		request["Cps"] = d.Get("cps")
 	}
-	request["ServerGroupId"] = d.Get("server_group_id")
-	if !d.IsNewResource() && d.HasChange("security_policy_id") {
+
+	if !d.IsNewResource() && d.HasChange("alpn_enabled") {
 		update = true
-		request["SecurityPolicyId"] = d.Get("security_policy_id")
+		request["AlpnEnabled"] = d.Get("alpn_enabled")
+	}
+
+	if !d.IsNewResource() && d.HasChange("proxy_protocol_enabled") {
+		update = true
+		request["ProxyProtocolEnabled"] = d.Get("proxy_protocol_enabled")
+	}
+
+	if !d.IsNewResource() && d.HasChange("mss") {
+		update = true
+		request["Mss"] = d.Get("mss")
 	}
 
 	if !d.IsNewResource() && d.HasChange("certificate_ids") {
 		update = true
 		if v, ok := d.GetOk("certificate_ids"); ok || d.HasChange("certificate_ids") {
-			certificateIdsMapsArray := v.([]interface{})
+			certificateIdsMapsArray := convertToInterfaceArray(v)
+
 			request["CertificateIds"] = certificateIdsMapsArray
 		}
+	}
+
+	serverGroupTuplesDataList := make(map[string]interface{})
+
+	if d.HasChange("server_group_tuples") {
+		update = true
+		weight1, _ := jsonpath.Get("$.weight", d.Get("server_group_tuples"))
+		if weight1 != nil && weight1 != "" {
+			serverGroupTuplesDataList["Weight"] = weight1
+		}
+	}
+
+	if d.HasChange("server_group_tuples") {
+		update = true
+		serverGroupId1, _ := jsonpath.Get("$.server_group_id", d.Get("server_group_tuples"))
+		if serverGroupId1 != nil && serverGroupId1 != "" {
+			serverGroupTuplesDataList["ServerGroupId"] = serverGroupId1
+		}
+	}
+
+	ServerGroupTuplesMap := make([]interface{}, 0)
+	ServerGroupTuplesMap = append(ServerGroupTuplesMap, serverGroupTuplesDataList)
+	request["ServerGroupTuples"] = ServerGroupTuplesMap
+
+	if !d.IsNewResource() && d.HasChange("sec_sensor_enabled") {
+		update = true
+		request["SecSensorEnabled"] = d.Get("sec_sensor_enabled")
 	}
 
 	if !d.IsNewResource() && d.HasChange("ca_certificate_ids") {
 		update = true
 		if v, ok := d.GetOk("ca_certificate_ids"); ok || d.HasChange("ca_certificate_ids") {
-			caCertificateIdsMapsArray := v.([]interface{})
+			caCertificateIdsMapsArray := convertToInterfaceArray(v)
+
 			request["CaCertificateIds"] = caCertificateIdsMapsArray
 		}
+	}
+
+	if !d.IsNewResource() && d.HasChange("server_group_id") {
+		update = true
+		request["ServerGroupId"] = d.Get("server_group_id")
 	}
 
 	if !d.IsNewResource() && d.HasChange("idle_timeout") {
@@ -509,60 +605,9 @@ func resourceAliCloudNlbListenerUpdate(d *schema.ResourceData, meta interface{})
 		request["AlpnPolicy"] = d.Get("alpn_policy")
 	}
 
-	if !d.IsNewResource() && d.HasChange("ca_enabled") {
+	if !d.IsNewResource() && d.HasChange("security_policy_id") {
 		update = true
-		request["CaEnabled"] = d.Get("ca_enabled")
-	}
-
-	if !d.IsNewResource() && d.HasChange("proxy_protocol_enabled") {
-		update = true
-		request["ProxyProtocolEnabled"] = d.Get("proxy_protocol_enabled")
-	}
-
-	if !d.IsNewResource() && d.HasChange("sec_sensor_enabled") {
-		update = true
-		request["SecSensorEnabled"] = d.Get("sec_sensor_enabled")
-	}
-
-	if !d.IsNewResource() && d.HasChange("alpn_enabled") {
-		update = true
-		request["AlpnEnabled"] = d.Get("alpn_enabled")
-	}
-
-	if !d.IsNewResource() && d.HasChange("cps") {
-		update = true
-		request["Cps"] = d.Get("cps")
-	}
-
-	if !d.IsNewResource() && d.HasChange("mss") {
-		update = true
-		request["Mss"] = d.Get("mss")
-	}
-
-	if !d.IsNewResource() && d.HasChange("proxy_protocol_config") {
-		update = true
-		objectDataLocalMap := make(map[string]interface{})
-
-		if v := d.Get("proxy_protocol_config"); v != nil {
-			proxyProtocolConfigVpcIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_vpc_id_enabled", v)
-			if proxyProtocolConfigVpcIdEnabled != nil && (d.HasChange("proxy_protocol_config.0.proxy_protocol_config_vpc_id_enabled") || proxyProtocolConfigVpcIdEnabled != "") {
-				objectDataLocalMap["Ppv2VpcIdEnabled"] = proxyProtocolConfigVpcIdEnabled
-			}
-			proxyProtocolConfigPrivateLinkEpIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_ep_id_enabled", v)
-			if proxyProtocolConfigPrivateLinkEpIdEnabled != nil && (d.HasChange("proxy_protocol_config.0.proxy_protocol_config_private_link_ep_id_enabled") || proxyProtocolConfigPrivateLinkEpIdEnabled != "") {
-				objectDataLocalMap["Ppv2PrivateLinkEpIdEnabled"] = proxyProtocolConfigPrivateLinkEpIdEnabled
-			}
-			proxyProtocolConfigPrivateLinkEpsIdEnabled, _ := jsonpath.Get("$[0].proxy_protocol_config_private_link_eps_id_enabled", v)
-			if proxyProtocolConfigPrivateLinkEpsIdEnabled != nil && (d.HasChange("proxy_protocol_config.0.proxy_protocol_config_private_link_eps_id_enabled") || proxyProtocolConfigPrivateLinkEpsIdEnabled != "") {
-				objectDataLocalMap["Ppv2PrivateLinkEpsIdEnabled"] = proxyProtocolConfigPrivateLinkEpsIdEnabled
-			}
-
-			objectDataLocalMapJson, err := json.Marshal(objectDataLocalMap)
-			if err != nil {
-				return WrapError(err)
-			}
-			request["ProxyProtocolV2Config"] = string(objectDataLocalMapJson)
-		}
+		request["SecurityPolicyId"] = d.Get("security_policy_id")
 	}
 
 	if update {
@@ -583,9 +628,9 @@ func resourceAliCloudNlbListenerUpdate(d *schema.ResourceData, meta interface{})
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		nlbServiceV2 := NlbServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 15*time.Second, nlbServiceV2.NlbListenerStateRefreshFunc(d.Id(), "ListenerStatus", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		stateConf := BuildStateConf([]string{}, []string{"Succeeded"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, nlbServiceV2.DescribeAsyncNlbListenerStateRefreshFunc(d, response, "$.Status", []string{}))
+		if jobDetail, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 		}
 	}
 
@@ -614,8 +659,6 @@ func resourceAliCloudNlbListenerDelete(d *schema.ResourceData, meta interface{})
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

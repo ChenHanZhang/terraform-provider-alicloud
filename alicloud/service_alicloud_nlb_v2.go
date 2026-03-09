@@ -700,15 +700,18 @@ func (s *NlbServiceV2) DescribeNlbListener(id string) (object map[string]interfa
 }
 
 func (s *NlbServiceV2) NlbListenerStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NlbListenerStateRefreshFuncWithApi(id, field, failStates, s.DescribeNlbListener)
+}
+
+func (s *NlbServiceV2) NlbListenerStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNlbListener(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -736,7 +739,6 @@ func (s *NlbServiceV2) DescribeAsyncNlbListenerStateRefreshFunc(d *schema.Resour
 				return object, "", nil
 			}
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
