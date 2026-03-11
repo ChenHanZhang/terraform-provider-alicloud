@@ -355,7 +355,7 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"edge_cache_ttl":              "300",
-					"site_id":                     "${data.alicloud_esa_sites.default.sites.0.id}",
+					"site_id":                     "548186839156464",
 					"edge_cache_mode":             "follow_origin",
 					"edge_status_code_cache_ttl":  "300",
 					"browser_cache_mode":          "no_cache",
@@ -383,7 +383,7 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"edge_cache_ttl":              CHECKSET,
-						"site_id":                     CHECKSET,
+						"site_id":                     "548186839156464",
 						"edge_cache_mode":             "follow_origin",
 						"edge_status_code_cache_ttl":  CHECKSET,
 						"browser_cache_mode":          "no_cache",
@@ -484,9 +484,7 @@ variable "name" {
     default = "%s"
 }
 
-data "alicloud_esa_sites" "default" {
-  plan_subscribe_type = "enterpriseplan"
-}
+
 `, name)
 }
 
