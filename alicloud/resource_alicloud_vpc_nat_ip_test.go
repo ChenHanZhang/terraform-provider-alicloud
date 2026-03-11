@@ -19,6 +19,109 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test NatGateway NatIp. >>> Resource test cases, automatically generated.
+// Case 全生命周期_NatIp 9590
+func TestAccAliCloudNatGatewayNatIp_basic9590(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_vpc_nat_ip.default"
+	ra := resourceAttrInit(resourceId, AlicloudNatGatewayNatIpMap9590)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNatGatewayNatIp")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnatgateway%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNatGatewayNatIpBasicDependence9590)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"eu-central-1"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"dry_run":            "false",
+					"nat_ip_name":        name,
+					"nat_gateway_id":     "${alicloud_nat_gateway.NATGateway.id}",
+					"nat_ip_cidr":        "${alicloud_vswitch.VSwitch.cidr_block}",
+					"nat_ip":             "172.16.0.66",
+					"nat_ip_description": "tf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"dry_run":            "false",
+						"nat_ip_name":        name,
+						"nat_gateway_id":     CHECKSET,
+						"nat_ip_cidr":        CHECKSET,
+						"nat_ip":             "172.16.0.66",
+						"nat_ip_description": "tf",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"nat_ip_name":        name + "_update",
+					"nat_ip_description": "test",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"nat_ip_name":        name + "_update",
+						"nat_ip_description": "test",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dry_run"},
+			},
+		},
+	})
+}
+
+var AlicloudNatGatewayNatIpMap9590 = map[string]string{
+	"status":    CHECKSET,
+	"nat_ip_id": CHECKSET,
+}
+
+func AlicloudNatGatewayNatIpBasicDependence9590(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "vpc" {
+  cidr_block = "172.16.0.0/12"
+  vpc_name   = "tf-test-nat-ip"
+}
+
+resource "alicloud_vswitch" "VSwitch" {
+  vpc_id       = alicloud_vpc.vpc.id
+  zone_id      = "eu-central-1b"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "tf-test-nat-ip-vsw"
+}
+
+resource "alicloud_nat_gateway" "NATGateway" {
+  nat_gateway_name   = "tf-test-natip-nat"
+  nat_type           = "Enhanced"
+  vpc_id             = alicloud_vpc.vpc.id
+  network_type       = "intranet"
+  icmp_reply_enabled = false
+  payment_type       = "PayAsYouGo"
+}
+
+
+`, name)
+}
+
+// Test NatGateway NatIp. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudVPCNatIp_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_vpc_nat_ip.default"
