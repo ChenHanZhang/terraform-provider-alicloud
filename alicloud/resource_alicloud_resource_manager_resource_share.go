@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -35,11 +36,6 @@ func resourceAliCloudResourceManagerResourceShare() *schema.Resource {
 				Computed: true,
 			},
 			"permission_names": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"resource_arns": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -123,12 +119,6 @@ func resourceAliCloudResourceManagerResourceShareCreate(d *schema.ResourceData, 
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
 		request = expandTagsToMap(request, tagsMap)
-	}
-
-	if v, ok := d.GetOk("resource_arns"); ok {
-		resourceArnsMapsArray := convertToInterfaceArray(v)
-
-		request["ResourceArns"] = resourceArnsMapsArray
 	}
 
 	if v, ok := d.GetOkExists("allow_external_targets"); ok {
@@ -271,16 +261,11 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("resource_group_id"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceGroupId", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
 	}
 
 	if d.HasChange("tags") {
 		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		if err := resourceManagerServiceV2.SetResourceTagsForResourceSharing(d, "ResourceShare"); err != nil {
+		if err := resourceManagerServiceV2.SetResourceTags(d, "ResourceShare"); err != nil {
 			return WrapError(err)
 		}
 	}
@@ -322,7 +307,7 @@ func resourceAliCloudResourceManagerResourceShareDelete(d *schema.ResourceData, 
 	}
 
 	resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceShareStatus", []string{"Active"}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceShareStatus", []string{"Active"}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
