@@ -12,19 +12,13 @@ Provides a File Storage (NAS) Access Point resource.
 
 
 
-For information about NAS Access Point and how to use it, see [What is Access Point](https://www.alibabacloud.com/help/zh/nas/developer-reference/api-nas-2017-06-26-createaccesspoint).
+For information about File Storage (NAS) Access Point and how to use it, see [What is Access Point](https://www.alibabacloud.com/help/zh/nas/developer-reference/api-nas-2017-06-26-createaccesspoint).
 
 -> **NOTE:** Available since v1.224.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_access_point&exampleId=f6698004-1118-7c1b-fea3-020deb3be985b4cb4417&activeTab=example&spm=docs.r.nas_access_point.0.f669800411&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -92,46 +86,43 @@ resource "alicloud_nas_access_point" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_access_point&spm=docs.r.nas_access_point.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_group` - (Required) The name of the permission group.
-* `access_point_name` - (Optional) The name of the access point.
-* `enabled_ram` - (Optional, Bool) Specifies whether to enable the RAM policy. Default value: `false`. Valid values:
-  - `true`: The RAM policy is enabled.
-  - `false`: The RAM policy is disabled.
+* `access_group` - (Required) The permission group name.
+* `access_point_name` - (Optional) The Access Point Name.
+* `enabled_ram` - (Optional) Whether to enable the RAM policy.
 * `file_system_id` - (Required, ForceNew) The ID of the file system.
-* `posix_user` - (Optional, ForceNew, Set) The Posix user. See [`posix_user`](#posix_user) below.
-* `root_path` - (Optional, ForceNew) The root directory of the access point.
-* `root_path_permission` - (Optional, ForceNew, Set) Root permissions. See [`root_path_permission`](#root_path_permission) below.
+* `posix_user` - (Optional, ForceNew, Computed, Set) The Posix user. See [`posix_user`](#posix_user) below.
+* `root_path` - (Optional, ForceNew, Computed) The root directory.
+* `root_path_permission` - (Optional, ForceNew, Computed, Set) Root permissions. See [`root_path_permission`](#root_path_permission) below.
+* `tags` - (Optional, Map, Available since v1.274.0) Tags
 * `vswitch_id` - (Required, ForceNew) The vSwitch ID.
 * `vpc_id` - (Required, ForceNew) The ID of the VPC.
 
 ### `posix_user`
 
 The posix_user supports the following:
-* `posix_group_id` - (Optional, ForceNew, Int) The ID of the Posix user group.
-* `posix_user_id` - (Optional, ForceNew, Int) The Posix user ID.
+* `posix_group_id` - (Optional, ForceNew, Computed, Int) The ID of the Posix user group.
+* `posix_user_id` - (Optional, ForceNew, Computed, Int) The Posix user ID.
 
 ### `root_path_permission`
 
 The root_path_permission supports the following:
-* `owner_group_id` - (Optional, ForceNew, Int) The ID of the primary user group.
-* `owner_user_id` - (Optional, ForceNew, Int) The owner user ID.
-* `permission` - (Optional, ForceNew) The Portable Operating System Interface for UNIX (POSIX) permission.
+* `owner_group_id` - (Optional, ForceNew, Computed, Int) The ID of the primary user group.
+* `owner_user_id` - (Optional, ForceNew, Computed, Int) The owner user ID.
+* `permission` - (Optional, ForceNew) POSIX permission.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<access_point_id>`.
-* `access_point_id` - The ID of the access point.
-* `create_time` - The time when the access point was created.
+* `id` - The ID of the resource supplied above. The value is formulated as `<file_system_id>:<access_point_id>`.
+* `access_point_id` - Access point ID.
+* `create_time` - Creation time.
 * `posix_user` - The Posix user.
   * `posix_secondary_group_ids` - The ID of the second user group.
-* `region_id` - (Available since v1.254.0) The region ID.
-* `status` - The status of the access point.
+* `region_id` - The region ID.
+* `status` - Current access point state.
 
 ## Timeouts
 
