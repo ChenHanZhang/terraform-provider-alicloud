@@ -4,9 +4,9 @@ package alicloud
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -14,10 +14,10 @@ import (
 
 func resourceAliCloudVpcPrefixList() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAlicloudVpcPrefixListCreate,
-		Read:   resourceAlicloudVpcPrefixListRead,
-		Update: resourceAlicloudVpcPrefixListUpdate,
-		Delete: resourceAlicloudVpcPrefixListDelete,
+		Create: resourceAliCloudVpcPrefixListCreate,
+		Read:   resourceAliCloudVpcPrefixListRead,
+		Update: resourceAliCloudVpcPrefixListUpdate,
+		Delete: resourceAliCloudVpcPrefixListDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -31,15 +31,16 @@ func resourceAliCloudVpcPrefixList() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"entrys": {
-				Type:     schema.TypeSet,
-				Optional: true,
+			"entries": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"entrys"},
+				Computed:      true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"description": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: StringMatch(regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_.-]{2,256}$"), "The description of the cidr entry. It must be 2 to 256 characters in length and must start with a letter or Chinese, but cannot start with `http://` or `https://`."),
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"cidr": {
 							Type:     schema.TypeString,
@@ -101,18 +102,20 @@ func resourceAliCloudVpcPrefixList() *schema.Resource {
 				},
 			},
 			"prefix_list_description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_.-]{2,256}$"), "The description of the prefix list.It must be 2 to 256 characters in length and must start with a letter or Chinese, but cannot start with `http://` or `https://`."),
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"prefix_list_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"prefix_list_name": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_.-]{2,128}$"), "The name of the prefix list. The name must be 2 to 128 characters in length, and must start with a letter. It can contain digits, periods (.), underscores (_), and hyphens (-)."),
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"region_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -128,59 +131,84 @@ func resourceAliCloudVpcPrefixList() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchema(),
+			"entrys": {
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "Field 'entrys' has been deprecated since provider version 1.274.0. New field 'entries' instead.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"description": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cidr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
-func resourceAlicloudVpcPrefixListCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcPrefixListCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 
 	action := "CreateVpcPrefixList"
 	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	if v, ok := d.GetOk("ip_version"); ok {
-		request["IpVersion"] = v
+	if v, ok := d.GetOk("entrys"); ok {
+		for entrysPtr, entrys := range v.(*schema.Set).List() {
+			entrysArg := entrys.(map[string]interface{})
+			request["PrefixListEntries."+fmt.Sprint(entrysPtr+1)+".Cidr"] = entrysArg["cidr"]
+			request["PrefixListEntries."+fmt.Sprint(entrysPtr+1)+".Description"] = entrysArg["description"]
+		}
 	}
-
-	if v, ok := d.GetOk("max_entries"); ok {
-		request["MaxEntries"] = v
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
 	}
-
-	if v, ok := d.GetOk("prefix_list_description"); ok {
-		request["PrefixListDescription"] = v
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
 	}
 
 	if v, ok := d.GetOk("prefix_list_name"); ok {
 		request["PrefixListName"] = v
 	}
-
-	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["ResourceGroupId"] = v
+	if v, ok := d.GetOk("entries"); ok {
+		prefixListEntriesMapsArray := make([]interface{}, 0)
+		for _, dataLoop1 := range convertToInterfaceArray(v) {
+			dataLoop1Tmp := dataLoop1.(map[string]interface{})
+			dataLoop1Map := make(map[string]interface{})
+			dataLoop1Map["Cidr"] = dataLoop1Tmp["cidr"]
+			dataLoop1Map["Description"] = dataLoop1Tmp["description"]
+			prefixListEntriesMapsArray = append(prefixListEntriesMapsArray, dataLoop1Map)
+		}
+		request["PrefixListEntries"] = prefixListEntriesMapsArray
 	}
 
-	if v, ok := d.GetOk("entrys"); ok {
-		localData := v
-		prefixListEntriesMaps := make([]map[string]interface{}, 0)
-		for _, dataLoop := range localData.(*schema.Set).List() {
-			dataLoopTmp := dataLoop.(map[string]interface{})
-			dataLoopMap := make(map[string]interface{})
-			dataLoopMap["Cidr"] = dataLoopTmp["cidr"]
-			dataLoopMap["Description"] = dataLoopTmp["description"]
-			prefixListEntriesMaps = append(prefixListEntriesMaps, dataLoopMap)
-		}
-		request["PrefixListEntries"] = prefixListEntriesMaps
+	if v, ok := d.GetOkExists("max_entries"); ok {
+		request["MaxEntries"] = v
+	}
+	if v, ok := d.GetOk("ip_version"); ok {
+		request["IpVersion"] = v
+	}
+	if v, ok := d.GetOk("prefix_list_description"); ok {
+		request["PrefixListDescription"] = v
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
+		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"OperationConflict", "SystemBusy", "IncorrectStatus"}) || NeedRetry(err) {
 				wait()
@@ -188,9 +216,9 @@ func resourceAlicloudVpcPrefixListCreate(d *schema.ResourceData, meta interface{
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_vpc_prefix_list", action, AlibabaCloudSdkGoERROR)
@@ -199,15 +227,15 @@ func resourceAlicloudVpcPrefixListCreate(d *schema.ResourceData, meta interface{
 	d.SetId(fmt.Sprint(response["PrefixListId"]))
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Created"}, d.Timeout(schema.TimeoutCreate), 0, vpcServiceV2.VpcPrefixListStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"Created"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, vpcServiceV2.VpcPrefixListStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
-	return resourceAlicloudVpcPrefixListUpdate(d, meta)
+	return resourceAliCloudVpcPrefixListRead(d, meta)
 }
 
-func resourceAlicloudVpcPrefixListRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcPrefixListRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	vpcServiceV2 := VpcServiceV2{client}
 
@@ -226,153 +254,100 @@ func resourceAlicloudVpcPrefixListRead(d *schema.ResourceData, meta interface{})
 	d.Set("max_entries", objectRaw["MaxEntries"])
 	d.Set("prefix_list_description", objectRaw["PrefixListDescription"])
 	d.Set("prefix_list_name", objectRaw["PrefixListName"])
+	d.Set("region_id", objectRaw["RegionId"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("share_type", objectRaw["ShareType"])
 	d.Set("status", objectRaw["Status"])
+	d.Set("prefix_list_id", objectRaw["PrefixListId"])
 	d.Set("prefix_list_id", objectRaw["PrefixListId"])
 
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
 
-	objectRaw, err = vpcServiceV2.DescribeGetVpcPrefixListEntries(d.Id())
-	if err != nil {
+	objectRaw, err = vpcServiceV2.DescribePrefixListGetVpcPrefixListAssociations(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	prefixListEntry1Raw := objectRaw["PrefixListEntry"]
-	entriesMaps := make([]map[string]interface{}, 0)
-	if prefixListEntry1Raw != nil {
-		for _, prefixListEntryChild1Raw := range prefixListEntry1Raw.([]interface{}) {
-			entriesMap := make(map[string]interface{})
-			prefixListEntryChild1Raw := prefixListEntryChild1Raw.(map[string]interface{})
-			entriesMap["cidr"] = prefixListEntryChild1Raw["Cidr"]
-			entriesMap["description"] = prefixListEntryChild1Raw["Description"]
-			entriesMaps = append(entriesMaps, entriesMap)
-		}
-	}
-	d.Set("entrys", entriesMaps)
+	prefixListAssociationRaw, _ := jsonpath.Get("$.PrefixListAssociation", objectRaw)
 
-	objectRaw, err = vpcServiceV2.DescribeGetVpcPrefixListAssociations(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
-
-	prefixListAssociation1Raw := objectRaw["PrefixListAssociation"]
 	prefixListAssociationMaps := make([]map[string]interface{}, 0)
-	if prefixListAssociation1Raw != nil {
-		for _, prefixListAssociationChild1Raw := range prefixListAssociation1Raw.([]interface{}) {
+	if prefixListAssociationRaw != nil {
+		for _, prefixListAssociationChildRaw := range convertToInterfaceArray(prefixListAssociationRaw) {
 			prefixListAssociationMap := make(map[string]interface{})
-			prefixListAssociationChild1Raw := prefixListAssociationChild1Raw.(map[string]interface{})
-			prefixListAssociationMap["owner_id"] = prefixListAssociationChild1Raw["OwnerId"]
-			prefixListAssociationMap["prefix_list_id"] = prefixListAssociationChild1Raw["PrefixListId"]
-			prefixListAssociationMap["reason"] = prefixListAssociationChild1Raw["Reason"]
-			prefixListAssociationMap["region_id"] = prefixListAssociationChild1Raw["RegionId"]
-			prefixListAssociationMap["resource_id"] = prefixListAssociationChild1Raw["ResourceId"]
-			prefixListAssociationMap["resource_type"] = prefixListAssociationChild1Raw["ResourceType"]
-			prefixListAssociationMap["resource_uid"] = prefixListAssociationChild1Raw["ResourceUid"]
-			prefixListAssociationMap["status"] = prefixListAssociationChild1Raw["Status"]
+			prefixListAssociationChildRaw := prefixListAssociationChildRaw.(map[string]interface{})
+			prefixListAssociationMap["owner_id"] = prefixListAssociationChildRaw["OwnerId"]
+			prefixListAssociationMap["prefix_list_id"] = prefixListAssociationChildRaw["PrefixListId"]
+			prefixListAssociationMap["reason"] = prefixListAssociationChildRaw["Reason"]
+			prefixListAssociationMap["region_id"] = prefixListAssociationChildRaw["RegionId"]
+			prefixListAssociationMap["resource_id"] = prefixListAssociationChildRaw["ResourceId"]
+			prefixListAssociationMap["resource_type"] = prefixListAssociationChildRaw["ResourceType"]
+			prefixListAssociationMap["resource_uid"] = prefixListAssociationChildRaw["ResourceUid"]
+			prefixListAssociationMap["status"] = prefixListAssociationChildRaw["Status"]
+
 			prefixListAssociationMaps = append(prefixListAssociationMaps, prefixListAssociationMap)
 		}
 	}
-	d.Set("prefix_list_association", prefixListAssociationMaps)
+	if err := d.Set("prefix_list_association", prefixListAssociationMaps); err != nil {
+		return err
+	}
+
+	objectRaw, err = vpcServiceV2.DescribePrefixListGetVpcPrefixListEntries(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	prefixListEntryRaw, _ := jsonpath.Get("$.PrefixListEntry", objectRaw)
+
+	entriesMaps := make([]map[string]interface{}, 0)
+	if prefixListEntryRaw != nil {
+		for _, prefixListEntryChildRaw := range convertToInterfaceArray(prefixListEntryRaw) {
+			entriesMap := make(map[string]interface{})
+			prefixListEntryChildRaw := prefixListEntryChildRaw.(map[string]interface{})
+			entriesMap["cidr"] = prefixListEntryChildRaw["Cidr"]
+			entriesMap["description"] = prefixListEntryChildRaw["Description"]
+
+			entriesMaps = append(entriesMaps, entriesMap)
+		}
+	}
+	if err := d.Set("entries", entriesMaps); err != nil {
+		return err
+	}
+
+	d.Set("entrys", d.Get("entries"))
 	return nil
 }
 
-func resourceAlicloudVpcPrefixListUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcPrefixListUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	var request map[string]interface{}
 	var response map[string]interface{}
+	var query map[string]interface{}
 	update := false
 	d.Partial(true)
-	action := "ModifyVpcPrefixList"
-	var err error
-	request = make(map[string]interface{})
 
+	var err error
+	action := "ModifyVpcPrefixList"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
 	request["PrefixListId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
-
-	if !d.IsNewResource() && d.HasChange("prefix_list_name") {
+	if d.HasChange("max_entries") {
 		update = true
-		if v, ok := d.GetOk("prefix_list_name"); ok {
-			request["PrefixListName"] = v
-		}
+		request["MaxEntries"] = d.Get("max_entries")
 	}
 
-	if !d.IsNewResource() && d.HasChange("prefix_list_description") {
+	if d.HasChange("prefix_list_name") {
 		update = true
-		if v, ok := d.GetOk("prefix_list_description"); ok {
-			request["PrefixListDescription"] = v
-		}
+		request["PrefixListName"] = d.Get("prefix_list_name")
 	}
 
-	if !d.IsNewResource() && d.HasChange("max_entries") {
+	if d.HasChange("prefix_list_description") {
 		update = true
-		if v, ok := d.GetOk("max_entries"); ok {
-			request["MaxEntries"] = v
-		}
+		request["PrefixListDescription"] = d.Get("prefix_list_description")
 	}
 
-	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
-			request["ClientToken"] = buildClientToken(action)
-
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			addDebug(action, response, request)
-			return nil
-		})
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		d.SetPartial("prefix_list_name")
-		d.SetPartial("prefix_list_description")
-		d.SetPartial("max_entries")
-	}
-	update = false
-	action = "MoveResourceGroup"
-	request = make(map[string]interface{})
-
-	request["ResourceId"] = d.Id()
-	request["RegionId"] = client.RegionId
-
-	if !d.IsNewResource() && d.HasChange("resource_group_id") {
-		update = true
-		if v, ok := d.GetOk("resource_group_id"); ok {
-			request["NewResourceGroupId"] = v
-		}
-	}
-
-	request["ResourceType"] = "PrefixList"
-	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, false)
-
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			addDebug(action, response, request)
-			return nil
-		})
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		d.SetPartial("resource_group_id")
-	}
-
-	update = false
 	if !d.IsNewResource() && d.HasChange("entrys") {
 		update = true
 		oldEntry, newEntry := d.GetChange("entrys")
@@ -381,41 +356,106 @@ func resourceAlicloudVpcPrefixListUpdate(d *schema.ResourceData, meta interface{
 		removed := oldEntrySet.Difference(newEntrySet)
 		added := newEntrySet.Difference(oldEntrySet)
 
-		if removed.Len() > 0 {
-			action = "ModifyVpcPrefixList"
-			request = make(map[string]interface{})
+		for entrysPtr, entrys := range removed.List() {
+			entrysArg := entrys.(map[string]interface{})
+			request["RemovePrefixListEntry."+fmt.Sprint(entrysPtr+1)+".Cidr"] = entrysArg["cidr"]
+			request["RemovePrefixListEntry."+fmt.Sprint(entrysPtr+1)+".Description"] = entrysArg["description"]
+		}
 
+		for entrysPtr, entrys := range added.List() {
+			entrysArg := entrys.(map[string]interface{})
+			request["AddPrefixListEntry."+fmt.Sprint(entrysPtr+1)+".Cidr"] = entrysArg["cidr"]
+			request["AddPrefixListEntry."+fmt.Sprint(entrysPtr+1)+".Description"] = entrysArg["description"]
+		}
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "MoveResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
+		update = true
+	}
+	request["NewResourceGroupId"] = d.Get("resource_group_id")
+	request["ResourceType"] = "PrefixList"
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	if d.HasChange("entries") {
+		var err error
+		oldEntry, newEntry := d.GetChange("entries")
+		oldEntrySet := oldEntry.(*schema.Set)
+		newEntrySet := newEntry.(*schema.Set)
+		removed := oldEntrySet.Difference(newEntrySet)
+		added := newEntrySet.Difference(oldEntrySet)
+
+		if removed.Len() > 0 {
+			action := "ModifyVpcPrefixList"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
 			request["PrefixListId"] = d.Id()
 			request["RegionId"] = client.RegionId
 			request["ClientToken"] = buildClientToken(action)
-
 			localData := removed.List()
-
-			removePrefixListEntryMaps := make([]map[string]interface{}, 0)
+			removePrefixListEntryMapsArray := make([]interface{}, 0)
 			for _, dataLoop := range localData {
 				dataLoopTmp := dataLoop.(map[string]interface{})
 				dataLoopMap := make(map[string]interface{})
-				dataLoopMap["Cidr"] = dataLoopTmp["cidr"]
 				dataLoopMap["Description"] = dataLoopTmp["description"]
-				removePrefixListEntryMaps = append(removePrefixListEntryMaps, dataLoopMap)
+				dataLoopMap["Cidr"] = dataLoopTmp["cidr"]
+				removePrefixListEntryMapsArray = append(removePrefixListEntryMapsArray, dataLoopMap)
 			}
-			request["RemovePrefixListEntry"] = removePrefixListEntryMaps
+			request["RemovePrefixListEntry"] = removePrefixListEntryMapsArray
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
-				request["ClientToken"] = buildClientToken(action)
-
+				response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"IncorrectStatus.PrefixList", "IncorrectStatus", "SystemBusy", "LastTokenProcessing"}) || NeedRetry(err) {
+					if IsExpectedErrors(err, []string{"LastTokenProcessing", "SystemBusy", "IncorrectStatus.PrefixList", "IncorrectStatus"}) || NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -423,40 +463,36 @@ func resourceAlicloudVpcPrefixListUpdate(d *schema.ResourceData, meta interface{
 		}
 
 		if added.Len() > 0 {
-			action = "ModifyVpcPrefixList"
+			action := "ModifyVpcPrefixList"
 			request = make(map[string]interface{})
-
+			query = make(map[string]interface{})
 			request["PrefixListId"] = d.Id()
 			request["RegionId"] = client.RegionId
 			request["ClientToken"] = buildClientToken(action)
-
 			localData := added.List()
-
-			addPrefixListEntryMaps := make([]map[string]interface{}, 0)
+			addPrefixListEntryMapsArray := make([]interface{}, 0)
 			for _, dataLoop := range localData {
 				dataLoopTmp := dataLoop.(map[string]interface{})
 				dataLoopMap := make(map[string]interface{})
-				dataLoopMap["Cidr"] = dataLoopTmp["cidr"]
 				dataLoopMap["Description"] = dataLoopTmp["description"]
-				addPrefixListEntryMaps = append(addPrefixListEntryMaps, dataLoopMap)
+				dataLoopMap["Cidr"] = dataLoopTmp["cidr"]
+				addPrefixListEntryMapsArray = append(addPrefixListEntryMapsArray, dataLoopMap)
 			}
-			request["AddPrefixListEntry"] = addPrefixListEntryMaps
+			request["AddPrefixListEntry"] = addPrefixListEntryMapsArray
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
-				request["ClientToken"] = buildClientToken(action)
-
+				response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"IncorrectStatus.PrefixList", "IncorrectStatus", "SystemBusy", "LastTokenProcessing"}) || NeedRetry(err) {
+					if IsExpectedErrors(err, []string{"LastTokenProcessing", "SystemBusy", "IncorrectStatus.PrefixList", "IncorrectStatus"}) || NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -464,58 +500,55 @@ func resourceAlicloudVpcPrefixListUpdate(d *schema.ResourceData, meta interface{
 		}
 
 	}
-	update = false
 	if d.HasChange("tags") {
-		update = true
 		vpcServiceV2 := VpcServiceV2{client}
 		if err := vpcServiceV2.SetResourceTags(d, "PrefixList"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 	d.Partial(false)
-	return resourceAlicloudVpcPrefixListRead(d, meta)
+	return resourceAliCloudVpcPrefixListRead(d, meta)
 }
 
-func resourceAlicloudVpcPrefixListDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAliCloudVpcPrefixListDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-
 	action := "DeleteVpcPrefixList"
 	var request map[string]interface{}
 	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-
 	request["PrefixListId"] = d.Id()
 	request["RegionId"] = client.RegionId
-
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
+		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "SystemBusy", "DependencyViolation.ShareResource", "IncorrectStatus.PrefixList", "IncorrectStatus.SystemPrefixList", "IncorrectStatus", "OperationFailed.LastTokenProcessing", "LastTokenProcessing"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"LastTokenProcessing", "OperationConflict", "SystemBusy", "OperationFailed.LastTokenProcessing", "DependencyViolation.ShareResource", "IncorrectStatus.SystemPrefixList", "IncorrectStatus.PrefixList", "IncorrectStatus"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
+		if NotFoundError(err) {
+			return nil
+		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 
 	vpcServiceV2 := VpcServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 0, vpcServiceV2.VpcPrefixListStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, vpcServiceV2.VpcPrefixListStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
+
 	return nil
 }
