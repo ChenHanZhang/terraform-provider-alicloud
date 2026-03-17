@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/blues/jsonata-go"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 type NasServiceV2 struct {
@@ -452,16 +454,20 @@ func (s *NasServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			}
 		}
 		if len(removedTagKeys) > 0 {
+			parts = strings.Split(d.Id(), ":")
 			action = "UntagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			request["ResourceId.1"] = d.Id()
 
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
 			request["ResourceType"] = resourceType
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", parts[0])
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
@@ -482,10 +488,10 @@ func (s *NasServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 		}
 
 		if len(added) > 0 {
+			parts = strings.Split(d.Id(), ":")
 			action = "TagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			request["ResourceId.1"] = d.Id()
 
 			count := 1
 			for key, value := range added {
@@ -495,6 +501,10 @@ func (s *NasServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			}
 
 			request["ResourceType"] = resourceType
+			jsonString := convertObjectToJsonString(request)
+			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", parts[0])
+			_ = json.Unmarshal([]byte(jsonString), &request)
+
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
@@ -608,6 +618,7 @@ func (s *NasServiceV2) DescribeNasAccessPoint(id string) (object map[string]inte
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -646,17 +657,27 @@ func (s *NasServiceV2) DescribeNasAccessPoint(id string) (object map[string]inte
 }
 
 func (s *NasServiceV2) NasAccessPointStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NasAccessPointStateRefreshFuncWithApi(id, field, failStates, s.DescribeNasAccessPoint)
+}
+
+func (s *NasServiceV2) NasAccessPointStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNasAccessPoint(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {

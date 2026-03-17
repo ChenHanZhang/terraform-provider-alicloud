@@ -123,6 +123,7 @@ func resourceAliCloudNasAccessPoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 			"vswitch_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -147,49 +148,56 @@ func resourceAliCloudNasAccessPointCreate(d *schema.ResourceData, meta interface
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["FileSystemId"] = d.Get("file_system_id")
-
-	request["AccessGroup"] = d.Get("access_group")
-	request["VpcId"] = d.Get("vpc_id")
-	if v, ok := d.GetOk("access_point_name"); ok {
-		request["AccessPointName"] = v
+	if v, ok := d.GetOk("file_system_id"); ok {
+		request["FileSystemId"] = v
 	}
+
 	if v, ok := d.GetOkExists("enabled_ram"); ok {
 		request["EnabledRam"] = v
 	}
-	if v, ok := d.GetOk("root_path_permission"); ok {
-		jsonPathResult4, err := jsonpath.Get("$[0].owner_user_id", v)
-		if err == nil && jsonPathResult4 != "" {
-			request["OwnerUserId"] = jsonPathResult4
+	if v, ok := d.GetOkExists("posix_user"); ok {
+		posixUserPosixGroupIdJsonPath, err := jsonpath.Get("$[0].posix_group_id", v)
+		if err == nil && posixUserPosixGroupIdJsonPath != "" {
+			request["PosixGroupId"] = posixUserPosixGroupIdJsonPath
 		}
 	}
-	if v, ok := d.GetOk("root_path_permission"); ok {
-		jsonPathResult5, err := jsonpath.Get("$[0].owner_group_id", v)
-		if err == nil && jsonPathResult5 != "" {
-			request["OwnerGroupId"] = jsonPathResult5
-		}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
 	}
-	if v, ok := d.GetOk("root_path_permission"); ok {
-		jsonPathResult6, err := jsonpath.Get("$[0].permission", v)
-		if err == nil && jsonPathResult6 != "" {
-			request["Permission"] = jsonPathResult6
-		}
-	}
-	if v, ok := d.GetOk("posix_user"); ok {
-		jsonPathResult7, err := jsonpath.Get("$[0].posix_user_id", v)
-		if err == nil && jsonPathResult7 != "" {
-			request["PosixUserId"] = jsonPathResult7
-		}
-	}
-	if v, ok := d.GetOk("posix_user"); ok {
-		jsonPathResult8, err := jsonpath.Get("$[0].posix_group_id", v)
-		if err == nil && jsonPathResult8 != "" {
-			request["PosixGroupId"] = jsonPathResult8
-		}
-	}
+
 	request["VswId"] = d.Get("vswitch_id")
+	if v, ok := d.GetOk("access_point_name"); ok {
+		request["AccessPointName"] = v
+	}
+	if v, ok := d.GetOkExists("root_path_permission"); ok {
+		rootPathPermissionOwnerGroupIdJsonPath, err := jsonpath.Get("$[0].owner_group_id", v)
+		if err == nil && rootPathPermissionOwnerGroupIdJsonPath != "" {
+			request["OwnerGroupId"] = rootPathPermissionOwnerGroupIdJsonPath
+		}
+	}
+	if v, ok := d.GetOkExists("root_path_permission"); ok {
+		rootPathPermissionOwnerUserIdJsonPath, err := jsonpath.Get("$[0].owner_user_id", v)
+		if err == nil && rootPathPermissionOwnerUserIdJsonPath != "" {
+			request["OwnerUserId"] = rootPathPermissionOwnerUserIdJsonPath
+		}
+	}
+	request["VpcId"] = d.Get("vpc_id")
+	if v, ok := d.GetOk("root_path_permission"); ok {
+		rootPathPermissionPermissionJsonPath, err := jsonpath.Get("$[0].permission", v)
+		if err == nil && rootPathPermissionPermissionJsonPath != "" {
+			request["Permission"] = rootPathPermissionPermissionJsonPath
+		}
+	}
+	request["AccessGroup"] = d.Get("access_group")
 	if v, ok := d.GetOk("root_path"); ok {
 		request["RootDirectory"] = v
+	}
+	if v, ok := d.GetOkExists("posix_user"); ok {
+		posixUserPosixUserIdJsonPath, err := jsonpath.Get("$[0].posix_user_id", v)
+		if err == nil && posixUserPosixUserIdJsonPath != "" {
+			request["PosixUserId"] = posixUserPosixUserIdJsonPath
+		}
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -259,7 +267,7 @@ func resourceAliCloudNasAccessPointRead(d *schema.ResourceData, meta interface{}
 
 		posixSecondaryGroupIdsRaw := make([]interface{}, 0)
 		if posixUserRaw["PosixSecondaryGroupIds"] != nil {
-			posixSecondaryGroupIdsRaw = posixUserRaw["PosixSecondaryGroupIds"].([]interface{})
+			posixSecondaryGroupIdsRaw = convertToInterfaceArray(posixUserRaw["PosixSecondaryGroupIds"])
 		}
 
 		posixUserMap["posix_secondary_group_ids"] = posixSecondaryGroupIdsRaw
@@ -284,6 +292,8 @@ func resourceAliCloudNasAccessPointRead(d *schema.ResourceData, meta interface{}
 	if err := d.Set("root_path_permission", rootPathPermissionMaps); err != nil {
 		return err
 	}
+	tagsMaps := objectRaw["Tags"]
+	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
@@ -300,24 +310,21 @@ func resourceAliCloudNasAccessPointUpdate(d *schema.ResourceData, meta interface
 	action := "ModifyAccessPoint"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["FileSystemId"] = parts[0]
 	request["AccessPointId"] = parts[1]
+	request["FileSystemId"] = parts[0]
 
-	if d.HasChange("access_point_name") {
+	if d.HasChange("enabled_ram") {
 		update = true
-		request["AccessPointName"] = d.Get("access_point_name")
+		request["EnabledRam"] = d.Get("enabled_ram")
 	}
 
 	if d.HasChange("access_group") {
 		update = true
 	}
 	request["AccessGroup"] = d.Get("access_group")
-	if d.HasChange("enabled_ram") {
+	if d.HasChange("access_point_name") {
 		update = true
-
-		if v, ok := d.GetOkExists("enabled_ram"); ok {
-			request["EnabledRam"] = v
-		}
+		request["AccessPointName"] = d.Get("access_point_name")
 	}
 
 	if update {
@@ -339,6 +346,12 @@ func resourceAliCloudNasAccessPointUpdate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if d.HasChange("tags") {
+		nasServiceV2 := NasServiceV2{client}
+		if err := nasServiceV2.SetResourceTags(d, "ACCESSPOINT"); err != nil {
+			return WrapError(err)
+		}
+	}
 	return resourceAliCloudNasAccessPointRead(d, meta)
 }
 
@@ -352,13 +365,12 @@ func resourceAliCloudNasAccessPointDelete(d *schema.ResourceData, meta interface
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["FileSystemId"] = parts[0]
 	request["AccessPointId"] = parts[1]
+	request["FileSystemId"] = parts[0]
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -378,7 +390,7 @@ func resourceAliCloudNasAccessPointDelete(d *schema.ResourceData, meta interface
 	}
 
 	nasServiceV2 := NasServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, nasServiceV2.NasAccessPointStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, nasServiceV2.NasAccessPointStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

@@ -10,21 +10,15 @@ description: |-
 
 Provides a File Storage (NAS) Access Point resource.
 
+Access Point  .
 
-
-For information about NAS Access Point and how to use it, see [What is Access Point](https://www.alibabacloud.com/help/zh/nas/developer-reference/api-nas-2017-06-26-createaccesspoint).
+For information about File Storage (NAS) Access Point and how to use it, see [What is Access Point](https://www.alibabacloud.com/help/zh/nas/developer-reference/api-nas-2017-06-26-createaccesspoint).
 
 -> **NOTE:** Available since v1.224.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_access_point&exampleId=f6698004-1118-7c1b-fea3-020deb3be985b4cb4417&activeTab=example&spm=docs.r.nas_access_point.0.f669800411&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -92,46 +86,56 @@ resource "alicloud_nas_access_point" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_access_point&spm=docs.r.nas_access_point.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_group` - (Required) The name of the permission group.
-* `access_point_name` - (Optional) The name of the access point.
-* `enabled_ram` - (Optional, Bool) Specifies whether to enable the RAM policy. Default value: `false`. Valid values:
-  - `true`: The RAM policy is enabled.
-  - `false`: The RAM policy is disabled.
-* `file_system_id` - (Required, ForceNew) The ID of the file system.
-* `posix_user` - (Optional, ForceNew, Set) The Posix user. See [`posix_user`](#posix_user) below.
-* `root_path` - (Optional, ForceNew) The root directory of the access point.
-* `root_path_permission` - (Optional, ForceNew, Set) Root permissions. See [`root_path_permission`](#root_path_permission) below.
-* `vswitch_id` - (Required, ForceNew) The vSwitch ID.
-* `vpc_id` - (Required, ForceNew) The ID of the VPC.
+* `access_group` - (Required) Permission group name.
+This parameter is required when the target file system is a General-purpose NAS.
+Default permission group: DEFAULT_VPC_GROUP_NAME (default permission group for VPC).
+* `access_point_name` - (Optional) Access point name.
+* `enabled_ram` - (Optional) Specifies whether RAM policies are enabled.  
+Valid values:
+  - true: Enabled
+  - false (default): Disabled
+
+-> **NOTE:**  After enabling RAM policies for the access point, all RAM users are denied access to mount or access data through this access point by default. You must explicitly grant the required permissions to specific RAM users to allow them to mount and access data via the access point. If disabled, anonymous mounting is allowed. For more information about how to configure access point policies, see [Configure Access Point Policies](https://help.aliyun.com/document_detail/2545998.html).
+
+* `file_system_id` - (Required, ForceNew) File system ID.  
+* `posix_user` - (Optional, ForceNew, Computed, Set) The POSIX user. See [`posix_user`](#posix_user) below.
+* `root_path` - (Optional, ForceNew, Computed) The root directory of the access point.  
+The default value is "/". If the specified directory does not exist, you must also specify the OwnerUserId and OwnerGroupId parameters.
+* `root_path_permission` - (Optional, ForceNew, Computed, Set) Root directory permissions. See [`root_path_permission`](#root_path_permission) below.
+* `tags` - (Optional, Map, Available since v1.274.0) List of access point tags.  
+* `vswitch_id` - (Required, ForceNew) The ID of the vSwitch.
+* `vpc_id` - (Required, ForceNew) VPC ID.
+It must be the same VPC as the ECS instance to which the file system will be mounted.
 
 ### `posix_user`
 
 The posix_user supports the following:
-* `posix_group_id` - (Optional, ForceNew, Int) The ID of the Posix user group.
-* `posix_user_id` - (Optional, ForceNew, Int) The Posix user ID.
+* `posix_group_id` - (Optional, ForceNew, Computed, Int) POSIX group ID.
+* `posix_user_id` - (Optional, ForceNew, Computed, Int) POSIX user ID.
 
 ### `root_path_permission`
 
 The root_path_permission supports the following:
-* `owner_group_id` - (Optional, ForceNew, Int) The ID of the primary user group.
-* `owner_user_id` - (Optional, ForceNew, Int) The owner user ID.
-* `permission` - (Optional, ForceNew) The Portable Operating System Interface for UNIX (POSIX) permission.
+* `owner_group_id` - (Optional, ForceNew, Computed, Int) Owner group ID.  
+This parameter is required when the RootDirectory does not exist.  
+* `owner_user_id` - (Optional, ForceNew, Computed, Int) Owner user ID.
+This parameter is required if the RootDirectory does not exist.
+* `permission` - (Optional, ForceNew) POSIX permission. Default value is "0755". Constraint: It must be a four-digit octal number starting with 0.  
+This field takes effect only after the OwnerUserId and OwnerGroupId parameters are specified.  
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<access_point_id>`.
-* `access_point_id` - The ID of the access point.
+* `id` - The ID of the resource supplied above. The value is formulated as `<file_system_id>:<access_point_id>`.
+* `access_point_id` - Access point ID.
 * `create_time` - The time when the access point was created.
-* `posix_user` - The Posix user.
-  * `posix_secondary_group_ids` - The ID of the second user group.
-* `region_id` - (Available since v1.254.0) The region ID.
-* `status` - The status of the access point.
+* `posix_user` - The POSIX user.
+  * `posix_secondary_group_ids` - Secondary groups.
+* `region_id` - Region ID.
+* `status` - The current status of the access point.
 
 ## Timeouts
 
