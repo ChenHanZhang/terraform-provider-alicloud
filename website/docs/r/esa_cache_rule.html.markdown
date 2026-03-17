@@ -20,12 +20,6 @@ For information about ESA Cache Rule and how to use it, see [What is Cache Rule]
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_cache_rule&exampleId=96d87eeb-0a12-a847-75b6-341ecbdf73cdb8bc3531&activeTab=example&spm=docs.r.esa_cache_rule.0.96d87eeb0a&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_esa_sites" "default" {
   plan_subscribe_type = "enterpriseplan"
@@ -60,9 +54,6 @@ resource "alicloud_esa_cache_rule" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_cache_rule&spm=docs.r.esa_cache_rule.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -93,6 +84,11 @@ The following arguments are supported:
 * `edge_status_code_cache_ttl` - (Optional) Status code cache expiration time in seconds.
 * `include_cookie` - (Optional) When generating the cache key, add the specified cookie names and their values. Multiple values are supported, separated by spaces.
 * `include_header` - (Optional) When generating the cache key, add the specified header names and their values. Multiple values are supported, separated by spaces.
+* `post_body_cache_key` - (Optional, Available since v1.274.0) Processing pattern for the cache key.
+  - `md5`: Compute the MD5 hash of the request body, then include the resulting MD5 value in the cache key.
+  - `ignore`: Exclude the request body content from the cache key.
+* `post_body_size_limit` - (Optional, Available since v1.274.0) Body size limit. The value is a numeric value in KB. Body sizes from 1 KB to 8 KB are supported. If the value is empty, it defaults to 8 KB.
+* `post_cache` - (Optional, Available since v1.274.0) Toggle for the Post cache feature.
 * `query_string` - (Optional) Query strings to be reserved or excluded. Multiple values are supported, separated by spaces.
 * `query_string_mode` - (Optional) The processing mode for query strings when generating the cache key. Possible values:
   - `ignore_all`: Ignore all.
