@@ -20,12 +20,6 @@ For information about ESA Https Application Configuration and how to use it, see
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_https_application_configuration&exampleId=75a33a9f-97bf-e4e4-fbba-10cb9f86ee147a44b6fc&activeTab=example&spm=docs.r.esa_https_application_configuration.0.75a33a9f97&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_esa_sites" "default" {
   plan_subscribe_type = "enterpriseplan"
@@ -56,8 +50,6 @@ resource "alicloud_esa_https_application_configuration" "default" {
   site_version            = "0"
 }
 ```
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_https_application_configuration&spm=docs.r.esa_https_application_configuration.example&intl_lang=EN_US)
 
 ## Argument Reference
 
@@ -111,8 +103,8 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<site_id>:<config_id>`.
-* `config_id` - Config Id
+* `id` - The ID of the resource supplied above. The value is formulated as `<site_id>:<config_id>`.
+* `config_id` - Config Id.
 
 ## Timeouts
 
