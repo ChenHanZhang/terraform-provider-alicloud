@@ -10,7 +10,7 @@ description: |-
 
 Provides a AnalyticDB for MySQL (ADB) Account resource.
 
-
+ADB Account  .
 
 For information about AnalyticDB for MySQL (ADB) Account and how to use it, see [What is Account](https://www.alibabacloud.com/help/en/analyticdb-for-mysql/latest/api-doc-adb-2019-03-15-api-doc-createaccount).
 
@@ -18,11 +18,7 @@ For information about AnalyticDB for MySQL (ADB) Account and how to use it, see 
 
 ## Example Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_adb_account&exampleId=0c3f37b8-5c74-fce7-e1da-fbebedfbcc47f0dcd6e0&activeTab=example&spm=docs.r.adb_account.0.0c3f37b85c&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "name" {
@@ -57,37 +53,47 @@ resource "alicloud_adb_account" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_adb_account&spm=docs.r.adb_account.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `account_description` - (Optional) The description of the account.
-* `account_name` - (Required, ForceNew) The name of the database account. The name must meet the following requirements:
-  - Start with a lowercase letter and end with a lowercase letter or a digit.
-  - Contain only lowercase letters, digits, and underscores (_).
-  - Its length must be between 2 and 16 characters.
-  - Cannot be a reserved name, such as root, admin, or opsadmin.
-* `account_password` - (Optional) The password of the database account. The password must meet the following requirements:
-  - It must consist of uppercase letters, lowercase letters, digits, and special characters.
-  - The allowed special characters are: (!), (@), (#), ($), (%), (^), (&), (*), (()), (_), (+), (-), (=).
-  - Its length must be between 8 and 32 characters.
-* `account_type` - (Optional, ForceNew, Available since v1.273.0) The type of the account. Valid values:
+* `account_description` - (Optional) Modify the account description:
+  - Must start with a Chinese character or an English letter.
+  - Can contain Chinese characters, English letters, digits, underscores (_), and hyphens (-).
+  - Cannot start with `http://` or `https://`.
+  - Must be 2 to 256 characters in length.
+* `account_name` - (Required, ForceNew) The database account name must meet the following requirements:  
+  - It must start with a lowercase letter and end with a lowercase letter or digit.  
+  - It can contain only lowercase letters, digits, or underscores (_).  
+  - Its length must be between 2 and 16 characters.  
+  - Reserved account names such as root, admin, and opsadmin cannot be used.  
+* `account_password` - (Required) The password for the database account must meet the following requirements:  
+  - It must consist of uppercase letters, lowercase letters, digits, and special characters.  
+  - The allowed special characters are: (!), (@), (#), ($), (%), (^), (&), (*), (()), (_), (+), (-), (=).  
+  - Its length must be between 8 and 32 characters.  
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `account_type` - (Optional, ForceNew, Computed, Available since v1.273.0) The account type. Valid values:
+  - `Normal`: A standard account. You can create up to 256 standard accounts for a cluster.
   - `Super` (default): A privileged account. You can create only one privileged account for a cluster.
+
+-> **NOTE:**  - If no account exists in the cluster, you can create either a privileged account or a standard account by calling the API. However, if a privileged account already exists in the cluster, you must specify Normal to successfully create a new account.
+
+-> **NOTE:**  - After creation, the privileged account has permissions on all databases in the cluster. By default, a standard account has no permissions. You must manually grant permissions on specific databases to a standard account by using the privileged account. For more information, see [Grant Permissions to Users](https://help.aliyun.com/document_detail/123662.html).
+
 * `db_cluster_id` - (Required, ForceNew) The cluster ID of the data warehouse edition.
-* `kms_encrypted_password` - (Optional) An KMS encrypts password used to a db account. If the `account_password` is filled in, this field will be ignored.
-* `kms_encryption_context` - (Optional) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating a db account with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set.
-* `tags` - (Optional, ForceNew, Map, Available since v1.273.0) The tag of the resource.
+
+-> **NOTE:**  You can call the [DescribeDBClusters](https://help.aliyun.com/document_detail/129857.html) operation to view the cluster IDs of all data warehouse edition clusters in the target region.
+
+* `tags` - (Optional, ForceNew, Map) The tag of the resource
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above. The value is formulated as `<db_cluster_id>:<account_name>`.
-* `status` - (Available since v1.273.0) The status of the account.
+* `status` - A resource attribute field that indicates the resource status.
 
 ## Timeouts
-
--> **NOTE:** Available since v1.273.0.
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 5 mins) Used when create the Account.

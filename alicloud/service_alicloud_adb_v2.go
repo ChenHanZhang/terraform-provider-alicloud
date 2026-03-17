@@ -249,11 +249,12 @@ func (s *AdbServiceV2) DescribeAdbAccount(id string) (object map[string]interfac
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidDBCluster.NotFound", "InvalidDBClusterId.NotFound"}) {
+		if IsExpectedErrors(err, []string{"InvalidDBCluster.NotFound"}) {
 			return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
+
 	v, err := jsonpath.Get("$.AccountList.DBAccount[*]", response)
 	if err != nil {
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.AccountList.DBAccount[*]", response)
