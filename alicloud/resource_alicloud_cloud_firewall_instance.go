@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -5,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -19,158 +21,20 @@ func resourceAliCloudCloudFirewallInstance() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
-			"payment_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: StringInSlice([]string{"Subscription", "PayAsYouGo"}, false),
-			},
-			"spec": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"premium_version", "enterprise_version", "ultimate_version", "payg_version"}, false),
-			},
-			"period": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntInSlice([]int{0, 1, 3, 6, 12, 24, 36}),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-						return false
-					}
-					return true
-				},
-			},
-			"renew_period": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntInSlice([]int{0, 1, 12, 2, 3, 6}),
-				Computed:     true,
-				Deprecated:   "Attribute 'renew_period' has been deprecated since 1.209.1. Using 'renewal_duration' instead.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-						if v, ok := d.GetOk("renewal_status"); ok && v.(string) == "AutoRenewal" {
-							return false
-						}
-					}
-					return true
-				},
-			},
-			"renewal_duration": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntInSlice([]int{0, 1, 12, 2, 3, 6}),
-				Computed:     true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-						if v, ok := d.GetOk("renewal_status"); ok && v.(string) == "AutoRenewal" {
-							return false
-						}
-					}
-					return true
-				},
-				ConflictsWith: []string{"renew_period"},
-			},
-			"renewal_duration_unit": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"Month", "Year"}, false),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-						if v, ok := d.GetOk("renewal_status"); ok && v.(string) == "AutoRenewal" {
-							return false
-						}
-					}
-					return true
-				},
-			},
-			"renewal_status": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"AutoRenewal", "ManualRenewal", "NotRenewal"}, false),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-						return false
-					}
-					return true
-				},
-			},
-			"logistics": {
+			"auto_asset_protection": {
 				Type:     schema.TypeString,
 				Optional: true,
-			},
-			"cfw_account": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_number": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntBetween(1, 1000),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("cfw_account"); ok && v.(bool) {
-						return false
-					}
-					return true
-				},
-			},
-			"fw_vpc_number": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: IntBetween(2, 500),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("spec"); ok && v.(string) == "premium_version" {
-						return true
-					}
-					return false
-				},
-			},
-			"ip_number": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: IntBetween(20, 4000),
+				Computed: true,
 			},
 			"cfw_log": {
 				Type:     schema.TypeBool,
 				Optional: true,
-			},
-			"cfw_log_storage": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntBetween(1000, 500000),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if v, ok := d.GetOk("cfw_log"); ok && v.(bool) && d.Get("payment_type").(string) == "Subscription" {
-						return false
-					}
-					return true
-				},
-			},
-			"band_width": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntBetween(10, 15000),
-			},
-			"instance_count": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: IntBetween(5, 5000),
-			},
-			"modify_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"Downgrade", "Upgrade"}, false),
-			},
-			"user_status": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-			"status": {
-				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"create_time": {
@@ -181,145 +45,143 @@ func resourceAliCloudCloudFirewallInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"modify_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Upgrade", "Downgrade"}, false),
+			},
+			"payment_type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"PayAsYouGo", "Subscription"}, false),
+			},
+			"period": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"product_code": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"cfw"}, false),
+			},
+			"product_type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"cfw_elasticity_public_cn", "cfw_elasticity_public_intl", "cfw_sub_public_cn", "cfw_sub_public_intl"}, false),
+			},
 			"release_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cfw_service": {
+			"renewal_duration": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"renewal_duration_unit": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"renewal_status": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"sdl": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Removed:  "Attribute 'cfw_service' does not support longer, and it has been removed since v1.209.1",
+			},
+			"spec": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: StringInSlice([]string{"payg_version", "premium_version", "enterprise_version", "ultimate_version"}, false),
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"user_status": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
 }
 
 func resourceAliCloudCloudFirewallInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	cloudfwService := CloudfwService{client}
-	var response map[string]interface{}
-	var err error
-	var endpoint string
+
 	action := "CreateInstance"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
+	var err error
+	request = make(map[string]interface{})
 
 	request["ClientToken"] = buildClientToken(action)
-	request["ProductCode"] = "vipcloudfw"
-	request["ProductType"] = "vipcloudfw"
-	request["SubscriptionType"] = d.Get("payment_type")
-
-	if fmt.Sprint(request["SubscriptionType"]) == "PayAsYouGo" {
-		request["ProductCode"] = "cfw"
-		request["ProductType"] = "cfw_elasticity_public_cn"
-	}
-
-	if v, ok := d.GetOk("period"); ok {
-		request["Period"] = v
-	} else if d.Get("payment_type").(string) == "Subscription" {
-		return WrapError(fmt.Errorf("attribute '%s' is required when '%s' is %v", "period", "payment_type", "Subscription"))
-	}
-
-	if v, ok := d.GetOk("renewal_status"); ok {
-		request["RenewalStatus"] = v
-	}
-
-	if v, ok := d.GetOk("renew_period"); ok {
-		request["RenewPeriod"] = v
-	} else if v, ok := d.GetOk("renewal_duration"); ok {
-		request["RenewPeriod"] = v
-	} else if v, ok := d.GetOk("renewal_status"); ok && v.(string) == "AutoRenewal" {
-		return WrapError(fmt.Errorf("attribute '%s' is required when '%s' is %v ", "renewal_duration", "renewal_status", d.Get("renewal_status")))
-	}
-	if v, ok := d.GetOk("renewal_status"); ok {
-		request["RenewalStatus"] = v
-	}
-	if v, ok := d.GetOk("logistics"); ok {
-		request["Logistics"] = v
-	}
 
 	parameterMapList := make([]map[string]interface{}, 0)
-	parameterMapList = append(parameterMapList, map[string]interface{}{
-		"Code":  "Spec",
-		"Value": convertCloudFirewallInstanceSpecRequest(d.Get("spec").(string)),
-	})
-
-	parameterMapList = append(parameterMapList, map[string]interface{}{
-		"Code":  "IpNumber",
-		"Value": d.Get("ip_number"),
-	})
-
-	parameterMapList = append(parameterMapList, map[string]interface{}{
-		"Code":  "BandWidth",
-		"Value": d.Get("band_width"),
-	})
-
-	parameterMapList = append(parameterMapList, map[string]interface{}{
-		"Code":  "CfwLog",
-		"Value": d.Get("cfw_log"),
-	})
-
-	if v, ok := d.GetOk("cfw_log_storage"); ok {
+	if v, ok := d.GetOk("sdl"); ok {
 		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwLogStorage",
+			"Code":  "cfw_ndlp_enable",
+			"Value": fmt.Sprint(v),
+		})
+	}
+	if v, ok := d.GetOk("cfw_log"); ok {
+		parameterMapList = append(parameterMapList, map[string]interface{}{
+			"Code":  "CfwLog",
+			"Value": fmt.Sprint(v),
+		})
+	}
+	if v, ok := d.GetOk("spec"); ok {
+		parameterMapList = append(parameterMapList, map[string]interface{}{
+			"Code":  "cfw_spec",
 			"Value": v,
 		})
 	}
-
-	if v, ok := d.GetOkExists("cfw_account"); ok {
+	if v, ok := d.GetOk("auto_asset_protection"); ok {
 		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwAccount",
+			"Code":  "AutoAssetProtection",
 			"Value": v,
 		})
 	}
-
-	if v, ok := d.GetOkExists("account_number"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwAccountNum",
-			"Value": v,
-		})
-	}
-
-	if v, ok := d.GetOk("fw_vpc_number"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "FwVpcNumber",
-			"Value": v,
-		})
-	}
-
-	if v, ok := d.GetOk("instance_count"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "InstanceCount",
-			"Value": v,
-		})
-	}
-
 	request["Parameter"] = parameterMapList
-	wait := incrementalWait(3*time.Second, 3*time.Second)
+
+	request["ProductCode"] = d.Get("product_code")
+	request["SubscriptionType"] = d.Get("payment_type")
+	request["ProductType"] = d.Get("product_type")
+	if v, ok := d.GetOk("renewal_status"); ok {
+		request["RenewalStatus"] = v
+	}
+	if v, ok := d.GetOkExists("renewal_duration"); ok {
+		request["RenewPeriod"] = v
+	}
+	if v, ok := d.GetOkExists("period"); ok {
+		request["Period"] = v
+	}
+	var endpoint string
+	request["ProductCode"] = ""
+	request["ProductType"] = ""
+	if client.IsInternationalAccount() {
+		request["ProductType"] = ""
+	}
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, request, true, endpoint)
+		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
-			if IsExpectedErrors(err, []string{"NotApplicable", NotFoundArticle}) {
-				request["ProductCode"] = "cfw"
-				request["ProductType"] = "cfw_pre_intl"
-
-				if fmt.Sprint(request["SubscriptionType"]) == "PayAsYouGo" {
-					request["ProductType"] = "cfw_elasticity_public_intl"
-				}
-
-				if _, ok := d.GetOkExists("account_number"); ok {
-					for _, v := range parameterMapList {
-						if fmt.Sprint(v["Code"]) == "CfwAccountNum" {
-							v["Code"] = "CfwAccountIntlNum"
-						}
-					}
-				}
-
-				request["Parameter"] = parameterMapList
-
+			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{""}) {
+				request["ProductCode"] = ""
+				request["ProductType"] = ""
 				endpoint = connectivity.BssOpenAPIEndpointInternational
 				return resource.RetryableError(err)
 			}
@@ -328,15 +190,16 @@ func resourceAliCloudCloudFirewallInstanceCreate(d *schema.ResourceData, meta in
 		return nil
 	})
 	addDebug(action, response, request)
+
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_firewall_instance", action, AlibabaCloudSdkGoERROR)
 	}
 
-	responseData := response["Data"].(map[string]interface{})
+	id, _ := jsonpath.Get("$.Data.InstanceId", response)
+	d.SetId(fmt.Sprint(id))
 
-	d.SetId(fmt.Sprint(responseData["InstanceId"]))
-
-	stateConf := BuildStateConf([]string{}, []string{"normal"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, cloudfwService.CloudFirewallInstanceStateRefreshFunc(d.Id(), []string{}))
+	cloudFirewallServiceV2 := CloudFirewallServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"Normal"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, cloudFirewallServiceV2.CloudFirewallInstanceStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -346,408 +209,319 @@ func resourceAliCloudCloudFirewallInstanceCreate(d *schema.ResourceData, meta in
 
 func resourceAliCloudCloudFirewallInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	bssOpenApiService := BssOpenApiService{client}
-	cloudfwService := CloudfwService{client}
+	cloudFirewallServiceV2 := CloudFirewallServiceV2{client}
 
-	getQueryInstanceObject, err := bssOpenApiService.QueryAvailableInstance(d.Id())
+	objectRaw, err := cloudFirewallServiceV2.DescribeCloudFirewallInstance(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_cloud_firewall_instance bssOpenApiService.QueryAvailableInstance Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_cloud_firewall_instance DescribeCloudFirewallInstance Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("create_time", getQueryInstanceObject["CreateTime"])
-	d.Set("renewal_status", getQueryInstanceObject["RenewStatus"])
-	d.Set("renewal_duration_unit", convertCloudFirewallInstanceRenewalDurationUnitResponse(getQueryInstanceObject["RenewalDurationUnit"]))
-	d.Set("renewal_duration", getQueryInstanceObject["RenewalDuration"])
-	d.Set("renew_period", getQueryInstanceObject["RenewalDuration"])
-	d.Set("payment_type", getQueryInstanceObject["SubscriptionType"])
-	d.Set("end_time", getQueryInstanceObject["EndTime"])
+	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("end_time", objectRaw["EndTime"])
+	d.Set("payment_type", objectRaw["SubscriptionType"])
+	d.Set("product_code", objectRaw["ProductCode"])
+	d.Set("product_type", objectRaw["ProductType"])
+	d.Set("release_time", objectRaw["ReleaseTime"])
+	d.Set("renewal_duration", objectRaw["RenewalDuration"])
+	d.Set("renewal_duration_unit", objectRaw["RenewalDurationUnit"])
+	d.Set("renewal_status", objectRaw["RenewStatus"])
+	d.Set("status", objectRaw["Status"])
 
-	object, err := cloudfwService.DescribeCloudFirewallInstanceUserBuyVersion(d.Id())
-	if err != nil {
+	objectRaw, err = cloudFirewallServiceV2.DescribeInstanceDescribeUserBuyVersion(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	d.Set("spec", convertCloudFirewallInstanceSpecResponse(fmt.Sprint(object["Version"])))
-	d.Set("cfw_log", object["LogStatus"])
-	d.Set("cfw_log_storage", object["LogStorage"])
-	d.Set("fw_vpc_number", object["VpcNumber"])
-	d.Set("ip_number", object["IpNumber"])
-	d.Set("user_status", object["UserStatus"])
-	d.Set("status", object["InstanceStatus"])
+	d.Set("cfw_log", objectRaw["LogStatus"])
+	d.Set("sdl", objectRaw["Sdl"])
+	d.Set("spec", convertCloudFirewallInstanceVersionResponse(objectRaw["Version"]))
+	d.Set("status", objectRaw["InstanceStatus"])
+	d.Set("user_status", objectRaw["UserStatus"])
+
+	objectRaw, err = cloudFirewallServiceV2.DescribeInstanceDescribeAssetStatistic(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	d.Set("auto_asset_protection", objectRaw["AutoResourceEnable"])
 
 	return nil
 }
 
 func resourceAliCloudCloudFirewallInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	bssOpenApiService := BssOpenApiService{client}
+	var request map[string]interface{}
 	var response map[string]interface{}
-	d.Partial(true)
+	var query map[string]interface{}
 	update := false
-	isPostPaid := d.Get("payment_type").(string) == "PayAsYouGo"
+	d.Partial(true)
 
-	setRenewalReq := map[string]interface{}{
-		"InstanceIDs": d.Id(),
-	}
+	var err error
+	action := "ModifyCfwInstance"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceId"] = d.Id()
 
-	if !d.IsNewResource() && d.HasChange("renewal_status") {
+	if d.HasChange("sdl") {
 		update = true
 	}
-	if v, ok := d.GetOk("renewal_status"); ok {
-		setRenewalReq["RenewalStatus"] = v
-	}
+	updateList := make(map[string]interface{})
 
-	if !d.IsNewResource() && d.HasChange("renew_period") {
-		update = true
-
-		if v, ok := d.GetOk("renew_period"); ok {
-			setRenewalReq["RenewalPeriod"] = v
+	if v := d.Get("sdl"); !IsNil(v) || d.HasChange("sdl") {
+		1 := make(map[string]interface{})
+		if v, ok := d.GetOkExists("sdl"); ok {
+			1["Value"] = v
 		}
-	}
 
-	if !d.IsNewResource() && d.HasChange("renewal_duration") {
-		update = true
-
-		if v, ok := d.GetOk("renewal_duration"); ok {
-			setRenewalReq["RenewalPeriod"] = v
+		if len(1) > 0 {
+			updateList["1"] = 1
 		}
-	}
 
-	if !d.IsNewResource() && d.HasChange("renewal_duration_unit") {
-		update = true
+		request["UpdateList"] = updateList
 	}
-	if v, ok := d.GetOk("renewal_duration_unit"); ok {
-		setRenewalReq["RenewalPeriodUnit"] = convertCloudFirewallInstanceRenewalDurationUnitRequest(v.(string))
-	} else if v, ok := d.GetOk("renewal_status"); ok && v.(string) == "AutoRenewal" {
-		return WrapError(fmt.Errorf("attribute '%s' is required when '%s' is %v ", "renewal_duration_unit", "renewal_status", d.Get("renewal_status")))
-	}
-
-	setRenewalReq["SubscriptionType"] = d.Get("payment_type")
-	setRenewalReq["ProductCode"] = "vipcloudfw"
-	setRenewalReq["ProductType"] = "vipcloudfw"
 
 	if update {
-		var endpoint string
-		var err error
-		action := "SetRenewal"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, setRenewalReq, true, endpoint)
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
-				}
-				if IsExpectedErrors(err, []string{"NotApplicable"}) {
-					endpoint = connectivity.BssOpenAPIEndpointInternational
-					setRenewalReq["ProductCode"] = "cfw"
-					setRenewalReq["ProductType"] = "cfw_pre_intl"
-
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
 			return nil
 		})
-		addDebug(action, response, setRenewalReq)
-
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-
-		if fmt.Sprint(response["Code"]) != "Success" {
-			return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-		}
-
-		d.SetPartial("renewal_status")
-		d.SetPartial("payment_type")
-		d.SetPartial("renewal_duration")
-		d.SetPartial("renewal_duration_unit")
 	}
-
 	update = false
-	modifyInstanceRequest := map[string]interface{}{
-		"InstanceId": d.Id(),
-	}
-	modifyInstanceRequest["ProductType"] = "vipcloudfw"
-	modifyInstanceRequest["ProductCode"] = "vipcloudfw"
-	modifyInstanceRequest["SubscriptionType"] = d.Get("payment_type")
+	action = "ModifyInstance"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceId"] = d.Id()
 
-	if fmt.Sprint(modifyInstanceRequest["SubscriptionType"]) == "PayAsYouGo" {
-		modifyInstanceRequest["ProductCode"] = "cfw"
-		modifyInstanceRequest["ProductType"] = "cfw_elasticity_public_cn"
-	}
-
-	parameterMapList := make([]map[string]interface{}, 0)
-
-	if !d.IsNewResource() && d.HasChange("cfw_account") {
+	request["ClientToken"] = buildClientToken(action)
+	if !d.IsNewResource() && d.HasChange("product_code") {
 		update = true
 	}
-	if v, ok := d.GetOkExists("cfw_account"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwAccount",
-			"Value": v,
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("account_number") {
+	request["ProductCode"] = d.Get("product_code")
+	if !d.IsNewResource() && d.HasChange("payment_type") {
 		update = true
 	}
-	if v, ok := d.GetOkExists("account_number"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwAccountNum",
-			"Value": v,
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("fw_vpc_number") {
+	request["SubscriptionType"] = d.Get("payment_type")
+	if !d.IsNewResource() && d.HasChange("product_type") {
 		update = true
-		if v, ok := d.GetOk("fw_vpc_number"); ok {
-			parameterMapList = append(parameterMapList, map[string]interface{}{
-				"Code":  "FwVpcNumber",
-				"Value": v,
-			})
+	}
+	request["ProductType"] = d.Get("product_type")
+	request["ModifyType"] = d.Get("modify_type")
+	if d.HasChange("cfw_log") {
+		update = true
+	}
+	parameter := make(map[string]interface{})
+
+	if v := d.Get("cfw_log"); !IsNil(v) || d.HasChange("cfw_log") {
+		1 := make(map[string]interface{})
+		if v, ok := d.GetOkExists("cfw_log"); ok {
+			1["Value"] = v
 		}
-	}
 
-	if !d.IsNewResource() && d.HasChange("ip_number") {
-		update = true
-	}
-	if v, ok := d.GetOk("ip_number"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "IpNumber",
-			"Value": v,
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("cfw_log") && !isPostPaid {
-		update = true
-
-		if v, ok := d.GetOk("cfw_log"); ok {
-			parameterMapList = append(parameterMapList, map[string]interface{}{
-				"Code":  "CfwLog",
-				"Value": v,
-			})
+		if len(1) > 0 {
+			parameter["1"] = 1
 		}
+
+		request["Parameter"] = parameter
 	}
 
-	if !d.IsNewResource() && d.HasChange("cfw_log_storage") && !isPostPaid {
-		update = true
+	var endpoint string
+	request["ProductCode"] = ""
+	request["ProductType"] = ""
+	if client.IsInternationalAccount() {
+		request["ProductType"] = ""
 	}
-	if v, ok := d.GetOk("cfw_log_storage"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwLogStorage",
-			"Value": v,
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("band_width") {
-		update = true
-	}
-	if v, ok := d.GetOk("band_width"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "BandWidth",
-			"Value": v,
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("spec") {
-		update = true
-	}
-	if v, ok := d.GetOk("spec"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "Spec",
-			"Value": convertCloudFirewallInstanceSpecRequest(v.(string)),
-		})
-	}
-
-	if !d.IsNewResource() && d.HasChange("instance_count") {
-		update = true
-	}
-	if v, ok := d.GetOk("instance_count"); ok {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "InstanceCount",
-			"Value": v,
-		})
-	}
-
-	modifyInstanceRequest["Parameter"] = parameterMapList
-
 	if update {
-		if v, ok := d.GetOk("modify_type"); ok {
-			modifyInstanceRequest["ModifyType"] = v
-		}
-		var endpoint string
-		var err error
-		action := "ModifyInstance"
-		modifyInstanceRequest["ClientToken"] = buildClientToken(action)
-		wait := incrementalWait(3*time.Second, 3*time.Second)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, modifyInstanceRequest, true, endpoint)
+			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
-				if IsExpectedErrors(err, []string{"NotApplicable"}) {
-					modifyInstanceRequest["ProductCode"] = "cfw"
-					modifyInstanceRequest["ProductType"] = "cfw_pre_intl"
-
-					if fmt.Sprint(modifyInstanceRequest["SubscriptionType"]) == "PayAsYouGo" {
-						modifyInstanceRequest["ProductType"] = "cfw_elasticity_public_intl"
-					}
-
-					if _, ok := d.GetOkExists("account_number"); ok {
-						for _, v := range parameterMapList {
-							if fmt.Sprint(v["Code"]) == "CfwAccountNum" {
-								v["Code"] = "CfwAccountIntlNum"
-							}
-						}
-					}
-
-					modifyInstanceRequest["Parameter"] = parameterMapList
-
+				if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{""}) {
+					request["ProductCode"] = ""
+					request["ProductType"] = ""
 					endpoint = connectivity.BssOpenAPIEndpointInternational
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-
-			if fmt.Sprint(response["Code"]) == "SYSTEM.CONCURRENT_OPERATE" {
-				wait()
-				return resource.RetryableError(fmt.Errorf("%s", response))
-			}
-
 			return nil
 		})
-		addDebug(action, response, modifyInstanceRequest)
-
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-
-		if fmt.Sprint(response["Code"]) != "Success" {
-			return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-		}
-
-		stateConf := BuildStateConf([]string{}, []string{"Paid"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, bssOpenApiService.CloudFirewallInstanceOrderDetailStateRefreshFunc(fmt.Sprint(response["Data"].(map[string]interface{})["OrderId"]), []string{}))
+		cloudFirewallServiceV2 := CloudFirewallServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("cfw_log"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, cloudFirewallServiceV2.CloudFirewallInstanceStateRefreshFuncWithApi(d.Id(), "LogStatus", []string{}, cloudFirewallServiceV2.DescribeInstanceDescribeUserBuyVersion))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-
-		d.SetPartial("payment_type")
-		d.SetPartial("fw_vpc_number")
-		d.SetPartial("ip_number")
-		d.SetPartial("cfw_log_storage")
-		d.SetPartial("cfw_log")
-		d.SetPartial("band_width")
-		d.SetPartial("spec")
-		d.SetPartial("instance_count")
 	}
+	update = false
+	action = "SetRenewal"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceIDs"] = d.Id()
 
-	if d.HasChange("cfw_log") && d.Get("cfw_log") == true && isPostPaid {
-		action := "CreateSlsLogDispatch"
-		var err error
-		var endpoint string
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, nil, nil, false, endpoint)
+	if !d.IsNewResource() && d.HasChange("product_code") {
+		update = true
+	}
+	request["ProductCode"] = d.Get("product_code")
+	if !d.IsNewResource() && d.HasChange("payment_type") {
+		update = true
+	}
+	request["SubscriptionType"] = d.Get("payment_type")
+	if !d.IsNewResource() && d.HasChange("product_type") {
+		update = true
+	}
+	request["ProductType"] = d.Get("product_type")
+	if d.HasChange("renewal_duration_unit") {
+		update = true
+	}
+	if v, ok := d.GetOk("renewal_duration_unit"); ok || d.HasChange("renewal_duration_unit") {
+		request["RenewalPeriodUnit"] = v
+	}
+	if !d.IsNewResource() && d.HasChange("renewal_status") {
+		update = true
+	}
+	request["RenewalStatus"] = d.Get("renewal_status")
+	if !d.IsNewResource() && d.HasChange("renewal_duration") {
+		update = true
+	}
+	if v, ok := d.GetOkExists("renewal_duration"); ok || d.HasChange("renewal_duration") {
+		request["RenewalPeriod"] = v
+	}
+	request["ProductCode"] = ""
+	request["ProductType"] = ""
+	if client.IsInternationalAccount() {
+		request["ProductType"] = ""
+	}
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
-				} else if IsExpectedErrors(err, []string{"not buy user"}) {
-					endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
+				}
+				if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{""}) {
+					request["ProductCode"] = ""
+					request["ProductType"] = ""
+					endpoint = connectivity.BssOpenAPIEndpointInternational
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-
 			return nil
 		})
-		addDebug(action, response, nil)
-
+		addDebug(action, response, request)
 		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_firewall_instance", action, AlibabaCloudSdkGoERROR)
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
+	}
+	update = false
+	action = "SetAutoProtectNewAssets"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
 
-		d.SetPartial("cfw_log")
+	if !d.IsNewResource() && d.HasChange("auto_asset_protection") {
+		update = true
+	}
+	request["AutoProtect"] = d.Get("auto_asset_protection")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
 	}
 
 	d.Partial(false)
-
 	return resourceAliCloudCloudFirewallInstanceRead(d, meta)
 }
 
 func resourceAliCloudCloudFirewallInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	if d.Get("payment_type").(string) == "Subscription" {
-		log.Printf("[WARN] Cannot destroy resourceAliCloudCloudFirewallInstance. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
-	}
 
 	client := meta.(*connectivity.AliyunClient)
-	action := "ReleasePostInstance"
-	var response map[string]interface{}
-	var err error
-	var endpoint string
-
-	request := map[string]interface{}{
-		"InstanceId": d.Id(),
+	enableDelete := false
+	if v, ok := d.GetOkExists("payment_type"); ok {
+		if InArray(fmt.Sprint(v), []string{"PayAsYouGo"}) {
+			enableDelete = true
+		}
 	}
+	if enableDelete {
+		action := "ReleasePostInstance"
+		var request map[string]interface{}
+		var response map[string]interface{}
+		query := make(map[string]interface{})
+		var err error
+		request = make(map[string]interface{})
+		request["InstanceId"] = d.Id()
 
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, nil, request, false, endpoint)
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
-			return resource.NonRetryableError(err)
-		}
-
-		return nil
-	})
-	addDebug(action, response, request)
-
-	if err != nil {
-		if NotFoundError(err) {
 			return nil
+		})
+		addDebug(action, response, request)
+
+		if err != nil {
+			if NotFoundError(err) {
+				return nil
+			}
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
 
-	if fmt.Sprint(response["Success"]) == "false" || fmt.Sprint(response["ReleaseStatus"]) == "false" {
-		return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
-	}
+		cloudFirewallServiceV2 := CloudFirewallServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cloudFirewallServiceV2.CloudFirewallInstanceStateRefreshFunc(d.Id(), "#Status", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
+		}
 
+	}
 	return nil
 }
 
-func convertCloudFirewallInstanceSpecRequest(source interface{}) interface{} {
-	switch source {
-	case "premium_version":
-		return 2
-	case "enterprise_version":
-		return 3
-	case "ultimate_version":
-		return 4
-	case "payg_version":
-		return 10
-	}
-
-	return source
-}
-
-func convertCloudFirewallInstanceSpecResponse(source interface{}) interface{} {
+func convertCloudFirewallInstanceVersionResponse(source interface{}) interface{} {
+	source = fmt.Sprint(source)
 	switch source {
 	case "2":
 		return "premium_version"
@@ -758,28 +532,5 @@ func convertCloudFirewallInstanceSpecResponse(source interface{}) interface{} {
 	case "10":
 		return "payg_version"
 	}
-
-	return source
-}
-
-func convertCloudFirewallInstanceRenewalDurationUnitRequest(source interface{}) interface{} {
-	switch source {
-	case "Month":
-		return "M"
-	case "Year":
-		return "Y"
-	}
-
-	return source
-}
-
-func convertCloudFirewallInstanceRenewalDurationUnitResponse(source interface{}) interface{} {
-	switch source {
-	case "M":
-		return "Month"
-	case "Y":
-		return "Year"
-	}
-
 	return source
 }
