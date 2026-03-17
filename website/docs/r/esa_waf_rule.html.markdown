@@ -20,12 +20,6 @@ For information about ESA Waf Rule and how to use it, see [What is Waf Rule](htt
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_waf_rule&exampleId=032985c1-00b2-e5cf-d900-02f61f3b1d5843fd5677&activeTab=example&spm=docs.r.esa_waf_rule.0.032985c100&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_esa_sites" "default" {
   plan_subscribe_type = "enterpriseplan"
@@ -60,38 +54,36 @@ resource "alicloud_esa_waf_rule" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_waf_rule&spm=docs.r.esa_waf_rule.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `config` - (Optional, List) The specific configuration of the WAF rule. See [`config`](#config) below.
-* `phase` - (Required, ForceNew) The phase in which the WAF processes this rule.
-* `ruleset_id` - (Optional, ForceNew, Int) The ID of the WAF ruleset, which can be obtained by calling the [ListWafRulesets](https://www.alibabacloud.com/help/en/doc-detail/2850233.html) operation.
-* `shared` - (Optional, List) Shared configuration attributes used across multiple rules. See [`shared`](#shared) below.
+* `config` - (Optional, Set) The specific configuration of the WAF rule. See [`config`](#config) below.
+* `phase` - (Required) The phase in which the WAF processes this rule.
+* `ruleset_id` - (Optional, Int) The ID of the WAF ruleset, which can be obtained by calling the [ListWafRulesets](https://www.alibabacloud.com/help/en/doc-detail/2850233.html) operation.
+* `shared` - (Optional, Set) Shared configuration attributes used across multiple rules. See [`shared`](#shared) below.
 
--> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
 * `site_id` - (Required, ForceNew) The unique identifier of the website, which can be obtained by calling the [ListSites](https://www.alibabacloud.com/help/en/doc-detail/2850189.html) operation.
 * `site_version` - (Optional, Int) The website ID, which can be obtained by calling the [ListSites](https://www.alibabacloud.com/help/en/doc-detail/2850189.html) operation.
 
--> **NOTE:** This parameter only applies during resource creation, update or deletion. If modified in isolation without other property changes, Terraform will not trigger any action.
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
 
 
 ### `config`
 
 The config supports the following:
-* `action` - (Optional) The action to perform when a request matches this rule.
-* `actions` - (Optional, List) Extended action configurations, including custom responses and bypass settings. See [`actions`](#config-actions) below.
-* `app_package` - (Optional, List) Security mechanism to prevent apps from being repackaged. See [`app_package`](#config-app_package) below.
-* `app_sdk` - (Optional, List) Mobile app SDK-related configurations. See [`app_sdk`](#config-app_sdk) below.
+* `action` - (Optional, Computed) The action to perform when a request matches this rule.
+* `actions` - (Optional, Computed, Set) Extended action configurations, including custom responses and bypass settings. See [`actions`](#config-actions) below.
+* `app_package` - (Optional, Computed, Set) Security mechanism to prevent apps from being repackaged. See [`app_package`](#config-app_package) below.
+* `app_sdk` - (Optional, Set) Mobile app SDK-related configurations. See [`app_sdk`](#config-app_sdk) below.
 * `expression` - (Optional) The match expression used to evaluate incoming requests.
 * `managed_list` - (Optional) The name of the managed list applied to this rule.
-* `managed_rulesets` - (Optional, Set) The managed rulesets referenced by this rule and their configurations. See [`managed_rulesets`](#config-managed_rulesets) below.
-* `name` - (Optional) The display name of the WAF rule.
+* `managed_rulesets` - (Optional, List) The managed rulesets referenced by this rule and their configurations. See [`managed_rulesets`](#config-managed_rulesets) below.
+* `name` - (Optional, Computed) The display name of the WAF rule.
 * `notes` - (Optional) Additional notes about this rule.
-* `rate_limit` - (Optional, List) Configuration of the rate limiting rule. See [`rate_limit`](#config-rate_limit) below.
-* `security_level` - (Optional, List) The overall security protection level of WAF.
+* `rate_limit` - (Optional, Set) Configuration of the rate limiting rule. See [`rate_limit`](#config-rate_limit) below.
+* `security_level` - (Optional, Set) The overall security protection level of WAF.
 Valid values:
   - off
   - essentially_off
@@ -99,45 +91,45 @@ Valid values:
   - medium
   - high
   - under_attack See [`security_level`](#config-security_level) below.
-* `sigchl` - (Optional, Set) Configuration items for token verification mechanisms.
-* `status` - (Optional) The status of the WAF rule: whether it is enabled or disabled.
-* `timer` - (Optional, List) Configuration for the time schedule when the rule takes effect. See [`timer`](#config-timer) below.
-* `type` - (Optional, ForceNew) The type category of the WAF rule.
+* `sigchl` - (Optional, List) Configuration items for token verification mechanisms.
+* `status` - (Optional, Computed) The status of the WAF rule: whether it is enabled or disabled.
+* `timer` - (Optional, Set) Configuration for the time schedule when the rule takes effect. See [`timer`](#config-timer) below.
+* `type` - (Optional, Computed) The type category of the WAF rule.
 * `value` - (Optional) The IP address allowed or denied in IP access control.
 
 ### `config-actions`
 
 The config-actions supports the following:
-* `bypass` - (Optional, List) The skip configuration specified by the whitelist rule. See [`bypass`](#config-actions-bypass) below.
-* `response` - (Optional, List) The custom error page returned when the rule is triggered. See [`response`](#config-actions-response) below.
+* `bypass` - (Optional, Computed, Set) The skip configuration specified by the whitelist rule. See [`bypass`](#config-actions-bypass) below.
+* `response` - (Optional, Computed, Set) The custom error page returned when the rule is triggered. See [`response`](#config-actions-response) below.
 
 ### `config-app_package`
 
 The config-app_package supports the following:
-* `package_signs` - (Optional, Set) Security mechanism to prevent apps from being repackaged. See [`package_signs`](#config-app_package-package_signs) below.
+* `package_signs` - (Optional, List) Security mechanism to prevent apps from being repackaged. See [`package_signs`](#config-app_package-package_signs) below.
 
 ### `config-app_sdk`
 
 The config-app_sdk supports the following:
-* `custom_sign` - (Optional, List) Custom fields used for mobile app signature validation. See [`custom_sign`](#config-app_sdk-custom_sign) below.
+* `custom_sign` - (Optional, Set) Custom fields used for mobile app signature validation. See [`custom_sign`](#config-app_sdk-custom_sign) below.
 * `custom_sign_status` - (Optional) Indicates whether the custom signature field validation is enabled.
-* `feature_abnormal` - (Optional, Set) Detected abnormal behaviors of the application.
+* `feature_abnormal` - (Optional, List) Detected abnormal behaviors of the application.
 
 ### `config-managed_rulesets`
 
 The config-managed_rulesets supports the following:
 * `action` - (Optional) The default action applied to all rules in this ruleset.
 * `attack_type` - (Optional, Int) The primary attack type targeted by this ruleset.
-* `managed_rules` - (Optional, Set) The individual managed rules included in this ruleset. See [`managed_rules`](#config-managed_rulesets-managed_rules) below.
+* `managed_rules` - (Optional, List) The individual managed rules included in this ruleset. See [`managed_rules`](#config-managed_rulesets-managed_rules) below.
 * `protection_level` - (Optional, Int) The protection strength level assigned to this ruleset.
 
 ### `config-rate_limit`
 
 The config-rate_limit supports the following:
-* `characteristics` - (Optional, List) The statistical dimensions to which the rate limiting rule applies. See [`characteristics`](#config-rate_limit-characteristics) below.
+* `characteristics` - (Optional, Set) The statistical dimensions to which the rate limiting rule applies. See [`characteristics`](#config-rate_limit-characteristics) below.
 * `interval` - (Optional, Int) The statistical interval.
 * `on_hit` - (Optional) Indicates whether the rule applies to requests that hit the cache.
-* `threshold` - (Optional, List) Threshold settings for the rate limiting rule. See [`threshold`](#config-rate_limit-threshold) below.
+* `threshold` - (Optional, Set) Threshold settings for the rate limiting rule. See [`threshold`](#config-rate_limit-threshold) below.
 * `ttl` - (Optional, Int) The timeout period for creating the stack used in rate limiting.
 
 ### `config-security_level`
@@ -155,12 +147,12 @@ Valid values:
 ### `config-timer`
 
 The config-timer supports the following:
-* `periods` - (Optional, Set) One-time effective time intervals. See [`periods`](#config-timer-periods) below.
+* `periods` - (Optional, List) One-time effective time intervals. See [`periods`](#config-timer-periods) below.
 * `scopes` - (Optional) Timing type:
   - `permanent`: Always active
   - `periods`: Active in specified periods
   - `weekly`: Recurring weekly schedule
-* `weekly_periods` - (Optional, Set) Weekly recurring time schedules. See [`weekly_periods`](#config-timer-weekly_periods) below.
+* `weekly_periods` - (Optional, List) Weekly recurring time schedules. See [`weekly_periods`](#config-timer-weekly_periods) below.
 * `zone` - (Optional, Int) The time zone. If it is not specified, the default value is UTC +00:00.  Example: 8 means East Zone 8,-8 means West Zone 8  Range:-12 -+14
 
 ### `config-timer-periods`
@@ -172,7 +164,7 @@ The config-timer-periods supports the following:
 ### `config-timer-weekly_periods`
 
 The config-timer-weekly_periods supports the following:
-* `daily_periods` - (Optional, Set) Daily effective time periods within a weekly schedule. See [`daily_periods`](#config-timer-weekly_periods-daily_periods) below.
+* `daily_periods` - (Optional, List) Daily effective time periods within a weekly schedule. See [`daily_periods`](#config-timer-weekly_periods-daily_periods) below.
 * `days` - (Optional) Cycle, multiple use comma separated, 1-7 respectively represent Monday-Sunday.  Example: Monday, Wednesday value is "1,3"
 
 ### `config-timer-weekly_periods-daily_periods`
@@ -184,7 +176,7 @@ The config-timer-weekly_periods-daily_periods supports the following:
 ### `config-rate_limit-characteristics`
 
 The config-rate_limit-characteristics supports the following:
-* `criteria` - (Optional, Set) The details of logical databases. See [`criteria`](#config-rate_limit-characteristics-criteria) below.
+* `criteria` - (Optional, List) The details of logical databases. See [`criteria`](#config-rate_limit-characteristics-criteria) below.
 * `logic` - (Optional) Logical relationship, the current value of ogic is only and, format reference above.
 
 ### `config-rate_limit-threshold`
@@ -193,7 +185,7 @@ The config-rate_limit-threshold supports the following:
 * `distinct_managed_rules` - (Optional, Int) The maximum number of distinct managed rules that can be triggered.
 * `managed_rules_blocked` - (Optional, Int) The maximum number of times that managed rules can be triggered.
 * `request` - (Optional, Int) The maximum number of allowed requests within a time interval.
-* `response_status` - (Optional, List) Limits on the frequency of returning specific HTTP status codes. See [`response_status`](#config-rate_limit-threshold-response_status) below.
+* `response_status` - (Optional, Set) Limits on the frequency of returning specific HTTP status codes. See [`response_status`](#config-rate_limit-threshold-response_status) below.
 * `traffic` - (Optional) The maximum allowed traffic within a time interval (deprecated).
 
 ### `config-rate_limit-threshold-response_status`
@@ -206,14 +198,14 @@ The config-rate_limit-threshold-response_status supports the following:
 ### `config-rate_limit-characteristics-criteria`
 
 The config-rate_limit-characteristics-criteria supports the following:
-* `criteria` - (Optional, Set) Nested collection of matching criteria. See [`criteria`](#config-rate_limit-characteristics-criteria-criteria) below.
+* `criteria` - (Optional, List) Nested collection of matching criteria. See [`criteria`](#config-rate_limit-characteristics-criteria-criteria) below.
 * `logic` - (Optional) Logical relationship between multiple matching conditions.
 * `match_type` - (Optional) The request field targeted by the match condition.
 
 ### `config-rate_limit-characteristics-criteria-criteria`
 
 The config-rate_limit-characteristics-criteria-criteria supports the following:
-* `criteria` - (Optional, Set) Nested collection of matching criteria. See [`criteria`](#config-rate_limit-characteristics-criteria-criteria-criteria) below.
+* `criteria` - (Optional, List) Nested collection of matching criteria. See [`criteria`](#config-rate_limit-characteristics-criteria-criteria-criteria) below.
 * `logic` - (Optional) Logical relationship between multiple matching conditions.
 * `match_type` - (Optional) The request field targeted by the match condition.
 
@@ -244,26 +236,26 @@ The config-app_package-package_signs supports the following:
 ### `config-actions-bypass`
 
 The config-actions-bypass supports the following:
-* `custom_rules` - (Optional, Set) The IDs of custom rules to skip.
-* `regular_rules` - (Optional, Set) The IDs of specific managed rules to skip.
-* `regular_types` - (Optional, Set) The types of managed rules to skip.
+* `custom_rules` - (Optional, List) The IDs of custom rules to skip.
+* `regular_rules` - (Optional, List) The IDs of specific managed rules to skip.
+* `regular_types` - (Optional, List) The types of managed rules to skip.
 * `skip` - (Optional) The scope that is skipped when requests match conditions defined in the whitelist rule.
-* `tags` - (Optional, Set) The rule categories that are skipped when requests match conditions defined in the whitelist rule.
+* `tags` - (Optional, List) The rule categories that are skipped when requests match conditions defined in the whitelist rule.
 
 ### `config-actions-response`
 
 The config-actions-response supports the following:
-* `code` - (Optional, Int) The HTTP response code returned to the client.
+* `code` - (Optional, Computed, Int) The HTTP response code returned to the client.
 * `id` - (Optional, Int) The ID of the custom error page, which can be obtained by calling the ListPages operation.
 
 ### `shared`
 
 The shared supports the following:
 * `action` - (Optional) The default action executed under shared configuration.
-* `actions` - (Optional, List) Extended action configurations under shared settings. See [`actions`](#shared-actions) below.
+* `actions` - (Optional, Set) Extended action configurations under shared settings. See [`actions`](#shared-actions) below.
 * `cross_site_id` - (Optional, Int) Specify the cross-domain site ID.
 * `expression` - (Optional) The match expression used in shared configuration.
-* `match` - (Optional, List) Configuration of the request matching logic engine. See [`match`](#shared-match) below.
+* `match` - (Optional, Set) Configuration of the request matching logic engine. See [`match`](#shared-match) below.
 * `mode` - (Optional) The integration mode of the Web SDK:
   - `automatic`: Automatically integrated
   - `manual`: Manually integrated
@@ -273,7 +265,7 @@ The shared supports the following:
 ### `shared-actions`
 
 The shared-actions supports the following:
-* `response` - (Optional, List) Custom response configuration under shared settings. See [`response`](#shared-actions-response) below.
+* `response` - (Optional, Set) Custom response configuration under shared settings. See [`response`](#shared-actions-response) below.
 
 ### `shared-match`
 
@@ -310,14 +302,14 @@ The shared-actions-response supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<site_id>:<waf_rule_id>`.
-* `waf_rule_id` - The unique identifier of the WAF rule.
+* `id` - The ID of the resource supplied above. The value is formulated as `<site_id>:<waf_rule_id>`.
 * `config` - The specific configuration of the WAF rule.
   * `id` - The internal unique ID of the WAF rule.
   * `managed_group_id` - The ID of the managed rule group (deprecated).
   * `managed_rulesets` - The managed rulesets referenced by this rule and their configurations.
     * `number_enabled` - Number of rules currently enabled.
     * `number_total` - Total number of rules in this ruleset.
+* `waf_rule_id` - The unique identifier of the WAF rule.
 
 ## Timeouts
 
