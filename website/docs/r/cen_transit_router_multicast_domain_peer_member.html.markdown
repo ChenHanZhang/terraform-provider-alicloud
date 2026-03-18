@@ -2,28 +2,23 @@
 subcategory: "Cloud Enterprise Network (CEN)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cen_transit_router_multicast_domain_peer_member"
-sidebar_current: "docs-alicloud-resource-cen-transit-router-multicast-domain-peer-member"
 description: |-
-  Provides a Alicloud Cen Transit Router Multicast Domain Peer Member resource.
+  Provides a Alicloud Cloud Enterprise Network (CEN) Transit Router Multicast Domain Peer Member resource.
 ---
 
 # alicloud_cen_transit_router_multicast_domain_peer_member
 
-Provides a Cen Transit Router Multicast Domain Peer Member resource.
+Provides a Cloud Enterprise Network (CEN) Transit Router Multicast Domain Peer Member resource.
 
-For information about Cen Transit Router Multicast Domain Peer Member and how to use it, see [What is Transit Router Multicast Domain Peer Member](https://www.alibabacloud.com/help/en/cloud-enterprise-network/latest/api-cbn-2017-09-12-deregistertransitroutermulticastgroupmembers).
 
--> **NOTE:** Available since v1.195.0.
+
+For information about Cloud Enterprise Network (CEN) Transit Router Multicast Domain Peer Member and how to use it, see [What is Transit Router Multicast Domain Peer Member](https://next.api.alibabacloud.com/document/Cbn/2017-09-12/RegisterTransitRouterMulticastGroupMembers).
+
+-> **NOTE:** Available since v1.274.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cen_transit_router_multicast_domain_peer_member&exampleId=1b46812f-14ac-adb4-aa3f-4d6bcab51713fe9da6d7&activeTab=example&spm=docs.r.cen_transit_router_multicast_domain_peer_member.0.1b46812f14&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -101,35 +96,30 @@ resource "alicloud_cen_transit_router_multicast_domain_peer_member" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cen_transit_router_multicast_domain_peer_member&spm=docs.r.cen_transit_router_multicast_domain_peer_member.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `group_ip_address` - (Required, ForceNew) The IP address of the multicast group to which the multicast member belongs. Value range: **224.0.0.1** to **239.255.255.254**.If the multicast group you specified does not exist in the current multicast domain, the system will automatically create a new multicast group for you in the current multicast domain.
+* `group_ip_address` - (Required, ForceNew) The IP address of the multicast group to which the multicast member belongs. Value range: **224.0.0.1** to **239.255.255.254 * *.
+If the multicast group you specified does not exist in the current multicast domain, the system will automatically create a new multicast group for you in the current multicast domain.
+* `peer_transit_router_multicast_domain_id` - (Optional, ForceNew, Computed) The multicast domain ID of the peer transit router.
 * `transit_router_multicast_domain_id` - (Required, ForceNew) The ID of the multicast domain to which the multicast member belongs.
-* `peer_transit_router_multicast_domain_id` - (Required, ForceNew) The IDs of the inter-region multicast domains.
-* `dry_run` - (Optional) Specifies whether only to precheck the request.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The `key` of the resource supplied above.The value is formulated as `<transit_router_multicast_domain_id>:<group_ip_address>:<peer_transit_router_multicast_domain_id>`.
-* `status` - The status of the multicast resource. Valid values:
-  - Registering: being created
-  - Registered: available
-  - Deregistering: being deleted
+* `id` - The ID of the resource supplied above. The value is formulated as `<transit_router_multicast_domain_id>:<group_ip_address>:<peer_transit_router_multicast_domain_id>`.
+* `status` - The status of the resource.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 10 mins) Used when create the Transit Router Multicast Domain Peer Member.
-* `delete` - (Defaults to 10 mins) Used when delete the Transit Router Multicast Domain Peer Member.
+* `create` - (Defaults to 5 mins) Used when create the Transit Router Multicast Domain Peer Member.
+* `delete` - (Defaults to 5 mins) Used when delete the Transit Router Multicast Domain Peer Member.
 
 ## Import
 
-Cen Transit Router Multicast Domain Peer Member can be imported using the id, e.g.
+Cloud Enterprise Network (CEN) Transit Router Multicast Domain Peer Member can be imported using the id, e.g.
 
 ```shell
-$terraform import alicloud_cen_transit_router_multicast_domain_peer_member.example <transit_router_multicast_domain_id>:<group_ip_address>:<peer_transit_router_multicast_domain_id>
+$ terraform import alicloud_cen_transit_router_multicast_domain_peer_member.example <transit_router_multicast_domain_id>:<group_ip_address>:<peer_transit_router_multicast_domain_id>
 ```
