@@ -1,8 +1,10 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
@@ -28,6 +30,11 @@ func resourceAliCloudRdsBackup() *schema.Resource {
 			"backup_id": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"backup_job_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 			"backup_method": {
 				Type:     schema.TypeString,
@@ -58,17 +65,9 @@ func resourceAliCloudRdsBackup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"store_status": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-			"remove_from_state": {
-				Type:     schema.TypeBool,
-				Optional: true,
 			},
 		},
 	}
@@ -77,13 +76,16 @@ func resourceAliCloudRdsBackup() *schema.Resource {
 func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-	rdsService := RdsService{client}
+
 	action := "CreateBackup"
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
+	if v, ok := d.GetOk("db_instance_id"); ok {
+		request["DBInstanceId"] = v
+	}
 	request["RegionId"] = client.RegionId
 
 	if v, ok := d.GetOk("backup_method"); ok {
@@ -92,7 +94,6 @@ func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOkExists("backup_retention_period"); ok {
 		request["BackupRetentionPeriod"] = v
 	}
-	request["DBInstanceId"] = d.Get("db_instance_id")
 	if v, ok := d.GetOk("backup_strategy"); ok {
 		request["BackupStrategy"] = v
 	}
@@ -106,7 +107,7 @@ func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) e
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"BackupJobExists"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -119,14 +120,14 @@ func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_rds_backup", action, AlibabaCloudSdkGoERROR)
 	}
-	stateConf := BuildStateConf([]string{}, []string{"Finished"}, d.Timeout(schema.TimeoutCreate), 20*time.Second, rdsService.RdsBackupStateRefreshFunc(d.Get("db_instance_id").(string), response["BackupJobId"].(string), []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+
+	d.SetId(fmt.Sprintf("%v", request["DBInstanceId"]))
+
+	rdsServiceV2 := RdsServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"[Finished]"}, d.Timeout(schema.TimeoutCreate), 20*time.Second, rdsServiceV2.DescribeAsyncRdsBackupStateRefreshFunc(d, response, "$.Items.BackupJob[*].BackupStatus", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
-	// Wait one minute because the query API(DescribeBackups) has not been synchronized when the backup status is Finished
-	time.Sleep(1 * time.Minute)
-	object, err := rdsService.DescribeBackupTasks(d.Get("db_instance_id").(string), response["BackupJobId"].(string))
-	d.SetId(fmt.Sprint(request["DBInstanceId"], ":", object["BackupId"].(string)))
 
 	return resourceAliCloudRdsBackupRead(d, meta)
 }
@@ -147,10 +148,9 @@ func resourceAliCloudRdsBackupRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("backup_method", objectRaw["BackupMethod"])
 	d.Set("backup_type", objectRaw["BackupType"])
-	d.Set("db_instance_id", objectRaw["DBInstanceId"])
-	d.Set("status", objectRaw["MetaStatus"])
 	d.Set("store_status", objectRaw["StoreStatus"])
 	d.Set("backup_id", objectRaw["BackupId"])
+	d.Set("db_instance_id", objectRaw["DBInstanceId"])
 
 	return nil
 }
@@ -163,43 +163,45 @@ func resourceAliCloudRdsBackupUpdate(d *schema.ResourceData, meta interface{}) e
 func resourceAliCloudRdsBackupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-	action := "DeleteBackup"
-	if d.Get("store_status").(string) == "Disabled" {
-		if !d.Get("remove_from_state").(bool) {
-			return WrapError(Error("the resource can not be deleted at this time and you can set remove_from_state to true to remove it."))
-		} else {
-			return nil
+	parts := strings.Split(d.Id(), "「:」")
+	enableDelete := false
+	if v, ok := d.GetOkExists("store_status"); ok {
+		if InArray(fmt.Sprint(v), []string{"Enabled"}) {
+			enableDelete = true
 		}
 	}
-	var request map[string]interface{}
-	var response map[string]interface{}
-	query := make(map[string]interface{})
-	var err error
-	request = make(map[string]interface{})
-	request["BackupId"] = d.Id()
-	request["RegionId"] = client.RegionId
+	if enableDelete {
+		action := "DeleteBackup"
+		var request map[string]interface{}
+		var response map[string]interface{}
+		query := make(map[string]interface{})
+		var err error
+		request = make(map[string]interface{})
+		request["BackupId"] = parts[1]
+		request["DBInstanceId"] = parts[0]
+		request["RegionId"] = client.RegionId
 
-	request["DBInstanceId"] = d.Get("db_instance_id")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-
-	if err != nil {
-		if NotFoundError(err) {
 			return nil
-		}
-		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-	}
+		})
+		addDebug(action, response, request)
 
+		if err != nil {
+			if NotFoundError(err) {
+				return nil
+			}
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+	}
 	return nil
 }

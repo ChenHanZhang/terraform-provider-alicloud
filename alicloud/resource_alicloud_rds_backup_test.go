@@ -18,6 +18,89 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test Rds Backup. >>> Resource test cases, automatically generated.
+// Case Backup测试-Mysql 12364
+func TestAccAliCloudRdsBackup_basic12364(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_rds_backup.default"
+	ra := resourceAttrInit(resourceId, AlicloudRdsBackupMap12364)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &RdsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeRdsBackup")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccrds%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudRdsBackupBasicDependence12364)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"db_instance_id": "${alicloud_db_instance.CreateDBInstance.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"db_instance_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"backup_retention_period", "backup_strategy", "db_name"},
+			},
+		},
+	})
+}
+
+var AlicloudRdsBackupMap12364 = map[string]string{
+	"store_status": CHECKSET,
+	"backup_id":    CHECKSET,
+}
+
+func AlicloudRdsBackupBasicDependence12364(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "test_region_id" {
+  default = "cn-beijing"
+}
+
+variable "test_zone_id" {
+  default = "cn-beijing-l"
+}
+
+resource "alicloud_vpc" "vpcId" {
+  cidr_block = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "vSwitchId" {
+  vpc_id     = alicloud_vpc.vpcId.id
+  zone_id    = var.test_zone_id
+  cidr_block = "172.16.12.0/24"
+}
+
+resource "alicloud_db_instance" "CreateDBInstance" {
+  engine         = "MySQL"
+  engine_version = "8.0"
+  vswitch_id     = alicloud_vswitch.vSwitchId.id
+}
+
+
+`, name)
+}
+
+// Test Rds Backup. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudRdsBackup_MySQL(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_rds_backup.default"
