@@ -20,7 +20,7 @@ func resourceAliCloudMongodbPrivateSrvNetworkAddress() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(6 * time.Minute),
+			Create: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
@@ -74,9 +74,9 @@ func resourceAliCloudMongodbPrivateSrvNetworkAddressCreate(d *schema.ResourceDat
 	d.SetId(fmt.Sprint(request["DBInstanceId"]))
 
 	mongodbServiceV2 := MongodbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, mongodbServiceV2.MongodbPrivateSrvNetworkAddressStateRefreshFunc(d.Id(), "#PrivateSrvConnectionStringUri", []string{}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+	stateConf := BuildStateConf([]string{}, []string{"[Running]"}, d.Timeout(schema.TimeoutCreate), 5*time.Minute, mongodbServiceV2.DescribeAsyncMongodbPrivateSrvNetworkAddressStateRefreshFunc(d, response, "$.DBInstances.DBInstance[*].DBInstanceStatus", []string{}))
+	if jobDetail, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
 	}
 
 	return resourceAliCloudMongodbPrivateSrvNetworkAddressRead(d, meta)

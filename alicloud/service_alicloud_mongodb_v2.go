@@ -86,6 +86,36 @@ func (s *MongodbServiceV2) MongodbPrivateSrvNetworkAddressStateRefreshFuncWithAp
 	}
 }
 
+func (s *MongodbServiceV2) DescribeAsyncMongodbPrivateSrvNetworkAddressStateRefreshFunc(d *schema.ResourceData, res map[string]interface{}, field string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeAsyncDescribeDBInstanceAttribute(d, res)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				if _err, ok := object["error"]; ok {
+					return _err, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+				}
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
 // DescribeMongodbPrivateSrvNetworkAddress >>> Encapsulated.
 
 // DescribeMongodbAccount <<< Encapsulated get interface for Mongodb Account.

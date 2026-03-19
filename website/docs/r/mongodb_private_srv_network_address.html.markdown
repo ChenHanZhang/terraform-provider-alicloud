@@ -20,12 +20,6 @@ For information about Mongodb Private Srv Network Address and how to use it, see
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_mongodb_private_srv_network_address&exampleId=f7832271-eb3b-840f-aaeb-df71975174cbd730c21d&activeTab=example&spm=docs.r.mongodb_private_srv_network_address.0.f7832271eb&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -72,8 +66,6 @@ resource "alicloud_mongodb_private_srv_network_address" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_mongodb_private_srv_network_address&spm=docs.r.mongodb_private_srv_network_address.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -82,13 +74,13 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `private_srv_connection_string_uri` - Private network SRV highly available connection address
+* `id` - The ID of the resource supplied above. 
+* `private_srv_connection_string_uri` - Private network SRV highly available connection address.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 6 mins) Used when create the Private Srv Network Address.
+* `create` - (Defaults to 10 mins) Used when create the Private Srv Network Address.
 * `delete` - (Defaults to 5 mins) Used when delete the Private Srv Network Address.
 
 ## Import
@@ -96,5 +88,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Mongodb Private Srv Network Address can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_mongodb_private_srv_network_address.example <id>
+$ terraform import alicloud_mongodb_private_srv_network_address.example <db_instance_id>
 ```
