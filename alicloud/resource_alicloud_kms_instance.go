@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -59,6 +60,10 @@ func resourceAliCloudKmsInstance() *schema.Resource {
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"deletion_protection": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"end_date": {
 				Type:     schema.TypeString,
@@ -282,7 +287,7 @@ func resourceAliCloudKmsInstanceCreate(d *schema.ResourceData, meta interface{})
 	}
 	request["SubscriptionType"] = "Subscription"
 	if v, ok := d.GetOk("payment_type"); ok {
-		request["SubscriptionType"] = convertKmsInstanceSubscriptionTypeRequest(v.(string))
+		request["SubscriptionType"] = v.(string)
 	}
 	var endpoint string
 	request["ProductCode"] = "kms"
@@ -405,6 +410,7 @@ func resourceAliCloudKmsInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("ca_certificate_chain_pem", objectRaw["CaCertificateChainPem"])
 	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("deletion_protection", objectRaw["DeletionProtection"])
 	d.Set("end_date", objectRaw["EndDate"])
 	d.Set("instance_name", objectRaw["InstanceName"])
 	d.Set("key_num", objectRaw["KeyNum"])
@@ -437,19 +443,18 @@ func resourceAliCloudKmsInstanceRead(d *schema.ResourceData, meta interface{}) e
 	if err := d.Set("bind_vpcs", bindVpcsMaps); err != nil {
 		return err
 	}
-
-	vswitchIds := make([]interface{}, 0)
+	vswitchIdsRaw := make([]interface{}, 0)
 	if objectRaw["VswitchIds"] != nil {
-		vswitchIds = objectRaw["VswitchIds"].([]interface{})
+		vswitchIdsRaw = convertToInterfaceArray(objectRaw["VswitchIds"])
 	}
 
-	d.Set("vswitch_ids", vswitchIds)
-
-	zoneIds := make([]interface{}, 0)
+	d.Set("vswitch_ids", vswitchIdsRaw)
+	zoneIdsRaw := make([]interface{}, 0)
 	if objectRaw["ZoneIds"] != nil {
-		zoneIds = objectRaw["ZoneIds"].([]interface{})
+		zoneIdsRaw = convertToInterfaceArray(objectRaw["ZoneIds"])
 	}
-	d.Set("zone_ids", zoneIds)
+
+	d.Set("zone_ids", zoneIdsRaw)
 
 	objectRaw, err = kmsServiceV2.DescribeInstanceQueryAvailableInstances(d)
 	if err != nil && !NotFoundError(err) {
@@ -460,7 +465,7 @@ func resourceAliCloudKmsInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("renew_status", objectRaw["RenewStatus"])
 
 	objectRaw, err = kmsServiceV2.DescribeInstanceListTagResources(d.Id())
-	if err != nil && !NotFoundError(err) && !IsExpectedErrors(err, []string{"Rejected.Uninitialized"}) {
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
@@ -538,7 +543,10 @@ func resourceAliCloudKmsInstanceUpdate(d *schema.ResourceData, meta interface{})
 	if !d.IsNewResource() && d.HasChange("payment_type") {
 		update = true
 	}
-	request["SubscriptionType"] = d.Get("payment_type")
+	request["SubscriptionType"] = "Subscription"
+	if v, ok := d.GetOk("payment_type"); ok {
+		request["SubscriptionType"] = v.(string)
+	}
 	request["ModifyType"] = "Upgrade"
 	var endpoint string
 	request["ProductCode"] = "kms"
@@ -687,7 +695,10 @@ func resourceAliCloudKmsInstanceUpdate(d *schema.ResourceData, meta interface{})
 	}
 	if !d.IsNewResource() && d.HasChange("payment_type") {
 		update = true
-		request["SubscriptionType"] = d.Get("payment_type")
+		request["SubscriptionType"] = "Subscription"
+		if v, ok := d.GetOk("payment_type"); ok {
+			request["SubscriptionType"] = v.(string)
+		}
 	}
 
 	request["ProductCode"] = "kms"
@@ -721,6 +732,34 @@ func resourceAliCloudKmsInstanceUpdate(d *schema.ResourceData, meta interface{})
 						request["ProductType"] = "kms_ppi_public_intl"
 					}
 					endpoint = connectivity.BssOpenAPIEndpointInternational
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "SetDeletionProtection"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["KmsInstanceId"] = d.Id()
+
+	if d.HasChange("deletion_protection") {
+		update = true
+	}
+	request["EnableDeletionProtection"] = d.Get("deletion_protection")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
@@ -868,12 +907,6 @@ func convertKmsInstanceKmsInstanceChargeTypeResponse(source interface{}) interfa
 		return "Subscription"
 	case "POSTPAY":
 		return "PayAsYouGo"
-	}
-	return source
-}
-func convertKmsInstanceSubscriptionTypeRequest(source interface{}) interface{} {
-	source = fmt.Sprint(source)
-	switch source {
 	}
 	return source
 }
