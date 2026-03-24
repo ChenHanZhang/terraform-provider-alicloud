@@ -20,12 +20,6 @@ For information about Resource Manager Shared Resource and how to use it, see [W
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_resource_manager_shared_resource&exampleId=23ef2562-d157-231e-11e2-52a2ebd76c318231d557&activeTab=example&spm=docs.r.resource_manager_shared_resource.0.23ef2562d1&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -63,30 +57,29 @@ resource "alicloud_resource_manager_shared_resource" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_resource_manager_shared_resource&spm=docs.r.resource_manager_shared_resource.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `permission_name` - (Optional, Available since v1.268.0) The name of a permission. If you do not configure this parameter, the system automatically associates the default permission for the specified resource type with the resource share.
-
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
-
-* `resource_arn` - (Optional, ForceNew, Available since v1.268.0) Associated resource ARN.
-
--> **NOTE:**  This parameter is not available when the association type 'AssociationType' is the resource consumer 'Target'.
-
-* `resource_id` - (Optional, ForceNew, Computed) The ID of the shared resource.
+* `resource_id` - (Required, ForceNew) The ID of the associated entity. Valid values:  
+  - When the association type `AssociationType` is `Resource`, this parameter specifies the resource ID.  
+  - When the association type `AssociationType` is `Target`, this parameter specifies the resource consumer ID.
 * `resource_share_id` - (Required, ForceNew) The ID of the resource share.
-* `resource_type` - (Optional, ForceNew, Computed) The type of the shared resource.
+N ranges from 1 to 5, meaning you can specify up to five resource shares per request.
+* `resource_type` - (Required, ForceNew) The type of shared resource.
+
+N ranges from 1 to 5, meaning you can add up to five shared resources per request.
+
+For supported resource types, see [Cloud Services That Support Resource Sharing](https://help.aliyun.com/document_detail/450526.html).
+
+-> **NOTE:**  `Resources.N.ResourceId` and `Resources.N.ResourceType` must be specified together as a pair.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<resource_share_id>:<resource_id>:<resource_type>`.
-* `create_time` - The time when the shared resource was associated with the resource share.
-* `status` - The association status.
+* `id` - The ID of the resource supplied above. The value is formulated as `<resource_share_id>:<resource_id>:<resource_type>`.
+* `create_time` - The time when the resource share was created.
+* `status` - Association status.
 
 ## Timeouts
 
