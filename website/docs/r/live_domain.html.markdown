@@ -10,7 +10,8 @@ description: |-
 
 Provides a Live Domain resource.
 
-Live domain name.
+Live streaming domain
+.
 
 For information about Live Domain and how to use it, see [What is Domain](https://next.api.alibabacloud.com/document/live/2016-11-01/AddLiveDomain).
 
@@ -19,12 +20,6 @@ For information about Live Domain and how to use it, see [What is Domain](https:
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_live_domain&exampleId=1f2838fb-dded-56b4-3c02-8151c41f11862dcc6e05&activeTab=example&spm=docs.r.live_domain.0.1f2838fbdd&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 provider "alicloud" {
@@ -43,21 +38,18 @@ resource "alicloud_live_domain" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_live_domain&spm=docs.r.live_domain.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
 * `check_url` - (Optional) Health check URL.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `domain_name` - (Required, ForceNew) Fuzzy match filter for domain names.
 
--> **NOTE:** - If `domain_type` (live streaming domain business type) is set to `liveVideo`, and this parameter is not specified, the system queries information about the user's playback domains by default.
+-> **NOTE:** - If `LiveDomainType` (live streaming domain business type) is set to `liveVideo`, and this parameter is not specified, the system queries information about the user's playback domains by default.
 
--> **NOTE:** - If `domain_type` is set to `liveEdge`, and this parameter is not specified, the system queries information about the user's ingest domains by default.
+-> **NOTE:** - If `LiveDomainType` is set to `liveEdge`, and this parameter is not specified, the system queries information about the user's ingest domains by default.
 
 * `domain_type` - (Required, ForceNew) Domain business type. Valid values:  
   - `liveVideo`: Playback domain.  
@@ -71,6 +63,7 @@ The following arguments are supported:
 * `status` - (Optional, Computed) Domain status. Valid values:
   - `online`: Running (indicating that the domain name service is operating normally).
   - `offline`: Stopped.
+  - `configuring`: Configuring.
 * `tags` - (Optional, Map) List of tags.
 
 ## Attributes Reference
