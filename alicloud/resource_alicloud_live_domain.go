@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -87,6 +88,11 @@ func resourceAliCloudLiveDomainCreate(d *schema.ResourceData, meta interface{}) 
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
+	}
+
 	if v, ok := d.GetOk("check_url"); ok {
 		request["CheckUrl"] = v
 	}
@@ -95,7 +101,7 @@ func resourceAliCloudLiveDomainCreate(d *schema.ResourceData, meta interface{}) 
 	}
 	request["Region"] = d.Get("region")
 	request["LiveDomainType"] = d.Get("domain_type")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(120*time.Second, 120*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 		if err != nil {
@@ -157,7 +163,12 @@ func resourceAliCloudLiveDomainRead(d *schema.ResourceData, meta interface{}) er
 		tagResourceRaw = convertToInterfaceArray(tagResourceRawObj)
 	}
 
-	d.Set("tags", tagsToMap(tagResourceRaw))
+	d.Set("domain_name", tagResourceRaw["ResourceId"])
+
+	tagsMaps, _ := jsonpath.Get("$.TagResources.TagResource", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
+
+	d.Set("domain_name", d.Id())
 
 	return nil
 }
@@ -188,7 +199,7 @@ func resourceAliCloudLiveDomainUpdate(d *schema.ResourceData, meta interface{}) 
 				query = make(map[string]interface{})
 				request["DomainName"] = d.Id()
 
-				wait := incrementalWait(3*time.Second, 5*time.Second)
+				wait := incrementalWait(3*time.Second, 0*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 					if err != nil {
@@ -217,7 +228,7 @@ func resourceAliCloudLiveDomainUpdate(d *schema.ResourceData, meta interface{}) 
 				query = make(map[string]interface{})
 				request["DomainName"] = d.Id()
 
-				wait := incrementalWait(3*time.Second, 5*time.Second)
+				wait := incrementalWait(3*time.Second, 0*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 					if err != nil {
@@ -254,7 +265,7 @@ func resourceAliCloudLiveDomainUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 	request["NewResourceGroupId"] = d.Get("resource_group_id")
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(3*time.Second, 0*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 			if err != nil {
@@ -282,7 +293,7 @@ func resourceAliCloudLiveDomainUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 	request["Property"] = convertLiveDomainPropertyRequest(d.Get("scope").(string))
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(3*time.Second, 0*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 			if err != nil {
@@ -302,7 +313,7 @@ func resourceAliCloudLiveDomainUpdate(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("tags") {
 		liveServiceV2 := LiveServiceV2{client}
-		if err := liveServiceV2.SetLiveResourceTags(d, "DOMAIN"); err != nil {
+		if err := liveServiceV2.SetResourceTags(d, "DOMAIN"); err != nil {
 			return WrapError(err)
 		}
 	}
@@ -321,7 +332,7 @@ func resourceAliCloudLiveDomainDelete(d *schema.ResourceData, meta interface{}) 
 	request = make(map[string]interface{})
 	request["DomainName"] = d.Id()
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(3*time.Second, 0*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("live", "2016-11-01", action, query, request, true)
 		if err != nil {
@@ -361,6 +372,5 @@ func convertLiveDomainPropertyRequest(source interface{}) interface{} {
 	case "overseas":
 		return "{\"coverage\":\"overseas\"}"
 	}
-
 	return source
 }
