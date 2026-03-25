@@ -119,12 +119,12 @@ func (s *CenServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
-			request["ResourceType"] = resourceType
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			request["ResourceType"] = resourceType
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 				if err != nil {
@@ -157,7 +157,7 @@ func (s *CenServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			}
 
 			request["ResourceType"] = resourceType
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 				if err != nil {
@@ -189,14 +189,12 @@ func (s *CenServiceV2) DescribeCenTransitRouterEcrAttachment(id string) (object 
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "ListTransitRouterEcrAttachments"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["TransitRouterAttachmentId"] = id
 	request["RegionId"] = client.RegionId
+	action := "ListTransitRouterEcrAttachments"
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
@@ -224,30 +222,22 @@ func (s *CenServiceV2) DescribeCenTransitRouterEcrAttachment(id string) (object 
 		return object, WrapErrorf(NotFoundErr("TransitRouterEcrAttachment", id), NotFoundMsg, response)
 	}
 
-	result, _ := v.([]interface{})
-	for _, v := range result {
-		item := v.(map[string]interface{})
-		if item["ResourceType"] != "ECR" {
-			continue
-		}
-		if fmt.Sprint(item["TransitRouterAttachmentId"]) != id {
-			continue
-		}
-		return item, nil
-	}
-	return object, WrapErrorf(NotFoundErr("TransitRouterEcrAttachment", id), NotFoundMsg, response)
+	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
 func (s *CenServiceV2) CenTransitRouterEcrAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.CenTransitRouterEcrAttachmentStateRefreshFuncWithApi(id, field, failStates, s.DescribeCenTransitRouterEcrAttachment)
+}
+
+func (s *CenServiceV2) CenTransitRouterEcrAttachmentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeCenTransitRouterEcrAttachment(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

@@ -3,28 +3,22 @@ subcategory: "Cloud Enterprise Network (CEN)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cen_transit_router_ecr_attachment"
 description: |-
-  Provides a Alicloud CEN Transit Router Ecr Attachment resource.
+  Provides a Alicloud Cloud Enterprise Network (CEN) Transit Router Ecr Attachment resource.
 ---
 
 # alicloud_cen_transit_router_ecr_attachment
 
-Provides a CEN Transit Router Ecr Attachment resource.
+Provides a Cloud Enterprise Network (CEN) Transit Router Ecr Attachment resource.
 
 
 
-For information about CEN Transit Router Ecr Attachment and how to use it, see [What is Transit Router Ecr Attachment](https://www.alibabacloud.com/help/en/cen/developer-reference/api-cbn-2017-09-12-createtransitrouterecrattachment).
+For information about Cloud Enterprise Network (CEN) Transit Router Ecr Attachment and how to use it, see [What is Transit Router Ecr Attachment](https://www.alibabacloud.com/help/en/cen/developer-reference/api-cbn-2017-09-12-createtransitrouterecrattachment).
 
 -> **NOTE:** Available since v1.235.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cen_transit_router_ecr_attachment&exampleId=76aca17d-d04c-07ab-688d-ccc087070102b63b8028&activeTab=example&spm=docs.r.cen_transit_router_ecr_attachment.0.76aca17dd0&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -74,25 +68,31 @@ resource "alicloud_cen_transit_router_ecr_attachment" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cen_transit_router_ecr_attachment&spm=docs.r.cen_transit_router_ecr_attachment.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `cen_id` - (Optional, ForceNew) CenId
-* `ecr_id` - (Required, ForceNew) EcrId
-* `ecr_owner_id` - (Optional, ForceNew, Int) EcrOwnerId
-* `tags` - (Optional, Map) The tag of the resource
-* `transit_router_attachment_description` - (Optional) TransitRouterAttachmentDescription
-* `transit_router_ecr_attachment_name` - (Optional) TransitRouterAttachmentName
-* `transit_router_id` - (Optional, ForceNew) TransitRouterId
+* `cen_id` - (Optional, ForceNew) The ID of the Cloud Enterprise Network (CEN) instance.
+* `ecr_id` - (Required, ForceNew) The ID of the associated Express Connect router (ECR) instance.
+* `ecr_owner_id` - (Optional, ForceNew, Int) The ID of the Alibaba Cloud account (main account) to which the ECR instance belongs. The default value is the ID of the currently logged-in Alibaba Cloud account.
+
+-> **NOTE:**  If you want to attach a network instance from another Alibaba Cloud account, you must specify this parameter.
+
+* `order_type` - (Optional, Computed, Available since v1.274.0) The payer of the network instance. Valid values:
+  - `PayByCenOwner`: The owner of the transit router instance pays for the connection fee and traffic processing fee of the ECR instance.
+  - `PayByResourceOwner`: The owner of the ECR instance pays for the connection fee and traffic processing fee of the ECR instance.
+* `tags` - (Optional, Map) The list of tags.
+* `transit_router_attachment_description` - (Optional) The new description of the ECR attachment.
+The description can be empty or contain 1 to 256 characters, and must not start with http:// or https://.
+* `transit_router_ecr_attachment_name` - (Optional) The new name of the ECR attachment.
+The name can be empty or contain 1 to 128 characters, and must not start with http:// or https://.
+* `transit_router_id` - (Optional, ForceNew) The ID of the Enterprise Edition transit router instance.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - The creation time of the resource
-* `status` - The status of the resource
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the ECR instance attachment.
+* `status` - The status of the ECR attachment.
 
 ## Timeouts
 
@@ -103,8 +103,8 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-CEN Transit Router Ecr Attachment can be imported using the id, e.g.
+Cloud Enterprise Network (CEN) Transit Router Ecr Attachment can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cen_transit_router_ecr_attachment.example <id>
+$ terraform import alicloud_cen_transit_router_ecr_attachment.example <transit_router_attachment_id>
 ```
