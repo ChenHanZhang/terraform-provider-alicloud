@@ -8,6 +8,7 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/blues/jsonata-go"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -101,11 +102,7 @@ func (s *AlikafkaServiceV2) AlikafkaTopicStateRefreshFunc(id string, field strin
 // DescribeAlikafkaTopic >>> Encapsulated.
 
 // SetResourceTags <<< Encapsulated tag function for Alikafka.
-
 func (s *AlikafkaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
-
-	resourceIdNum := strings.Count(d.Id(), ":")
-
 	if d.HasChange("tags") {
 		var action string
 		var err error
@@ -122,30 +119,21 @@ func (s *AlikafkaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			}
 		}
 		if len(removedTagKeys) > 0 {
-			parts := strings.Split(d.Id(), ":")
 			action = "UntagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
+			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
-			request["ResourceType"] = resourceType
-
-			if resourceIdNum == 0 {
-				request["ResourceId.1"] = parts[0]
-			} else {
-				resourceId := strings.Replace(d.Id(), ":", "_", -1)
-
-				request["ResourceId.1"] = fmt.Sprintf("%v_%v", "Kafka", resourceId)
-			}
-
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			request["ResourceType"] = resourceType
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ONS_SYSTEM_FLOW_CONTROL"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -161,21 +149,11 @@ func (s *AlikafkaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 		}
 
 		if len(added) > 0 {
-			parts := strings.Split(d.Id(), ":")
 			action = "TagResources"
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
-			request["InstanceId"] = parts[0]
+			request["ResourceId.1"] = d.Id()
 			request["RegionId"] = client.RegionId
-
-			if resourceIdNum == 0 {
-				request["ResourceId.1"] = parts[0]
-			} else {
-				resourceId := strings.Replace(d.Id(), ":", "_", -1)
-
-				request["ResourceId.1"] = fmt.Sprintf("%v_%v", "Kafka", resourceId)
-			}
-
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -184,11 +162,11 @@ func (s *AlikafkaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType
 			}
 
 			request["ResourceType"] = resourceType
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ONS_SYSTEM_FLOW_CONTROL"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -572,3 +550,136 @@ func (s *AlikafkaServiceV2) AlikafkaSaslAclStateRefreshFuncWithApi(id string, fi
 }
 
 // DescribeAlikafkaSaslAcl >>> Encapsulated.
+// DescribeAlikafkaInstance <<< Encapsulated get interface for Alikafka Instance.
+
+func (s *AlikafkaServiceV2) DescribeAlikafkaInstance(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceId.1"] = id
+	request["RegionId"] = client.RegionId
+	action := "GetInstanceList"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.InstanceList.InstanceVO[*]", response)
+	if err != nil {
+		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
+	}
+
+	if len(v.([]interface{})) == 0 {
+		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
+	}
+
+	currentStatus := v.([]interface{})[0].(map[string]interface{})["ServiceStatus"]
+	if currentStatus == nil {
+		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
+	}
+
+	return v.([]interface{})[0].(map[string]interface{}), nil
+}
+func (s *AlikafkaServiceV2) DescribeInstanceGetQuotaTip(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["InstanceId"] = id
+	request["RegionId"] = client.RegionId
+	action := "GetQuotaTip"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("alikafka", "2019-09-16", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.QuotaData", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.QuotaData", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *AlikafkaServiceV2) AlikafkaInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.AlikafkaInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeAlikafkaInstance)
+}
+
+func (s *AlikafkaServiceV2) AlikafkaInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		object["AutoCreateTopicEnable"] = convertAlikafkaInstanceInstanceListInstanceVOAutoCreateTopicEnableResponse(object["AutoCreateTopicEnable"])
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+		if field == "$.DiskSize" {
+			e := jsonata.MustCompile("$.DiskSize != null ? $.DiskSize  : 500")
+			v, _ = e.Eval(object)
+			currentStatus = fmt.Sprint(v)
+		}
+		if field == "$.DiskType" {
+			e := jsonata.MustCompile("$.DiskType != null ? $.DiskType  : 0")
+			v, _ = e.Eval(object)
+			currentStatus = fmt.Sprint(v)
+		}
+		if field == "$.VSwitchId" {
+			e := jsonata.MustCompile("$.PaidType = 4 ? $map($split($substring($.VSwitchId, 0, $length($.VSwitchId)-2), ','), function($v, $i, $a) {$string($substring($v, 2, $length($v)-0))})  : $.VSwitchId")
+			v, _ = e.Eval(object)
+			currentStatus = fmt.Sprint(v)
+		}
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeAlikafkaInstance >>> Encapsulated.
