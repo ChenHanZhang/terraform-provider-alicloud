@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -39,10 +40,9 @@ func resourceAliCloudNatGatewayForwardEntry() *schema.Resource {
 				Computed: true,
 			},
 			"forward_entry_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"forward_table_id": {
 				Type:     schema.TypeString,
@@ -58,9 +58,8 @@ func resourceAliCloudNatGatewayForwardEntry() *schema.Resource {
 				Required: true,
 			},
 			"ip_protocol": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: StringInSlice([]string{"any", "tcp", "udp"}, false),
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"port_break": {
 				Type:     schema.TypeBool,
@@ -69,13 +68,6 @@ func resourceAliCloudNatGatewayForwardEntry() *schema.Resource {
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				Deprecated:    "Field `name` has been deprecated from provider version 1.119.1. New field `forward_entry_name` instead.",
-				ConflictsWith: []string{"forward_entry_name"},
 			},
 		},
 	}
@@ -106,15 +98,13 @@ func resourceAliCloudNatGatewayForwardEntryCreate(d *schema.ResourceData, meta i
 	request["InternalPort"] = d.Get("internal_port")
 	if v, ok := d.GetOk("forward_entry_name"); ok {
 		request["ForwardEntryName"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["ForwardEntryName"] = v
 	}
 	request["ExternalPort"] = d.Get("external_port")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"OperationConflict", "TaskConflict", "OperationUnsupported.EipInBinding", "IncorrectStatus", "InvalidIp.NotInNatgw"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"InvalidIp.NotInNatgw", "OperationConflict", "TaskConflict", "OperationUnsupported.EipInBinding"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -143,10 +133,6 @@ func resourceAliCloudNatGatewayForwardEntryRead(d *schema.ResourceData, meta int
 	client := meta.(*connectivity.AliyunClient)
 	nATGatewayServiceV2 := NATGatewayServiceV2{client}
 
-	if !strings.Contains(d.Id(), ":") {
-		d.SetId(fmt.Sprintf("%v:%v", d.Get("forward_table_id"), d.Id()))
-	}
-
 	objectRaw, err := nATGatewayServiceV2.DescribeNatGatewayForwardEntry(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
@@ -166,7 +152,6 @@ func resourceAliCloudNatGatewayForwardEntryRead(d *schema.ResourceData, meta int
 	d.Set("status", objectRaw["Status"])
 	d.Set("forward_entry_id", objectRaw["ForwardEntryId"])
 	d.Set("forward_table_id", objectRaw["ForwardTableId"])
-	d.Set("name", objectRaw["ForwardEntryName"])
 
 	return nil
 }
@@ -177,10 +162,6 @@ func resourceAliCloudNatGatewayForwardEntryUpdate(d *schema.ResourceData, meta i
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-
-	if !strings.Contains(d.Id(), ":") {
-		d.SetId(fmt.Sprintf("%v:%v", d.Get("forward_table_id"), d.Id()))
-	}
 
 	var err error
 	parts := strings.Split(d.Id(), ":")
@@ -212,26 +193,15 @@ func resourceAliCloudNatGatewayForwardEntryUpdate(d *schema.ResourceData, meta i
 	request["InternalPort"] = d.Get("internal_port")
 	if d.HasChange("forward_entry_name") {
 		update = true
-
-		if v, ok := d.GetOk("forward_entry_name"); ok {
-			request["ForwardEntryName"] = v
-		}
+		request["ForwardEntryName"] = d.Get("forward_entry_name")
 	}
 
 	if d.HasChange("external_port") {
 		update = true
 	}
 	request["ExternalPort"] = d.Get("external_port")
-
-	if d.HasChange("name") {
-		update = true
-
-		if v, ok := d.GetOk("name"); ok {
-			request["ForwardEntryName"] = v
-		}
-	}
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(5*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 			if err != nil {
@@ -260,9 +230,6 @@ func resourceAliCloudNatGatewayForwardEntryUpdate(d *schema.ResourceData, meta i
 func resourceAliCloudNatGatewayForwardEntryDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-	if !strings.Contains(d.Id(), ":") {
-		d.SetId(fmt.Sprintf("%v:%v", d.Get("forward_table_id"), d.Id()))
-	}
 	parts := strings.Split(d.Id(), ":")
 	action := "DeleteForwardEntry"
 	var request map[string]interface{}
@@ -275,7 +242,7 @@ func resourceAliCloudNatGatewayForwardEntryDelete(d *schema.ResourceData, meta i
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {

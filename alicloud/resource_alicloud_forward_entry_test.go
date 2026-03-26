@@ -19,8 +19,439 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test NatGateway ForwardEntry. >>> Resource test cases, automatically generated.
+// Case 全生命周期_ForwardEntry_1.0.1 9600
+func TestAccAliCloudNatGatewayForwardEntry_basic9600(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_forward_entry.default"
+	ra := resourceAttrInit(resourceId, AlicloudNatGatewayForwardEntryMap9600)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNatGatewayForwardEntry")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnatgateway%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNatGatewayForwardEntryBasicDependence9600)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_port":      "80",
+					"external_ip":        "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
+					"ip_protocol":        "tcp",
+					"internal_port":      "8080",
+					"internal_ip":        "172.16.0.115",
+					"forward_table_id":   "${alicloud_nat_gateway.NATGateway.forward_table_ids[0]}",
+					"forward_entry_name": name,
+					"port_break":         "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_port":      CHECKSET,
+						"external_ip":        CHECKSET,
+						"ip_protocol":        "tcp",
+						"internal_port":      CHECKSET,
+						"internal_ip":        "172.16.0.115",
+						"forward_table_id":   CHECKSET,
+						"forward_entry_name": name,
+						"port_break":         "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_port":      "90",
+					"external_ip":        "${alicloud_vpc_nat_ip.NatIp2.nat_ip}",
+					"ip_protocol":        "udp",
+					"internal_port":      "9090",
+					"internal_ip":        "172.16.0.55",
+					"forward_entry_name": name + "_update",
+					"port_break":         "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_port":      CHECKSET,
+						"external_ip":        CHECKSET,
+						"ip_protocol":        "udp",
+						"internal_port":      CHECKSET,
+						"internal_ip":        "172.16.0.55",
+						"forward_entry_name": name + "_update",
+						"port_break":         "true",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"port_break"},
+			},
+		},
+	})
+}
+
+var AlicloudNatGatewayForwardEntryMap9600 = map[string]string{
+	"status":           CHECKSET,
+	"forward_entry_id": CHECKSET,
+}
+
+func AlicloudNatGatewayForwardEntryBasicDependence9600(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "vpc" {
+  cidr_block = "172.16.0.0/12"
+  vpc_name   = "tf-test-nat-forward-entry"
+}
+
+resource "alicloud_vswitch" "VSwitch" {
+  vpc_id       = alicloud_vpc.vpc.id
+  zone_id      = "eu-central-1b"
+  cidr_block   = "172.16.0.0/24"
+  vswitch_name = "tf-test-nat-forward-entry-vsw"
+}
+
+resource "alicloud_nat_gateway" "NATGateway" {
+  nat_gateway_name   = "tf-test-nat-forward-entry"
+  nat_type           = "Enhanced"
+  vpc_id             = alicloud_vpc.vpc.id
+  network_type       = "intranet"
+  icmp_reply_enabled = false
+  payment_type       = "PayAsYouGo"
+}
+
+resource "alicloud_vpc_nat_ip" "NatIp1" {
+  nat_ip         = "172.16.0.66"
+  nat_ip_name    = "tf-test-dnat-natip1"
+  nat_gateway_id = alicloud_nat_gateway.NATGateway.id
+  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
+}
+
+resource "alicloud_vpc_nat_ip" "NatIp2" {
+  nat_ip         = "172.16.0.88"
+  nat_ip_name    = "tf-test-dnat-natip2"
+  nat_gateway_id = alicloud_nat_gateway.NATGateway.id
+  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
+}
+
+
+`, name)
+}
+
+// Test NatGateway ForwardEntry. <<< Resource test cases, automatically generated.
+
+func TestAccAlicloudVPCForwardEntry_basic(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_forward_entry.default"
+	ra := resourceAttrInit(resourceId, AlicloudForwardEntryMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeForwardEntry")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sforwardentry%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudForwardEntryBasicDependence0)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"forward_table_id": "${alicloud_nat_gateway.default.forward_table_ids}",
+					"external_ip":      "${alicloud_eip_address.default.0.ip_address}",
+					"external_port":    `80`,
+					"internal_ip":      "172.16.0.3",
+					"internal_port":    `8080`,
+					"ip_protocol":      "tcp",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"forward_table_id": CHECKSET,
+						"external_ip":      CHECKSET,
+						"external_port":    "80",
+						"internal_ip":      "172.16.0.3",
+						"internal_port":    "8080",
+						"ip_protocol":      "tcp",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"port_break"},
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_ip": "${alicloud_eip_address.default.1.ip_address}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_ip": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_port": `90`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_port": "90",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"forward_entry_name": name + "1",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"forward_entry_name": name + "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"internal_ip": "172.16.0.4",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"internal_ip": "172.16.0.4",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"internal_port": `9090`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"internal_port": "9090",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"ip_protocol": "udp",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"ip_protocol": "udp",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"external_ip":        "${alicloud_eip_address.default.0.ip_address}",
+					"external_port":      `80`,
+					"forward_entry_name": "${var.name}",
+					"internal_ip":        "172.16.0.3",
+					"internal_port":      `8080`,
+					"ip_protocol":        "tcp",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"external_ip":        CHECKSET,
+						"external_port":      "80",
+						"forward_entry_name": name,
+						"internal_ip":        "172.16.0.3",
+						"internal_port":      "8080",
+						"ip_protocol":        "tcp",
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAliCloudVPCForwardEntry_basic1(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_forward_entry.default"
+	ra := resourceAttrInit(resourceId, AlicloudForwardEntryMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeForwardEntry")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sforwardentry%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudForwardEntryBasicDependence0)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"forward_table_id":   "${alicloud_nat_gateway.default.forward_table_ids}",
+					"external_ip":        "${alicloud_eip_address.default.0.ip_address}",
+					"external_port":      `80`,
+					"internal_ip":        "172.16.0.3",
+					"internal_port":      `8080`,
+					"ip_protocol":        "tcp",
+					"forward_entry_name": name,
+					"port_break":         "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"forward_table_id":   CHECKSET,
+						"external_ip":        CHECKSET,
+						"external_port":      "80",
+						"internal_ip":        "172.16.0.3",
+						"internal_port":      "8080",
+						"ip_protocol":        "tcp",
+						"forward_entry_name": name,
+						"port_break":         "false",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"port_break"},
+			},
+		},
+	})
+}
+
+func TestAccAliCloudVPCForwardEntry_basic2(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_forward_entry.default"
+	ra := resourceAttrInit(resourceId, AlicloudForwardEntryMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &VpcService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeForwardEntry")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sforwardentry%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudForwardEntryBasicDependence0)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"forward_table_id": "${alicloud_nat_gateway.default.forward_table_ids}",
+					"external_ip":      "${alicloud_eip_address.default.0.ip_address}",
+					"external_port":    `80`,
+					"internal_ip":      "172.16.0.3",
+					"internal_port":    `8080`,
+					"ip_protocol":      "tcp",
+					"name":             name,
+					"port_break":       "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"forward_table_id": CHECKSET,
+						"external_ip":      CHECKSET,
+						"external_port":    "80",
+						"internal_ip":      "172.16.0.3",
+						"internal_port":    "8080",
+						"ip_protocol":      "tcp",
+						"name":             name,
+						"port_break":       "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"name": name + "update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"name": name + "update",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"port_break"},
+			},
+		},
+	})
+}
+
+var AlicloudForwardEntryMap0 = map[string]string{
+	"port_break": "false",
+}
+
+func AlicloudForwardEntryBasicDependence0(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+			default = "%s"
+		}
+
+variable "number" {
+	default = "2"
+}
+
+data "alicloud_zones" "default" {
+	available_resource_creation= "VSwitch"
+}
+
+resource "alicloud_vpc" "default" {
+	vpc_name = "${var.name}"
+	cidr_block = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "default" {
+	vpc_id = "${alicloud_vpc.default.id}"
+	cidr_block = "172.16.0.0/21"
+	zone_id = "${data.alicloud_zones.default.zones.0.id}"
+	vswitch_name = "${var.name}"
+}
+
+resource "alicloud_nat_gateway" "default" {
+	vpc_id = "${alicloud_vswitch.default.vpc_id}"
+	nat_gateway_name = "${var.name}"
+	nat_type = "Enhanced"
+	vswitch_id = alicloud_vswitch.default.id
+}
+
+resource "alicloud_eip_address" "default" {
+	count = "${var.number}"
+	address_name = "${var.name}"
+}
+
+resource "alicloud_eip_association" "default" {
+	count = "${var.number}"
+	allocation_id = "${element(alicloud_eip_address.default.*.id,count.index)}"
+	instance_id = "${alicloud_nat_gateway.default.id}"
+}
+`, name)
+}
+
 // lintignore: R001
-func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
+func TestUnitAlicloudVPCForwardEntry(t *testing.T) {
 	p := Provider().(*schema.Provider).ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_forward_entry"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_forward_entry"].Schema).Data(nil, nil)
@@ -123,7 +554,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAliCloudNatGatewayForwardEntryCreate(d, rawClient)
+		err := resourceAlicloudForwardEntryCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -140,7 +571,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryCreate(d, rawClient)
+		err := resourceAlicloudForwardEntryCreate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -157,7 +588,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryCreate(dCreate, rawClient)
+		err := resourceAlicloudForwardEntryCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -175,7 +606,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["CreateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryCreate(dCreate, rawClient)
+		err := resourceAlicloudForwardEntryCreate(dCreate, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -193,7 +624,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 		})
 
-		err := resourceAliCloudNatGatewayForwardEntryUpdate(d, rawClient)
+		err := resourceAlicloudForwardEntryUpdate(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -225,7 +656,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryUpdate(resourceData1, rawClient)
+		err := resourceAlicloudForwardEntryUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -258,7 +689,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryUpdate(resourceData1, rawClient)
+		err := resourceAlicloudForwardEntryUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -278,7 +709,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["UpdateNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryUpdate(resourceData1, rawClient)
+		err := resourceAlicloudForwardEntryUpdate(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -293,7 +724,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 				StatusCode: tea.Int(400),
 			}
 		})
-		err := resourceAliCloudNatGatewayForwardEntryDelete(d, rawClient)
+		err := resourceAlicloudForwardEntryDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -310,7 +741,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryDelete(d, rawClient)
+		err := resourceAlicloudForwardEntryDelete(d, rawClient)
 		patches.Reset()
 		assert.NotNil(t, err)
 	})
@@ -330,7 +761,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 		patcheDescribeForwardEntry := gomonkey.ApplyMethod(reflect.TypeOf(&VpcService{}), "DescribeForwardEntry", func(*VpcService, string) (map[string]interface{}, error) {
 			return responseMock["RetryError"]("InvalidForwardEntryId.NotFound")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryDelete(d, rawClient)
+		err := resourceAlicloudForwardEntryDelete(d, rawClient)
 		patches.Reset()
 		patcheDescribeForwardEntry.Reset()
 		assert.NotNil(t, err)
@@ -351,7 +782,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["DeleteNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryDelete(resourceData1, rawClient)
+		err := resourceAlicloudForwardEntryDelete(resourceData1, rawClient)
 		patches.Reset()
 		assert.Nil(t, err)
 	})
@@ -368,7 +799,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryRead(d, rawClient)
+		err := resourceAlicloudForwardEntryRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
@@ -384,7 +815,7 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryRead(d, rawClient)
+		err := resourceAlicloudForwardEntryRead(d, rawClient)
 		patcheDorequest.Reset()
 		assert.NotNil(t, err)
 	})
@@ -402,409 +833,8 @@ func TestUnitAliCloudVPCForwardEntry(t *testing.T) {
 			}
 			return responseMock["ReadNormal"]("")
 		})
-		err := resourceAliCloudNatGatewayForwardEntryRead(resourceData1, rawClient)
+		err := resourceAlicloudForwardEntryRead(resourceData1, rawClient)
 		patcheDorequest.Reset()
 		assert.Nil(t, err)
 	})
 }
-
-// Test NatGateway ForwardEntry. >>> Resource test cases, automatically generated.
-
-// Case 全生命周期_ForwardEntry_1.0.1 9600
-func TestAccAliCloudNatGatewayForwardEntry_basic9600(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_forward_entry.default"
-	ra := resourceAttrInit(resourceId, AliCloudNatGatewayForwardEntryMap9600)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeNatGatewayForwardEntry")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccnatgateway%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudNatGatewayForwardEntryBasicDependence9600)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port":      "80",
-					"external_ip":        "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
-					"ip_protocol":        "tcp",
-					"internal_port":      "8080",
-					"internal_ip":        "172.16.0.115",
-					"forward_table_id":   "${alicloud_nat_gateway.NATGateway.forward_table_ids}",
-					"forward_entry_name": name,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port":      "80",
-						"external_ip":        CHECKSET,
-						"ip_protocol":        "tcp",
-						"internal_port":      "8080",
-						"internal_ip":        "172.16.0.115",
-						"forward_table_id":   CHECKSET,
-						"forward_entry_name": name,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_ip": "${alicloud_vpc_nat_ip.NatIp2.nat_ip}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_ip": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port": "90",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port": "90",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"forward_entry_name": name + "_update",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"forward_entry_name": name + "_update",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"internal_ip": "172.16.0.55",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"internal_ip": "172.16.0.55",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"internal_port": "9090",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"internal_port": "9090",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"ip_protocol": "udp",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"ip_protocol": "udp",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"port_break": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"port_break"},
-			},
-		},
-	})
-}
-
-func TestAccAliCloudNatGatewayForwardEntry_basic9600_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_forward_entry.default"
-	ra := resourceAttrInit(resourceId, AliCloudNatGatewayForwardEntryMap9600)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeNatGatewayForwardEntry")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccnatgateway%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudNatGatewayForwardEntryBasicDependence9600)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port":      "80",
-					"external_ip":        "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
-					"ip_protocol":        "tcp",
-					"internal_port":      "8080",
-					"internal_ip":        "172.16.0.115",
-					"forward_table_id":   "${alicloud_nat_gateway.NATGateway.forward_table_ids}",
-					"forward_entry_name": name,
-					"port_break":         "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port":      "80",
-						"external_ip":        CHECKSET,
-						"ip_protocol":        "tcp",
-						"internal_port":      "8080",
-						"internal_ip":        "172.16.0.115",
-						"forward_table_id":   CHECKSET,
-						"forward_entry_name": name,
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"port_break"},
-			},
-		},
-	})
-}
-
-// Case 适配字段name 9602
-func TestAccAliCloudNatGatewayForwardEntry_basic9602(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_forward_entry.default"
-	ra := resourceAttrInit(resourceId, AliCloudNatGatewayForwardEntryMap9600)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeNatGatewayForwardEntry")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccnatgateway%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudNatGatewayForwardEntryBasicDependence9600)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port":    "80",
-					"external_ip":      "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
-					"ip_protocol":      "tcp",
-					"internal_port":    "8080",
-					"internal_ip":      "172.16.0.115",
-					"forward_table_id": "${alicloud_nat_gateway.NATGateway.forward_table_ids}",
-					"name":             name,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port":    "80",
-						"external_ip":      CHECKSET,
-						"ip_protocol":      "tcp",
-						"internal_port":    "8080",
-						"internal_ip":      "172.16.0.115",
-						"forward_table_id": CHECKSET,
-						"name":             name,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_ip": "${alicloud_vpc_nat_ip.NatIp2.nat_ip}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_ip": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port": "90",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port": "90",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"name": name + "_update",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"name": name + "_update",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"internal_ip": "172.16.0.55",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"internal_ip": "172.16.0.55",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"internal_port": "9090",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"internal_port": "9090",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"ip_protocol": "udp",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"ip_protocol": "udp",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"port_break": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"port_break"},
-			},
-		},
-	})
-}
-
-func TestAccAliCloudNatGatewayForwardEntry_basic9602_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_forward_entry.default"
-	ra := resourceAttrInit(resourceId, AliCloudNatGatewayForwardEntryMap9600)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &NATGatewayServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeNatGatewayForwardEntry")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccnatgateway%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudNatGatewayForwardEntryBasicDependence9600)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"external_port":    "80",
-					"external_ip":      "${alicloud_vpc_nat_ip.NatIp1.nat_ip}",
-					"ip_protocol":      "tcp",
-					"internal_port":    "8080",
-					"internal_ip":      "172.16.0.115",
-					"forward_table_id": "${alicloud_nat_gateway.NATGateway.forward_table_ids}",
-					"name":             name,
-					"port_break":       "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"external_port":    "80",
-						"external_ip":      CHECKSET,
-						"ip_protocol":      "tcp",
-						"internal_port":    "8080",
-						"internal_ip":      "172.16.0.115",
-						"forward_table_id": CHECKSET,
-						"name":             name,
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"port_break"},
-			},
-		},
-	})
-}
-
-var AliCloudNatGatewayForwardEntryMap9600 = map[string]string{
-	"status":           CHECKSET,
-	"forward_entry_id": CHECKSET,
-}
-
-func AliCloudNatGatewayForwardEntryBasicDependence9600(name string) string {
-	return fmt.Sprintf(`
-variable "name" {
-    default = "%s"
-}
-
-resource "alicloud_vpc" "vpc" {
-  cidr_block = "172.16.0.0/12"
-  vpc_name   = "tf-test-nat-forward-entry"
-}
-
-resource "alicloud_vswitch" "VSwitch" {
-  vpc_id       = alicloud_vpc.vpc.id
-  zone_id      = "eu-central-1b"
-  cidr_block   = "172.16.0.0/24"
-  vswitch_name = "tf-test-nat-forward-entry-vsw"
-}
-
-resource "alicloud_nat_gateway" "NATGateway" {
-  vpc_id           = alicloud_vpc.vpc.id
-  nat_gateway_name = var.name
-  nat_type         = "Enhanced"
-  vswitch_id       = alicloud_vswitch.VSwitch.id
-  network_type     = "intranet"
-}
-
-resource "alicloud_vpc_nat_ip" "NatIp1" {
-  nat_ip         = "172.16.0.66"
-  nat_ip_name    = "tf-test-dnat-natip1"
-  nat_gateway_id = alicloud_nat_gateway.NATGateway.id
-  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
-}
-
-resource "alicloud_vpc_nat_ip" "NatIp2" {
-  nat_ip         = "172.16.0.88"
-  nat_ip_name    = "tf-test-dnat-natip2"
-  nat_gateway_id = alicloud_vpc_nat_ip.NatIp1.nat_gateway_id
-  nat_ip_cidr    = alicloud_vswitch.VSwitch.cidr_block
-}
-
-
-`, name)
-}
-
-// Test NatGateway ForwardEntry. <<< Resource test cases, automatically generated.

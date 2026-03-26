@@ -265,7 +265,6 @@ func (s *NATGatewayServiceV2) NatGatewayNatIpStateRefreshFuncWithApi(id string, 
 }
 
 // DescribeNatGatewayNatIp >>> Encapsulated.
-
 // DescribeNatGatewayForwardEntry <<< Encapsulated get interface for NatGateway ForwardEntry.
 
 func (s *NATGatewayServiceV2) DescribeNatGatewayForwardEntry(id string) (object map[string]interface{}, err error) {
@@ -300,14 +299,14 @@ func (s *NATGatewayServiceV2) DescribeNatGatewayForwardEntry(id string) (object 
 	})
 	addDebug(action, response, request)
 	if err != nil {
+		if IsExpectedErrors(err, []string{"InvalidForwardEntryId.NotFound", "InvalidForwardTableId.NotFound", "InvalidRegionId.NotFound"}) {
+			return object, WrapErrorf(NotFoundErr("ForwardEntry", id), NotFoundMsg, response)
+		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
 	v, err := jsonpath.Get("$.ForwardTableEntries.ForwardTableEntry[*]", response)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidForwardEntryId.NotFound", "InvalidForwardTableId.NotFound", "InvalidRegionId.NotFound"}) {
-			return object, WrapErrorf(NotFoundErr("ForwardEntry", id), NotFoundMsg, response)
-		}
 		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ForwardTableEntries.ForwardTableEntry[*]", response)
 	}
 
