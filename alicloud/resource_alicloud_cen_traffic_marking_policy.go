@@ -35,10 +35,6 @@ func resourceAliCloudCenTrafficMarkingPolicy() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"force": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
 			"marking_dscp": {
 				Type:     schema.TypeInt,
 				Required: true,
@@ -144,7 +140,7 @@ func resourceAliCloudCenTrafficMarkingPolicyCreate(d *schema.ResourceData, meta 
 
 	if v, ok := d.GetOk("traffic_match_rules"); ok {
 		trafficMatchRulesMapsArray := make([]interface{}, 0)
-		for _, dataLoop := range v.(*schema.Set).List() {
+		for _, dataLoop := range convertToInterfaceArray(v) {
 			dataLoopTmp := dataLoop.(map[string]interface{})
 			dataLoopMap := make(map[string]interface{})
 			dataLoopMap["SrcPortRange"] = dataLoopTmp["src_port_range"]
@@ -172,7 +168,7 @@ func resourceAliCloudCenTrafficMarkingPolicyCreate(d *schema.ResourceData, meta 
 	if v, ok := d.GetOk("traffic_marking_policy_name"); ok {
 		request["TrafficMarkingPolicyName"] = v
 	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 		if err != nil {
@@ -226,7 +222,7 @@ func resourceAliCloudCenTrafficMarkingPolicyRead(d *schema.ResourceData, meta in
 	trafficMatchRulesRaw := objectRaw["TrafficMatchRules"]
 	trafficMatchRulesMaps := make([]map[string]interface{}, 0)
 	if trafficMatchRulesRaw != nil {
-		for _, trafficMatchRulesChildRaw := range trafficMatchRulesRaw.([]interface{}) {
+		for _, trafficMatchRulesChildRaw := range convertToInterfaceArray(trafficMatchRulesRaw) {
 			trafficMatchRulesMap := make(map[string]interface{})
 			trafficMatchRulesChildRaw := trafficMatchRulesChildRaw.(map[string]interface{})
 			trafficMatchRulesMap["address_family"] = trafficMatchRulesChildRaw["AddressFamily"]
@@ -239,13 +235,13 @@ func resourceAliCloudCenTrafficMarkingPolicyRead(d *schema.ResourceData, meta in
 
 			dstPortRangeRaw := make([]interface{}, 0)
 			if trafficMatchRulesChildRaw["DstPortRange"] != nil {
-				dstPortRangeRaw = trafficMatchRulesChildRaw["DstPortRange"].([]interface{})
+				dstPortRangeRaw = convertToInterfaceArray(trafficMatchRulesChildRaw["DstPortRange"])
 			}
 
 			trafficMatchRulesMap["dst_port_range"] = dstPortRangeRaw
 			srcPortRangeRaw := make([]interface{}, 0)
 			if trafficMatchRulesChildRaw["SrcPortRange"] != nil {
-				srcPortRangeRaw = trafficMatchRulesChildRaw["SrcPortRange"].([]interface{})
+				srcPortRangeRaw = convertToInterfaceArray(trafficMatchRulesChildRaw["SrcPortRange"])
 			}
 
 			trafficMatchRulesMap["src_port_range"] = srcPortRangeRaw
@@ -285,7 +281,7 @@ func resourceAliCloudCenTrafficMarkingPolicyUpdate(d *schema.ResourceData, meta 
 	}
 
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(5*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 			if err != nil {
@@ -309,6 +305,7 @@ func resourceAliCloudCenTrafficMarkingPolicyUpdate(d *schema.ResourceData, meta 
 	}
 
 	if d.HasChange("traffic_match_rules") {
+		var err error
 		oldEntry, newEntry := d.GetChange("traffic_match_rules")
 		oldEntrySet := oldEntry.(*schema.Set)
 		newEntrySet := newEntry.(*schema.Set)
@@ -341,7 +338,7 @@ func resourceAliCloudCenTrafficMarkingPolicyUpdate(d *schema.ResourceData, meta 
 			}
 			request["DeleteTrafficMatchRules"] = deleteTrafficMatchRulesMapsArray
 
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(5*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 				if err != nil {
@@ -391,7 +388,7 @@ func resourceAliCloudCenTrafficMarkingPolicyUpdate(d *schema.ResourceData, meta 
 			}
 			request["AddTrafficMatchRules"] = addTrafficMatchRulesMapsArray
 
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(5*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 				if err != nil {
@@ -433,14 +430,10 @@ func resourceAliCloudCenTrafficMarkingPolicyDelete(d *schema.ResourceData, meta 
 
 	request["ClientToken"] = buildClientToken(action)
 
-	if v, ok := d.GetOkExists("force"); ok {
-		request["Force"] = v
-	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	request["Force"] = "true"
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
 		if err != nil {
 			if IsExpectedErrors(err, []string{"Operation.Blocking", "Throttling.User"}) || NeedRetry(err) {
 				wait()
@@ -457,6 +450,12 @@ func resourceAliCloudCenTrafficMarkingPolicyDelete(d *schema.ResourceData, meta 
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	}
+
+	cenServiceV2 := CenServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cenServiceV2.CenTrafficMarkingPolicyStateRefreshFunc(d.Id(), "TrafficMarkingPolicyStatus", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
 	return nil
