@@ -10,7 +10,7 @@ description: |-
 
 Provides a Resource Manager Resource Share resource.
 
-RS resource sharing.
+RS Resource Sharing.
 
 For information about Resource Manager Resource Share and how to use it, see [What is Resource Share](https://www.alibabacloud.com/help/en/doc-detail/94475.htm).
 
@@ -19,12 +19,6 @@ For information about Resource Manager Resource Share and how to use it, see [Wh
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_resource_manager_resource_share&exampleId=6be253ac-e5f2-8690-f13b-fe32084c06e39ce31fd6&activeTab=example&spm=docs.r.resource_manager_resource_share.0.6be253ace5&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -36,40 +30,43 @@ resource "alicloud_resource_manager_resource_share" "example" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_resource_manager_resource_share&spm=docs.r.resource_manager_resource_share.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `allow_external_targets` - (Optional, Available since v1.261.0) Whether to allow sharing to accounts outside the resource directory. Value:
-  - false (default): Only sharing within the resource directory is allowed.
-  - true: Allow sharing to any account.
-* `permission_names` - (Optional, List, Available since v1.261.0) Share permission name. When it is empty, the system automatically binds the default permissions associated with the resource type. For more information, see [Permission Library](https://www.alibabacloud.com/help/en/resource-management/resource-sharing/user-guide/permissions-for-resource-sharing).
+* `allow_external_targets` - (Optional, Available since v1.261.0) Specifies whether sharing with accounts outside the resource directory is allowed. Valid values:
+  - false (default): Sharing is allowed only within the resource directory.
+  - true: Sharing with any account is allowed.
+* `permission_names` - (Optional, List, Available since v1.261.0) The names of sharing permissions. If left empty, the system automatically binds the default permissions associated with the resource type. For more information, see [Permission Library](https://help.aliyun.com/document_detail/465474.html).
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `resource_arns` - (Optional, List, Available since v1.268.0) ResourceArns
+* `resource_arns` - (Optional, List, Available since v1.268.0) A list of ARNs of shared resources.
+Valid values for N: 1 to 5. You can add up to five shared resources at a time.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `resource_group_id` - (Optional, Computed, Available since v1.261.0) The ID of the resource group
-* `resource_properties` - (Optional, Set, Available since v1.274.0) A list of resource properties. See [`resource_properties`](#resource_properties) below.
+* `resource_group_id` - (Optional, Computed, Available since v1.261.0) The resource group ID.
+* `resource_properties` - (Optional, List, Available since v1.274.0) A list of resource properties. See [`resource_properties`](#resource_properties) below.
 
-* `resource_share_name` - (Required) The name of resource share.
-* `resources` - (Optional, List, Available since v1.261.0) List of shared resources. See [`resources`](#resources) below.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+* `resource_share_name` - (Required) The name of the new resource share.
+Length: 1 to 50 characters.
+Format: English letters, digits, Chinese characters, periods (.), underscores (_), or hyphens (-) are allowed.
+* `resources` - (Optional, List, Available since v1.261.0) The list of shared resources. See [`resources`](#resources) below.
 
-* `tags` - (Optional, Map, Available since v1.261.0) The tag of the resource
-* `targets` - (Optional, List) Resource user.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+* `tags` - (Optional, Map, Available since v1.261.0) A list of tags. You can attach up to 20 tags.
+* `targets` - (Optional, List) Resource consumers.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 
 ### `resource_properties`
 
 The resource_properties supports the following:
-* `property` - (Optional, Available since v1.274.0) The resource property.
+* `property` - (Optional, Available since v1.274.0) The property of the resource.
 * `resource_arn` - (Optional, Available since v1.274.0) The ARN of the resource.
 
 ### `resources`
@@ -77,26 +74,26 @@ The resource_properties supports the following:
 The resources supports the following:
 * `resource_id` - (Optional, Available since v1.261.0) The ID of the shared resource.
 
-The value range of N: 1 to 5, that is, a maximum of 5 shared resources are added at a time.
+Valid values for N: 1 to 5. You can add up to five shared resources at a time.
 
--> **NOTE:**  'Resources.N.ResourceId' and'resources. N.ResourceType' appear in pairs and need to be set at the same time.
+-> **NOTE:**  `Resources.N.ResourceId` and `Resources.N.ResourceType` must be specified together as a pair.
 
-* `resource_type` - (Optional) Shared resource type.
+* `resource_type` - (Optional) The type of the shared resource.
 
-The value range of N: 1 to 5, that is, a maximum of 5 shared resources are added at a time.
+Valid values for N: 1 to 5. You can add up to five shared resources at a time.
 
-For the types of resources that support sharing, see [Cloud services that support sharing](https://www.alibabacloud.com/help/en/resource-management/resource-sharing/product-overview/services-that-work-with-resource-sharing).
+For information about supported resource types, see [Cloud services that support resource sharing](https://help.aliyun.com/document_detail/450526.html).
 
--> **NOTE:**  'Resources.N.ResourceId' and'resources. N.ResourceType' appear in pairs and need to be set at the same time.
+-> **NOTE:**  `Resources.N.ResourceId` and `Resources.N.ResourceType` must be specified together as a pair.
 
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - The create time of resource share.
-* `resource_share_owner` - The owner of resource share,  `Self` and `OtherAccounts`.
-* `status` - The status of resource share.  `Active`,`Deleted` and `Deleting`.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The time when the resource share was created.
+* `resource_share_owner` - The owner of the resource share.
+* `status` - The status of the resource share.
 
 ## Timeouts
 
@@ -110,5 +107,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Resource Manager Resource Share can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_resource_manager_resource_share.example <id>
+$ terraform import alicloud_resource_manager_resource_share.example <resource_share_id>
 ```
