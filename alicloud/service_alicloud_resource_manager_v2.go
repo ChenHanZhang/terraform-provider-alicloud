@@ -279,17 +279,17 @@ func (s *ResourceManagerServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
-
+			request["RegionId"] = client.RegionId
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
 
 			request["ResourceType"] = resourceType
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("ResourceDirectoryMaster", "2022-04-19", action, query, request, true)
+				response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ConcurrentCallNotSupported"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -309,7 +309,7 @@ func (s *ResourceManagerServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
-
+			request["RegionId"] = client.RegionId
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -318,11 +318,11 @@ func (s *ResourceManagerServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			}
 
 			request["ResourceType"] = resourceType
-			wait := incrementalWait(3*time.Second, 5*time.Second)
+			wait := incrementalWait(3*time.Second, 0*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("ResourceDirectoryMaster", "2022-04-19", action, query, request, true)
+				response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ConcurrentCallNotSupported"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}

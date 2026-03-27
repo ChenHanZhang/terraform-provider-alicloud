@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -169,7 +170,7 @@ func resourceAliCloudResourceManagerResourceShareCreate(d *schema.ResourceData, 
 	}
 
 	request["ResourceShareName"] = d.Get("resource_share_name")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(3*time.Second, 0*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 		if err != nil {
@@ -250,7 +251,7 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 	}
 	request["ResourceShareName"] = d.Get("resource_share_name")
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(3*time.Second, 0*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 			if err != nil {
@@ -283,7 +284,7 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 	}
 	request["ResourceGroupId"] = d.Get("resource_group_id")
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(3*time.Second, 0*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 			if err != nil {
@@ -299,16 +300,11 @@ func resourceAliCloudResourceManagerResourceShareUpdate(d *schema.ResourceData, 
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("resource_group_id"))}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceShareStateRefreshFunc(d.Id(), "ResourceGroupId", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
-		}
 	}
 
 	if d.HasChange("tags") {
 		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-		if err := resourceManagerServiceV2.SetResourceTagsForResourceSharing(d, "ResourceShare"); err != nil {
+		if err := resourceManagerServiceV2.SetResourceTags(d, "ResourceShare"); err != nil {
 			return WrapError(err)
 		}
 	}
@@ -328,7 +324,7 @@ func resourceAliCloudResourceManagerResourceShareDelete(d *schema.ResourceData, 
 	request["ResourceShareId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(3*time.Second, 0*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 		if err != nil {
