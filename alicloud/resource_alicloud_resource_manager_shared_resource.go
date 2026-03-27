@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -108,34 +109,25 @@ func resourceAliCloudResourceManagerSharedResourceCreate(d *schema.ResourceData,
 	request["ResourceProperties"] = ResourcePropertiesMap
 
 	if v, ok := d.GetOk("resource_arn"); ok {
-		localData, err := jsonpath.Get("$", v)
-		if err != nil {
-			return WrapError(err)
-		}
+		localData, _ := jsonpath.Get("$", v)
 		resourceArnsMapsArray := convertToInterfaceArray(localData)
 
 		request["ResourceArns"] = resourceArnsMapsArray
 	}
 
 	if v, ok := d.GetOk("permission_name"); ok {
-		localData1, err := jsonpath.Get("$", v)
-		if err != nil {
-			return WrapError(err)
-		}
+		localData1, _ := jsonpath.Get("$", v)
 		permissionNamesMapsArray := convertToInterfaceArray(localData1)
 
 		request["PermissionNames"] = permissionNamesMapsArray
 	}
 
-	// Only set Resources when resource_arn is not specified to avoid API conflict
 	jsonString := convertObjectToJsonString(request)
-	if _, ok := d.GetOk("resource_arn"); !ok {
-		jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceId", d.Get("resource_id"))
-		jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceType", d.Get("resource_type"))
-	}
+	jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceId", d.Get("resource_id"))
+	jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceType", d.Get("resource_type"))
 	_ = json.Unmarshal([]byte(jsonString), &request)
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(3*time.Second, 0*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 		if err != nil {
@@ -210,23 +202,19 @@ func resourceAliCloudResourceManagerSharedResourceDelete(d *schema.ResourceData,
 	request["ResourceShareId"] = parts[0]
 	request["RegionId"] = client.RegionId
 
-	onlyArnType := []string{"PolarDBBackupSet"}
+	if v, ok := d.GetOk("resource_arn"); ok {
+		localData, _ := jsonpath.Get("$", v)
+		resourceArnsMapsArray := convertToInterfaceArray(localData)
 
-	if InArray(parts[2], onlyArnType) {
-		if v, ok := d.GetOk("resource_arn"); ok {
-			localData, _ := jsonpath.Get("$", v)
-			resourceArnsMapsArray := convertToInterfaceArray(localData)
-
-			request["ResourceArns"] = resourceArnsMapsArray
-		}
-	} else {
-		jsonString := convertObjectToJsonString(request)
-		jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceId", parts[1])
-		jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceType", parts[2])
-		_ = json.Unmarshal([]byte(jsonString), &request)
+		request["ResourceArns"] = resourceArnsMapsArray
 	}
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	jsonString := convertObjectToJsonString(request)
+	jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceId", parts[1])
+	jsonString, _ = sjson.Set(jsonString, "Resources.0.ResourceType", parts[2])
+	_ = json.Unmarshal([]byte(jsonString), &request)
+
+	wait := incrementalWait(3*time.Second, 0*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceSharing", "2020-01-10", action, query, request, true)
 		if err != nil {
@@ -248,7 +236,7 @@ func resourceAliCloudResourceManagerSharedResourceDelete(d *schema.ResourceData,
 	}
 
 	resourceManagerServiceV2 := ResourceManagerServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Disassociated"}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerSharedResourceStateRefreshFunc(d.Id(), "AssociationStatus", []string{"Failed"}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, resourceManagerServiceV2.ResourceManagerSharedResourceStateRefreshFunc(d.Id(), "AssociationStatus", []string{"Associated"}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
