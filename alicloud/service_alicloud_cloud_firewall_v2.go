@@ -1124,6 +1124,7 @@ func (s *CloudFirewallServiceV2) CloudFirewallInstanceStateRefreshFuncWithApi(id
 }
 
 // DescribeCloudFirewallInstance >>> Encapsulated.
+
 // DescribeCloudFirewallUserAlarmConfig <<< Encapsulated get interface for CloudFirewall UserAlarmConfig.
 
 func (s *CloudFirewallServiceV2) DescribeCloudFirewallUserAlarmConfig(id string) (object map[string]interface{}, err error) {

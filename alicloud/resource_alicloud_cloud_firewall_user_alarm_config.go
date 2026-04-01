@@ -1,6 +1,8 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -24,22 +26,9 @@ func resourceAliCloudCloudFirewallUserAlarmConfig() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"alarm_lang": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"use_default_contact": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"lang": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
 			"alarm_config": {
 				Type:     schema.TypeList,
 				Required: true,
-				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"alarm_period": {
@@ -75,11 +64,14 @@ func resourceAliCloudCloudFirewallUserAlarmConfig() *schema.Resource {
 					},
 				},
 			},
+			"alarm_lang": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"contact_config": {
-				Type:          schema.TypeList,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"notify_config"},
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"status": {
@@ -105,31 +97,20 @@ func resourceAliCloudCloudFirewallUserAlarmConfig() *schema.Resource {
 					},
 				},
 			},
-			"notify_config": {
-				Type:          schema.TypeList,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"contact_config"},
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"notify_type": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
-						"notify_value": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
-					},
-				},
+			"lang": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"use_default_contact": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
 }
 
 func resourceAliCloudCloudFirewallUserAlarmConfigCreate(d *schema.ResourceData, meta interface{}) error {
+
 	return resourceAliCloudCloudFirewallUserAlarmConfigUpdate(d, meta)
 }
 
@@ -149,53 +130,36 @@ func resourceAliCloudCloudFirewallUserAlarmConfigRead(d *schema.ResourceData, me
 
 	d.Set("alarm_lang", objectRaw["AlarmLang"])
 
+	alarmConfigRaw := objectRaw["AlarmConfig"]
 	alarmConfigMaps := make([]map[string]interface{}, 0)
-	if cfg, ok := objectRaw["AlarmConfig"]; ok {
-		for _, alarmConfigChildRaw := range convertToInterfaceArray(cfg) {
-			alarmConfigRaw := alarmConfigChildRaw.(map[string]interface{})
-			alarmConfigMap := map[string]interface{}{}
-			if v, ok := alarmConfigRaw["AlarmHour"]; ok {
-				alarmConfigMap["alarm_hour"] = v
-			}
-			if v, ok := alarmConfigRaw["AlarmNotify"]; ok {
-				alarmConfigMap["alarm_notify"] = v
-			}
-			if v, ok := alarmConfigRaw["AlarmPeriod"]; ok {
-				alarmConfigMap["alarm_period"] = v
-			}
-			if v, ok := alarmConfigRaw["AlarmType"]; ok {
-				alarmConfigMap["alarm_type"] = v
-			}
-			if v, ok := alarmConfigRaw["AlarmValue"]; ok {
-				alarmConfigMap["alarm_value"] = v
-			}
-			if v, ok := alarmConfigRaw["AlarmWeekDay"]; ok {
-				alarmConfigMap["alarm_week_day"] = v
-			}
+	if alarmConfigRaw != nil {
+		for _, alarmConfigChildRaw := range convertToInterfaceArray(alarmConfigRaw) {
+			alarmConfigMap := make(map[string]interface{})
+			alarmConfigChildRaw := alarmConfigChildRaw.(map[string]interface{})
+			alarmConfigMap["alarm_hour"] = alarmConfigChildRaw["AlarmHour"]
+			alarmConfigMap["alarm_notify"] = alarmConfigChildRaw["AlarmNotify"]
+			alarmConfigMap["alarm_period"] = alarmConfigChildRaw["AlarmPeriod"]
+			alarmConfigMap["alarm_type"] = alarmConfigChildRaw["AlarmType"]
+			alarmConfigMap["alarm_value"] = alarmConfigChildRaw["AlarmValue"]
+			alarmConfigMap["alarm_week_day"] = alarmConfigChildRaw["AlarmWeekDay"]
+
 			alarmConfigMaps = append(alarmConfigMaps, alarmConfigMap)
 		}
 	}
 	if err := d.Set("alarm_config", alarmConfigMaps); err != nil {
 		return err
 	}
-
+	contactConfigRaw := objectRaw["ContactConfig"]
 	contactConfigMaps := make([]map[string]interface{}, 0)
-	if cfg, ok := objectRaw["ContactConfig"]; ok {
-		for _, contactConfigChildRaw := range convertToInterfaceArray(cfg) {
+	if contactConfigRaw != nil {
+		for _, contactConfigChildRaw := range convertToInterfaceArray(contactConfigRaw) {
 			contactConfigMap := make(map[string]interface{})
-			contactConfigRaw := contactConfigChildRaw.(map[string]interface{})
-			if v, ok := contactConfigRaw["Email"]; ok {
-				contactConfigMap["email"] = v
-			}
-			if v, ok := contactConfigRaw["MobilePhone"]; ok {
-				contactConfigMap["mobile_phone"] = v
-			}
-			if v, ok := contactConfigRaw["Name"]; ok {
-				contactConfigMap["name"] = v
-			}
-			if v, ok := contactConfigRaw["Status"]; ok {
-				contactConfigMap["status"] = v
-			}
+			contactConfigChildRaw := contactConfigChildRaw.(map[string]interface{})
+			contactConfigMap["email"] = contactConfigChildRaw["Email"]
+			contactConfigMap["mobile_phone"] = contactConfigChildRaw["MobilePhone"]
+			contactConfigMap["name"] = contactConfigChildRaw["Name"]
+			contactConfigMap["status"] = contactConfigChildRaw["Status"]
+
 			contactConfigMaps = append(contactConfigMaps, contactConfigMap)
 		}
 	}
@@ -203,26 +167,6 @@ func resourceAliCloudCloudFirewallUserAlarmConfigRead(d *schema.ResourceData, me
 		return err
 	}
 
-	notifyConfigMaps := make([]map[string]interface{}, 0)
-	if cfg, ok := objectRaw["NotifyConfig"]; ok {
-		for _, notifyConfigChildRaw := range convertToInterfaceArray(cfg) {
-			notifyConfigRaw := notifyConfigChildRaw.(map[string]interface{})
-			notifyConfigMap := make(map[string]interface{})
-			if v, ok := notifyConfigRaw["NotifyValue"]; ok {
-				notifyConfigMap["notify_value"] = v
-			}
-			if v, ok := notifyConfigRaw["NotifyType"]; ok {
-				notifyConfigRaw["notify_type"] = v
-			}
-			notifyConfigMaps = append(notifyConfigMaps, notifyConfigMap)
-		}
-	}
-	if err := d.Set("notify_config", notifyConfigMaps); err != nil {
-		return err
-	}
-
-	accountId, _ := client.AccountId()
-	d.SetId(accountId)
 	return nil
 }
 
@@ -244,80 +188,54 @@ func resourceAliCloudCloudFirewallUserAlarmConfigUpdate(d *schema.ResourceData, 
 	if v, ok := d.GetOk("lang"); ok {
 		request["Lang"] = v
 	}
+	if d.HasChange("alarm_config") {
+		update = true
+	}
+	if v, ok := d.GetOk("alarm_config"); ok || d.HasChange("alarm_config") {
+		alarmConfigMapsArray := make([]interface{}, 0)
+		for _, dataLoop := range convertToInterfaceArray(v) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			dataLoopMap := make(map[string]interface{})
+			dataLoopMap["AlarmValue"] = dataLoopTmp["alarm_value"]
+			dataLoopMap["AlarmPeriod"] = dataLoopTmp["alarm_period"]
+			dataLoopMap["AlarmWeekDay"] = dataLoopTmp["alarm_week_day"]
+			dataLoopMap["AlarmNotify"] = dataLoopTmp["alarm_notify"]
+			dataLoopMap["AlarmType"] = dataLoopTmp["alarm_type"]
+			dataLoopMap["AlarmHour"] = dataLoopTmp["alarm_hour"]
+			alarmConfigMapsArray = append(alarmConfigMapsArray, dataLoopMap)
+		}
+		request["AlarmConfig"] = alarmConfigMapsArray
+	}
+
+	if d.HasChange("contact_config") {
+		update = true
+	}
+	if v, ok := d.GetOk("contact_config"); ok || d.HasChange("contact_config") {
+		contactConfigMapsArray := make([]interface{}, 0)
+		for _, dataLoop1 := range convertToInterfaceArray(v) {
+			dataLoop1Tmp := dataLoop1.(map[string]interface{})
+			dataLoop1Map := make(map[string]interface{})
+			dataLoop1Map["Name"] = dataLoop1Tmp["name"]
+			dataLoop1Map["MobilePhone"] = dataLoop1Tmp["mobile_phone"]
+			dataLoop1Map["Email"] = dataLoop1Tmp["email"]
+			dataLoop1Map["Status"] = dataLoop1Tmp["status"]
+			contactConfigMapsArray = append(contactConfigMapsArray, dataLoop1Map)
+		}
+		contactConfigMapsJson, err := json.Marshal(contactConfigMapsArray)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["ContactConfig"] = string(contactConfigMapsJson)
+	}
 
 	if d.HasChange("alarm_lang") {
 		update = true
-		request["AlarmLang"] = d.Get("alarm_lang")
 	}
-
-	configDataMap := make(map[string]interface{})
-	if d.HasChange("alarm_config") {
-		aConfigRaw := d.Get("alarm_config").([]interface{})
-		if len(aConfigRaw) > 0 {
-			update = true
-			cfg := aConfigRaw[0].(map[string]interface{})
-			if v, ok := cfg["alarm_value"]; ok {
-				configDataMap["AlarmValue"] = v
-			}
-			if v, ok := cfg["alarm_period"]; ok {
-				configDataMap["AlarmPeriod"] = v
-			}
-			if v, ok := cfg["alarm_week_day"]; ok {
-				configDataMap["AlarmWeekDay"] = v
-			}
-			if v, ok := cfg["alarm_notify"]; ok {
-				configDataMap["AlarmNotify"] = v
-			}
-			if v, ok := cfg["alarm_type"]; ok {
-				configDataMap["AlarmType"] = v
-			}
-			if v, ok := cfg["alarm_hour"]; ok {
-				configDataMap["AlarmHour"] = v
-			}
-		}
+	if v, ok := d.GetOk("alarm_lang"); ok || d.HasChange("alarm_lang") {
+		request["AlarmLang"] = v
 	}
-	request["AlarmConfig"] = []interface{}{configDataMap}
-
-	contactConfigDataMap := make(map[string]interface{})
-	if d.HasChange("contact_config") {
-		contactConfigRaw := d.Get("contact_config").([]interface{})
-		if len(contactConfigRaw) > 0 {
-			update = true
-			cfg := contactConfigRaw[0].(map[string]interface{})
-			if v, ok := cfg["mobile_phone"]; ok && v != "" {
-				contactConfigDataMap["MobilePhone"] = v
-			}
-			if v, ok := cfg["email"]; ok && v != "" {
-				contactConfigDataMap["Email"] = v
-			}
-			if v, ok := cfg["status"]; ok && v != "" {
-				contactConfigDataMap["Status"] = v
-			}
-			if v, ok := cfg["name"]; ok && v != "" {
-				contactConfigDataMap["Name"] = v
-			}
-		}
-	}
-	request["ContactConfig"] = []interface{}{contactConfigDataMap}
-
-	notifyConfigMap := make(map[string]interface{})
-	if d.HasChange("notify_config") {
-		notifyConfigRaw := d.Get("notify_config").([]interface{})
-		if len(notifyConfigRaw) > 0 {
-			update = true
-			cfg := notifyConfigRaw[0].(map[string]interface{})
-			if v, ok := cfg["notify_type"]; ok {
-				notifyConfigMap["NotifyType"] = v
-			}
-			if v, ok := cfg["notify_value"]; ok {
-				notifyConfigMap["NotifyValue"] = v
-			}
-		}
-	}
-	request["NotifyConfig"] = []interface{}{notifyConfigMap}
-
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(3*time.Second, 0*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 			if err != nil {
@@ -334,6 +252,7 @@ func resourceAliCloudCloudFirewallUserAlarmConfigUpdate(d *schema.ResourceData, 
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
+
 	return resourceAliCloudCloudFirewallUserAlarmConfigRead(d, meta)
 }
 
