@@ -10,7 +10,7 @@ description: |-
 
 Provides a Alidns Cloud Gtm Address Pool resource.
 
-CloudGtm address pool  .
+CloudGTM address pool allows you to group multiple IP addresses or domain names into a single logical entity for traffic management and failover purposes.
 
 For information about Alidns Cloud Gtm Address Pool and how to use it, see [What is Cloud Gtm Address Pool](https://next.api.alibabacloud.com/document/Alidns/2015-01-09/CreateCloudGtmAddressPool).
 
