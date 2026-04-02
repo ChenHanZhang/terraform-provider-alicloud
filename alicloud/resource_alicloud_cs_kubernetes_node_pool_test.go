@@ -3778,11 +3778,51 @@ func TestAccAliCloudAckNodepool_basic5172(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
+					"user_data": "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"user_data": "",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"user_data": "IyEvYmluL2Jhc2gKCmVjaG8gInRoaXMgaXMgYSBleGFtcGxlIg==",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"user_data": "IyEvYmluL2Jhc2gKCmVjaG8gInRoaXMgaXMgYSBleGFtcGxlIg==",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
 					"unschedulable": "false",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"unschedulable": "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"pre_user_data": "IyEvYmluL2Jhc2gKCmVjaG8gInRoaXMgaXMgcHJlLXVzZXItZGF0YSBhZnRlciBtb2RpZmllZCI=",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"pre_user_data": "IyEvYmluL2Jhc2gKCmVjaG8gInRoaXMgaXMgcHJlLXVzZXItZGF0YSBhZnRlciBtb2RpZmllZCI=",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"pre_user_data": "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"pre_user_data": "",
 					}),
 				),
 			},
