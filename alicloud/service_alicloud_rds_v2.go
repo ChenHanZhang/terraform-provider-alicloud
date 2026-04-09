@@ -289,7 +289,7 @@ func (s *RdsServiceV2) DescribeRdsCustomDisk(id string) (object map[string]inter
 	var query map[string]interface{}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["DiskIds"] = convertListToJsonString(expandSingletonToList(id))
+	query["DiskIds"] = expandSingletonToList(id)
 	query["RegionId"] = client.RegionId
 	action := "DescribeRCDisks"
 
@@ -322,91 +322,44 @@ func (s *RdsServiceV2) DescribeRdsCustomDisk(id string) (object map[string]inter
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
+func (s *RdsServiceV2) DescribeCustomDiskListTagResources(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceId.1"] = id
+	request["RegionId"] = client.RegionId
+	request["ResourceType"] = "CustomDisk"
+	action := "ListTagResources"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
 
 func (s *RdsServiceV2) RdsCustomDiskStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		object, err := s.DescribeRdsCustomDisk(id)
-		if err != nil {
-			if NotFoundError(err) {
-				return nil, "", nil
-			}
-			return nil, "", WrapError(err)
-		}
-
-		v, err := jsonpath.Get(field, object)
-		currentStatus := fmt.Sprint(v)
-
-		if strings.HasPrefix(field, "#") {
-			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
-			if v != nil {
-				currentStatus = "#CHECKSET"
-			}
-		}
-
-		for _, failState := range failStates {
-			if currentStatus == failState {
-				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
-			}
-		}
-		return object, currentStatus, nil
-	}
+	return s.RdsCustomDiskStateRefreshFuncWithApi(id, field, failStates, s.DescribeRdsCustomDisk)
 }
 
-// DescribeRdsDatabase >>> Encapsulated.
-// DescribeRdsDatabase <<< Encapsulated get interface for Rds Database.
-
-func (s *RdsServiceV2) DescribeRdsDatabase(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	parts := strings.Split(id, ":")
-	if len(parts) != 2 {
-		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
-	}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["DBName"] = parts[1]
-	request["DBInstanceId"] = parts[0]
-	request["RegionId"] = client.RegionId
-	action := "DescribeDatabases"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	v, err := jsonpath.Get("$.Databases.Database[*]", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Databases.Database[*]", response)
-	}
-
-	if len(v.([]interface{})) == 0 {
-		return object, WrapErrorf(NotFoundErr("Database", id), NotFoundMsg, response)
-	}
-
-	return v.([]interface{})[0].(map[string]interface{}), nil
-}
-
-func (s *RdsServiceV2) RdsDatabaseStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.RdsDatabaseStateRefreshFuncWithApi(id, field, failStates, s.DescribeRdsDatabase)
-}
-
-func (s *RdsServiceV2) RdsDatabaseStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *RdsServiceV2) RdsCustomDiskStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -434,171 +387,4 @@ func (s *RdsServiceV2) RdsDatabaseStateRefreshFuncWithApi(id string, field strin
 	}
 }
 
-// DescribeRdsDatabase >>> Encapsulated.
-// DescribeRdsAccount <<< Encapsulated get interface for Rds Account.
-
-func (s *RdsServiceV2) DescribeRdsAccount(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	parts := strings.Split(id, ":")
-	if len(parts) != 2 {
-		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
-	}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["AccountName"] = parts[1]
-	request["DBInstanceId"] = parts[0]
-	request["RegionId"] = client.RegionId
-	action := "DescribeAccounts"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"InvalidDBInstanceId.NotFound", "InvalidResource.NotFound"}) {
-			return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	v, err := jsonpath.Get("$.Accounts.DBInstanceAccount[*]", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Accounts.DBInstanceAccount[*]", response)
-	}
-
-	if len(v.([]interface{})) == 0 {
-		return object, WrapErrorf(NotFoundErr("Account", id), NotFoundMsg, response)
-	}
-
-	return v.([]interface{})[0].(map[string]interface{}), nil
-}
-
-func (s *RdsServiceV2) RdsAccountStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.RdsAccountStateRefreshFuncWithApi(id, field, failStates, s.DescribeRdsAccount)
-}
-
-func (s *RdsServiceV2) RdsAccountStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		object, err := call(id)
-		if err != nil {
-			if NotFoundError(err) {
-				return object, "", nil
-			}
-			return nil, "", WrapError(err)
-		}
-		v, err := jsonpath.Get(field, object)
-		currentStatus := fmt.Sprint(v)
-
-		if strings.HasPrefix(field, "#") {
-			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
-			if v != nil {
-				currentStatus = "#CHECKSET"
-			}
-		}
-
-		for _, failState := range failStates {
-			if currentStatus == failState {
-				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
-			}
-		}
-		return object, currentStatus, nil
-	}
-}
-
-// DescribeRdsAccount >>> Encapsulated.
-// DescribeRdsBackup <<< Encapsulated get interface for Rds Backup.
-
-func (s *RdsServiceV2) DescribeRdsBackup(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	parts, err := ParseResourceId(id, 2)
-	if err != nil {
-		err = WrapError(err)
-		return
-	}
-	request["DBInstanceId"] = parts[0]
-	request["BackupId"] = parts[1]
-	request["RegionId"] = client.RegionId
-	action := "DescribeBackups"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	v, err := jsonpath.Get("$.Items.Backup[*]", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Items.Backup[*]", response)
-	}
-
-	if len(v.([]interface{})) == 0 {
-		return object, WrapErrorf(NotFoundErr("Backup", id), NotFoundMsg, response)
-	}
-
-	return v.([]interface{})[0].(map[string]interface{}), nil
-}
-
-func (s *RdsServiceV2) RdsBackupStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.RdsBackupStateRefreshFuncWithApi(id, field, failStates, s.DescribeRdsBackup)
-}
-
-func (s *RdsServiceV2) RdsBackupStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		object, err := call(id)
-		if err != nil {
-			if NotFoundError(err) {
-				return object, "", nil
-			}
-			return nil, "", WrapError(err)
-		}
-		v, err := jsonpath.Get(field, object)
-		currentStatus := fmt.Sprint(v)
-
-		if strings.HasPrefix(field, "#") {
-			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
-			if v != nil {
-				currentStatus = "#CHECKSET"
-			}
-		}
-
-		for _, failState := range failStates {
-			if currentStatus == failState {
-				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
-			}
-		}
-		return object, currentStatus, nil
-	}
-}
-
-// DescribeRdsBackup >>> Encapsulated.
+// DescribeRdsCustomDisk >>> Encapsulated.

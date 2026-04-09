@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -21,8 +22,8 @@ func resourceAliCloudRdsCustomDisk() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(6 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
@@ -60,10 +61,13 @@ func resourceAliCloudRdsCustomDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"instance_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"performance_level": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"period": {
 				Type:     schema.TypeInt,
@@ -79,6 +83,7 @@ func resourceAliCloudRdsCustomDisk() *schema.Resource {
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 			"size": {
@@ -93,6 +98,7 @@ func resourceAliCloudRdsCustomDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -118,41 +124,52 @@ func resourceAliCloudRdsCustomDiskCreate(d *schema.ResourceData, meta interface{
 	request = make(map[string]interface{})
 	request["RegionId"] = client.RegionId
 
+	if v, ok := d.GetOkExists("auto_renew"); ok {
+		request["AutoRenew"] = v
+	}
+	if v, ok := d.GetOk("period_unit"); ok {
+		request["PeriodUnit"] = v
+	}
 	if v, ok := d.GetOk("performance_level"); ok {
 		request["PerformanceLevel"] = v
 	}
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["ResourceGroupId"] = v
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsMap := ConvertTags(v.(map[string]interface{}))
+		request = expandTagsToMap(request, tagsMap)
+	}
+
 	if v, ok := d.GetOk("description"); ok {
 		request["Description"] = v
+	}
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["AutoPay"] = v
+	}
+	if v, ok := d.GetOk("instance_charge_type"); ok {
+		request["InstanceChargeType"] = v
+	}
+	if v, ok := d.GetOk("snapshot_id"); ok {
+		request["SnapshotId"] = v
+	}
+	request["DiskCategory"] = d.Get("disk_category")
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceId"] = v
 	}
 	request["Size"] = d.Get("size")
 	if v, ok := d.GetOk("disk_name"); ok {
 		request["DiskName"] = v
 	}
-	request["DiskCategory"] = d.Get("disk_category")
-	request["ZoneId"] = d.Get("zone_id")
-	if v, ok := d.GetOk("instance_charge_type"); ok {
-		request["InstanceChargeType"] = v
-	}
-	if v, ok := d.GetOkExists("auto_renew"); ok {
-		request["AutoRenew"] = v
-	}
-	if v, ok := d.GetOk("snapshot_id"); ok {
-		request["SnapshotId"] = v
-	}
-	if v, ok := d.GetOkExists("auto_pay"); ok {
-		request["AutoPay"] = v
-	}
-	if v, ok := d.GetOk("period_unit"); ok {
-		request["PeriodUnit"] = v
-	}
 	if v, ok := d.GetOkExists("period"); ok {
 		request["Period"] = v
 	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	request["ZoneId"] = d.Get("zone_id")
+	wait := incrementalWait(10*time.Second, 10*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"InternalError"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -169,7 +186,7 @@ func resourceAliCloudRdsCustomDiskCreate(d *schema.ResourceData, meta interface{
 	d.SetId(fmt.Sprint(response["DiskId"]))
 
 	rdsServiceV2 := RdsServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "#$.DiskId", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{"#CHECKSET"}, d.Timeout(schema.TimeoutCreate), 5*time.Minute, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "#$.DiskId", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -200,6 +217,15 @@ func resourceAliCloudRdsCustomDiskRead(d *schema.ResourceData, meta interface{})
 	d.Set("size", objectRaw["Size"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("zone_id", objectRaw["ZoneId"])
+	d.Set("instance_id", objectRaw["InstanceId"])
+
+	objectRaw, err = rdsServiceV2.DescribeCustomDiskListTagResources(d.Id())
+	if err != nil && !NotFoundError(err) {
+		return WrapError(err)
+	}
+
+	tagsMaps, _ := jsonpath.Get("$.TagResources.TagResource", objectRaw)
+	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
@@ -210,6 +236,7 @@ func resourceAliCloudRdsCustomDiskUpdate(d *schema.ResourceData, meta interface{
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+	d.Partial(true)
 
 	var err error
 	action := "ResizeRCInstanceDisk"
@@ -217,21 +244,24 @@ func resourceAliCloudRdsCustomDiskUpdate(d *schema.ResourceData, meta interface{
 	query = make(map[string]interface{})
 	request["DiskId"] = d.Id()
 	request["RegionId"] = client.RegionId
-	if v, ok := d.GetOk("type"); ok {
-		request["Type"] = v
-	}
-	if v, ok := d.GetOk("dry_run"); ok {
-		request["DryRun"] = v
-	}
-	if v, ok := d.GetOk("auto_pay"); ok {
-		request["AutoPay"] = v
+	if v, ok := d.GetOk("instance_id"); ok {
+		request["InstanceId"] = v
 	}
 	if d.HasChange("size") {
 		update = true
 	}
 	request["NewSize"] = d.Get("size")
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["AutoPay"] = v
+	}
+	if v, ok := d.GetOk("type"); ok {
+		request["Type"] = v
+	}
+	if v, ok := d.GetOkExists("dry_run"); ok {
+		request["DryRun"] = v
+	}
 	if update {
-		wait := incrementalWait(3*time.Second, 5*time.Second)
+		wait := incrementalWait(30*time.Second, 30*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
 			if err != nil {
@@ -248,12 +278,85 @@ func resourceAliCloudRdsCustomDiskUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 		rdsServiceV2 := RdsServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("size"))}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "Size", []string{}))
+		stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("size"))}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "Size", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
+	update = false
+	action = "ModifyResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DBInstanceId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
+		update = true
+	}
+	request["ResourceGroupId"] = d.Get("resource_group_id")
+	request["ResourceType"] = "CustomDisk"
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	update = false
+	action = "ModifyRCDiskSpec"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["DiskId"] = d.Id()
+	request["RegionId"] = client.RegionId
+	if d.HasChange("performance_level") {
+		update = true
+		request["PerformanceLevel"] = d.Get("performance_level")
+	}
 
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["AutoPay"] = v
+	}
+	request["DiskCategory"] = d.Get("disk_category")
+	if v, ok := d.GetOkExists("dry_run"); ok {
+		request["DryRun"] = v
+	}
+	if update {
+		wait := incrementalWait(10*time.Second, 10*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+			if err != nil {
+				if IsExpectedErrors(err, []string{"InvalidOrderTask.NotSupport"}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	if d.HasChange("tags") {
+		rdsServiceV2 := RdsServiceV2{client}
+		if err := rdsServiceV2.SetResourceTags(d, "CustomDisk"); err != nil {
+			return WrapError(err)
+		}
+	}
+	d.Partial(false)
 	return resourceAliCloudRdsCustomDiskRead(d, meta)
 }
 
@@ -269,10 +372,9 @@ func resourceAliCloudRdsCustomDiskDelete(d *schema.ResourceData, meta interface{
 	request["DiskId"] = d.Id()
 	request["RegionId"] = client.RegionId
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
-
 		if err != nil {
 			if IsExpectedErrors(err, []string{"IncorrectDBInstanceState"}) || NeedRetry(err) {
 				wait()
@@ -292,7 +394,7 @@ func resourceAliCloudRdsCustomDiskDelete(d *schema.ResourceData, meta interface{
 	}
 
 	rdsServiceV2 := RdsServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "$.DiskId", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 30*time.Second, rdsServiceV2.RdsCustomDiskStateRefreshFunc(d.Id(), "$.DiskId", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
