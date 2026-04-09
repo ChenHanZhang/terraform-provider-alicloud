@@ -88,7 +88,7 @@ func resourceAliCloudResourceManagerHandshakeCreate(d *schema.ResourceData, meta
 		request["Note"] = v
 	}
 	request["TargetEntity"] = d.Get("target_entity")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 		if err != nil {
@@ -154,7 +154,6 @@ func resourceAliCloudResourceManagerHandshakeDelete(d *schema.ResourceData, meta
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

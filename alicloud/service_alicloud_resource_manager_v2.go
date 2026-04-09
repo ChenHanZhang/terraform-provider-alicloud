@@ -1037,6 +1037,7 @@ func (s *ResourceManagerServiceV2) ResourceManagerMessageContactStateRefreshFunc
 }
 
 // DescribeResourceManagerMessageContact >>> Encapsulated.
+
 // DescribeResourceManagerHandshake <<< Encapsulated get interface for ResourceManager Handshake.
 
 func (s *ResourceManagerServiceV2) DescribeResourceManagerHandshake(id string) (object map[string]interface{}, err error) {
@@ -1085,15 +1086,18 @@ func (s *ResourceManagerServiceV2) DescribeResourceManagerHandshake(id string) (
 }
 
 func (s *ResourceManagerServiceV2) ResourceManagerHandshakeStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ResourceManagerHandshakeStateRefreshFuncWithApi(id, field, failStates, s.DescribeResourceManagerHandshake)
+}
+
+func (s *ResourceManagerServiceV2) ResourceManagerHandshakeStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeResourceManagerHandshake(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 

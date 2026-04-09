@@ -360,7 +360,6 @@ func TestAccAliCloudResourceManagerHandshake_basic11272(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudResourceManagerHandshakeBasicDependence11272)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -371,7 +370,7 @@ func TestAccAliCloudResourceManagerHandshake_basic11272(t *testing.T) {
 				Config: testAccConfig(map[string]interface{}{
 					"note":          "test",
 					"target_type":   "Account",
-					"target_entity": "1382956792949863",
+					"target_entity": "1408455761046180",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
