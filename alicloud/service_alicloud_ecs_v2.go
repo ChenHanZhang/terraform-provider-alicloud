@@ -85,8 +85,8 @@ func (s *EcsServiceV2) EcsImageComponentStateRefreshFunc(id string, field string
 // SetResourceTags <<< Encapsulated tag function for Ecs.
 func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -112,7 +112,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -145,7 +145,7 @@ func (s *EcsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, false)
+				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
@@ -370,11 +370,11 @@ func (s *EcsServiceV2) DescribeEcsKeyPair(id string) (object map[string]interfac
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeKeyPairs"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["KeyPairName"] = id
 	request["RegionId"] = client.RegionId
+	action := "DescribeKeyPairs"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -404,11 +404,43 @@ func (s *EcsServiceV2) DescribeEcsKeyPair(id string) (object map[string]interfac
 	}
 
 	currentStatus := v.([]interface{})[0].(map[string]interface{})["KeyPairName"]
-	if currentStatus == "" {
+	if fmt.Sprint(currentStatus) == "" {
 		return object, WrapErrorf(NotFoundErr("KeyPair", id), NotFoundMsg, response)
 	}
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
+}
+
+func (s *EcsServiceV2) EcsKeyPairStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EcsKeyPairStateRefreshFuncWithApi(id, field, failStates, s.DescribeEcsKeyPair)
+}
+
+func (s *EcsServiceV2) EcsKeyPairStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
 }
 
 // DescribeEcsKeyPair >>> Encapsulated.
