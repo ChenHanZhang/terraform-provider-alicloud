@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -37,14 +36,26 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewall() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"firewall_eni_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"firewall_eni_vpc_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"firewall_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"firewall_subnet_cidr": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+			},
+			"firewall_vpc_attachment_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"firewall_vpc_cidr": {
 				Type:     schema.TypeString,
@@ -68,7 +79,7 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewall() *schema.Resource {
 			},
 			"tr_attachment_master_cidr": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"tr_attachment_master_zone": {
@@ -77,7 +88,7 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewall() *schema.Resource {
 			},
 			"tr_attachment_slave_cidr": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"tr_attachment_slave_zone": {
@@ -88,18 +99,6 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewall() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-			"firewall_eni_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"firewall_eni_vpc_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"firewall_vpc_attachment_id": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 		},
 	}
@@ -114,43 +113,45 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewallCreate(d *schema.ResourceData,
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
-	var endpoint string
 	request = make(map[string]interface{})
 
 	request["CenId"] = d.Get("cen_id")
-	request["TrAttachmentMasterCidr"] = d.Get("tr_attachment_master_cidr")
+	if v, ok := d.GetOk("tr_attachment_master_cidr"); ok {
+		request["TrAttachmentMasterCidr"] = v
+	}
 	if v, ok := d.GetOk("firewall_description"); ok {
 		request["FirewallDescription"] = v
 	}
 	if v, ok := d.GetOk("tr_attachment_slave_zone"); ok {
 		request["TrAttachmentSlaveZone"] = v
 	}
-	request["FirewallSubnetCidr"] = d.Get("firewall_subnet_cidr")
+	if v, ok := d.GetOk("firewall_subnet_cidr"); ok {
+		request["FirewallSubnetCidr"] = v
+	}
 	request["RouteMode"] = d.Get("route_mode")
 	request["RegionNo"] = d.Get("region_no")
 	request["TransitRouterId"] = d.Get("transit_router_id")
 	request["FirewallName"] = d.Get("firewall_name")
-	request["TrAttachmentSlaveCidr"] = d.Get("tr_attachment_slave_cidr")
+	if v, ok := d.GetOk("tr_attachment_slave_cidr"); ok {
+		request["TrAttachmentSlaveCidr"] = v
+	}
 	if v, ok := d.GetOk("tr_attachment_master_zone"); ok {
 		request["TrAttachmentMasterZone"] = v
 	}
 	request["FirewallVpcCidr"] = d.Get("firewall_vpc_cidr")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(30*time.Second, 30*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, false, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ErrorTrResourceNotReady"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_firewall_vpc_cen_tr_firewall", action, AlibabaCloudSdkGoERROR)
@@ -181,49 +182,21 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewallRead(d *schema.ResourceData, m
 		return WrapError(err)
 	}
 
-	if v, ok := objectRaw["CenId"]; ok {
-		d.Set("cen_id", v)
-	}
-	if v, ok := objectRaw["FirewallDescription"]; ok {
-		d.Set("firewall_description", v)
-	}
-	if v, ok := objectRaw["FirewallName"]; ok {
-		d.Set("firewall_name", v)
-	}
-	if v, ok := objectRaw["FirewallSubnetCidr"]; ok {
-		d.Set("firewall_subnet_cidr", v)
-	}
-	if v, ok := objectRaw["FirewallVpcCidr"]; ok {
-		d.Set("firewall_vpc_cidr", v)
-	}
-	if v, ok := objectRaw["RegionNo"]; ok {
-		d.Set("region_no", v)
-	}
-	if v, ok := objectRaw["RouteMode"]; ok {
-		d.Set("route_mode", v)
-	}
-	if v, ok := objectRaw["FirewallStatus"]; ok {
-		d.Set("status", v)
-	}
-	if v, ok := objectRaw["TrAttachmentMasterCidr"]; ok {
-		d.Set("tr_attachment_master_cidr", v)
-	}
-	if v, ok := objectRaw["TrAttachmentSlaveCidr"]; ok {
-		d.Set("tr_attachment_slave_cidr", v)
-	}
-	if v, ok := objectRaw["TransitRouterId"]; ok {
-		d.Set("transit_router_id", v)
-	}
+	d.Set("cen_id", objectRaw["CenId"])
+	d.Set("firewall_description", objectRaw["FirewallDescription"])
+	d.Set("firewall_eni_id", objectRaw["FirewallEniId"])
+	d.Set("firewall_eni_vpc_id", objectRaw["FirewallEniVpcId"])
+	d.Set("firewall_name", objectRaw["FirewallName"])
+	d.Set("firewall_subnet_cidr", objectRaw["FirewallSubnetCidr"])
+	d.Set("firewall_vpc_attachment_id", objectRaw["TrAttachmentId"])
+	d.Set("firewall_vpc_cidr", objectRaw["FirewallVpcCidr"])
+	d.Set("region_no", objectRaw["RegionNo"])
+	d.Set("route_mode", objectRaw["RouteMode"])
+	d.Set("status", objectRaw["FirewallStatus"])
+	d.Set("tr_attachment_master_cidr", objectRaw["TrAttachmentMasterCidr"])
+	d.Set("tr_attachment_slave_cidr", objectRaw["TrAttachmentSlaveCidr"])
+	d.Set("transit_router_id", objectRaw["TransitRouterId"])
 
-	if v, ok := objectRaw["FirewallEniId"]; ok {
-		d.Set("firewall_eni_id", v)
-	}
-	if v, ok := objectRaw["FirewallEniVpcId"]; ok {
-		d.Set("firewall_eni_vpc_id", v)
-	}
-	if v, ok := objectRaw["TrAttachmentId"]; ok {
-		d.Set("firewall_vpc_attachment_id", v)
-	}
 	return nil
 }
 
@@ -233,9 +206,9 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewallUpdate(d *schema.ResourceData,
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "ModifyTrFirewallV2Configuration"
+
 	var err error
-	var endpoint string
+	action := "ModifyTrFirewallV2Configuration"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["FirewallId"] = d.Id()
@@ -245,24 +218,19 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewallUpdate(d *schema.ResourceData,
 	}
 	request["FirewallName"] = d.Get("firewall_name")
 	if update {
-		runtime := util.RuntimeOptions{}
-		runtime.SetAutoretry(true)
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, false, endpoint)
+			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
-				} else if IsExpectedErrors(err, []string{"not buy user"}) {
-					endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -279,29 +247,22 @@ func resourceAliCloudCloudFirewallVpcCenTrFirewallDelete(d *schema.ResourceData,
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
-	var endpoint string
 	request = make(map[string]interface{})
 	request["FirewallId"] = d.Id()
 
-	runtime := util.RuntimeOptions{}
-	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, false, endpoint)
-
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not buy user"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		if IsExpectedErrors(err, []string{"ErrorTrFirewallNotExist"}) || NotFoundError(err) {
