@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_express_connect_router_vpc_association
 
-Provides a Express Connect Router Express Connect Router Vpc Association resource. Bind relationship object between leased line gateway and VPC.
+Provides a Express Connect Router Express Connect Router Vpc Association resource.
+
+Express Connect router and VPC association object  .
 
 For information about Express Connect Router Express Connect Router Vpc Association and how to use it, see [What is Express Connect Router Vpc Association](https://www.alibabacloud.com/help/en/express-connect/developer-reference/api-expressconnectrouter-2023-09-01-createexpressconnectrouterassociation).
 
@@ -17,12 +19,6 @@ For information about Express Connect Router Express Connect Router Vpc Associat
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_express_connect_router_vpc_association&exampleId=2453c592-867e-6ad0-2a20-e59a8e4f6a8b3fb1912c&activeTab=example&spm=docs.r.express_connect_router_vpc_association.0.2453c59286&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -58,25 +54,23 @@ resource "alicloud_express_connect_router_vpc_association" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_express_connect_router_vpc_association&spm=docs.r.express_connect_router_vpc_association.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `allowed_prefixes` - (Optional) The list of allowed route prefixes.
-* `association_region_id` - (Required, ForceNew) The region ID of the resource to be associated.
-* `ecr_id` - (Required, ForceNew) The ECR ID.
-* `vpc_id` - (Required, ForceNew) The VPC ID.
-* `vpc_owner_id` - (Optional, ForceNew) The ID of the Alibaba Cloud account that owns the VPC.
--> **NOTE:** If you want to connect to a network instance that belongs to a different account, `vpc_owner_id` is required.
+* `allowed_prefixes` - (Optional, List) The list of allowed route prefixes.
+* `association_region_id` - (Required, ForceNew) The region ID of the VPC or Transit Router (TR).
+* `description` - (Optional, Available since v1.277.0) The description of the associated resource. The length must be 0 to 128 characters.
+* `ecr_id` - (Required, ForceNew) The ID of the Express Connect router instance.
+* `vpc_id` - (Required, ForceNew) The ID of the VPC instance.
+* `vpc_owner_id` - (Optional, ForceNew, Computed, Int) The Alibaba Cloud account ID to which the VPC belongs.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<ecr_id>:<association_id>:<vpc_id>`.
-* `association_id` - The ID of the association between the ECR and the VPC.
+* `id` - The ID of the resource supplied above. The value is formulated as `<ecr_id>:<association_id>:<vpc_id>`.
+* `association_id` - The association ID between the Express Connect router and a VPC or TR.
 * `create_time` - The time when the association was created.
-* `status` - The deployment state of the associated resource.
+* `status` - The deployment status of the associated resource.
 
 ## Timeouts
 
