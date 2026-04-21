@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_express_connect_router_tr_association
 
-Provides a Express Connect Router Express Connect Router Tr Association resource. Leased line gateway and TR binding relationship object.
+Provides a Express Connect Router Express Connect Router Tr Association resource.
+
+Leased line gateway and TR binding relationship object.
 
 For information about Express Connect Router Express Connect Router Tr Association and how to use it, see [What is Express Connect Router Tr Association](https://next.api.alibabacloud.com/api/ExpressConnectRouter/2023-09-01/CreateExpressConnectRouterAssociation).
 
@@ -17,12 +19,6 @@ For information about Express Connect Router Express Connect Router Tr Associati
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_express_connect_router_tr_association&exampleId=dd472839-6d9b-59e6-6edb-30df6adee7ca28a7b887&activeTab=example&spm=docs.r.express_connect_router_tr_association.0.dd4728396d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -82,22 +78,27 @@ resource "alicloud_express_connect_router_tr_association" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_express_connect_router_tr_association&spm=docs.r.express_connect_router_tr_association.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `allowed_prefixes` - (Optional) List of allowed route prefixes.
+* `allowed_prefixes` - (Optional, List) List of allowed route prefixes.
 * `association_region_id` - (Required, ForceNew) The region to which the VPC or TR belongs.
 * `cen_id` - (Optional, ForceNew) The ID of the CEN instance.
+* `description` - (Optional, Available since v1.277.0) Resource attribute fields that represent resource description information
 * `ecr_id` - (Required, ForceNew) The ID of the leased line gateway instance.
-* `transit_router_id` - (Optional, ForceNew, Computed) The ID of the forwarding router instance.
-* `transit_router_owner_id` - (Optional, ForceNew) The ID of the Alibaba Cloud account to which the forwarding router belongs.
+* `transit_router_id` - (Optional, ForceNew, Computed) The ID of the instance attached to the leased line gateway.
+
+-> **NOTE:**  Both The **InstanceId parameter and the** AssociationId parameter must be entered.
+
+* `transit_router_owner_id` - (Optional, ForceNew, Int) The ID of the Alibaba Cloud account (primary account) to which the forwarding router instance belongs. The default value is the current Alibaba Cloud account ID.
+
+-> **NOTE:**  This parameter is required if you want to load a cross-account network instance.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<ecr_id>:<association_id>:<transit_router_id>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<ecr_id>:<association_id>:<transit_router_id>`.
 * `association_id` - The first ID of the resource.
 * `create_time` - The creation time of the resource.
 * `status` - The status of the resource.
