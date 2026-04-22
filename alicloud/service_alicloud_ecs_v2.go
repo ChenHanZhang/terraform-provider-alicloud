@@ -976,6 +976,7 @@ func (s *EcsServiceV2) DescribeEcsDiskEncryptionByDefault(id string) (object map
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["RegionId"] = id
+	request["RegionId"] = client.RegionId
 	action := "DescribeDiskEncryptionByDefaultStatus"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -993,6 +994,9 @@ func (s *EcsServiceV2) DescribeEcsDiskEncryptionByDefault(id string) (object map
 	})
 	addDebug(action, response, request)
 	if err != nil {
+		if IsExpectedErrors(err, []string{"InvalidParameter"}) {
+			return object, WrapErrorf(NotFoundErr("DiskEncryptionByDefault", id), NotFoundMsg, response)
+		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 

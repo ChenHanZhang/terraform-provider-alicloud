@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -38,59 +39,60 @@ func resourceAliCloudEcsDiskEncryptionByDefaultCreate(d *schema.ResourceData, me
 
 	client := meta.(*connectivity.AliyunClient)
 
+	action := "EnableDiskEncryptionByDefault"
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
+	if v, ok := d.GetOk("region_id"); ok {
+		request["RegionId"] = v
+	}
 	request["RegionId"] = client.RegionId
 
-	isEncrypted := false
-	if v, ok := d.GetOkExists("encrypted"); ok {
-		isEncrypted = v.(bool)
-
-		if isEncrypted {
-			action := "EnableDiskEncryptionByDefault"
-
-			wait := incrementalWait(3*time.Second, 0*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
-				if err != nil {
-					if NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
-			})
-			addDebug(action, response, request)
-
-			if err != nil {
-				return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_disk_encryption_by_default", action, AlibabaCloudSdkGoERROR)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
 			}
-		} else {
-			action := "DisableDiskEncryptionByDefault"
-
-			wait := incrementalWait(3*time.Second, 0*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-				response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
-				if err != nil {
-					if NeedRetry(err) {
-						wait()
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
-			})
-			addDebug(action, response, request)
-
-			if err != nil {
-				return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_disk_encryption_by_default", action, AlibabaCloudSdkGoERROR)
-			}
+			return resource.NonRetryableError(err)
 		}
+		return nil
+	})
+	addDebug(action, response, request)
 
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_disk_encryption_by_default", action, AlibabaCloudSdkGoERROR)
+	}
+
+	d.SetId(fmt.Sprint(request["RegionId"]))
+
+	action = "DisableDiskEncryptionByDefault"
+	request = make(map[string]interface{})
+	if v, ok := d.GetOk("region_id"); ok {
+		request["RegionId"] = v
+	}
+	request["RegionId"] = client.RegionId
+
+	wait = incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_ecs_disk_encryption_by_default", action, AlibabaCloudSdkGoERROR)
 	}
 
 	d.SetId(fmt.Sprint(request["RegionId"]))
@@ -113,6 +115,8 @@ func resourceAliCloudEcsDiskEncryptionByDefaultRead(d *schema.ResourceData, meta
 	}
 
 	d.Set("encrypted", objectRaw["Encrypted"])
+
+	d.Set("region_id", d.Id())
 
 	return nil
 }
@@ -144,7 +148,8 @@ func resourceAliCloudEcsDiskEncryptionByDefaultUpdate(d *schema.ResourceData, me
 				request = make(map[string]interface{})
 				query = make(map[string]interface{})
 				request["RegionId"] = d.Id()
-				wait := incrementalWait(3*time.Second, 0*time.Second)
+				request["RegionId"] = client.RegionId
+				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 					if err != nil {
@@ -167,7 +172,8 @@ func resourceAliCloudEcsDiskEncryptionByDefaultUpdate(d *schema.ResourceData, me
 				request = make(map[string]interface{})
 				query = make(map[string]interface{})
 				request["RegionId"] = d.Id()
-				wait := incrementalWait(3*time.Second, 0*time.Second)
+				request["RegionId"] = client.RegionId
+				wait := incrementalWait(3*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 					if err != nil {

@@ -3,16 +3,16 @@ subcategory: "ECS"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_ecs_disk_encryption_by_default"
 description: |-
-  Provides a Alicloud Ecs Disk Encryption By Default resource.
+  Provides a Alicloud ECS Disk Encryption By Default resource.
 ---
 
 # alicloud_ecs_disk_encryption_by_default
 
-Provides a Ecs Disk Encryption By Default resource.
+Provides a ECS Disk Encryption By Default resource.
 
 Default encryption configuration capability for cloud storage.
 
-For information about Ecs Disk Encryption By Default and how to use it, see [What is Disk Encryption By Default](https://next.api.alibabacloud.com/document/Ecs/2014-05-26/EnableDiskEncryptionByDefault).
+For information about ECS Disk Encryption By Default and how to use it, see [What is Disk Encryption By Default](https://next.api.alibabacloud.com/document/Ecs/2014-05-26/EnableDiskEncryptionByDefault).
 
 -> **NOTE:** Available since v1.277.0.
 
@@ -33,9 +33,7 @@ Terraform cannot destroy resource `alicloud_ecs_disk_encryption_by_default`. Ter
 ## Argument Reference
 
 The following arguments are supported:
-* `encrypted` - (Optional, Bool) Indicates whether account-level default encryption of EBS resources is enabled in the region. Valid values:
-  - `true`: Enable.
-  - `false`: Disable.
+* `encrypted` - (Optional) Whether to enable default encryption
 
 ## Attributes Reference
 
@@ -50,7 +48,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Ecs Disk Encryption By Default can be imported using the id, e.g.
+ECS Disk Encryption By Default can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_ecs_disk_encryption_by_default.example <region_id>
