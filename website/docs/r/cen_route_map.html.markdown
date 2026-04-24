@@ -2,30 +2,23 @@
 subcategory: "Cloud Enterprise Network (CEN)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cen_route_map"
-sidebar_current: "docs-alicloud-resource-cen-route-map"
 description: |-
-  Provides a Alicloud CEN manage route map resource.
+  Provides a Alicloud Cloud Enterprise Network (CEN) Route Map resource.
 ---
 
 # alicloud_cen_route_map
 
-This topic provides an overview of the route map function of Cloud Enterprise Networks (CENs).
-You can use the route map function to filter routes and modify route attributes.
-By doing so, you can manage the communication between networks attached to a CEN. 
+Provides a Cloud Enterprise Network (CEN) Route Map resource.
 
-For information about CEN Route Map and how to use it, see [Manage CEN Route Map](https://www.alibabacloud.com/help/en/cloud-enterprise-network/latest/api-cbn-2017-09-12-createcenroutemap).
 
--> **NOTE:** Available since v1.82.0.
+
+For information about Cloud Enterprise Network (CEN) Route Map and how to use it, see [What is Route Map](https://next.api.alibabacloud.com/document/Cbn/2017-09-12/CreateRouteMap).
+
+-> **NOTE:** Available since v1.277.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cen_route_map&exampleId=20f13b8e-3e2b-a139-a615-7a9170d9ee436d31d7b8&activeTab=example&spm=docs.r.cen_route_map.0.20f13b8e3e&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "source_region" {
@@ -101,57 +94,41 @@ resource "alicloud_cen_route_map" "default" {
   preference                             = "20"
   prepend_as_path                        = ["65501"]
 }
-
 ```
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cen_route_map&spm=docs.r.cen_route_map.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
+* `description` - (Optional) This property does not have a description in the spec, please add it before generating code.
+* `direction` - (Required, ForceNew) This property does not have a description in the spec, please add it before generating code.
+* `dry_run` - (Optional) This property does not have a description in the spec, please add it before generating code.
 
-* `cen_id` - (Required, ForceNew) The ID of the CEN instance.
-* `cen_region_id` - (Required) The ID of the region to which the CEN instance belongs.
-* `priority` - (Required) The priority of the route map. Value range: 1 to 100. A lower value indicates a higher priority.
-* `transmit_direction` - (Required, ForceNew) The direction in which the route map is applied. Valid values: ["RegionIn", "RegionOut"].
-* `map_result` - (Required) The action that is performed to a route if the route matches all the match conditions. Valid values: ["Permit", "Deny"].
-* `next_priority` - (Optional) The priority of the next route map that is associated with the current route map. Value range: 1 to 100.
-* `description` - (Optional) The description of the route map.
-* `source_region_ids` - (Optional) A match statement that indicates the list of IDs of the source regions. You can enter a maximum of 32 region IDs.
-* `source_instance_ids` - (Optional) A match statement that indicates the list of IDs of the source instances. 
-* `source_instance_ids_reverse_match` - (Optional) Indicates whether to enable the reverse match method for the SourceInstanceIds match condition. Valid values: ["false", "true"]. Default to "false".
-* `destination_instance_ids` - (Optional) A match statement that indicates the list of IDs of the destination instances.
-* `destination_instance_ids_reverse_match` - (Optional) Indicates whether to enable the reverse match method for the DestinationInstanceIds match condition. Valid values: ["false", "true"]. Default to "false".
-* `source_route_table_ids` - (Optional) A match statement that indicates the list of IDs of the source route tables. You can enter a maximum of 32 route table IDs. 
-* `destination_route_table_ids` - (Optional) A match statement that indicates the list of IDs of the destination route tables. You can enter a maximum of 32 route table IDs. 
-* `source_child_instance_types` - (Optional) A match statement that indicates the list of source instance types. Valid values: ["VPC", "VBR", "CCN"].
-* `destination_child_instance_types` - (Optional) A match statement that indicates the list of destination instance types. Valid values: ["VPC", "VBR", "CCN", "VPN"].
-* `destination_cidr_blocks` - (Optional) A match statement that indicates the prefix list. The prefix is in the CIDR format. You can enter a maximum of 32 CIDR blocks. 
-* `cidr_match_mode` - (Optional) A match statement. It indicates the mode in which the prefix attribute is matched. Valid values: ["Include", "Complete"].
-* `route_types` - (Optional) A match statement that indicates the list of route types. Valid values: ["System", "Custom", "BGP"].
-* `match_asns` - (Optional) A match statement that indicates the AS path list. The AS path is a well-known mandatory attribute, which describes the numbers of the ASs that a BGP route passes through during transmission. 
-* `as_path_match_mode` - (Optional) A match statement. It indicates the mode in which the AS path attribute is matched. Valid values: ["Include", "Complete"].
-* `match_community_set` - (Optional) A match statement that indicates the community set. The format of each community is nn:nn, which ranges from 1 to 65535. You can enter a maximum of 32 communities. Communities must comply with RFC 1997. Large communities (RFC 8092) are not supported. 
-* `community_match_mode` - (Optional) A match statement. It indicates the mode in which the community attribute is matched. Valid values: ["Include", "Complete"].
-* `community_operate_mode` - (Optional) An action statement. It indicates the mode in which the community attribute is operated. Valid values: ["Additive", "Replace"].
-* `operate_community_set` - (Optional) An action statement that operates the community attribute. The format of each community is nn:nn, which ranges from 1 to 65535. You can enter a maximum of 32 communities. Communities must comply with RFC 1997. Large communities (RFC 8092) are not supported. 
-* `preference` - (Optional) An action statement that modifies the priority of the route. Value range: 1 to 100. The default priority of a route is 50. A lower value indicates a higher preference. 
-* `prepend_as_path` - (Optional) An action statement that indicates an AS path is prepended when the regional gateway receives or advertises a route.
-* `transit_router_route_table_id` - (Optional, ForceNew, Computed, Available in v1.167.0+) The routing table ID of the forwarding router. If you do not enter the routing table ID, the routing policy is automatically associated with the default routing table of the forwarding router.
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
+
+* `name` - (Optional) This property does not have a description in the spec, please add it before generating code.
+* `priority` - (Required, Int) This property does not have a description in the spec, please add it before generating code.
+* `resource_group_id` - (Optional, ForceNew, Computed) The ID of the resource group
+* `tags` - (Optional, Map) Tags
 
 ## Attributes Reference
 
-The RouteMapId attributes are exported:
+The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The creation time of the resource.
+* `route_map_id` - The first ID of the resource.
+* `status` - 当前属性没有在镇元上录入属性描述�
 
-* `id` - ID of the RouteMap. It formats as `<cen_id>:<route_map_id>`
-* `route_map_id` - ID of the RouteMap. It is available in 1.161.0+.
-* `status` - (Computed) The status of route map. Valid values: ["Creating", "Active", "Deleting"].
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Route Map.
+* `delete` - (Defaults to 5 mins) Used when delete the Route Map.
+* `update` - (Defaults to 5 mins) Used when update the Route Map.
 
 ## Import
 
-CEN RouteMap can be imported using the id, e.g.
+Cloud Enterprise Network (CEN) Route Map can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cen_route_map.default <cen_id>:<route_map_id>.
+$ terraform import alicloud_cen_route_map.example <route_map_id>
 ```
-
