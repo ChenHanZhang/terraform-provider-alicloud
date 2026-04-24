@@ -12,6 +12,497 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
+// Test Cen RouteMap. >>> Resource test cases, automatically generated.
+// Case RouteMap_接入tag 12729
+func TestAccAliCloudCenRouteMap_basic12729(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cen_route_map.default"
+	ra := resourceAttrInit(resourceId, AlicloudCenRouteMapMap12729)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CenServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCenRouteMap")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccen%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCenRouteMapBasicDependence12729)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test",
+					"priority":    "96",
+					"dry_run":     "false",
+					"direction":   "Inbound",
+					"name":        name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test",
+						"priority":    "96",
+						"dry_run":     "false",
+						"direction":   "Inbound",
+						"name":        name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test2",
+					"priority":    "95",
+					"name":        name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test2",
+						"priority":    "95",
+						"name":        name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dry_run"},
+			},
+		},
+	})
+}
+
+var AlicloudCenRouteMapMap12729 = map[string]string{
+	"status":       CHECKSET,
+	"create_time":  CHECKSET,
+	"route_map_id": CHECKSET,
+}
+
+func AlicloudCenRouteMapBasicDependence12729(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case RouteMap_接入资源组 12676
+func TestAccAliCloudCenRouteMap_basic12676(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cen_route_map.default"
+	ra := resourceAttrInit(resourceId, AlicloudCenRouteMapMap12676)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CenServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCenRouteMap")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccen%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCenRouteMapBasicDependence12676)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":       "test",
+					"priority":          "96",
+					"dry_run":           "false",
+					"direction":         "Inbound",
+					"name":              name,
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":       "test",
+						"priority":          "96",
+						"dry_run":           "false",
+						"direction":         "Inbound",
+						"name":              name,
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dry_run"},
+			},
+		},
+	})
+}
+
+var AlicloudCenRouteMapMap12676 = map[string]string{
+	"status":       CHECKSET,
+	"create_time":  CHECKSET,
+	"route_map_id": CHECKSET,
+}
+
+func AlicloudCenRouteMapBasicDependence12676(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case RouteMap测试 12648
+func TestAccAliCloudCenRouteMap_basic12648(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cen_route_map.default"
+	ra := resourceAttrInit(resourceId, AlicloudCenRouteMapMap12648)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CenServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCenRouteMap")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccen%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCenRouteMapBasicDependence12648)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test",
+					"priority":    "96",
+					"dry_run":     "false",
+					"direction":   "Inbound",
+					"name":        name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test",
+						"priority":    "96",
+						"dry_run":     "false",
+						"direction":   "Inbound",
+						"name":        name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test2",
+					"priority":    "95",
+					"name":        name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test2",
+						"priority":    "95",
+						"name":        name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dry_run"},
+			},
+		},
+	})
+}
+
+var AlicloudCenRouteMapMap12648 = map[string]string{
+	"status":       CHECKSET,
+	"create_time":  CHECKSET,
+	"route_map_id": CHECKSET,
+}
+
+func AlicloudCenRouteMapBasicDependence12648(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case RouteMap测试_副本1773911166284 12649
+func TestAccAliCloudCenRouteMap_basic12649(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cen_route_map.default"
+	ra := resourceAttrInit(resourceId, AlicloudCenRouteMapMap12649)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CenServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCenRouteMap")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccen%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCenRouteMapBasicDependence12649)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test",
+					"priority":    "96",
+					"direction":   "Inbound",
+					"name":        name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test",
+						"priority":    "96",
+						"direction":   "Inbound",
+						"name":        name,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "test2",
+					"priority":    "95",
+					"name":        name + "_update",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "test2",
+						"priority":    "95",
+						"name":        name + "_update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dry_run"},
+			},
+		},
+	})
+}
+
+var AlicloudCenRouteMapMap12649 = map[string]string{
+	"status":       CHECKSET,
+	"create_time":  CHECKSET,
+	"route_map_id": CHECKSET,
+}
+
+func AlicloudCenRouteMapBasicDependence12649(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test Cen RouteMap. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudCenRouteMap_basic_child_instance_same_region(t *testing.T) {
 	var routeMap cbn.RouteMap
 	resourceId := "alicloud_cen_route_map.default"
