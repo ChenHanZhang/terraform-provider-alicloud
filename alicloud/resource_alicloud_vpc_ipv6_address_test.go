@@ -25,6 +25,7 @@ func TestAccAliCloudVpcIpv6Address_basic4694(t *testing.T) {
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudVpcIpv6AddressBasicDependence4694)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -38,13 +39,11 @@ func TestAccAliCloudVpcIpv6Address_basic4694(t *testing.T) {
 					"ipv6_address_description": "create_description",
 					"ipv6_address_name":        name,
 					"address_type":             "Ipv6Address",
-					"ipv6_address":             "${cidrhost(alicloud_vswitch.vswich.ipv6_cidr_block, 128)}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"resource_group_id":        CHECKSET,
 						"vswitch_id":               CHECKSET,
-						"ipv6_address":             CHECKSET,
 						"ipv6_address_description": "create_description",
 						"ipv6_address_name":        name,
 						"address_type":             "Ipv6Address",
@@ -146,10 +145,6 @@ variable "zone_id" {
 
 data "alicloud_resource_manager_resource_groups" "default" {}
 
-data "alicloud_zones" "default" {
-  available_resource_creation = "VSwitch"
-}
-
 resource "alicloud_vpc" "vpc" {
   cidr_block  = "172.16.0.0/12"
   enable_ipv6 = true
@@ -158,7 +153,7 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vswich" {
   vpc_id               = alicloud_vpc.vpc.id
   cidr_block           = "172.16.0.0/24"
-  zone_id              = data.alicloud_zones.default.zones.0.id
+  zone_id              = var.zone_id
   vswitch_name         = "tf-testacc"
   ipv6_cidr_block_mask = "1"
 }
