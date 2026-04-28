@@ -916,6 +916,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_ens_common_bandwidth_package":                         resourceAliCloudEnsCommonBandwidthPackage(),
 			"alicloud_alidns_cloud_gtm_instance_config":                     resourceAliCloudAlidnsCloudGtmInstanceConfig(),
 			"alicloud_alidns_cloud_gtm_monitor_template":                    resourceAliCloudAlidnsCloudGtmMonitorTemplate(),
 			"alicloud_alidns_cloud_gtm_address":                             resourceAliCloudAlidnsCloudGtmAddress(),
