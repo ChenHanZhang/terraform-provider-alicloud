@@ -20,12 +20,6 @@ For information about File Storage (NAS) Mount Target and how to use it, see [Wh
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_mount_target&exampleId=22f8ab4c-6826-906f-09ad-67827e96eaae2128860b&activeTab=example&spm=docs.r.nas_mount_target.0.22f8ab4c68&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_nas_zones" "default" {
   file_system_type = "extreme"
@@ -72,12 +66,10 @@ resource "alicloud_nas_mount_target" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_mount_target&spm=docs.r.nas_mount_target.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_group_name` - (Optional) The name of the permission group.
+* `access_group_name` - (Required) The name of the permission group.
 * `dual_stack` - (Optional, Available since v1.247.0) Whether to create an IPv6 mount point.
 
 Value:
@@ -86,17 +78,24 @@ Value:
 
 -> **NOTE:**  currently, only extreme NAS supports IPv6 function in various regions in mainland China, and IPv6 function needs to be turned on for this file system.
 
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `file_system_id` - (Required, ForceNew) The ID of the file system.
-* `network_type` - (Optional, ForceNew, Available since v1.208.1) Network type.
+* `network_type` - (Required, ForceNew, Available since v1.208.1) Network type.
 * `security_group_id` - (Optional) The ID of the security group.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `status` - (Optional, Computed) The current status of the Mount point, including Active and Inactive, can be used to mount the file system only when the status is Active.
+* `tags` - (Optional, Map, Available since v1.278.0) The tag of the resource
 * `vswitch_id` - (Optional, ForceNew) The ID of the switch.
-* `vpc_id` - (Optional, ForceNew, Available since v1.208.1) VPC ID.
+* `vpc_id` - (Optional, ForceNew, Computed) VPC ID.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<mount_target_domain>`.
+* `id` - The ID of the resource supplied above. The value is formulated as `<file_system_id>:<mount_target_domain>`.
 * `mount_target_domain` - The domain name of the Mount point.
 
 ## Timeouts
