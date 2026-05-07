@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	github.com/alibabacloud-go/alibabacloud-gateway-oss v0.0.23
+	github.com/alibabacloud-go/alibabacloud-gateway-oss v0.0.26
 	github.com/alibabacloud-go/alibabacloud-gateway-sls v0.3.0
 	github.com/alibabacloud-go/cs-20151215/v7 v7.6.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.14
@@ -65,7 +65,7 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-fc-util v0.0.6 // indirect
-	github.com/alibabacloud-go/alibabacloud-gateway-oss-util v0.0.12 // indirect
+	github.com/alibabacloud-go/alibabacloud-gateway-oss-util v0.0.14 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-sls-util v0.3.0 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
 	github.com/alibabacloud-go/darabonba-array v0.1.0 // indirect
