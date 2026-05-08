@@ -916,12 +916,12 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_cen_transit_router_policy_table_association":          resourceAliCloudCenTransitRouterPolicyTableAssociation(),
 			"alicloud_oss_bucket_object_worm_configuration":                 resourceAliCloudOssBucketObjectWormConfiguration(),
 			"alicloud_alidns_cloud_gtm_instance_config":                     resourceAliCloudAlidnsCloudGtmInstanceConfig(),
 			"alicloud_alidns_cloud_gtm_monitor_template":                    resourceAliCloudAlidnsCloudGtmMonitorTemplate(),
 			"alicloud_alidns_cloud_gtm_address":                             resourceAliCloudAlidnsCloudGtmAddress(),
 			"alicloud_ecs_disk_encryption_by_default":                       resourceAliCloudEcsDiskEncryptionByDefault(),
-			"alicloud_cms_prometheus_view":                                  resourceAliCloudCmsPrometheusView(),
 			"alicloud_cms_prometheus_instance":                              resourceAliCloudCmsPrometheusInstance(),
 			"alicloud_cms_integration_policy":                               resourceAliCloudCmsIntegrationPolicy(),
 			"alicloud_cms_workspace":                                        resourceAliCloudCmsWorkspace(),
