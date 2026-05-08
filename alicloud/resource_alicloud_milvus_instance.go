@@ -23,7 +23,7 @@ func resourceAliCloudMilvusInstance() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(14 * time.Minute),
-			Update: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(21 * time.Minute),
 			Delete: schema.DefaultTimeout(14 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
@@ -31,6 +31,10 @@ func resourceAliCloudMilvusInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
+			},
+			"auto_pay": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"components": {
 				Type:     schema.TypeSet,
@@ -41,6 +45,7 @@ func resourceAliCloudMilvusInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
+							ForceNew: true,
 						},
 						"type": {
 							Type:     schema.TypeString,
@@ -54,7 +59,13 @@ func resourceAliCloudMilvusInstance() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
+							ForceNew:     true,
 							ValidateFunc: StringInSlice([]string{"Normal", "Large"}, false),
+						},
+						"pay_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 						},
 						"replica": {
 							Type:     schema.TypeInt,
@@ -72,9 +83,8 @@ func resourceAliCloudMilvusInstance() *schema.Resource {
 				Computed: true,
 			},
 			"db_admin_password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Sensitive: true,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"db_version": {
 				Type:     schema.TypeString,
@@ -194,6 +204,9 @@ func resourceAliCloudMilvusInstanceCreate(d *schema.ResourceData, meta interface
 	}
 
 	request["paymentType"] = d.Get("payment_type")
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["autoPay"] = v
+	}
 	if v, ok := d.GetOk("configuration"); ok {
 		request["configuration"] = v
 	}
@@ -352,7 +365,6 @@ func resourceAliCloudMilvusInstanceUpdate(d *schema.ResourceData, meta interface
 	var query map[string]*string
 	var body map[string]interface{}
 	update := false
-	d.Partial(true)
 
 	var err error
 	action := fmt.Sprintf("/webapi/instance/update")
@@ -364,7 +376,7 @@ func resourceAliCloudMilvusInstanceUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("components") {
 		update = true
 	}
-	if v, ok := d.GetOk("components"); ok && d.HasChange("components") {
+	if v, ok := d.GetOk("components"); ok || d.HasChange("components") {
 		componentsMapsArray := make([]interface{}, 0)
 		for _, dataLoop := range convertToInterfaceArray(v) {
 			dataLoopTmp := dataLoop.(map[string]interface{})
@@ -380,23 +392,26 @@ func resourceAliCloudMilvusInstanceUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("ha") {
 		update = true
 	}
-	if v, ok := d.GetOk("ha"); ok && d.HasChange("ha") {
+	if v, ok := d.GetOkExists("ha"); ok || d.HasChange("ha") {
 		request["ha"] = v
 	}
 	if d.HasChange("instance_name") {
 		update = true
 	}
 	request["instanceName"] = d.Get("instance_name")
+	if v, ok := d.GetOkExists("auto_pay"); ok {
+		request["autoPay"] = v
+	}
 	if d.HasChange("auto_backup") {
 		update = true
 	}
-	if v, ok := d.GetOk("auto_backup"); ok && d.HasChange("auto_backup") {
+	if v, ok := d.GetOkExists("auto_backup"); ok || d.HasChange("auto_backup") {
 		request["autoBackup"] = v
 	}
 	if d.HasChange("configuration") {
 		update = true
 	}
-	if v, ok := d.GetOk("configuration"); ok && d.HasChange("configuration") {
+	if v, ok := d.GetOk("configuration"); ok || d.HasChange("configuration") {
 		request["configuration"] = v
 	}
 	body = request
@@ -464,21 +479,20 @@ func resourceAliCloudMilvusInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapError(err)
 		}
 	}
-	d.Partial(false)
 	return resourceAliCloudMilvusInstanceRead(d, meta)
 }
 
 func resourceAliCloudMilvusInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
+	client := meta.(*connectivity.AliyunClient)
 	enableDelete := true
-	if v, ok := d.GetOk("payment_type"); ok {
+	if v, ok := d.GetOkExists("payment_type"); ok {
 		if InArray(fmt.Sprint(v), []string{"Subscription"}) {
 			enableDelete = false
 			log.Printf("[WARN] Cannot destroy resource alicloud_milvus_instance which payment_type valued Subscription. Terraform will remove this resource from the state file, however resources may remain.")
 		}
 	}
 	if enableDelete {
-		client := meta.(*connectivity.AliyunClient)
 		action := fmt.Sprintf("/webapi/instance/delete")
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -518,33 +532,36 @@ func resourceAliCloudMilvusInstanceDelete(d *schema.ResourceData, meta interface
 	}
 
 	enableDelete = false
-	if v, ok := d.GetOk("payment_type"); ok {
+	if v, ok := d.GetOkExists("payment_type"); ok {
 		if InArray(fmt.Sprint(v), []string{"Subscription"}) {
 			enableDelete = true
 		}
 	}
 	if enableDelete {
-		client := meta.(*connectivity.AliyunClient)
 		action := "RefundInstance"
 		var request map[string]interface{}
 		var response map[string]interface{}
+		query := make(map[string]*string)
+		body := make(map[string]interface{})
 		var err error
 		request = make(map[string]interface{})
-		request["InstanceId"] = StringPointer(d.Id())
+		query["InstanceId"] = d.Id()
 
 		request["clientToken"] = buildClientToken(action)
 
-		request["ImmediatelyRelease"] = StringPointer("1")
+		query["ImmediatelyRelease"] = StringPointer("1")
+		query["ProductCode"] = StringPointer("milvus")
+		query["ProductType"] = StringPointer("milvus_milvuspre_public_cn")
 		var endpoint string
-		request["ProductCode"] = StringPointer("milvus")
-		request["ProductType"] = StringPointer("milvus_milvuspre_public_cn")
+		request["ProductCode"] = ""
+		request["ProductType"] = ""
 		if client.IsInternationalAccount() {
 			request["ProductType"] = ""
 		}
-
+		body = request
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, request, true, endpoint)
+			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()

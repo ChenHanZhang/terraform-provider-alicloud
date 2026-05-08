@@ -104,6 +104,7 @@ func (s *MilvusServiceV2) SetResourceTags(d *schema.ResourceData, resourceType s
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
+		header := make(map[string]*string)
 		query := make(map[string]*string)
 		body := make(map[string]interface{})
 
@@ -149,18 +150,22 @@ func (s *MilvusServiceV2) SetResourceTags(d *schema.ResourceData, resourceType s
 			query = make(map[string]*string)
 			body = make(map[string]interface{})
 
-			var tagList []interface{}
+			tagDataList := make(map[string]interface{})
+
 			if v, ok := d.GetOk("tags"); ok {
-				tagsMap := v.(map[string]interface{})
-				for key, value := range tagsMap {
-					tagItem := map[string]interface{}{
-						"Key":   key,
-						"Value": value,
-					}
-					tagList = append(tagList, tagItem)
-				}
+				tagsMap := ConvertTags(v.(map[string]interface{}))
+				tagDataList["Key"] = tagsMap
 			}
-			request["Tag"] = tagList
+
+			if v, ok := d.GetOk("tags"); ok {
+				tagsMap := ConvertTags(v.(map[string]interface{}))
+				tagDataList["Value"] = tagsMap
+			}
+
+			TagMap := make([]interface{}, 0)
+			TagMap = append(TagMap, tagDataList)
+			request["Tag"] = TagMap
+
 			request["RegionId"] = client.RegionId
 			request["ResourceType"] = resourceType
 			jsonString := convertObjectToJsonString(request)
