@@ -19,6 +19,665 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test Nas MountTarget. >>> Resource test cases, automatically generated.
+// Case resource_MountTarget_test 12383
+func TestAccAliCloudNasMountTarget_basic12383(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_mount_target.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasMountTargetMap12383)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasMountTarget")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasMountTargetBasicDependence12383)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vpc_id":            "${alicloud_vpc.createVpc_7.id}",
+					"network_type":      "Vpc",
+					"access_group_name": "${alicloud_nas_access_group.resource_AccessGroup_test_6.access_group_name}",
+					"vswitch_id":        "${alicloud_vswitch.CreateVswitch_10.id}",
+					"file_system_id":    "${alicloud_nas_file_system.resource_FileSystem_test_9.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vpc_id":            CHECKSET,
+						"network_type":      "Vpc",
+						"access_group_name": CHECKSET,
+						"vswitch_id":        CHECKSET,
+						"file_system_id":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dual_stack", "security_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudNasMountTargetMap12383 = map[string]string{
+	"mount_target_domain": CHECKSET,
+}
+
+func AlicloudNasMountTargetBasicDependence12383(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createVpc_8" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_kms_key" "resource_Key_test_7" {
+}
+
+resource "alicloud_vswitch" "CreateVswitch_9" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_8.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_vpc" "createVpc_12" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_nas_file_system" "resource_FileSystem_test_9" {
+  storage_type     = "Performance"
+  encrypt_type     = "0"
+  kms_key_id       = alicloud_kms_key.resource_Key_test_7.id
+  capacity         = "500"
+  protocol_type    = "SMB"
+  file_system_type = "standard"
+  vswitch_id       = alicloud_vswitch.CreateVswitch_9.id
+}
+
+resource "alicloud_vpc" "createVpc_7" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_vswitch" "CreateVswitch_10" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_12.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_nas_access_group" "resource_AccessGroup_test_6" {
+  access_group_type = "Vpc"
+  access_group_name = "testgroup"
+}
+
+
+`, name)
+}
+
+// Case resource_MountTarget_test_2 12386
+func TestAccAliCloudNasMountTarget_basic12386(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_mount_target.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasMountTargetMap12386)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasMountTarget")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasMountTargetBasicDependence12386)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vpc_id":            "${alicloud_vpc.createVpc_16.id}",
+					"network_type":      "Vpc",
+					"access_group_name": "${alicloud_nas_access_group.resource_AccessGroup_test_9.access_group_name}",
+					"vswitch_id":        "${alicloud_vswitch.CreateVswitch_14.id}",
+					"file_system_id":    "${alicloud_nas_file_system.resource_FileSystem_test_11.id}",
+					"dual_stack":        "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vpc_id":            CHECKSET,
+						"network_type":      "Vpc",
+						"access_group_name": CHECKSET,
+						"vswitch_id":        CHECKSET,
+						"file_system_id":    CHECKSET,
+						"dual_stack":        "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dual_stack", "security_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudNasMountTargetMap12386 = map[string]string{
+	"mount_target_domain": CHECKSET,
+}
+
+func AlicloudNasMountTargetBasicDependence12386(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createVpc_17" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_vswitch" "CreateVswitch_13" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_17.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_kms_key" "resource_Key_test_9" {
+}
+
+resource "alicloud_vpc" "createVpc_18" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_nas_access_group" "resource_AccessGroup_test_9" {
+  access_group_type = "Vpc"
+  access_group_name = "testgroup"
+}
+
+resource "alicloud_nas_file_system" "resource_FileSystem_test_11" {
+  storage_type     = "Performance"
+  encrypt_type     = "0"
+  kms_key_id       = alicloud_kms_key.resource_Key_test_9.id
+  capacity         = "500"
+  protocol_type    = "SMB"
+  file_system_type = "standard"
+  vswitch_id       = alicloud_vswitch.CreateVswitch_13.id
+}
+
+resource "alicloud_vpc" "createVpc_16" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_vswitch" "CreateVswitch_14" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_18.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+
+`, name)
+}
+
+// Case resource_MountTarget_test_1 12388
+func TestAccAliCloudNasMountTarget_basic12388(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_mount_target.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasMountTargetMap12388)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasMountTarget")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasMountTargetBasicDependence12388)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vpc_id":            "${alicloud_vpc.createVpc_13.id}",
+					"network_type":      "VPC",
+					"access_group_name": "${alicloud_nas_access_group.resource_AccessGroup_test_7.access_group_name}",
+					"vswitch_id":        "${alicloud_vswitch.CreateVswitch_12.id}",
+					"file_system_id":    "${alicloud_nas_file_system.resource_FileSystem_test_10.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vpc_id":            CHECKSET,
+						"network_type":      "VPC",
+						"access_group_name": CHECKSET,
+						"vswitch_id":        CHECKSET,
+						"file_system_id":    CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dual_stack", "security_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudNasMountTargetMap12388 = map[string]string{
+	"mount_target_domain": CHECKSET,
+}
+
+func AlicloudNasMountTargetBasicDependence12388(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createVpc_14" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_vswitch" "CreateVswitch_11" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_14.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_kms_key" "resource_Key_test_8" {
+}
+
+resource "alicloud_vpc" "createVpc_15" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+resource "alicloud_nas_file_system" "resource_FileSystem_test_10" {
+  storage_type     = "Performance"
+  encrypt_type     = "0"
+  kms_key_id       = alicloud_kms_key.resource_Key_test_8.id
+  capacity         = "500"
+  protocol_type    = "SMB"
+  file_system_type = "standard"
+  vswitch_id       = alicloud_vswitch.CreateVswitch_11.id
+}
+
+resource "alicloud_vswitch" "CreateVswitch_12" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createVpc_15.id
+  zone_id      = "cn-hangzhou-b"
+  cidr_block   = "10.0.0.0/24"
+  vswitch_name = "pl-test-vswpl"
+}
+
+resource "alicloud_nas_access_group" "resource_AccessGroup_test_7" {
+  access_group_type = "Vpc"
+  access_group_name = "testgroup"
+}
+
+resource "alicloud_vpc" "createVpc_13" {
+  is_default = false
+  cidr_block = "10.0.0.0/8"
+  vpc_name   = "pl-example-vpc"
+}
+
+
+`, name)
+}
+
+// Case 通用型挂载点_副本 7198
+func TestAccAliCloudNasMountTarget_basic7198(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_mount_target.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasMountTargetMap7198)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasMountTarget")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasMountTargetBasicDependence7198)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"vpc_id":         "${alicloud_vpc.defaultiUcGvP.id}",
+					"network_type":   "Vpc",
+					"vswitch_id":     "${alicloud_vswitch.defaultulTodx.id}",
+					"file_system_id": "${alicloud_nas_file_system.defaultHtxJoZ.id}",
+					"status":         "Active",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"vpc_id":         CHECKSET,
+						"network_type":   "Vpc",
+						"vswitch_id":     CHECKSET,
+						"file_system_id": CHECKSET,
+						"status":         "Active",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "Inactive",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "Inactive",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"dual_stack", "security_group_id"},
+			},
+		},
+	})
+}
+
+var AlicloudNasMountTargetMap7198 = map[string]string{
+	"mount_target_domain": CHECKSET,
+}
+
+func AlicloudNasMountTargetBasicDependence7198(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+variable "azone" {
+  default = "cn-hangzhou-g"
+}
+
+resource "alicloud_vpc" "defaultiUcGvP" {
+  description = "创建挂载点"
+  cidr_block  = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "defaultulTodx" {
+  description = "挂载点创建测试"
+  vpc_id      = alicloud_vpc.defaultiUcGvP.id
+  cidr_block  = "172.16.0.0/24"
+  zone_id     = var.azone
+}
+
+resource "alicloud_nas_access_group" "defaultR4schK" {
+  access_group_type = "Vpc"
+  description       = "挂载点创建测试"
+  access_group_name = "StandardMountTarget"
+  file_system_type  = "standard"
+}
+
+resource "alicloud_nas_file_system" "defaultHtxJoZ" {
+  description      = "挂载点资源测试"
+  storage_type     = "Performance"
+  encrypt_type     = "0"
+  protocol_type    = "NFS"
+  file_system_type = "standard"
+  zone_id          = var.azone
+}
+
+resource "alicloud_nas_access_group" "defaultjWPUuI" {
+  access_group_type = "Vpc"
+  description       = "挂载点权限组修改"
+  access_group_name = "StandardAccessGroupChange"
+  file_system_type  = "standard"
+}
+
+
+`, name)
+}
+
+// Test Nas MountTarget. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudNASMountTarget_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_nas_mount_target.default"

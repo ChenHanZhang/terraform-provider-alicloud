@@ -10,7 +10,7 @@ description: |-
 
 Provides a File Storage (NAS) Mount Target resource.
 
-File system mount point.
+Mount target for a file system.
 
 For information about File Storage (NAS) Mount Target and how to use it, see [What is Mount Target](https://www.alibabacloud.com/help/en/doc-detail/27531.htm).
 
@@ -19,12 +19,6 @@ For information about File Storage (NAS) Mount Target and how to use it, see [Wh
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_mount_target&exampleId=22f8ab4c-6826-906f-09ad-67827e96eaae2128860b&activeTab=example&spm=docs.r.nas_mount_target.0.22f8ab4c68&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 data "alicloud_nas_zones" "default" {
@@ -72,32 +66,56 @@ resource "alicloud_nas_mount_target" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_mount_target&spm=docs.r.nas_mount_target.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_group_name` - (Optional) The name of the permission group.
-* `dual_stack` - (Optional, Available since v1.247.0) Whether to create an IPv6 mount point.
+* `access_group_name` - (Required) The name of the permission group.
+This parameter is required when the target file system is General-purpose NAS or Extreme NAS.
+Default permission group: DEFAULT_VPC_GROUP_NAME (the default permission group for VPC).
+* `access_point_access_only` - (Optional, Available since v1.278.0) Specifies whether the VPC mount target allows access only through access points (APs). This parameter applies only to CPFS file systems for intelligent computing.
+* `dual_stack` - (Optional, Available since v1.247.0) Specifies whether to create an IPv6-enabled mount target.
 
-Value:
-  - true: create
-  - false (default): not created
+Valid values:
+  - true: creates an IPv6-enabled mount target
+  - false (default): does not create an IPv6-enabled mount target
 
--> **NOTE:**  currently, only extreme NAS supports IPv6 function in various regions in mainland China, and IPv6 function needs to be turned on for this file system.
+-> **NOTE:**  Currently, IPv6 is supported only in mainland China regions for Extreme NAS, and the file system must have IPv6 enabled.
 
-* `file_system_id` - (Required, ForceNew) The ID of the file system.
-* `network_type` - (Optional, ForceNew, Available since v1.208.1) Network type.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `file_system_id` - (Required, ForceNew) File system ID.
+  - General-purpose NAS: 31a8e4****.
+  - Extreme NAS: Must start with `extreme-`, for example, extreme-0015****.
+  - CPFS: Must start with `cpfs-`, for example, cpfs-125487****.
+* `network_type` - (Required, ForceNew, Available since v1.208.1) Network type of the mount target. The value `Vpc` indicates a Virtual Private Cloud (VPC).
 * `security_group_id` - (Optional) The ID of the security group.
-* `status` - (Optional, Computed) The current status of the Mount point, including Active and Inactive, can be used to mount the file system only when the status is Active.
-* `vswitch_id` - (Optional, ForceNew) The ID of the switch.
-* `vpc_id` - (Optional, ForceNew, Available since v1.208.1) VPC ID.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `status` - (Optional, Computed) The status of the mount target.
+
+Valid values:
+  - Active: available
+  - Inactive: unavailable
+
+-> **NOTE:**  Currently, only General-purpose NAS supports changing the mount target status.
+
+* `tags` - (Optional, Map, Available since v1.278.0) An array of tags. The array length must be from 1 to 20. If multiple tag objects are included in the array, their keys must be unique.
+* `vswitch_id` - (Optional, ForceNew) The ID of the vSwitch.
+This field is required and valid only when the network type is Virtual Private Cloud (VPC).  
+For example:  
+When NetworkType=VPC, VSwitchId is required.
+* `vpc_id` - (Optional, ForceNew, Computed) Virtual Private Cloud (VPC) ID.
+This field is required and meaningful only when the network type is VPC.  
+For example:  
+When NetworkType=VPC, VpcId is required.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<file_system_id>:<mount_target_domain>`.
-* `mount_target_domain` - The domain name of the Mount point.
+* `id` - The ID of the resource supplied above. The value is formulated as `<file_system_id>:<mount_target_domain>`.
+* `mount_target_domain` - IPv4 mount target.
 
 ## Timeouts
 

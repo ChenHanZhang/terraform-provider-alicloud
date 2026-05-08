@@ -679,6 +679,7 @@ func (s *NasServiceV2) DescribeNasMountTarget(id string) (object map[string]inte
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -719,17 +720,57 @@ func (s *NasServiceV2) DescribeNasMountTarget(id string) (object map[string]inte
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
+func (s *NasServiceV2) DescribeMountTargetListTagResources(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
+	}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceId.1"] = parts[0]
+
+	request["ResourceType"] = "mounttarget"
+	action := "ListTagResources"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
 
 func (s *NasServiceV2) NasMountTargetStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.NasMountTargetStateRefreshFuncWithApi(id, field, failStates, s.DescribeNasMountTarget)
+}
+
+func (s *NasServiceV2) NasMountTargetStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeNasMountTarget(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -751,14 +792,42 @@ func (s *NasServiceV2) NasMountTargetStateRefreshFunc(id string, field string, f
 
 func (s *NasServiceV2) DescribeAsyncNasMountTargetStateRefreshFunc(d *schema.ResourceData, res map[string]interface{}, field string, failStates []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeAsyncDescribeMountTargets(d, res)
-
+		object, err := s.DescribeAsyncDescribeFileSystems(d, res)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
 
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				if _err, ok := object["error"]; ok {
+					return _err, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+				}
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+func (s *NasServiceV2) DescribeAsyncNasMountTargetStateRefreshFunc(d *schema.ResourceData, res map[string]interface{}, field string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeAsyncDescribeMountTargets(d, res)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+		}
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -793,6 +862,7 @@ func (s *NasServiceV2) DescribeAsyncDescribeMountTargets(d *schema.ResourceData,
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -830,9 +900,14 @@ func (s *NasServiceV2) DescribeAsyncDescribeFileSystems(d *schema.ResourceData, 
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
+		return nil, err
+	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["FileSystemId"] = d.Id()
+	request["FileSystemId"] = parts[0]
 
 	action := "DescribeFileSystems"
 
