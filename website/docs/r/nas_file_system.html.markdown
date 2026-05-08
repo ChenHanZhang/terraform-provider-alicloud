@@ -10,7 +10,7 @@ description: |-
 
 Provides a File Storage (NAS) File System resource.
 
-File System Instance.
+File system instance.
 
 For information about File Storage (NAS) File System and how to use it, see [What is File System](https://www.alibabacloud.com/help/en/nas/developer-reference/api-nas-2017-06-26-createfilesystem).
 
@@ -19,12 +19,6 @@ For information about File Storage (NAS) File System and how to use it, see [Wha
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nas_file_system&exampleId=e4c2e56e-d616-5a3d-e56d-56aa3caacf29cd5c0a18&activeTab=example&spm=docs.r.nas_file_system.0.e4c2e56ed6&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -56,153 +50,180 @@ resource "alicloud_nas_file_system" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nas_file_system&spm=docs.r.nas_file_system.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `capacity` - (Optional, Computed, Int, Available since v1.140.0) File system capacity.
+* `capacity` - (Optional, Computed, Int, Available since v1.140.0) File system capacity. Unit: GiB.  
+This parameter is required and valid only when FileSystemType is set to extreme, cpfs, or cpfsse.
 
-Unit: GiB, required and valid when FileSystemType = extreme or cpfs.
+For available values, refer to the actual specifications on the purchase pages:
 
-For optional values, please refer to the actual specifications on the purchase page:
-  -[Fast NAS Pay-As-You-Go Page](https://common-buy.aliyun.com/? commodityCode=nas_extreme_post#/buy)
-  -[Fast NAS Package Monthly Purchase Page](https://common-buy.aliyun.com/? commodityCode=nas_extreme#/buy)
-  -[Parallel File System CPFS Pay-As-You-Go Purchase Page](https://common-buy.aliyun.com/? commodityCode=nas_cpfs_post#/buy)
-  -[Parallel File System CPFS Package Monthly Purchase Page](https://common-buy.aliyun.com/? commodityCode=cpfs#/buy)
-* `description` - (Optional) File system description.
+  - [Extreme NAS Pay-as-you-go Purchase Page](https://common-buy.aliyun.com/?commodityCode=nas_extreme_post#/buy)
+  - [CPFS Pay-as-you-go Purchase Page](https://common-buy.aliyun.com/?commodityCode=nas_cpfs_post#/buy)
 
-Restrictions:
-  - 2~128 English or Chinese characters in length.
-  - Must start with upper and lower case letters or Chinese, and cannot start with'http: // 'and'https.
-  - Can contain numbers, colons (:), underscores (_), or dashes (-).
+
+
+  - [Extreme NAS Pay-as-you-go Purchase Page](https://common-buy-intl.alibabacloud.com/?commodityCode=nas_extpost_public_intl#/buy)
+  - [CPFS Pay-as-you-go Purchase Page](https://common-buy-intl.alibabacloud.com/?spm=5176.nas_overview.0.0.7ea01dbft0dTui&commodityCode=nas_cpfspost_public_intl#/buy)
+.
+* `description` - (Optional) Description of the file system.  
+
+Constraints:  
+  - The description must be 2 to 128 characters in length and can contain letters, digits, Chinese characters, colons (:), underscores (_), or hyphens (-).  
+  - It must start with a letter or a Chinese character and cannot start with `http://` or `https://`.
 * `encrypt_type` - (Optional, ForceNew, Computed, Int, Available since v1.121.2) Whether the file system is encrypted.
 
-Use the KMS service hosting key to encrypt and store the file system disk data. When reading and writing encrypted data, there is no need to decrypt it.
+Data at rest in the file system is encrypted using keys managed by Key Management Service (KMS). Data is automatically decrypted during read and write operations without requiring manual decryption.
 
-Value:
-  - 0 (default): not encrypted.
-  - 1:NAS managed key. NAS managed keys are supported when FileSystemType = standard or extreme.
-  - 2: User management key. You can manage keys only when FileSystemType = extreme.
-* `file_system_type` - (Optional, ForceNew, Computed, Available since v1.140.0) File system type.
+Valid values:
+  - 0 (default): Not encrypted.
+  - 1: NAS-managed key. Supported when FileSystemType is set to standard or extreme.
+  - 2: Customer-managed key. Supported when FileSystemType is set to standard or extreme.
 
-Value:
-  - standard (default): Universal NAS
-  - extreme: extreme NAS
-  - cpfs: file storage CPFS
-* `keytab` - (Optional, Available since v1.248.0) String of keytab file content encrypted by base64
+-> **NOTE:**  - Extreme NAS: The customer-managed key (KMS) feature is supported in all regions except China East 1 Finance Cloud.
 
--> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+-> **NOTE:**  - General-purpose NAS: The customer-managed key (KMS) feature is supported in all regions.
 
-* `keytab_md5` - (Optional, Available since v1.248.0) String of the keytab file content encrypted by MD5
+* `file_system_type` - (Optional, ForceNew, Computed, Available since v1.140.0) The file system type.
 
--> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
+Valid values:
+  - standard (default): General-purpose NAS.
+  - extreme: Extreme NAS.
+  - cpfs: Cloud Parallel File System (CPFS) with local redundancy.
+  - cpfsse: Cloud Parallel File System (CPFS) SE with zone-redundant storage.
+* `keytab` - (Optional, Available since v1.248.0) A Base64-encoded string of the keytab file content.
 
-* `kms_key_id` - (Optional, ForceNew, Computed, Available since v1.140.0) The ID of the KMS key.
-This parameter is required only when EncryptType = 2.
-* `nfs_acl` - (Optional, Computed, List, Available since v1.236.0) NFS ACL See [`nfs_acl`](#nfs_acl) below.
-* `options` - (Optional, Computed, List, Available since v1.248.0) Option. See [`options`](#options) below.
-* `protocol_type` - (Required, ForceNew) File transfer protocol type.
-  - When FileSystemType = standard, the values are NFS and SMB.
-  - When FileSystemType = extreme, the value is NFS.
-  - When FileSystemType = cpfs, the value is cpfs.
-* `recycle_bin` - (Optional, Computed, List) Recycle Bin See [`recycle_bin`](#recycle_bin) below.
-* `redundancy_type` - (Optional, ForceNew, Computed, Available since v1.267.0) Storage redundancy type. Only effective for General CPFS.Options: Locally Redundant Storage (LRS), Zone-Redundant Storage (ZRS) Default value: LRS
-* `redundancy_vswitch_ids` - (Optional, ForceNew, List, Available since v1.267.0) Redundancy vSwitch ID list. Only set when the file system's storage redundancy type is Zone-Redundant Storage (ZRS), and must set vSwitch IDs from three different availability zones under the same VPC.
-* `resource_group_id` - (Optional, Computed, Available since v1.236.0) The ID of the resource group.
-* `smb_acl` - (Optional, Computed, List, Available since v1.248.0) SMB ACL See [`smb_acl`](#smb_acl) below.
-* `snapshot_id` - (Optional, Available since v1.236.0) Only extreme NAS is supported.
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
 
--> **NOTE:** A file system is created from a snapshot. The version of the created file system is the same as that of the snapshot source file system. For example, if the source file system version of the snapshot is 1 and you need to create A file system of version 2, you can first create A file system A from the snapshot, then create A file system B that meets the configuration of version 2, copy the data in file system A to file system B, and migrate the business to file system B after the copy is completed.
+* `keytab_md5` - (Optional, Available since v1.248.0) The MD5 hash of the keytab file content.
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `kms_key_id` - (Optional, ForceNew, Computed, Available since v1.140.0) KMS key ID.
+This parameter is required only when EncryptType=2.
+* `nfs_acl` - (Optional, Computed, Set, Available since v1.236.0) NFS ACL. See [`nfs_acl`](#nfs_acl) below.
+* `options` - (Optional, Computed, Set, Available since v1.248.0) Options. See [`options`](#options) below.
+* `protocol_type` - (Required, ForceNew) The file transfer protocol type.
+  - When FileSystemType is set to standard, valid values are NFS and SMB.
+  - When FileSystemType is set to extreme, the valid value is NFS.
+  - When FileSystemType is set to cpfs, the valid value is cpfs.
+  - When FileSystemType is set to cpfsse, the valid value is cpfs.
+* `recycle_bin` - (Optional, Computed, Set) Recycle Bin. See [`recycle_bin`](#recycle_bin) below.
+* `redundancy_type` - (Optional, ForceNew, Computed, Available since v1.267.0) Storage redundancy type. This parameter applies only to CPFS SE.
+Valid value: ZRS.
+* `redundancy_vswitch_ids` - (Optional, ForceNew, List, Available since v1.267.0) List of zone-redundant virtual switch IDs.  
+This parameter is required when RedundancyType is set to ZRS. You must specify three switch IDs from three different zones.
+* `resource_group_id` - (Optional, Computed, Available since v1.236.0) The ID of the new resource group.  
+You can view the resource group ID in the [Resource Management console](https://resourcemanager.console.aliyun.com/resource-groups?).
+* `smb_acl` - (Optional, Computed, Set, Available since v1.248.0) SMB ACL. See [`smb_acl`](#smb_acl) below.
+* `snapshot_id` - (Optional, Available since v1.236.0) Snapshot ID.
+
+Supported only for Extreme NAS with the advanced storage specification.  
+
+-> **NOTE:**  When you create a file system from a snapshot, the version of the created file system matches the version of the source file system of the snapshot. For example, if the source file system of the snapshot is version 1 and you need to create a version 2 file system, first create a file system A from the snapshot. Then create another file system B that meets the version 2 configuration, copy the data from file system A to file system B, and migrate your workloads to file system B after the copy completes.  
 
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `storage_type` - (Required, ForceNew) The storage type.
-  - When FileSystemType = standard, the values are Performance, Capacity, and Premium.
-  - When FileSystemType = extreme, the value is standard or advance.
-  - When FileSystemType = cpfs, the values are advance_100(100MB/s/TiB baseline) and advance_200(200MB/s/TiB baseline).
-* `tags` - (Optional, Map, Available since v1.153.0) Label information collection.
-* `vswitch_id` - (Optional, ForceNew, Available since v1.153.0) The ID of the switch.
-This parameter must be configured when FileSystemType = cpfs.
-When the FileSystemType is standard or extreme, this parameter is reserved for the interface and has not taken effect yet. You do not need to configure it.
-* `vpc_id` - (Optional, ForceNew, Available since v1.153.0) The ID of the VPC network.
-This parameter must be configured when FileSystemType = cpfs.
-When the FileSystemType is standard or extreme, this parameter is reserved for the interface and has not taken effect yet. You do not need to configure it.
-* `zone_id` - (Optional, ForceNew, Computed) The zone ID.
+* `storage_type` - (Required, ForceNew) Storage type.
+  - When FileSystemType=standard, valid values are: Performance, Capacity, and Premium.
+  - When FileSystemType=extreme, valid values are: standard and advance.
+  - When FileSystemType=cpfs, valid values are: advance_100 (100 MB/s/TiB baseline), advance_200 (200 MB/s/TiB baseline), and economic.
+  - When FileSystemType=cpfsse, the only valid value is: advance_100 (100 MB/s/TiB baseline).
+* `tags` - (Optional, Map, Available since v1.153.0) An array of tags.  
+The array length must be between 1 and 20. If multiple tag objects are included in the array, the tag keys (Key) must be unique.
+* `vswitch_id` - (Optional, ForceNew, Available since v1.153.0) VSwitch ID.
+  - When FileSystemType=cpfs, you must specify this parameter.
+  - When FileSystemType is not cpfs, this parameter is reserved for future use and currently has no effect. You do not need to configure it.
+* `vpc_id` - (Optional, ForceNew, Available since v1.153.0) The ID of the Virtual Private Cloud (VPC).
+  - This parameter is required when FileSystemType is set to cpfs or cpfsse.
+  - When FileSystemType is set to standard or extreme, this parameter is reserved for future use and currently has no effect. You do not need to configure it.
+* `zone_id` - (Optional, ForceNew, Computed) Zone ID.
 
-The usable area refers to the physical area where power and network are independent of each other in the same area.
+A zone is a physical area within the same region that has independent power and network infrastructure.
 
-When the FileSystemType is set to standard, this parameter is optional. By default, a zone that meets the conditions is randomly selected based on the ProtocolType and StorageType configurations. This parameter is required when FileSystemType = extreme or FileSystemType = cpfs.
+When FileSystemType=standard, this parameter is optional. If not specified, the system randomly selects a zone that meets the requirements based on ProtocolType and StorageType.
 
--> **NOTE:** - file systems in different zones in the same region communicate with ECS cloud servers.
+When FileSystemType=extreme or FileSystemType=cpfs, this parameter is required.
 
--> **NOTE:** - We recommend that the file system and the ECS instance belong to the same zone to avoid cross-zone latency.
+-> **NOTE:**   - File systems can communicate with ECS instances across different zones within the same region.
+
+-> **NOTE:**   - We recommend deploying your file system and ECS instances in the same zone to avoid latency caused by cross-zone communication.
 
 
 ### `nfs_acl`
 
 The nfs_acl supports the following:
-* `enabled` - (Optional, Computed) Whether the NFS ACL function is enabled.
+* `enabled` - (Optional, Computed) Indicates whether the NFS ACL feature is enabled.  
+  - true: The NFS ACL feature is enabled.  
+  - false: The NFS ACL feature is disabled.
 
 ### `options`
 
 The options supports the following:
-* `enable_oplock` - (Optional, Computed, Available since v1.248.0) Whether to enable the OpLock function. Value:
-  - true: On.
-  - false: does not turn on.
+* `enable_oplock` - (Optional, Computed) Specifies whether to enable the OpLock feature.  
+Valid values:  
+  - true: Enables the feature.  
+  - false: Disables the feature.  
 
--> **NOTE:**  Description Only file systems of the SMB protocol type are supported.
+-> **NOTE:**  This parameter applies only to file systems that use the SMB protocol.
 
+* `vsc_access_point_access_only` - (Optional, Available since v1.278.0) Specifies whether to restrict access to the intelligent computing VSC mount point so that it can be accessed only through an access point (AP). This parameter applies only to intelligent computing CPFS file systems.
 
 ### `recycle_bin`
 
 The recycle_bin supports the following:
-* `reserved_days` - (Optional, Computed, Int) Retention time of files in the Recycle Bin. Unit: days.
-* `status` - (Optional, Computed) Recycle Bin Status
+* `reserved_days` - (Optional, Computed, Int) Retention period for files in the Recycle Bin. Unit: days.
+Valid values: 1 to 180.
+Default value: 3.  
+* `status` - (Optional, Computed) Recycle Bin status.
+
+Valid values:
+  - Enable: The Recycle Bin is enabled.
+  - Disable: The Recycle Bin is disabled.
 
 ### `smb_acl`
 
 The smb_acl supports the following:
-* `enable_anonymous_access` - (Optional, Computed, Available since v1.248.0) Whether to allow anonymous access.
-  - true: Allow anonymous access.
+* `enable_anonymous_access` - (Optional, Computed, Available since v1.248.0) Specifies whether anonymous access is allowed.
+  - true: Anonymous access is allowed.
   - false (default): Anonymous access is not allowed.
-* `enabled` - (Optional, Computed, Available since v1.248.0) Whether SMB ACL is enabled
-* `encrypt_data` - (Optional, Available since v1.248.0) Whether transmission encryption is enabled.
-  - true: Enables encryption in transit.
-  - false (default): Transport encryption is not enabled.
-* `home_dir_path` - (Optional, Available since v1.248.0) The user directory home path for each user. The file path format is as follows:
-  - A forward slash (/) or backslash (\) as a separator.
-  - Each paragraph cannot contain ":|? *.
-  - The length of each segment ranges from 0 to 255.
-  - The total length range is 0~32767.
+* `enabled` - (Optional, Computed, Available since v1.248.0) Specifies whether to enable the SMB AD ACL feature.
+  - true: Enables the SMB AD ACL feature.
+  - false: Disables the SMB AD ACL feature.
+* `encrypt_data` - (Optional, Available since v1.248.0) Specifies whether to enable transport encryption.
+  - true: Enables transport encryption.
+  - false (default): Disables transport encryption.
+* `home_dir_path` - (Optional, Available since v1.248.0) The home directory path for each user. The file path must adhere to the following rules:
+  - Use forward slashes (/) or backslashes (\) as separators.
+  - Each path segment must not contain any of the following characters: `":|?*`.
+  - The length of each path segment must be between 0 and 255 characters.
+  - The total path length must be between 0 and 32767 characters.
 
-For example, if the user directory is/home, the file system will automatically create A directory of/home/A when user A logs in. Skip if/home/A already exists.
+For example, if the home directory is `/home`, the file system automatically creates the directory `/home/A` when user A logs in. If `/home/A` already exists, the creation step is skipped.
 
--> **NOTE:**  Explain that user A needs to have the permission to create A directory, otherwise the/home/A directory cannot be created.
+-> **NOTE:**  User A must have permission to create directories; otherwise, the `/home/A` directory cannot be created.
 
-* `reject_unencrypted_access` - (Optional, Available since v1.248.0) 
-Whether to reject non-encrypted clients.
-  - true: Deny non-encrypted clients.
-  - false (default): Non-encrypted clients are not rejected.
-* `super_admin_sid` - (Optional, Available since v1.248.0) The ID of the Super User. The ID rules are as follows:
-  - Must start with S and no other letters can appear after the S at the beginning.
-  - At least three dashes (-) apart.
+* `reject_unencrypted_access` - (Optional, Available since v1.248.0) Specifies whether to reject unencrypted clients.
+  - true: Rejects unencrypted clients.
+  - false (default): Does not reject unencrypted clients.
+* `super_admin_sid` - (Optional) The ID of the super administrator. The ID must follow these rules:
+  - It must start with `S`, and no other letters are allowed after the initial `S`.
+  - It must contain at least three hyphens (-) separating components.
 
-Such as S-1-5-22 or S-1-5-22-23.
+Examples: `S-1-5-22` or `S-1-5-22-23`.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - CreateTime
-* `recycle_bin` - Recycle Bin
-  * `enable_time` - Recycle Bin open time
-  * `secondary_size` - Amount of low-frequency data stored in the recycle bin. Unit: Byte.
-  * `size` - The amount of files stored in the Recycle Bin. Unit: Byte.
-* `region_id` - RegionId
-* `status` - File system status. Includes:(such as creating a mount point) can only be performed when the file system is in the Running state.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Creation time of the file system.
+* `recycle_bin` - Recycle Bin.
+  * `enable_time` - Time when the Recycle Bin was enabled.
+  * `secondary_size` - Storage usage of infrequent access data in the Recycle Bin.
+  * `size` - Storage usage of files in the Recycle Bin.
+* `region_id` - The region ID where the zone is located.
+* `status` - The status of the file system.
 
 ## Timeouts
 
@@ -216,5 +237,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 File Storage (NAS) File System can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_nas_file_system.example <id>
+$ terraform import alicloud_nas_file_system.example <file_system_id>
 ```
