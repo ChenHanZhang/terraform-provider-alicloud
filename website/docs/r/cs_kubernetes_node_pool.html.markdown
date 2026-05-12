@@ -690,7 +690,6 @@ The following arguments are supported:
   - `CentOS` : CentOS image.
   - `Windows` : Windows image.
   - `WindowsCore` : WindowsCore image.
-  - `AliyunLinux Qboot` : AliyunLinux Qboot fast-boot image.
   - `ContainerOS` : container-optimized image.
   - `AliyunLinuxSecurity` : Alinux security-hardened image.
   - `Ubuntu`: Ubuntu image.
