@@ -916,6 +916,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_ecs_disk_default_k_m_s_key":                           resourceAliCloudEcsDiskDefaultKMSKey(),
 			"alicloud_oss_bucket_object_worm_configuration":                 resourceAliCloudOssBucketObjectWormConfiguration(),
 			"alicloud_alidns_cloud_gtm_instance_config":                     resourceAliCloudAlidnsCloudGtmInstanceConfig(),
 			"alicloud_alidns_cloud_gtm_monitor_template":                    resourceAliCloudAlidnsCloudGtmMonitorTemplate(),

@@ -2,9 +2,10 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/blues/jsonata-go"
 	"strings"
 	"time"
+
+	"github.com/blues/jsonata-go"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
@@ -1149,3 +1150,74 @@ func (s *EcsServiceV2) DescribeEcsDataDisksByNodeId(nodeId string) (objects []ma
 
 	return objects, nil
 }
+
+// DescribeEcsDiskDefaultKMSKey <<< Encapsulated get interface for Ecs DiskDefaultKMSKey.
+
+func (s *EcsServiceV2) DescribeEcsDiskDefaultKMSKey(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["RegionId"] = id
+	request["RegionId"] = client.RegionId
+	action := "DescribeDiskDefaultKMSKeyId"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"InvalidParameter"}) {
+			return object, WrapErrorf(NotFoundErr("DiskDefaultKMSKey", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *EcsServiceV2) EcsDiskDefaultKMSKeyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.EcsDiskDefaultKMSKeyStateRefreshFuncWithApi(id, field, failStates, s.DescribeEcsDiskDefaultKMSKey)
+}
+
+func (s *EcsServiceV2) EcsDiskDefaultKMSKeyStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeEcsDiskDefaultKMSKey >>> Encapsulated.
