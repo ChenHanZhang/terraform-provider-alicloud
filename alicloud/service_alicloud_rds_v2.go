@@ -85,15 +85,18 @@ func (s *RdsServiceV2) DescribeCustomListTagResources(id string) (object map[str
 }
 
 func (s *RdsServiceV2) RdsCustomStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.RdsCustomStateRefreshFuncWithApi(id, field, failStates, s.DescribeRdsCustom)
+}
+
+func (s *RdsServiceV2) RdsCustomStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeRdsCustom(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
