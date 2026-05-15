@@ -10,7 +10,7 @@ description: |-
 
 Provides a RabbitMQ (AMQP) Instance resource.
 
-The instance of Amqp.
+AMQP instance  .
 
 For information about RabbitMQ (AMQP) Instance and how to use it, see [What is Instance](https://www.alibabacloud.com/help/en/message-queue-for-rabbitmq/latest/createinstance).
 
@@ -18,13 +18,7 @@ For information about RabbitMQ (AMQP) Instance and how to use it, see [What is I
 
 ## Example Usage
 
-Create a RabbitMQ (AMQP) enterprise edition Instance.
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_amqp_instance&exampleId=245eb6fa-b3c6-fff4-f584-1ee4248fc423c0181288&activeTab=example&spm=docs.r.amqp_instance.0.245eb6fab3&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
+Basic Usage
 
 ```terraform
 variable "name" {
@@ -48,110 +42,141 @@ resource "alicloud_amqp_instance" "default" {
 }
 ```
 
-Create a RabbitMQ (AMQP) serverless edition Instance.
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_amqp_instance&exampleId=b34af7bf-3b36-1d1d-2e09-c25cf4259857d88194c2&activeTab=example&spm=docs.r.amqp_instance.1.b34af7bf3b&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
-```terraform
-variable "name" {
-  default = "terraform-example"
-}
-
-data "alicloud_vpcs" "default" {
-  name_regex = "default-NODELETING"
-}
-
-data "alicloud_vswitches" "default" {
-  vpc_id = data.alicloud_vpcs.default.ids.0
-}
-
-data "alicloud_security_groups" "default" {
-  vpc_id     = data.alicloud_vpcs.default.ids.0
-  name_regex = "default-NODELETING"
-}
-
-resource "alicloud_amqp_instance" "default" {
-  instance_name          = var.name
-  payment_type           = "PayAsYouGo"
-  vpc_id                 = data.alicloud_vswitches.default.vpc_id
-  vswitch_ids            = [data.alicloud_vswitches.default.ids.0, data.alicloud_vswitches.default.ids.1]
-  security_group_id      = data.alicloud_security_groups.default.ids.0
-  serverless_charge_type = "onDemand"
-}
-```
-
 ### Deleting `alicloud_amqp_instance` or removing it from your configuration
 
-The `alicloud_amqp_instance` resource allows you to manage  `payment_type = "PayAsYouGo"`  instance, but Terraform cannot destroy it.
+The `alicloud_amqp_instance` resource allows you to manage  `payment_type = "Subscription"`  instance, but Terraform cannot destroy it.
 Deleting the subscription resource or removing it from your configuration will remove it from your state file and management, but will not destroy the Instance.
 You can resume managing the subscription instance via the AlibabaCloud Console.
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_amqp_instance&spm=docs.r.amqp_instance.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
-* `auto_renew` - (Optional, Available since v1.129.0) Renewal method. Automatic renewal: true; Manual renewal: false. When RenewalStatus has a value, the value of RenewalStatus shall prevail.
-* `edition` - (Optional, Available since v1.266.0) The deployment architecture for Serverless instances. Valid values:
-  - `shared`: Shared architecture, applicable to reserved + elastic (shared) and pay-as-you-go editions.
-  - `dedicated`: Dedicated architecture, applicable to reserved + elastic (dedicated) editions.
+* `auto_renew` - (Optional, Available since v1.129.0) The renewal method. Valid values are:  
+  - true: Auto-renewal  
+  - false: Manual renewal  
 
--> **NOTE:**  Modifying the Edition parameter triggers instance cluster migration. Before making this change, submit a ticket to the cloud service team. [Submit a Ticket](https://smartservice.console.aliyun.com/service/create-ticket?entrance=100&product=rabbitmq)
-    
-* `instance_name` - (Optional, Computed) The instance name.
-* `instance_type` - (Optional, Computed) Instance type. Valid values:
-  - professional: professional Edition 
-  - enterprise: enterprise Edition 
-  - vip: Platinum Edition.
-  - serverless: Serverless Edition.
-  -> **NOTE:** There should not set the `instance_type` parameter when creating a serverless instance. Only need to set `payment_type = "PayAsYouGo"` and `serverless_charge_type = "onDemand"`.
-* `listener_mode` - (Optional, ForceNew, Available since v1.274.0) The Listener mode. Valid values: `tcp_and_ssl`, `ssl_only`.
-* `max_connections` - (Optional, Computed, Available since v1.129.0) The maximum number of connections, according to the value given on the purchase page of the cloud message queue RabbitMQ version console.
-* `max_eip_tps` - (Optional, Computed) Peak TPS traffic of the public network, which must be a multiple of 128, unit: times per second.
-* `max_tps` - (Optional, Computed) Configure the private network TPS traffic peak, please set the value according to the cloud message queue RabbitMQ version of the console purchase page given.
-* `modify_type` - (Optional) This parameter must be provided while you change the instance specification. Type of instance lifting and lowering:
-  - Upgrade: Upgrade
-  - Downgrade: Downgrading.
-* `payment_type` - (Required, ForceNew) The Payment type. Valid value: 
-  - Subscription: Pre-paid. 
-  - PayAsYouGo: Post-paid, and for serverless Edition.
-* `period` - (Optional) Prepayment cycle, unit: periodCycle. This parameter is valid when PaymentType is set to Subscription.
-* `period_cycle` - (Optional, Available since v1.129.0) Prepaid cycle units. Value: Month, Year.
-* `provisioned_capacity` - (Optional, Int, Available since v1.266.0) The provisioned TPS capacity for reserved + elastic instances.
-* `queue_capacity` - (Optional, Computed) Configure the maximum number of queues. The value range is as follows:  Professional version:[50,1000], minimum modification step size is 5  Enterprise Edition:[200,6000], minimum modification step size is 100  Platinum version:[10000,80000], minimum modification step size is 100.
-* `renewal_duration` - (Optional, Computed) The number of automatic renewal cycles.
-* `renewal_duration_unit` - (Optional, Computed) Auto-Renewal Cycle Unit Values Include: Month: Month. Year: Years.
-* `renewal_status` - (Optional, Computed) The renewal status. Value: AutoRenewal: automatic renewal. ManualRenewal: manual renewal. NotRenewal: no renewal.
-* `serverless_charge_type` - (Optional, Available since v1.129.0) The billing type of the serverless instance. Value: onDemand.
-* `storage_size` - (Optional, Computed) Configure the message storage space. Unit: GB. The value is as follows:  Professional Edition and Enterprise Edition: Fixed to 0. Description A value of 0 indicates that the Professional Edition and Enterprise Edition instances do not charge storage fees, but do not have storage space. Platinum version example: m × 100, where the value range of m is [7,28].
-* `support_eip` - (Optional) Whether to support public network.
-* `support_tracing` - (Optional, Computed) Whether to activate the message trace function. The values are as follows:  true: Enable message trace function false: message trace function is not enabled Description The Platinum Edition instance provides the 15-day message trace function free of charge. The trace function can only be enabled and the trace storage duration can only be set to 15 days. For instances of other specifications, you can enable or disable the trace function.
-* `tracing_storage_time` - (Optional, Computed) Configure the storage duration of message traces. Unit: Days. The value is as follows:  3:3 days 7:7 days 15:15 days This parameter is valid when SupportTracing is true.
-* `vpc_id` - (Optional, ForceNew, Available since v1.274.0) The ID of the VPC. **NOTE:** From version 1.274.0, `vpc_id` is required.
-* `vswitch_ids` - (Optional, ForceNew, List, Available since v1.274.0) The IDs of the vSwitches with which the instance is associated. `vswitch_ids` only supports setting two values. **NOTE:** From version 1.274.0, `vswitch_ids` is required.
-* `security_group_id` - (Optional, ForceNew, Available since v1.274.0) The ID of the security group. **NOTE:** From version 1.274.0, `security_group_id` is required.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `edition` - (Optional, Computed, Available since v1.266.0) Serverless instance deployment architecture. Valid values are as follows:  
+  - shared: Shared architecture, applicable to reserved + elastic (shared) and pay-as-you-go editions.  
+  - dedicated: Dedicated architecture, applicable to reserved + elastic (dedicated) edition.  
+
+-> **NOTE:**  Modifying the Edition triggers instance cluster migration. Before making changes, submit a ticket to the cloud service team. [Submit a ticket](https://smartservice.console.aliyun.com/service/create-ticket?entrance=100&product=rabbitmq)  
+
+* `instance_name` - (Optional, Computed) The new instance name. There are no restrictions on the value, but it is recommended to keep the length within 64 characters.  
+* `instance_type` - (Optional, Computed) Instance specification type.  
+Valid values for the prepaid series:  
+  - professional: Professional Edition  
+  - enterprise: Enterprise Edition  
+  - vip: Platinum Edition  
+
+For Serverless series instances, this parameter is not required.  
+* `listener_mode` - (Optional, ForceNew, Computed, Available since v1.274.0) ListenerMode specifies the listener mode:  
+SSL_ONLY: Only port 5671 is enabled for the instance.  
+TCP_AND_SSL: Both ports 5671 and 5672 are enabled for the instance.  
+* `max_connections` - (Optional, Computed, Int, Available since v1.129.0) Maximum number of connections.
+Set the value according to the options provided on the [Message Queue for RabbitMQ - Purchase Page](https://common-buy.aliyun.com/?commodityCode=ons_onsproxy_pre).
+* `max_eip_tps` - (Optional, Computed) Peak public network TPS throughput of the instance, in messages per second.  
+* `max_tps` - (Optional, Computed) Private network TPS throughput, in requests per second.  
+Set this value according to the options provided on the [Message Queue for RabbitMQ - Purchase Page](https://common-buy.aliyun.com/?commodityCode=ons_onsproxy_pre).  
+* `modify_type` - (Optional) Configuration change type. Valid values are as follows:  
+  - UPGRADE: Upgrade  
+  - DOWNGRADE: Downgrade  
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `payment_type` - (Required, ForceNew) Payment type. Valid values:  
+  - Subscription: Prepaid series  
+  - PayAsYouGo: Serverless series  
+* `period` - (Optional, Int) Subscription period, in periodCycle.  
+
+-> **NOTE:**  This parameter takes effect only when PaymentType is set to Subscription. The default value is 1.  
+
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `period_cycle` - (Optional, Available since v1.129.0) Prepaid billing cycle unit. Valid values:  
+  - Month: Month  
+  - Year: Year  
+
+This parameter takes effect only when PaymentType is set to Subscription. The default value is Month.  
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `provisioned_capacity` - (Optional, Int, Available since v1.266.0) The provisioned TPS capacity for reserved + elastic instances.  
+* `queue_capacity` - (Optional, Computed) The maximum number of queues allowed for the instance. Unit: count.  
+* `renewal_duration` - (Optional, Computed, Int) The auto-renewal duration, measured in the unit specified by RenewalDurationUnit. The default unit is months. Valid values are:
+  - 1: 1 month  
+  - 2: 2 months  
+  - 3: 3 months  
+  - 6: 6 months  
+  - 12: 1 year  
+  - 24: 2 years  
+  - 36: 3 years  
+
+-> **NOTE:**  This parameter takes effect only when AutoRenew is set to true. The default value is 1.  
+
+* `renewal_duration_unit` - (Optional, Computed) Auto-renewal cycle unit. Valid values:  
+  - M: Month  
+  - Y: Year  
+
+-> **NOTE:**  This parameter is required when RenewalStatus is set to AutoRenewal.  
+
+* `renewal_status` - (Optional, Computed) Renewal status, equivalent to autoRenew. You only need to configure one of these two parameters. Valid values:
+  - AutoRenewal: Automatic renewal
+
+-> **NOTE:**  Both this parameter and renewStatus indicate the renewal method. If both are specified, renewStatus takes precedence.
+
+* `resource_group_id` - (Optional, Computed, Available since v1.279.0) The ID of the resource group
+* `security_group_id` - (Required, ForceNew) You must specify a SecurityGroupId when creating an instance to create a PrivateLink endpoint.
+* `serverless_charge_type` - (Optional, Available since v1.129.0) Billing type for pay-as-you-go (Serverless) instances. Valid values are as follows:  
+  - onDemand: Pay-as-you-go  
+
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
+* `storage_size` - (Optional, Computed) Configure message storage space, in GB. Valid values are as follows:  
+  - Professional Edition and Enterprise Edition instances: fixed at 0.  
+
+-> **NOTE:**  A value of 0 indicates that storage fees are not charged for Professional Edition and Enterprise Edition instances, not that storage space is unavailable.  
+  - Platinum Edition instances: m × 100, where m ranges from [7, 28].  
+* `support_eip` - (Optional) Indicates whether public network access is supported. Valid values:
+  - true: Public network access is supported.
+  - false: Public network access is not supported.
+* `support_tracing` - (Optional) Specifies whether to enable the message tracing feature. Valid values are:  
+  - true: Enable message tracing  
+  - false: Disable message tracing  
+
+-> **NOTE:**  - Platinum Edition instances provide message tracing for 15 days free of charge. For these instances, message tracing must be enabled, and the retention period must be set to 15 days.  
+  - Instances of other editions can choose to enable or disable message tracing.  
+* `tags` - (Optional, ForceNew, Map, Available since v1.279.0) Tag list
+* `tracing_storage_time` - (Optional, Computed, Int) The retention period for message tracing data, measured in days. Valid values are:  
+  - 3: 3 days  
+  - 7: 7 days  
+  - 15: 15 days  
+
+This parameter takes effect only when SupportTracing is set to true.  
+* `vpc_id` - (Required, ForceNew, Available since v1.274.0) You must specify a VpcId when creating an instance to create a PrivateLink endpoint.  
+* `vswitch_ids` - (Required, ForceNew, List, Available since v1.274.0) You must specify VswitchIds when creating an instance to create PrivateLink endpoints.  
+Except for instances in certain single-zone regions, you can specify only two VSwitch IDs.  
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - OrderCreateTime.
-* `status` - The status of the resource.
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Creation time.
+* `status` - Instance status.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Instance.
+* `create` - (Defaults to 9 mins) Used when create the Instance.
 * `delete` - (Defaults to 5 mins) Used when delete the Instance.
-* `update` - (Defaults to 5 mins) Used when update the Instance.
+* `update` - (Defaults to 9990 mins) Used when update the Instance.
 
 ## Import
 
-Amqp Instance can be imported using the id, e.g.
+RabbitMQ (AMQP) Instance can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_amqp_instance.example <id>
+$ terraform import alicloud_amqp_instance.example <instance_id>
 ```
