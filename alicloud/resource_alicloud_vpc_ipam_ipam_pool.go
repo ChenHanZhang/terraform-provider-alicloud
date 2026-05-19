@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -222,7 +223,6 @@ func resourceAliCloudVpcIpamIpamPoolUpdate(d *schema.ResourceData, meta interfac
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	d.Partial(true)
 
 	var err error
 	action := "UpdateIpamPool"
@@ -318,7 +318,6 @@ func resourceAliCloudVpcIpamIpamPoolUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 	}
-	d.Partial(false)
 	return resourceAliCloudVpcIpamIpamPoolRead(d, meta)
 }
 
