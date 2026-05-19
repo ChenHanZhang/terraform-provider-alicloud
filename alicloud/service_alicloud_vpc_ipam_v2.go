@@ -345,8 +345,7 @@ func (s *VpcIpamServiceV2) DescribeVpcIpamIpamPoolCidr(id string) (object map[st
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-
-	parts, err := splitIpamPoolCidrId(id)
+	parts := strings.Split(id, "#")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
 		return nil, err

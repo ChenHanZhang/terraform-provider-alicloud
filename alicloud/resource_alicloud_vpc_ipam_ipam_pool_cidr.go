@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -71,11 +72,11 @@ func resourceAliCloudVpcIpamIpamPoolCidrCreate(d *schema.ResourceData, meta inte
 	if v, ok := d.GetOkExists("netmask_length"); ok {
 		request["NetmaskLength"] = v
 	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("VpcIpam", "2023-02-28", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -123,25 +124,23 @@ func resourceAliCloudVpcIpamIpamPoolCidrUpdate(d *schema.ResourceData, meta inte
 func resourceAliCloudVpcIpamIpamPoolCidrDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
-	parts, err := splitIpamPoolCidrId(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
+	parts := strings.Split(d.Id(), "#")
 	action := "DeleteIpamPoolCidr"
 	var request map[string]interface{}
 	var response map[string]interface{}
 	query := make(map[string]interface{})
+	var err error
 	request = make(map[string]interface{})
 	request["IpamPoolId"] = parts[0]
 	request["Cidr"] = parts[1]
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("VpcIpam", "2023-02-28", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"OperationConflict"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -159,21 +158,4 @@ func resourceAliCloudVpcIpamIpamPoolCidrDelete(d *schema.ResourceData, meta inte
 	}
 
 	return nil
-}
-
-// splitIpamPoolCidrId splits the resource ID with backward compatibility
-// Returns [ipamPoolId, cidr]
-// Supports both "#" (new) and ":" (old) separators
-func splitIpamPoolCidrId(id string) ([]string, error) {
-	var parts []string
-	// Try new separator "#" first
-	if strings.Contains(id, "#") {
-		parts = strings.Split(id, "#")
-	} else if strings.Contains(id, ":") {
-		// Fall back to old separator ":"
-		parts = strings.Split(id, ":")
-	} else {
-		return nil, fmt.Errorf("invalid Resource Id %s. Expected separator '#' or ':'", id)
-	}
-	return parts, nil
 }
