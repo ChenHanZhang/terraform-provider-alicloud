@@ -1,4 +1,7 @@
 ## 1.279.0 (Unreleased)
+
+- **New Data Source:** `alicloud_oos_inventory_entries`, `alicloud_oos_inventory_schema`, and `alicloud_oos_inventory_search`.
+
 ## 1.278.0 (May 09, 2026)
 
 - **New Resource:** `alicloud_api_gateway_group_plugin_attachment` ([#9714](https://github.com/aliyun/terraform-provider-alicloud/issues/9714))
