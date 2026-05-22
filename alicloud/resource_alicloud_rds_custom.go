@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -41,6 +40,10 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"auto_use_coupon": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"create_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -52,9 +55,20 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"snapshot_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
 						"category": {
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
+						},
+						"encrypted": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 						"performance_level": {
@@ -67,8 +81,19 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+						"device": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
 					},
 				},
+			},
+			"deletion_protection": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 			},
 			"deployment_set_id": {
 				Type:     schema.TypeString,
@@ -81,13 +106,17 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 				Computed: true,
 			},
 			"direction": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("^[\\w.,;/@-]+$"), "Instance configuration type, value range:> This parameter does not need to be uploaded, and the system can automatically determine whether to upgrade or downgrade. If you want to upload, please follow the following logic rules.-**Up** (default): upgrade the instance specification. Please ensure that your account balance is sufficient.-**Down**: Downgrade instance specifications. When the instance type set to InstanceType is lower than the current instance type, set Direction = down."),
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"dry_run": {
 				Type:     schema.TypeBool,
 				Optional: true,
+			},
+			"enable_jumbo_frame": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 			},
 			"force": {
 				Type:     schema.TypeBool,
@@ -152,6 +181,22 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"promotion_code": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"reboot": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"reboot_time": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"reboot_when_finished": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"region_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -201,14 +246,24 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+						"performance_level": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
 					},
 				},
 			},
-			"system_disk_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"tags": tagsSchema(),
+			"user_data": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"user_data_in_base64": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"vswitch_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -219,10 +274,6 @@ func resourceAliCloudRdsCustom() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-			},
-			"create_extra_param": {
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 		},
 	}
@@ -239,6 +290,7 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 	var err error
 	request = make(map[string]interface{})
 	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 
 	if v, ok := d.GetOk("period_unit"); ok {
 		request["PeriodUnit"] = v
@@ -250,6 +302,9 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 			dataLoopMap := make(map[string]interface{})
 			dataLoopMap["Size"] = dataLoopTmp["size"]
 			dataLoopMap["PerformanceLevel"] = dataLoopTmp["performance_level"]
+			dataLoopMap["Encrypted"] = dataLoopTmp["encrypted"]
+			dataLoopMap["SnapshotId"] = dataLoopTmp["snapshot_id"]
+			dataLoopMap["Device"] = dataLoopTmp["device"]
 			dataLoopMap["Category"] = dataLoopTmp["category"]
 			dataDiskMapsArray = append(dataDiskMapsArray, dataLoopMap)
 		}
@@ -284,6 +339,10 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 		if size3 != nil && size3 != "" {
 			systemDisk["Size"] = size3
 		}
+		performanceLevel3, _ := jsonpath.Get("$[0].performance_level", v)
+		if performanceLevel3 != nil && performanceLevel3 != "" {
+			systemDisk["PerformanceLevel"] = performanceLevel3
+		}
 
 		systemDiskJson, err := json.Marshal(systemDisk)
 		if err != nil {
@@ -292,6 +351,9 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 		request["SystemDisk"] = string(systemDiskJson)
 	}
 
+	if v, ok := d.GetOkExists("user_data_in_base64"); ok {
+		request["UserDataInBase64"] = v
+	}
 	if v, ok := d.GetOk("io_optimized"); ok {
 		request["IoOptimized"] = v
 	}
@@ -306,6 +368,17 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 			return WrapError(err)
 		}
 		request["SecurityGroupIds"] = string(securityGroupIdsMapsJson)
+	}
+
+	networkOptions := make(map[string]interface{})
+
+	if v := d.Get("enable_jumbo_frame"); !IsNil(v) {
+		networkOptions["EnableJumboFrame"] = v
+		networkOptionsJson, err := json.Marshal(networkOptions)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["NetworkOptions"] = string(networkOptionsJson)
 	}
 
 	request["InstanceType"] = d.Get("instance_type")
@@ -329,6 +402,9 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
+	if v, ok := d.GetOkExists("deletion_protection"); ok {
+		request["DeletionProtection"] = v
+	}
 	if v, ok := d.GetOkExists("auto_renew"); ok {
 		request["AutoRenew"] = v
 	}
@@ -350,11 +426,20 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOkExists("amount"); ok {
 		request["Amount"] = v
 	}
+	if v, ok := d.GetOk("promotion_code"); ok {
+		request["PromotionCode"] = v
+	}
+	if v, ok := d.GetOk("user_data"); ok {
+		request["UserData"] = v
+	}
 	if v, ok := d.GetOk("host_name"); ok {
 		request["HostName"] = v
 	}
 	if v, ok := d.GetOkExists("internet_max_bandwidth_out"); ok {
 		request["InternetMaxBandwidthOut"] = v
+	}
+	if v, ok := d.GetOkExists("auto_use_coupon"); ok {
+		request["AutoUseCoupon"] = v
 	}
 	if v, ok := d.GetOk("security_enhancement_strategy"); ok {
 		request["SecurityEnhancementStrategy"] = v
@@ -364,9 +449,6 @@ func resourceAliCloudRdsCustomCreate(d *schema.ResourceData, meta interface{}) e
 	}
 	if v, ok := d.GetOk("zone_id"); ok {
 		request["ZoneId"] = v
-	}
-	if v, ok := d.GetOk("create_extra_param"); ok {
-		request["CreateExtraParam"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -412,13 +494,16 @@ func resourceAliCloudRdsCustomRead(d *schema.ResourceData, meta interface{}) err
 		return WrapError(err)
 	}
 
+	d.Set("deletion_protection", objectRaw["DeletionProtection"])
 	d.Set("deployment_set_id", objectRaw["DeploymentSetId"])
 	d.Set("description", objectRaw["Description"])
+	d.Set("enable_jumbo_frame", objectRaw["EnableJumboFrame"])
 	d.Set("instance_name", objectRaw["InstanceName"])
 	d.Set("instance_type", objectRaw["InstanceType"])
 	d.Set("region_id", objectRaw["RegionId"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("status", objectRaw["Status"])
+	d.Set("user_data", objectRaw["UserData"])
 	d.Set("zone_id", objectRaw["ZoneId"])
 
 	vpcAttributesRawObj, _ := jsonpath.Get("$.VpcAttributes", objectRaw)
@@ -429,9 +514,7 @@ func resourceAliCloudRdsCustomRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("vswitch_id", vpcAttributesRaw["VSwitchId"])
 
 	privateIpAddressRaw, _ := jsonpath.Get("$.VpcAttributes.PrivateIpAddress.IpAddress", objectRaw)
-	if arr, ok := privateIpAddressRaw.([]interface{}); ok && len(arr) > 0 {
-		d.Set("private_ip_address", arr[0])
-	}
+	d.Set("private_ip_address", privateIpAddressRaw["IpAddressChild"])
 
 	dataDiskRaw, _ := jsonpath.Get("$.DataDisks.DataDisk", objectRaw)
 	dataDiskMaps := make([]map[string]interface{}, 0)
@@ -440,8 +523,11 @@ func resourceAliCloudRdsCustomRead(d *schema.ResourceData, meta interface{}) err
 			dataDiskMap := make(map[string]interface{})
 			dataDiskChildRaw := dataDiskChildRaw.(map[string]interface{})
 			dataDiskMap["category"] = dataDiskChildRaw["Category"]
+			dataDiskMap["device"] = dataDiskChildRaw["Device"]
+			dataDiskMap["encrypted"] = dataDiskChildRaw["Encrypted"]
 			dataDiskMap["performance_level"] = dataDiskChildRaw["PerformanceLevel"]
 			dataDiskMap["size"] = dataDiskChildRaw["Size"]
+			dataDiskMap["snapshot_id"] = dataDiskChildRaw["SnapshotId"]
 
 			dataDiskMaps = append(dataDiskMaps, dataDiskMap)
 		}
@@ -459,6 +545,7 @@ func resourceAliCloudRdsCustomRead(d *schema.ResourceData, meta interface{}) err
 	}
 	if len(systemDiskRaw) > 0 {
 		systemDiskMap["category"] = systemDiskRaw["SystemDiskCategory"]
+		systemDiskMap["performance_level"] = systemDiskRaw["SystemDiskPerformanceLevel"]
 		systemDiskMap["size"] = systemDiskRaw["SystemDiskSize"]
 
 		systemDiskMaps = append(systemDiskMaps, systemDiskMap)
@@ -474,13 +561,6 @@ func resourceAliCloudRdsCustomRead(d *schema.ResourceData, meta interface{}) err
 
 	tagsMaps, _ := jsonpath.Get("$.TagResources.TagResource", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
-
-	objectRaw, err = rdsServiceV2.DescribeCustomDescribeRCDisks(d.Id())
-	if err != nil && !NotFoundError(err) {
-		return WrapError(err)
-	}
-
-	d.Set("system_disk_id", objectRaw["DiskId"])
 
 	return nil
 }
@@ -510,7 +590,6 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 				query = make(map[string]interface{})
 				request["InstanceId"] = d.Id()
 				request["RegionId"] = client.RegionId
-
 				wait := incrementalWait(5*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
@@ -543,7 +622,6 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 				if v, ok := d.GetOkExists("force_stop"); ok {
 					request["ForceStop"] = v
 				}
-
 				wait := incrementalWait(5*time.Second, 5*time.Second)
 				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 					response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
@@ -576,12 +654,12 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 	query = make(map[string]interface{})
 	request["DBInstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
+	request["ClientToken"] = buildClientToken(action)
 	if _, ok := d.GetOk("resource_group_id"); ok && !d.IsNewResource() && d.HasChange("resource_group_id") {
 		update = true
 	}
 	request["ResourceGroupId"] = d.Get("resource_group_id")
 	request["ResourceType"] = "Custom"
-
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
@@ -606,6 +684,12 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 	query = make(map[string]interface{})
 	request["InstanceId"] = d.Id()
 	request["RegionId"] = client.RegionId
+	if v, ok := d.GetOkExists("auto_use_coupon"); ok {
+		request["AutoUseCoupon"] = v
+	}
+	if v, ok := d.GetOkExists("reboot_when_finished"); ok {
+		request["RebootWhenFinished"] = v
+	}
 	if !d.IsNewResource() && d.HasChange("instance_type") {
 		update = true
 	}
@@ -616,10 +700,15 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOk("direction"); ok {
 		request["Direction"] = v
 	}
+	if v, ok := d.GetOk("reboot_time"); ok {
+		request["RebootTime"] = v
+	}
+	if v, ok := d.GetOk("promotion_code"); ok {
+		request["PromotionCode"] = v
+	}
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
-
 	if update {
 		wait := incrementalWait(20*time.Second, 20*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
@@ -694,6 +783,11 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	if !d.IsNewResource() && d.HasChange("enable_jumbo_frame") {
+		update = true
+		request["EnableJumboFrame"] = d.Get("enable_jumbo_frame")
+	}
+
 	if !d.IsNewResource() && d.HasChange("instance_name") {
 		update = true
 		request["InstanceName"] = d.Get("instance_name")
@@ -701,6 +795,13 @@ func resourceAliCloudRdsCustomUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := d.GetOk("password"); ok {
 		request["Password"] = v
+	}
+	if v, ok := d.GetOkExists("reboot"); ok {
+		request["Reboot"] = v
+	}
+	if !d.IsNewResource() && d.HasChange("deletion_protection") {
+		update = true
+		request["DeletionProtection"] = d.Get("deletion_protection")
 	}
 
 	if update {

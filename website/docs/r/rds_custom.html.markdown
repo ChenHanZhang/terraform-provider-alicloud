@@ -127,27 +127,38 @@ resource "alicloud_rds_custom" "default" {
 ## Argument Reference
 
 The following arguments are supported:
-
-* `amount` - (Optional, Int) Specifies the number of RDS Custom instances to create. This parameter applies only when creating multiple RDS Custom instances at once.
-Valid values: `1` to `5`. Default value: `1`.
+* `amount` - (Optional, Int) Specifies the number of RDS Custom instances to create. This parameter applies only when creating multiple RDS Custom instances at once.  
+Valid values: `1` to `5`. Default value: `1`.  
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `auto_pay` - (Optional) Specifies whether to enable automatic payment. Valid values:
-  - `true` (default): Enable automatic payment. You must ensure that your account balance is sufficient.
-  - `false`: Generate an order without charging your account.
+* `auto_pay` - (Optional) Specifies whether to enable automatic payment. Valid values:  
+  - `true` (default): Enable automatic payment. You must ensure that your account balance is sufficient.  
+  - `false`: Generate an order without charging your account.  
 
--> **NOTE:**  If your payment method has insufficient funds, you can set the AutoPay parameter to false. In this case, an unpaid order is generated, and you can log on to the RDS console to complete the payment manually.
+-> **NOTE:**  If your payment method has insufficient funds, you can set the AutoPay parameter to false. In this case, an unpaid order is generated, and you can log on to the RDS console to complete the payment manually.  
+
+-> **NOTE:**   
+
 
 -> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
 
 * `auto_renew` - (Optional) Specifies whether the instance is automatically renewed. This parameter applies only when you create a subscription instance. Valid values:
-  - `true`: Enable auto-renewal.
-  - `false`: Disable auto-renewal.
+* `true`: Enable auto-renewal.
+* `false`: Disable auto-renewal.
 
 -> **NOTE:**  * If you purchase the instance on a monthly basis, the auto-renewal period is one month.
 
 -> **NOTE:**  * If you purchase the instance on an annual basis, the auto-renewal period is one year.
+
+
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
+* `auto_use_coupon` - (Optional, Available since v1.279.0) Specifies whether to automatically apply coupons. Valid values:
+* `true` (default): Yes.
+* `false`: No.
+
+-> **NOTE:**  If you use a coupon and later downgrade the instance configuration, the amount covered by the coupon will not be refunded.
 
 
 -> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
@@ -159,6 +170,9 @@ Valid values: `1` to `5`. Default value: `1`.
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `data_disk` - (Optional, ForceNew, Computed, List) List of data disks.   See [`data_disk`](#data_disk) below.
+* `deletion_protection` - (Optional, Computed, Available since v1.279.0) Specifies whether to enable release protection. Valid values:
+  - `true`: Enables release protection.
+  - `false` (default): Disables release protection.
 * `deployment_set_id` - (Optional, ForceNew) Deployment set ID.
 * `description` - (Optional, Computed) The instance description. It must be 2 to 256 characters in length and cannot start with http:// or https://.
 * `direction` - (Optional) The instance specification change type. Valid values:
@@ -175,15 +189,21 @@ Valid values: `1` to `5`. Default value: `1`.
 
 -> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
 
+* `enable_jumbo_frame` - (Optional, Computed, Available since v1.279.0) Specifies whether to enable the Jumbo frame feature for the instance. Valid values:
+false: Disable Jumbo frame. The MTU of all network interfaces (including the primary and secondary ENIs) on the instance is set to 1500.
+true: Enable Jumbo frame. The MTU of all network interfaces (including the primary and secondary ENIs) on the instance is set to 8500.
+Default value: false.
+Note
+Only certain instance types of the eighth generation and later support the Jumbo frame feature. For more information, see ECS instance MTU.
 * `force` - (Optional) Specifies whether to forcibly release a running instance. Valid values:
-  - `true`: Force release.
-  - `false` (default): Do not force release.
+  - `Yes`: Force release.
+  - `No` (default): Do not force release.
 
 -> **NOTE:** This parameter configures deletion behavior and is only evaluated when Terraform attempts to destroy the resource. Changes to this parameter during updates are stored but have no immediate effect.
 
-* `force_stop` - (Optional) Specifies whether to force shut down the instance. Valid values:
-  - `true`: Force shut down.
-  - `false` (default): Shut down normally.
+* `force_stop` - (Optional) Specifies whether to force shut down the instance. Valid values:  
+  - `true`: Force shut down.  
+  - `false` (default): Shut down normally.  
 
 -> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
 
@@ -235,6 +255,31 @@ Valid values: 0 to 1024. Default value: 0.
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `private_ip_address` - (Optional, ForceNew, Computed, Available since v1.279.0) The private IP address of the instance. When assigning a private IP address to an ECS instance in a Virtual Private Cloud (VPC), you must select an available IP address from the CIDR block of the specified vSwitch (VSwitchId).
+* `promotion_code` - (Optional, Available since v1.279.0) The coupon code.
+
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
+* `reboot` - (Optional, Available since v1.279.0) Specifies whether to restart the instance. Valid values:  
+  - `true`: Restart.  
+  - `false` (default): Do not restart.  
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `reboot_time` - (Optional, Available since v1.279.0) The scheduled restart time for the instance.
+  - If `RebootWhenFinished` is set to `false`, you `must` specify a restart time within the next 48 hours.
+  - The time must follow the ISO 8601 standard in UTC+0 format: `yyyy-MM-ddTHH:mmZ`.
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `reboot_when_finished` - (Optional, Available since v1.279.0) Specifies whether to restart the instance immediately after configuration changes are completed. Valid values:
+  - `true` (default): Yes.
+  - `false`: No.
+
+-> **NOTE:**  If the instance is in the `Paused` state, it remains in this state and is not restarted even if `RebootWhenFinished=true` is set.
+
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
 * `resource_group_id` - (Optional, Computed) The resource group ID. You can call ListResourceGroups to obtain it.
 * `security_enhancement_strategy` - (Optional) This is a reserved parameter and is not currently supported.
 
@@ -265,11 +310,20 @@ Default value: `NoSpot`.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `system_disk` - (Optional, ForceNew, List) The system disk specification. See [`system_disk`](#system_disk) below.
-
--> **NOTE:** Since v1.279.0, `system_disk` is treated as a ForceNew field. Any change to this field, including its nested `category` and `size` values, will force replacement of the `alicloud_rds_custom` resource.
-
+* `system_disk` - (Optional, ForceNew, Set) The system disk specification. See [`system_disk`](#system_disk) below.
 * `tags` - (Optional, Map) Details of the queried instances and their tags.
+* `user_data` - (Optional, ForceNew, Available since v1.279.0) Custom data for the instance. The raw data can be up to 32 KB in size.
+Do not pass sensitive information such as passwords or private keys in plaintext. If you must include such data, encrypt it first, encode it in Base64, and then pass it. Decrypt and use the data inside the instance after it is received. Below is an example of converting a script into a Base64-encoded string:
+```
+echo - n '#!/bin/sh
+echo "Hello World"' | base64 - w 0
+```
+* `user_data_in_base64` - (Optional, Available since v1.279.0) Specifies whether the custom data is Base64-encoded.
+  - `true`: Yes.
+  - `false` (default): No.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `vswitch_id` - (Required, ForceNew) The virtual switch ID of the target instance. If you are creating a VPC-type RDS Custom instance, you must specify the virtual switch ID, and the security group and virtual switch must belong to the same Virtual Private Cloud (VPC).
 
 -> **NOTE:**  If you specify the VSwitchId parameter, the ZoneId parameter you set must match the zone where the virtual switch is located. Alternatively, you can omit the ZoneId parameter, and the system will automatically select the zone of the specified virtual switch.
@@ -278,7 +332,6 @@ Default value: `NoSpot`.
 
 -> **NOTE:**  If you specify the VSwitchId parameter, the specified ZoneId must match the zone where the vSwitch is located. Alternatively, you can omit ZoneId, and the system will automatically select the zone of the specified vSwitch.
 
-* `create_extra_param` - (Optional, Available since v1.252.0) Reserved parameters are not supported.
 
 ### `data_disk`
 
@@ -288,6 +341,13 @@ The data_disk supports the following:
   - `cloud_ssd`: SSD cloud disk.
   - `cloud_essd` (default): ESSD cloud disk.
   - `cloud_auto`: High-performance cloud disk.
+* `device` - (Optional, ForceNew, Computed, Available since v1.279.0) The mount point of the data disk.
+
+-> **NOTE:** This parameter applies only to full-image (entire-machine image) scenarios. You can set this parameter to the mount point of the data disk in the full image and modify the corresponding **DataDisk.Size** and **DataDisk.Category** parameters to change the disk category and size of the data disk in the full image.
+
+* `encrypted` - (Optional, ForceNew, Computed, Available since v1.279.0) Specifies whether to encrypt the cloud disk. Valid values:
+  - `true`: Yes.
+  - `false` (default): No.
 * `performance_level` - (Optional, ForceNew) The performance level for an ESSD cloud disk. For information about performance differences among ESSD cloud disks, see [ESSD cloud disks](https://help.aliyun.com/document_detail/2859916.html). Valid values:
   - `PL0`
   - `PL1` (default)
@@ -303,6 +363,12 @@ The data_disk supports the following:
   - PL2: 461 to 65,536.
   - PL3: 1,261 to 65,536.
 
+If the **DataDisk.SnapshotId** parameter is specified and the capacity of its corresponding snapshot is greater than the value of **DataDisk.Size**, the created cloud disk will have the same size as the snapshot. If the snapshot capacity is less than the value of **DataDisk.Size**, the created cloud disk size will be equal to the value of **DataDisk.Size**.
+* `snapshot_id` - (Optional, ForceNew, Available since v1.279.0) The snapshot used to create the data disk.
+  - If the capacity of the snapshot specified by **DataDisk.SnapshotId** is greater than the value of **DataDisk.Size**, the created cloud disk will have the same size as the snapshot. If the snapshot capacity is less than the value of **DataDisk.Size**, the created cloud disk size will be equal to the value of **DataDisk.Size**.
+  - Snapshots cannot be used to create elastic temporary disks.
+  - Snapshots created on or before July 15, 2013, cannot be used to create cloud disks.
+
 ### `system_disk`
 
 The system_disk supports the following:
@@ -311,14 +377,26 @@ The system_disk supports the following:
   - `cloud_ssd`: standard SSD.
   - `cloud_essd` (default): ESSD.
   - `cloud_auto`: high-performance cloud disk.
-* `size` - (Optional, ForceNew) The size of the system disk, in GiB. The value must be greater than or equal to the size of the image specified by the `ImageId` parameter.
+* `performance_level` - (Optional, ForceNew, Available since v1.279.0) The performance level of the system disk when the disk category is ESSD. For more information about performance differences among ESSD types, see [ESSDs](https://help.aliyun.com/document_detail/2859916.html). Valid values:
+  - `PL0`
+  - `PL1` (default)
+  - `PL2`
+  - `PL3`
+* `size` - (Optional, ForceNew) The size of the system disk, in GiB. The value must be greater than or equal to the size of the image specified by the `ImageId` parameter. Valid ranges:
+  - `cloud_efficiency`: 20–2048.
+  - `cloud_ssd`: 20–2048.
+  - `cloud_auto`: 1–2048.
+  - `cloud_essd`: The valid range depends on the value of **SystemDisk.PerformanceLevel**:
+  - PL0: 1–2048.
+  - PL1: 20–2048.
+  - PL2: 461–2048.
+  - PL3: 1,261–2048.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `region_id` - The region ID.
-* `system_disk_id` - The ID of the system disk attached to the Custom instance.
 
 ## Timeouts
 
