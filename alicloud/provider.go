@@ -172,8 +172,6 @@ func Provider() terraform.ResourceProvider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"alicloud_cdn_domain_configs":                         dataSourceAliCloudCdnDomainConfigs(),
-			"alicloud_esa_network_optimizations":                  dataSourceAliCloudEsaNetworkOptimizations(),
-			"alicloud_esa_origin_rules":                           dataSourceAliCloudEsaOriginRules(),
 			"alicloud_esa_https_basic_configurations":             dataSourceAliCloudEsaHttpsBasicConfigurations(),
 			"alicloud_esa_waf_rulesets":                           dataSourceAliCloudEsaWafRuleSets(),
 			"alicloud_cs_clusters":                                dataSourceAliCloudAckClusters(),
@@ -920,6 +918,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_rocketmq_instance_endpoint":                           resourceAliCloudRocketmqInstanceEndpoint(),
 			"alicloud_oss_bucket_object_worm_configuration":                 resourceAliCloudOssBucketObjectWormConfiguration(),
 			"alicloud_alidns_cloud_gtm_instance_config":                     resourceAliCloudAlidnsCloudGtmInstanceConfig(),
 			"alicloud_alidns_cloud_gtm_monitor_template":                    resourceAliCloudAlidnsCloudGtmMonitorTemplate(),
@@ -1535,9 +1534,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_endpoint":                                      resourceAlicloudPolarDBEndpoint(),
 			"alicloud_polardb_endpoint_address":                              resourceAlicloudPolarDBEndpointAddress(),
 			"alicloud_polardb_primary_endpoint":                              resourceAlicloudPolarDBPrimaryEndpoint(),
-			"alicloud_polardb_application":                                   resourceAlicloudPolarDBApplication(),
-			"alicloud_polardb_application_endpoint":                          resourceAlicloudPolarDBApplicationEndpoint(),
-			"alicloud_polardb_batch_task":                                    resourceAlicloudPolarDBBatchTask(),
 			"alicloud_hbase_instance":                                        resourceAlicloudHBaseInstance(),
 			"alicloud_market_order":                                          resourceAlicloudMarketOrder(),
 			"alicloud_adb_cluster":                                           resourceAliCloudAdbDbCluster(),
