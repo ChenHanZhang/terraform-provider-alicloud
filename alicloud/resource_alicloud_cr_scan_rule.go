@@ -74,6 +74,10 @@ func resourceAliCloudCrScanRule() *schema.Resource {
 				Required:     true,
 				ValidateFunc: StringInSlice([]string{"MANUAL", "AUTO"}, false),
 			},
+			"update_time": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -161,6 +165,7 @@ func resourceAliCloudCrScanRuleRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("scan_scope", objectRaw["ScanScope"])
 	d.Set("scan_type", objectRaw["ScanType"])
 	d.Set("trigger_type", objectRaw["TriggerType"])
+	d.Set("update_time", objectRaw["UpdateTime"])
 	d.Set("instance_id", objectRaw["InstanceId"])
 	d.Set("scan_rule_id", objectRaw["ScanRuleId"])
 

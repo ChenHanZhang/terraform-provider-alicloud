@@ -10,7 +10,7 @@ description: |-
 
 Provides a CR Scan Rule resource.
 
-Artifact Scan Rule.
+Artifact scanning rule  .
 
 For information about CR Scan Rule and how to use it, see [What is Scan Rule](https://next.api.alibabacloud.com/document/cr/2018-12-01/CreateScanRule).
 
@@ -19,12 +19,6 @@ For information about CR Scan Rule and how to use it, see [What is Scan Rule](ht
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cr_scan_rule&exampleId=6ba8a210-a156-d603-57cb-bac1028dce51a5e39b59&activeTab=example&spm=docs.r.cr_scan_rule.0.6ba8a210a1&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -57,8 +51,6 @@ resource "alicloud_cr_scan_rule" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cr_scan_rule&spm=docs.r.cr_scan_rule.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -82,9 +74,10 @@ The default value of this parameter is `VUL`.
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<scan_rule_id>`.
-* `create_time` - Creation time
-* `scan_rule_id` - Rule ID
+* `id` - The ID of the resource supplied above. The value is formulated as `<instance_id>:<scan_rule_id>`.
+* `create_time` - Creation time.
+* `scan_rule_id` - Rule ID.
+* `update_time` - Update time.
 
 ## Timeouts
 

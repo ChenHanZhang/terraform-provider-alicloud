@@ -344,7 +344,7 @@ func (s *CrServiceV2) DescribeCrScanRule(id string) (object map[string]interface
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"SCAN_RULE_NOT_EXIST", "INSTANCE_NOT_EXIST"}) {
+		if IsExpectedErrors(err, []string{"SCAN_RULE_NOT_EXIST"}) {
 			return object, WrapErrorf(NotFoundErr("ScanRule", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
