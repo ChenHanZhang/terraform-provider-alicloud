@@ -285,15 +285,17 @@ func resourceAlicloudRosStackRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return WrapError(err)
 	}
-	if policyBody := getStackPolicyObject["StackPolicyBody"]; policyBody != nil {
-		switch v := policyBody.(type) {
-		case string:
-			d.Set("stack_policy_body", v)
-		default:
-			if marshaled, err := json.Marshal(v); err == nil {
-				d.Set("stack_policy_body", string(marshaled))
-			}
+	switch v := getStackPolicyObject["StackPolicyBody"].(type) {
+	case nil:
+		// leave empty
+	case string:
+		d.Set("stack_policy_body", v)
+	default:
+		marshaled, err := json.Marshal(v)
+		if err != nil {
+			return WrapError(err)
 		}
+		d.Set("stack_policy_body", string(marshaled))
 	}
 	return nil
 }
