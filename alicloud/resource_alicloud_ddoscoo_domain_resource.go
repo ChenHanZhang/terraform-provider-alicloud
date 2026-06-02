@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -5,7 +6,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/blues/jsonata-go"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -49,11 +52,23 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: IntInSlice([]int{0, 1}),
 			},
+			"cc_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"cc_global_switch": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"close", "open"}, false),
+			},
+			"cc_rule_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"cc_template": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"cert": {
 				Type:      schema.TypeString,
@@ -79,6 +94,11 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"custom_ciphers": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"custom_headers": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -93,6 +113,10 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"http2_enable": {
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 			"https_ext": {
 				Type:         schema.TypeString,
@@ -118,6 +142,14 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"policy_mode": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"proxy_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"proxy_types": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -135,6 +167,14 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 					},
 				},
 			},
+			"punish_reason": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"punish_status": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"real_servers": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -143,6 +183,27 @@ func resourceAliCloudDdosCooDomainResource() *schema.Resource {
 			"rs_type": {
 				Type:     schema.TypeInt,
 				Required: true,
+			},
+			"ssl13_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"ssl_ciphers": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"default", "all", "strong"}, false),
+			},
+			"ssl_protocols": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"tls1.0", "tls1.1", "tls1.2"}, false),
+			},
+			"tls13_custom_ciphers": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"white_list": {
 				Type:     schema.TypeSet,
@@ -166,6 +227,7 @@ func resourceAliCloudDdosCooDomainResourceCreate(d *schema.ResourceData, meta in
 	if v, ok := d.GetOk("domain"); ok {
 		request["Domain"] = v
 	}
+	request["RegionId"] = client.RegionId
 
 	if v, ok := d.GetOk("instance_ids"); ok {
 		instanceIdsMapsArray := convertToInterfaceArray(v)
@@ -232,10 +294,21 @@ func resourceAliCloudDdosCooDomainResourceRead(d *schema.ResourceData, meta inte
 		return WrapError(err)
 	}
 
+	d.Set("cc_enabled", objectRaw["CcEnabled"])
+	d.Set("cc_rule_enabled", objectRaw["CcRuleEnabled"])
+	d.Set("cc_template", objectRaw["CcTemplate"])
 	d.Set("cname", objectRaw["Cname"])
+	d.Set("http2_enable", objectRaw["Http2Enable"])
 	d.Set("https_ext", objectRaw["HttpsExt"])
 	d.Set("ocsp_enabled", formatBool(convertDdosCooDomainResourceWebRulesOcspEnabledResponse(objectRaw["OcspEnabled"])))
+	d.Set("policy_mode", objectRaw["PolicyMode"])
+	d.Set("proxy_enabled", objectRaw["ProxyEnabled"])
+	d.Set("punish_reason", objectRaw["PunishReason"])
+	d.Set("punish_status", objectRaw["PunishStatus"])
 	d.Set("rs_type", objectRaw["RsType"])
+	d.Set("ssl13_enabled", objectRaw["Ssl13Enabled"])
+	d.Set("ssl_ciphers", objectRaw["SslCiphers"])
+	d.Set("ssl_protocols", objectRaw["SslProtocols"])
 	d.Set("domain", objectRaw["Domain"])
 
 	blackListRaw := make([]interface{}, 0)
@@ -244,6 +317,12 @@ func resourceAliCloudDdosCooDomainResourceRead(d *schema.ResourceData, meta inte
 	}
 
 	d.Set("black_list", blackListRaw)
+	customCiphersRaw := make([]interface{}, 0)
+	if objectRaw["CustomCiphers"] != nil {
+		customCiphersRaw = convertToInterfaceArray(objectRaw["CustomCiphers"])
+	}
+
+	d.Set("custom_ciphers", customCiphersRaw)
 	instanceIdsRaw := make([]interface{}, 0)
 	if objectRaw["InstanceIds"] != nil {
 		instanceIdsRaw = convertToInterfaceArray(objectRaw["InstanceIds"])
@@ -289,7 +368,15 @@ func resourceAliCloudDdosCooDomainResourceRead(d *schema.ResourceData, meta inte
 	}
 
 	d.Set("cert_name", objectRaw["UserCertName"])
+	d.Set("punish_reason", objectRaw["PunishReason"])
 	d.Set("domain", objectRaw["Domain"])
+
+	tls13CustomCiphersRaw := make([]interface{}, 0)
+	if objectRaw["Tls13CustomCiphers"] != nil {
+		tls13CustomCiphersRaw = convertToInterfaceArray(objectRaw["Tls13CustomCiphers"])
+	}
+
+	d.Set("tls13_custom_ciphers", tls13CustomCiphersRaw)
 
 	objectRaw, err = ddosCooServiceV2.DescribeDomainResourceDescribeDomainCcProtectSwitch(d.Id())
 	if err != nil && !NotFoundError(err) {
@@ -306,7 +393,11 @@ func resourceAliCloudDdosCooDomainResourceRead(d *schema.ResourceData, meta inte
 		return WrapError(err)
 	}
 
-	d.Set("custom_headers", convertObjectToJsonString(objectRaw["Headers"]))
+	e := jsonata.MustCompile("$string($.$.Headers)")
+	evaluation, _ := e.Eval(objectRaw)
+	d.Set("custom_headers", evaluation)
+
+	d.Set("domain", d.Id())
 
 	return nil
 }
@@ -317,13 +408,13 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	d.Partial(true)
 
 	var err error
 	action := "ModifyDomainResource"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 	if !d.IsNewResource() && d.HasChange("instance_ids") {
 		update = true
 	}
@@ -389,7 +480,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
-
+	request["RegionId"] = client.RegionId
 	if d.HasChange("ocsp_enabled") {
 		update = true
 	}
@@ -417,6 +508,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 	if d.HasChange("cert_region") {
 		update = true
 		request["CertRegion"] = d.Get("cert_region")
@@ -510,7 +602,7 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 		config["AiMode"] = v
 	}
 
-	request["Config"] = convertObjectToJsonString(config)
+	request["Config"] = config
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -536,20 +628,17 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	query = make(map[string]interface{})
 	request["Domain"] = d.Id()
 
-	ddosCooServiceV2 := DdosCooServiceV2{client}
-
-	objectRaw, err := ddosCooServiceV2.DescribeDomainResourceDescribeDomainCcProtectSwitch(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
-
-	v, ok := d.GetOkExists("bw_list_enable")
-	if fmt.Sprint(objectRaw["BlackWhiteListEnable"]) != fmt.Sprint(d.Get("bw_list_enable")) && ok {
+	if d.HasChange("bw_list_enable") {
 		update = true
+	}
+	config := make(map[string]interface{})
 
-		config = make(map[string]interface{})
-		config["bwlist_enable"] = v
-		request["Config"] = convertObjectToJsonString(config)
+	if v := d.Get("bw_list_enable"); v != nil {
+		if v, ok := d.GetOkExists("bw_list_enable"); ok {
+			config["bwlist_enable"] = v
+		}
+
+		request["Config"] = config
 	}
 
 	if update {
@@ -578,20 +667,20 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 	request["RegionId"] = client.RegionId
 	if d.HasChange("black_list") {
 		update = true
-	}
-	if v, ok := d.GetOk("black_list"); ok || d.HasChange("black_list") {
-		blackListMapsArray := convertToInterfaceArray(v)
+		if v, ok := d.GetOk("black_list"); ok || d.HasChange("black_list") {
+			blackListMapsArray := convertToInterfaceArray(v)
 
-		request["BlackList"] = blackListMapsArray
+			request["BlackList"] = blackListMapsArray
+		}
 	}
 
 	if d.HasChange("white_list") {
 		update = true
-	}
-	if v, ok := d.GetOk("white_list"); ok || d.HasChange("white_list") {
-		whiteListMapsArray := convertToInterfaceArray(v)
+		if v, ok := d.GetOk("white_list"); ok || d.HasChange("white_list") {
+			whiteListMapsArray := convertToInterfaceArray(v)
 
-		request["WhiteList"] = whiteListMapsArray
+			request["WhiteList"] = whiteListMapsArray
+		}
 	}
 
 	if update {
@@ -640,8 +729,72 @@ func resourceAliCloudDdosCooDomainResourceUpdate(d *schema.ResourceData, meta in
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
+	update = false
+	action = "ModifyTlsConfig"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
+	config := make(map[string]interface{})
 
-	d.Partial(false)
+	if d.HasChange("custom_ciphers") {
+		update = true
+	}
+	customCiphers, _ := jsonpath.Get("$", d.Get("custom_ciphers"))
+	if customCiphers != nil && customCiphers != "" {
+		config["custom_ciphers"] = convertToInterfaceArray(customCiphers)
+	}
+
+	if d.HasChange("ssl13_enabled") {
+		update = true
+	}
+	if v, ok := d.GetOkExists("ssl13_enabled"); ok {
+		config["ssl_13_enabled"] = v
+	}
+
+	if d.HasChange("tls13_custom_ciphers") {
+		update = true
+	}
+	tls13CustomCiphers, _ := jsonpath.Get("$", d.Get("tls13_custom_ciphers"))
+	if tls13CustomCiphers != nil && tls13CustomCiphers != "" {
+		config["tls_13_custom_ciphers"] = convertToInterfaceArray(tls13CustomCiphers)
+	}
+
+	if d.HasChange("ssl_protocols") {
+		update = true
+	}
+	if v, ok := d.GetOk("ssl_protocols"); ok {
+		config["ssl_protocols"] = v
+	}
+
+	if d.HasChange("ssl_ciphers") {
+		update = true
+	}
+	if v, ok := d.GetOk("ssl_ciphers"); ok {
+		config["ssl_ciphers"] = v
+	}
+
+	request["Config"] = config
+
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("ddoscoo", "2020-01-01", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
 	return resourceAliCloudDdosCooDomainResourceRead(d, meta)
 }
 
@@ -655,11 +808,11 @@ func resourceAliCloudDdosCooDomainResourceDelete(d *schema.ResourceData, meta in
 	var err error
 	request = make(map[string]interface{})
 	request["Domain"] = d.Id()
+	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ddoscoo", "2020-01-01", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()

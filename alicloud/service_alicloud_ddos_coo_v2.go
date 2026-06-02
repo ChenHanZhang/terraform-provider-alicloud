@@ -155,6 +155,7 @@ func (s *DdosCooServiceV2) DescribeDdosCooDomainResource(id string) (object map[
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = id
+	request["RegionId"] = client.RegionId
 	action := "DescribeDomainResource"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
@@ -194,6 +195,7 @@ func (s *DdosCooServiceV2) DescribeDomainResourceDescribeWebRules(id string) (ob
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["Domain"] = id
+	request["RegionId"] = client.RegionId
 	action := "DescribeWebRules"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
