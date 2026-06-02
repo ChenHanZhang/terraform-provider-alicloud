@@ -14,17 +14,11 @@ VPC IPv6 supplementary CIDR block.
 
 For information about VPC Ipv6 Cidr Block and how to use it, see [What is Ipv6 Cidr Block](https://next.api.alibabacloud.com/document/Vpc/2016-04-28/AssociateVpcCidrBlock).
 
--> **NOTE:** Available since v1.280.0.
+-> **NOTE:** Available since v1.281.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_vpc_ipv6_cidr_block&exampleId=1ff2fce0-4f79-91fb-b641-a82d9d5f08dbd24940a5&activeTab=example&spm=docs.r.vpc_ipv6_cidr_block.0.1ff2fce04f&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -63,10 +57,6 @@ resource "alicloud_vpc_ipv6_cidr_block" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_ipv6_cidr_block&spm=docs.r.vpc_ipv6_cidr_block.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -84,6 +74,14 @@ The following arguments are supported:
 * `ipv6_ipam_pool_id` - (Optional) The ID of the IPAM pool instance.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `ipv6_isp` - (Optional, ForceNew) The IPv6 CIDR block type of the VPC. Valid values:
+  - `BGP` (default): Alibaba Cloud BGP IPv6.
+  - `ChinaMobile`: China Mobile (single-line).
+  - `ChinaUnicom`: China Unicom (single-line).
+  - `ChinaTelecom`: China Telecom (single-line).
+
+-> **NOTE:**  If you are a user who has been granted access to single-line bandwidth through a whitelist, you can set this parameter to `ChinaTelecom` (China Telecom), `ChinaUnicom` (China Unicom), or `ChinaMobile` (China Mobile).
 
 * `vpc_id` - (Required, ForceNew) The ID of the VPC.
 You can specify up to 20 VPC IDs, separated by commas (,).
