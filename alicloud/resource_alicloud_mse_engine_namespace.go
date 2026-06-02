@@ -58,26 +58,6 @@ func resourceAlicloudMseEngineNamespace() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"quota": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"config_count": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"service_count": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"source_type": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"type": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -165,11 +145,11 @@ func resourceAlicloudMseEngineNamespaceRead(d *schema.ResourceData, meta interfa
 	d.Set("instance_id", parts[0])
 	d.Set("namespace_show_name", object["NamespaceShowName"])
 	d.Set("namespace_desc", object["NamespaceDesc"])
-	d.Set("quota", formatInt(object["Quota"]))
-	d.Set("config_count", formatInt(object["ConfigCount"]))
+	d.Set("quota", object["Quota"])
+	d.Set("config_count", object["ConfigCount"])
 	d.Set("service_count", object["ServiceCount"])
 	d.Set("source_type", object["SourceType"])
-	d.Set("type", formatInt(object["Type"]))
+	d.Set("type", object["Type"])
 	return nil
 }
 func resourceAlicloudMseEngineNamespaceUpdate(d *schema.ResourceData, meta interface{}) error {

@@ -46,7 +46,6 @@ func resourceAliCloudVpcVswitch() *schema.Resource {
 			"enable_ipv6": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 			},
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
@@ -55,12 +54,11 @@ func resourceAliCloudVpcVswitch() *schema.Resource {
 			"ipv6_cidr_block_mask": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"is_default": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
 			},
 			"status": {
 				Type:     schema.TypeString,
@@ -78,10 +76,6 @@ func resourceAliCloudVpcVswitch() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-			},
-			"vpc_ipv6_cidr_block": {
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 			"zone_id": {
 				Type:         schema.TypeString,
@@ -188,9 +182,6 @@ func resourceAliCloudVpcVswitchCreate(d *schema.ResourceData, meta interface{}) 
 		if v, ok := d.GetOkExists("ipv6_cidr_block_mask"); ok {
 			request["Ipv6CidrBlock"] = v
 		}
-		if v, ok := d.GetOk("vpc_ipv6_cidr_block"); ok {
-			request["VpcIpv6CidrBlock"] = v
-		}
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
@@ -242,7 +233,6 @@ func resourceAliCloudVpcVswitchRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("create_time", objectRaw["CreationTime"])
 	d.Set("description", objectRaw["Description"])
 	d.Set("ipv6_cidr_block", objectRaw["Ipv6CidrBlock"])
-	d.Set("is_default", objectRaw["IsDefault"])
 	d.Set("status", objectRaw["Status"])
 	d.Set("vswitch_name", objectRaw["VSwitchName"])
 	d.Set("vpc_id", objectRaw["VpcId"])
@@ -253,10 +243,13 @@ func resourceAliCloudVpcVswitchRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", d.Get("vswitch_name"))
 	d.Set("availability_zone", d.Get("zone_id"))
+	if v, ok := objectRaw["Ipv6CidrBlock"]; ok && fmt.Sprint(v) != "" {
+		_, cidrBlock := GetIPv6SubnetAddr(v.(string))
+		d.Set("ipv6_cidr_block_mask", cidrBlock)
+	}
+
 	if enableIpv6, ok := d.GetOkExists("enable_ipv6"); ok {
 		d.Set("enable_ipv6", enableIpv6)
-	} else {
-		d.Set("enable_ipv6", fmt.Sprint(objectRaw["Ipv6CidrBlock"]) != "")
 	}
 	return nil
 }
@@ -285,13 +278,6 @@ func resourceAliCloudVpcVswitchUpdate(d *schema.ResourceData, meta interface{}) 
 	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
 		request["Description"] = d.Get("description")
-	}
-
-	if v, ok := d.GetOk("vpc_ipv6_cidr_block"); ok {
-		request["VpcIpv6CidrBlock"] = v
-	}
-	if !d.IsNewResource() && d.HasChange("vpc_ipv6_cidr_block") {
-		update = true
 	}
 
 	if !d.IsNewResource() && d.HasChange("ipv6_cidr_block_mask") {
