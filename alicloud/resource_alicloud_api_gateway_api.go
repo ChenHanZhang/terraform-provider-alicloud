@@ -337,7 +337,8 @@ func resourceAliyunApigatewayApi() *schema.Resource {
 			"stage_names": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{"PRE", "RELEASE", "TEST"}, false),
 				},
 				Optional: true,
 			},
@@ -559,10 +560,11 @@ func resourceAliyunApigatewayApiUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if update || d.HasChange("stage_names") {
-		stageNames := d.Get("stage_names").(*schema.Set)
-		err = updateApiStages(d, stageNames, meta)
-		if err != nil {
-			return WrapError(err)
+		if l, ok := d.GetOk("stage_names"); ok {
+			err = updateApiStages(d, l.(*schema.Set), meta)
+			if err != nil {
+				return WrapError(err)
+			}
 		}
 	}
 
@@ -582,28 +584,25 @@ func resourceAliyunApigatewayApiDelete(d *schema.ResourceData, meta interface{})
 	request.ApiId = parts[1]
 	request.GroupId = parts[0]
 
-	if v, ok := d.GetOk("stage_names"); ok {
-		for _, sn := range v.(*schema.Set).List() {
-			stageName := sn.(string)
-			err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-				err := cloudApiService.AbolishApi(d.Id(), stageName)
-				if err != nil {
-					if IsExpectedErrors(err, []string{"ConcurrencyLockTimeout"}) {
-						time.Sleep(3 * time.Second)
-						return resource.RetryableError(err)
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
-			})
+	for _, stageName := range ApiGatewayStageNames {
+		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			err := cloudApiService.AbolishApi(d.Id(), stageName)
 			if err != nil {
-				return WrapError(err)
+				if IsExpectedErrors(err, []string{"ConcurrencyLockTimeout"}) {
+					time.Sleep(3 * time.Second)
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
-			_, err = cloudApiService.DescribeDeployedApi(d.Id(), stageName)
-			if err != nil {
-				if !NotFoundError(err) {
-					return WrapError(err)
-				}
+			return nil
+		})
+		if err != nil {
+			return WrapError(err)
+		}
+		_, err = cloudApiService.DescribeDeployedApi(d.Id(), stageName)
+		if err != nil {
+			if !NotFoundError(err) {
+				return WrapError(err)
 			}
 		}
 	}
@@ -993,16 +992,8 @@ func setRequestParameters(d *schema.ResourceData, requestParameters []ApiGateway
 
 func getStageNameList(d *schema.ResourceData, cloudApiService CloudApiService) ([]string, error) {
 	var stageNames []string
-	var checkList []string
-	if v, ok := d.GetOk("stage_names"); ok {
-		for _, sn := range v.(*schema.Set).List() {
-			checkList = append(checkList, sn.(string))
-		}
-	} else {
-		// Fallback for ImportState: no config available, check system stages
-		checkList = ApiGatewayStageNames
-	}
-	for _, stageName := range checkList {
+
+	for _, stageName := range ApiGatewayStageNames {
 		_, err := cloudApiService.DescribeDeployedApi(d.Id(), stageName)
 		if err != nil {
 			if NotFoundError(err) {
@@ -1020,25 +1011,29 @@ func updateApiStages(d *schema.ResourceData, stageNames *schema.Set, meta interf
 	client := meta.(*connectivity.AliyunClient)
 	cloudApiService := CloudApiService{client}
 
-	// Deploy to all stages in the user's stage_names list
-	for _, stageName := range stageNames.List() {
-		err := cloudApiService.DeployedApi(d.Id(), stageName.(string))
-		if err != nil {
-			return WrapError(err)
-		}
-		_, err = cloudApiService.DescribeDeployedApi(d.Id(), stageName.(string))
-		if err != nil {
-			return WrapError(err)
-		}
-	}
+	for _, stageName := range ApiGatewayStageNames {
+		if stageNames.Contains(stageName) {
+			err := cloudApiService.DeployedApi(d.Id(), stageName)
 
-	// Abolish from old stages that are no longer in the new list
-	o, _ := d.GetChange("stage_names")
-	if oldSet, ok := o.(*schema.Set); ok {
-		for _, stageName := range oldSet.Difference(stageNames).List() {
-			err := cloudApiService.AbolishApi(d.Id(), stageName.(string))
 			if err != nil {
 				return WrapError(err)
+			}
+
+			_, err = cloudApiService.DescribeDeployedApi(d.Id(), stageName)
+			if err != nil {
+				return WrapError(err)
+			}
+
+		} else {
+			err := cloudApiService.AbolishApi(d.Id(), stageName)
+			if err != nil {
+				return WrapError(err)
+			}
+			_, err = cloudApiService.DescribeDeployedApi(d.Id(), stageName)
+			if err != nil {
+				if !NotFoundError(err) {
+					return WrapError(err)
+				}
 			}
 		}
 	}

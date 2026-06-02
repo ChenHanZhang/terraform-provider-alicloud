@@ -108,10 +108,6 @@ resource "alicloud_ebs_solution_instance" "default" {
     parameter_key   = "mysqlPassword"
     parameter_value = "Ebs12345"
   }
-  tags = {
-    Created = "Terraform"
-    For     = "Example"
-  }
 }
 ```
 
@@ -125,7 +121,6 @@ The following arguments are supported:
 * `resource_group_id` - (Optional, Computed) The ID of the resource group.
 * `solution_id` - (Required, ForceNew) Solution ID.
 * `solution_instance_name` - (Optional, Computed) Solution Instance Name.
-* `tags` - (Optional, Map) A mapping of tags to assign to the resource.
 
 ### `parameters`
 

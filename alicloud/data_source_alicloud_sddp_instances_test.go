@@ -22,7 +22,7 @@ func TestAccAliCloudSddpInstancesDataSource(t *testing.T) {
 			"instances.0.id":           CHECKSET,
 			"instances.0.instance_id":  CHECKSET,
 			"instances.0.status":       CHECKSET,
-			"instances.0.payment_type": "POSTPAY",
+			"instances.0.payment_type": "Subscription",
 		}
 	}
 
@@ -40,7 +40,7 @@ func TestAccAliCloudSddpInstancesDataSource(t *testing.T) {
 	}
 
 	var preCheck = func() {
-		testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-zhangjiakou"})
+		testAccPreCheckWithRegions(t, true, connectivity.SddpSupportRegions)
 	}
 
 	sddpInstancesRecordsCheckInfo.dataSourceTestCheckWithPreCheck(t, rand, preCheck, allConf)
