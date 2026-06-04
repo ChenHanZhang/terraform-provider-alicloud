@@ -108,17 +108,12 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 	testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 	resourceId := "alicloud_eipanycast_anycast_eip_address_attachment.default"
 
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-
 	ra := resourceAttrInit(resourceId, AlicloudEipanycastAnycastEipAddressAttachmentMap3732)
-	testAccCheck := ra.resourceAttrMapUpdateSet()
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EipanycastServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEipanycastAnycastEipAddressAttachment")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%seipanycastanycasteipaddressattachment%d", defaultRegionToTest, rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEipanycastAnycastEipAddressAttachmentBasicDependence3732)
@@ -127,8 +122,8 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 			testAccPreCheck(t)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckEipanycastEipAddressAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesMultiRegion(4),
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -138,8 +133,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					"bind_instance_region_id": "${data.alicloud_regions.current_regions.regions.0.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"bind_instance_id":        CHECKSET,
 						"bind_instance_type":      "NetworkInterface",
 						"anycast_id":              CHECKSET,
@@ -173,8 +167,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"pop_locations.#": "3",
 					}),
 				),
@@ -188,8 +181,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"pop_locations.#": "1",
 					}),
 				),
@@ -209,8 +201,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"pop_locations.#": "3",
 					}),
 				),
@@ -220,8 +211,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					"pop_locations": REMOVEKEY,
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"pop_locations.#": "0",
 					}),
 				),
@@ -239,8 +229,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					"association_mode": "Normal",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"pop_locations.#":  "2",
 						"association_mode": "Normal",
 					}),
@@ -255,8 +244,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732(t *testing.T
 					"bind_instance_region_id": "${data.alicloud_regions.current_regions.regions.0.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"bind_instance_id":        CHECKSET,
 						"bind_instance_type":      "NetworkInterface",
 						"association_mode":        "Normal",
@@ -279,56 +267,48 @@ variable "name" {
     default = "%s"
 }
 
-provider "alicloud" {
-  alias  = "beijing"
-  region = "cn-beijing"
-}
-
-provider "alicloud" {
-  alias  = "hangzhou"
-  region = "cn-hangzhou"
-}
+%s
 
 data "alicloud_zones" "default" {
-  provider                    = "alicloud.beijing"
+  provider                    = alicloudalt
   available_disk_category     = "cloud_efficiency"
   available_resource_creation = "VSwitch"
 }
 
 data "alicloud_images" "default" {
-  provider    = "alicloud.beijing"
+  provider    = alicloudalt
   name_regex  = "^ubuntu_18.*64"
   most_recent = true
   owners      = "system"
 }
 
 data "alicloud_instance_types" "default" {
-  provider          = "alicloud.beijing"
+  provider          = alicloudalt
   availability_zone = data.alicloud_zones.default.zones[0].id
   cpu_core_count    = 1
   memory_size       = 2
 }
 
 resource "alicloud_vpc" "defaultVpc" {
-  provider   = "alicloud.beijing"
+  provider   = alicloudalt
   vpc_name   = var.name
   cidr_block = "192.168.0.0/16"
 }
 
 resource "alicloud_vswitch" "defaultVsw" {
-  provider   = "alicloud.beijing"
+  provider   = alicloudalt
   vpc_id     = alicloud_vpc.defaultVpc.id
   cidr_block = "192.168.0.0/24"
   zone_id    = data.alicloud_zones.default.zones.0.id
 }
 
 resource "alicloud_security_group" "defaultuBsECI" {
-  provider = "alicloud.beijing"
+  provider = alicloudalt
   vpc_id   = alicloud_vpc.defaultVpc.id
 }
 
 resource "alicloud_instance" "default9KDlN7" {
-  provider                   = "alicloud.beijing"
+  provider                   = alicloudalt
   image_id                   = data.alicloud_images.default.images[0].id
   instance_type              = data.alicloud_instance_types.default.instance_types[0].id
   instance_name              = var.name
@@ -340,12 +320,11 @@ resource "alicloud_instance" "default9KDlN7" {
 }
 
 resource "alicloud_eipanycast_anycast_eip_address" "defaultXkpFRs" {
-  provider         = "alicloud.hangzhou"
   service_location = "ChineseMainland"
 }
 
 resource "alicloud_eipanycast_anycast_eip_address_attachment" "defaultEfYBJY" {
-  provider                = "alicloud.beijing"
+  provider                = alicloudalt
   bind_instance_id        = alicloud_instance.default9KDlN7.network_interface_id
   bind_instance_type      = "NetworkInterface"
   bind_instance_region_id = "cn-beijing"
@@ -353,50 +332,42 @@ resource "alicloud_eipanycast_anycast_eip_address_attachment" "defaultEfYBJY" {
 }
 
 resource "alicloud_vpc" "defaultVpc2" {
-  provider   = "alicloud.hangzhou"
   vpc_name   = "${var.name}6"
   cidr_block = "192.168.0.0/16"
 }
 
 data "alicloud_regions" "current_regions" {
-  provider = "alicloud.hangzhou"
   current = true
 }
 
 data "alicloud_zones" "default2" {
-  provider                    = "alicloud.hangzhou"
   available_disk_category     = "cloud_efficiency"
   available_resource_creation = "VSwitch"
 }
 
 data "alicloud_images" "default2" {
-  provider    = "alicloud.hangzhou"
   name_regex  = "^ubuntu_18.*64"
   most_recent = true
   owners      = "system"
 }
 
 data "alicloud_instance_types" "default2" {
-  provider          = "alicloud.hangzhou"
   availability_zone = data.alicloud_zones.default2.zones[0].id
   cpu_core_count    = 1
   memory_size       = 2
 }
 
 resource "alicloud_vswitch" "defaultdsVsw2" {
-  provider   = "alicloud.hangzhou"
   vpc_id     = alicloud_vpc.defaultVpc2.id
   cidr_block = "192.168.0.0/24"
   zone_id    = data.alicloud_zones.default2.zones.1.id
 }
 
 resource "alicloud_security_group" "defaultuBsECI2" {
-  provider = "alicloud.hangzhou"
   vpc_id   = alicloud_vpc.defaultVpc2.id
 }
 
 resource "alicloud_instance" "defaultEcs2" {
-  provider                   = "alicloud.hangzhou"
   image_id                   = data.alicloud_images.default2.images[0].id
   instance_type              = data.alicloud_instance_types.default2.instance_types[0].id
   instance_name              = var.name
@@ -408,7 +379,7 @@ resource "alicloud_instance" "defaultEcs2" {
 }
 
 
-`, name)
+`, name, configAlternateRegionProvider("cn-beijing"))
 }
 
 func AlicloudEipanycastAnycastEipAddressAttachmentBasicDependence3732_region(name string) string {
@@ -417,56 +388,49 @@ variable "name" {
     default = "%s"
 }
 
-provider "alicloud" {
-  alias  = "hongkong"
-  region = "cn-hongkong"
-}
-
-provider "alicloud" {
-  alias  = "central"
-  region = "eu-central-1"
-}
+%s
+%s
 
 data "alicloud_zones" "default" {
-  provider                    = "alicloud.hongkong"
+  provider                    = alicloudalt
   available_disk_category     = "cloud_efficiency"
   available_resource_creation = "VSwitch"
 }
 
 data "alicloud_images" "default" {
-  provider    = "alicloud.hongkong"
+  provider    = alicloudalt
   name_regex  = "^ubuntu_18.*64"
   most_recent = true
   owners      = "system"
 }
 
 data "alicloud_instance_types" "default" {
-  provider          = "alicloud.hongkong"
+  provider          = alicloudalt
   availability_zone = data.alicloud_zones.default.zones[0].id
   cpu_core_count    = 1
   memory_size       = 2
 }
 
 resource "alicloud_vpc" "defaultVpc" {
-  provider   = "alicloud.hongkong"
+  provider   = alicloudalt
   vpc_name   = var.name
   cidr_block = "192.168.0.0/16"
 }
 
 resource "alicloud_vswitch" "defaultVsw" {
-  provider   = "alicloud.hongkong"
+  provider   = alicloudalt
   vpc_id     = alicloud_vpc.defaultVpc.id
   cidr_block = "192.168.0.0/24"
   zone_id    = data.alicloud_zones.default.zones.0.id
 }
 
 resource "alicloud_security_group" "defaultuBsECI" {
-  provider = "alicloud.hongkong"
+  provider = alicloudalt
   vpc_id   = alicloud_vpc.defaultVpc.id
 }
 
 resource "alicloud_instance" "default9KDlN7" {
-  provider                   = "alicloud.hongkong"
+  provider                   = alicloudalt
   image_id                   = data.alicloud_images.default.images[0].id
   instance_type              = data.alicloud_instance_types.default.instance_types[0].id
   instance_name              = var.name
@@ -478,17 +442,17 @@ resource "alicloud_instance" "default9KDlN7" {
 }
 
 data "alicloud_regions" "current_regions" {
-  provider         = "alicloud.central"
+  provider = alicloudalt2
   current = true
 }
 
 resource "alicloud_eipanycast_anycast_eip_address" "defaultXkpFRs" {
-  provider         = "alicloud.central"
+  provider         = alicloudalt2
   service_location = "international"
 }
 
 resource "alicloud_eipanycast_anycast_eip_address_attachment" "defaultEfYBJY" {
-  provider                = "alicloud.hongkong"
+  provider                = alicloudalt
   bind_instance_id        = alicloud_instance.default9KDlN7.network_interface_id
   bind_instance_type      = "NetworkInterface"
   bind_instance_region_id = "cn-hongkong"
@@ -496,45 +460,45 @@ resource "alicloud_eipanycast_anycast_eip_address_attachment" "defaultEfYBJY" {
 }
 
 resource "alicloud_vpc" "defaultVpc2" {
-  provider   = "alicloud.central"
+  provider   = alicloudalt2
   vpc_name   = "${var.name}6"
   cidr_block = "192.168.0.0/16"
 }
 
 data "alicloud_zones" "default2" {
-  provider                    = "alicloud.central"
+  provider                    = alicloudalt2
   available_disk_category     = "cloud_efficiency"
   available_resource_creation = "VSwitch"
 }
 
 data "alicloud_images" "default2" {
-  provider    = "alicloud.central"
+  provider    = alicloudalt2
   name_regex  = "^ubuntu_18.*64"
   most_recent = true
   owners      = "system"
 }
 
 data "alicloud_instance_types" "default2" {
-  provider          = "alicloud.central"
+  provider          = alicloudalt2
   availability_zone = data.alicloud_zones.default2.zones[0].id
   cpu_core_count    = 1
   memory_size       = 2
 }
 
 resource "alicloud_vswitch" "defaultdsVsw2" {
-  provider   = "alicloud.central"
+  provider   = alicloudalt2
   vpc_id     = alicloud_vpc.defaultVpc2.id
   cidr_block = "192.168.0.0/24"
   zone_id    = data.alicloud_zones.default2.zones.1.id
 }
 
 resource "alicloud_security_group" "defaultuBsECI2" {
-  provider = "alicloud.central"
+  provider = alicloudalt2
   vpc_id   = alicloud_vpc.defaultVpc2.id
 }
 
 resource "alicloud_instance" "defaultEcs2" {
-  provider                   = "alicloud.central"
+  provider                   = alicloudalt2
   image_id                   = data.alicloud_images.default2.images[0].id
   instance_type              = data.alicloud_instance_types.default2.instance_types[0].id
   instance_name              = var.name
@@ -546,7 +510,7 @@ resource "alicloud_instance" "defaultEcs2" {
 }
 
 
-`, name)
+`, name, configNamedRegionalProvider(ProviderNameAlicloudAlt, "cn-hongkong"), configNamedRegionalProvider(ProviderNameAlicloudAlt2, "eu-central-1"))
 }
 
 // Case 3732  twin
@@ -555,17 +519,12 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_twin(t *test
 	testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 	resourceId := "alicloud_eipanycast_anycast_eip_address_attachment.default"
 
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-
 	ra := resourceAttrInit(resourceId, AlicloudEipanycastAnycastEipAddressAttachmentMap3732)
-	testAccCheck := ra.resourceAttrMapUpdateSet()
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EipanycastServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEipanycastAnycastEipAddressAttachment")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%seipanycastanycasteipaddressattachment%d", defaultRegionToTest, rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEipanycastAnycastEipAddressAttachmentBasicDependence3732)
@@ -574,8 +533,8 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_twin(t *test
 			testAccPreCheck(t)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckEipanycastEipAddressAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesMultiRegion(4),
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -585,8 +544,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_twin(t *test
 					"bind_instance_region_id": "${data.alicloud_regions.current_regions.regions.0.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"bind_instance_id":        CHECKSET,
 						"bind_instance_type":      "NetworkInterface",
 						"anycast_id":              CHECKSET,
@@ -603,17 +561,12 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_region(t *te
 	testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 	resourceId := "alicloud_eipanycast_anycast_eip_address_attachment.default"
 
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-
 	ra := resourceAttrInit(resourceId, AlicloudEipanycastAnycastEipAddressAttachmentMap3732)
-	testAccCheck := ra.resourceAttrMapUpdateSet()
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EipanycastServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEipanycastAnycastEipAddressAttachment")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%seipanycastanycasteipaddressattachment%d", defaultRegionToTest, rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEipanycastAnycastEipAddressAttachmentBasicDependence3732_region)
@@ -622,8 +575,8 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_region(t *te
 			testAccPreCheck(t)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckEipanycastEipAddressAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesMultiRegion(4),
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -634,8 +587,7 @@ func TestAccAliCloudEipanycastAnycastEipAddressAttachment_basic3732_region(t *te
 					"bind_instance_region_id": "eu-central-1",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEipanycastEipAddressAttachmentExistsWithProviders(resourceId, v, &providers),
-					testAccCheck(map[string]string{
+				testAccCheck(map[string]string{
 						"bind_instance_id":        CHECKSET,
 						"bind_instance_type":      "NetworkInterface",
 						"association_mode":        "Normal",

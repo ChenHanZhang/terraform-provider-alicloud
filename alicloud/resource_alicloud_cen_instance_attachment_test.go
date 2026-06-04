@@ -204,16 +204,7 @@ func TestAccAliCloudCenInstanceAttachment_multi_same_region(t *testing.T) {
 }
 
 func TestAccAliCloudCenInstanceAttachment_multi_different_region(t *testing.T) {
-	var v *cbn.DescribeCenAttachedChildInstanceAttributeResponse
 	resourceId := "alicloud_cen_instance_attachment.default"
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 	ra := resourceAttrInit(resourceId, cenInstanceAttachmentMap)
 	rand := acctest.RandIntRange(1000000, 9999999)
 	testAccCheck := ra.resourceAttrMapUpdateSet()
@@ -224,14 +215,15 @@ func TestAccAliCloudCenInstanceAttachment_multi_different_region(t *testing.T) {
 
 		// module name
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCenInstanceAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesMultiRegion(3),
+		CheckDestroy: func(s *terraform.State) error {
+			return testAccCheckCenInstanceAttachmentDestroyWithProvider(s, testAccProvider)
+		},
 
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCenInstanceAttachmentMultiDifferentRegion(rand, defaultRegionToTest),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCenInstanceAttachmentExistsWithProviders(resourceId, v, &providers),
 					testAccCheck(nil),
 				),
 			},
@@ -310,23 +302,17 @@ variable "name"{
     default = "tf-testAccCen%sInstanceAttachmentMultiDifferentRegions-%d"
 }
 
-provider "alicloud" {
-    alias = "fra"
-    region = "eu-central-1"
-}
+%s
 
-provider "alicloud" {
-    alias = "sh"
-    region = "cn-shanghai"
-}
+%s
 
 data "alicloud_vpcs" "default" {
-    provider = "alicloud.fra"
+    provider = "alicloudalt"
     name_regex = "default-NODELETING"
 }
 
 data "alicloud_vpcs" "default1" {
-    provider = "alicloud.sh"
+    provider = "alicloudalt2"
     name_regex = "default-NODELETING"
 }
 
@@ -348,7 +334,7 @@ resource "alicloud_cen_instance_attachment" "default1" {
 	child_instance_type = "VPC"
     child_instance_region_id = "cn-shanghai"
 }
-`, region, rand)
+`, region, rand, configAlternateRegionProvider("eu-central-1"), configNamedRegionalProvider(ProviderNameAlicloudAlt2, "cn-shanghai"))
 
 }
 

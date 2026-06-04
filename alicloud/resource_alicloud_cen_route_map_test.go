@@ -8,7 +8,6 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
@@ -202,14 +201,6 @@ func TestAccAliCloudCenRouteMap_basic_transit_router_route_table_id(t *testing.T
 
 func TestAccAliCloudCenRouteMap_basic_child_instance_different_region(t *testing.T) {
 	resourceId := "alicloud_cen_route_map.default"
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 
 	ra := resourceAttrInit(resourceId, cenRouteMapBasicMap)
 	testAccCheck := ra.resourceAttrMapUpdateSet()
@@ -223,8 +214,8 @@ func TestAccAliCloudCenRouteMap_basic_child_instance_different_region(t *testing
 		},
 		// module name
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCenRouteMapAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      testAccCheckCenRouteMapAttachmentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -501,23 +492,14 @@ resource "alicloud_cen_instance" "default" {
 	cen_instance_name = "${var.name}"
 }
 
-provider "alicloud" {
-	alias = "vpc00_region"
-	region = "${var.vpc_region_00}"
-}
-
-provider "alicloud" {
-	alias = "vpc01_region"
-	region = "${var.vpc_region_01}"
-}
+%s
 
 data "alicloud_vpcs" "vpc00" {
-	provider = "alicloud.vpc00_region"
 	name_regex = "default-NODELETING"
 }
 
 data "alicloud_vpcs" "vpc01" {
-	provider = "alicloud.vpc01_region"
+	provider = "alicloudalt"
 	name_regex = "default-NODELETING"
 }
 
@@ -535,7 +517,7 @@ resource "alicloud_cen_instance_attachment" "default01" {
 	child_instance_region_id = "${var.vpc_region_01}"
 }
 
-`, name)
+`, name, configAlternateRegionProvider("cn-shanghai"))
 }
 
 func resourceCenRouteMapConfigMultiDependence(name string) string {
@@ -554,22 +536,8 @@ resource "alicloud_cen_transit_router" "default" {
 `, name)
 }
 
-func testAccCheckCenRouteMapAttachmentDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, provider := range *providers {
-			if provider.Meta() == nil {
-				continue
-			}
-			if err := testAccCheckCenRouteMapAttachmentDestroyWithProvider(s, provider); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-func testAccCheckCenRouteMapAttachmentDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
-	client := provider.Meta().(*connectivity.AliyunClient)
+func testAccCheckCenRouteMapAttachmentDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*connectivity.AliyunClient)
 	cenService := CenService{client}
 
 	for _, rs := range s.RootModule().Resources {

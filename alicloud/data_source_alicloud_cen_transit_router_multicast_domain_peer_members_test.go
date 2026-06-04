@@ -8,7 +8,6 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestAccAlicloudCenTransitRouterMulticastDomainPeerMemberDataSource(t *testing.T) {
@@ -27,25 +26,13 @@ func TestAccAlicloudCenTransitRouterMulticastDomainPeerMemberDataSource(t *testi
 	}
 	steps := allConf.buildDataSourceSteps(t, &CenTransitRouterMulticastDomainPeerMemberCheckInfo, rand)
 
-	// multi provideris
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			testAccPreCheckWithAccountSiteType(t, DomesticSite)
 		},
-
-		// module name
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      nil,
 		Steps:             steps,
 	})
 }
@@ -82,35 +69,25 @@ func testAccCheckAlicloudCenTransitRouterMulticastDomainPeerMemberSourceConfig(r
 variable "name" {
   default = "tf-testAccCenTransitRouterMulticastDomainPeerMember%d"
 }
-provider "alicloud" {
-  alias  = "hz"
-  region = "cn-hangzhou"
-}
-provider "alicloud" {
-  alias  = "qd"
-  region = "cn-qingdao"
-}
+%s
 data "alicloud_cen_instances" "default" {
-  provider   = alicloud.hz
   name_regex = "no-deleting-cen"
 }
 data "alicloud_cen_transit_routers" "default" {
-  provider   = alicloud.hz
   cen_id     = data.alicloud_cen_instances.default.instances.0.id
   name_regex = "no-deleting-cen"
 }
 data "alicloud_cen_transit_routers" "peer" {
-  provider   = alicloud.qd
+  provider   = alicloudalt
   cen_id     = data.alicloud_cen_instances.default.instances.0.id
   name_regex = "qingdao-no-delete-cen"
 }
 data "alicloud_cen_transit_router_multicast_domains" "default" {
-  provider          = alicloud.hz
   transit_router_id = data.alicloud_cen_transit_routers.default.transit_routers.0.transit_router_id
   name_regex        = "no-deleting-cen"
 }
 data "alicloud_cen_transit_router_multicast_domains" "peer" {
-  provider          = alicloud.qd
+  provider          = alicloudalt
   transit_router_id = data.alicloud_cen_transit_routers.peer.transit_routers.0.transit_router_id
   name_regex        = "no-deleting-cen"
 }
@@ -118,13 +95,11 @@ resource "alicloud_cen_transit_router_multicast_domain_peer_member" "default" {
   transit_router_multicast_domain_id      = data.alicloud_cen_transit_router_multicast_domains.default.ids.0
   peer_transit_router_multicast_domain_id = data.alicloud_cen_transit_router_multicast_domains.peer.ids.0
   group_ip_address                        = "239.1.1.1"
-  provider                                = alicloud.hz
 }
 
 data "alicloud_cen_transit_router_multicast_domain_peer_members" "default" {
-  provider                                = alicloud.hz
 %s
 }
-`, rand, strings.Join(pairs, "\n   "))
+`, rand, configAlternateRegionProvider("cn-qingdao"), strings.Join(pairs, "\n   "))
 	return config
 }

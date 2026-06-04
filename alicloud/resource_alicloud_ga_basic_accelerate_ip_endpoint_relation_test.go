@@ -16,15 +16,11 @@ func TestAccAlicloudGaBasicAccelerateIpEndpointRelation_basic0(t *testing.T) {
 	checkoutSupportedRegions(t, true, connectivity.GaSupportRegions)
 	resourceId := "alicloud_ga_basic_accelerate_ip_endpoint_relation.default"
 	ra := resourceAttrInit(resourceId, resourceAlicloudGaBasicAccelerateIpEndpointRelationMap)
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-	testAccCheck := ra.resourceAttrMapUpdateSet()
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &GaService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeGaBasicAccelerateIpEndpointRelation")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testAccGaBasicAccelerateIpEndpointRelation-name%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, resourceAlicloudGaBasicAccelerateIpEndpointRelationBasicDependence)
@@ -34,8 +30,8 @@ func TestAccAlicloudGaBasicAccelerateIpEndpointRelation_basic0(t *testing.T) {
 			testAccPreCheckWithTime(t, []int{1})
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckGaBasicAccelerateIpEndpointRelationDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -44,7 +40,6 @@ func TestAccAlicloudGaBasicAccelerateIpEndpointRelation_basic0(t *testing.T) {
 					"endpoint_id":      "${alicloud_ga_basic_endpoint.default.endpoint_id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGaBasicAccelerateIpEndpointRelationExistsWithProviders(resourceId, v, &providers),
 					testAccCheck(map[string]string{
 						"accelerator_id":   CHECKSET,
 						"accelerate_ip_id": CHECKSET,
@@ -134,33 +129,25 @@ func resourceAlicloudGaBasicAccelerateIpEndpointRelationBasicDependence(name str
   		default = "%s"
 	}
 
-	provider "alicloud" {
-  		alias  = "sz"
-  		region = "cn-shenzhen"
-	}
-
-	provider "alicloud" {
-  		alias  = "hz"
-  		region = "cn-hangzhou"
-	}
+	%s
 
 	data "alicloud_vpcs" "default" {
-  		provider   = "alicloud.sz"
+  		provider   = alicloudalt
   		name_regex = "default-NODELETING"
 	}
 
 	data "alicloud_vswitches" "default" {
-  		provider = "alicloud.sz"
+  		provider = alicloudalt
   		vpc_id   = data.alicloud_vpcs.default.ids.0
 	}
 
 	resource "alicloud_security_group" "default" {
-  		provider = "alicloud.sz"
+  		provider = alicloudalt
   		vpc_id   = data.alicloud_vpcs.default.ids.0
 	}
 
 	resource "alicloud_ecs_network_interface" "default" {
-  		provider           = "alicloud.sz"
+  		provider           = alicloudalt
   		vswitch_id         = data.alicloud_vswitches.default.ids.0
   		security_group_ids = [alicloud_security_group.default.id]
 	}
@@ -203,5 +190,5 @@ func resourceAlicloudGaBasicAccelerateIpEndpointRelationBasicDependence(name str
   		endpoint_sub_address      = "192.168.0.1"
   		basic_endpoint_name       = var.name
 	}
-`, name)
+`, name, configAlternateRegionProvider("cn-shenzhen"))
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Skip this testcase because of the account cannot purchase non-internal products.
@@ -25,26 +24,14 @@ func SkipTestAccAlicloudCenBandwidthLimitsDataSource(t *testing.T) {
 
 	steps := idConf.buildDataSourceSteps(t, &cenBandwidthLimitsCheckInfo, rand)
 
-	// multi provideris
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			testAccPreCheckWithAccountSiteType(t, DomesticSite)
 			testAccPreCheckWithRegions(t, true, connectivity.CenNoSkipRegions)
 		},
-
-		// module name
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCenBandwidthLimitDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      nil,
 		Steps:             steps,
 	})
 }
@@ -61,23 +48,14 @@ variable "name" {
 	  default = "tf-testAcc%sCenBandwidthLimitsDataSource-%d"
 	}
 
-provider "alicloud" {
-  alias = "bj"
-  region = "cn-beijing"
-}
-
-provider "alicloud" {
-  alias = "us"
-  region = "us-west-1"
-}
+%s
 
 data "alicloud_vpcs" "default" {
-    provider = "alicloud.bj"
 	name_regex = "default-NODELETING"
 }
 
 data "alicloud_vpcs" "default1" {
-	provider = "alicloud.us"
+	provider = alicloudalt
 	name_regex = "default-NODELETING"
 }
 
@@ -127,7 +105,7 @@ resource "alicloud_cen_bandwidth_limit" "default" {
 data "alicloud_cen_bandwidth_limits" "default" {
 	%s
 }
-`, defaultRegionToTest, rand, strings.Join(pairs, "\n  "))
+`, defaultRegionToTest, rand, configAlternateRegionProvider("us-west-1"), strings.Join(pairs, "\n  "))
 	return config
 }
 

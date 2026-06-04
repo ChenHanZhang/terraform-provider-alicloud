@@ -8,20 +8,11 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestAccAlicloudGaBasicEndpointsDataSource(t *testing.T) {
 	rand := acctest.RandInt()
 	checkoutSupportedRegions(t, true, connectivity.GaSupportRegions)
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 	allConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudGaBasicEndpointsDataSourceName(rand, map[string]string{
 			"ids":           `["${alicloud_ga_basic_endpoint.default.id}"]`,
@@ -77,8 +68,8 @@ func TestAccAlicloudGaBasicEndpointsDataSource(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithTime(t, []int{1})
 		},
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckGaBasicEndpointDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      nil,
 		Steps:             steps,
 	})
 }
@@ -94,33 +85,25 @@ func testAccCheckAlicloudGaBasicEndpointsDataSourceName(rand int, attrMap map[st
   		default = "tf-testAccGaBasicEndpoint-%d"
 	}
 
-	provider "alicloud" {
-  		alias  = "sz"
-  		region = "cn-shenzhen"
-	}
-
-	provider "alicloud" {
-  		alias  = "hz"
-  		region = "cn-hangzhou"
-	}
+	%s
 
 	data "alicloud_vpcs" "default" {
-  		provider   = "alicloud.sz"
+  		provider   = alicloudalt
   		name_regex = "default-NODELETING"
 	}
 
 	data "alicloud_vswitches" "default" {
-  		provider = "alicloud.sz"
+  		provider = alicloudalt
   		vpc_id   = data.alicloud_vpcs.default.ids.0
 	}
 
 	resource "alicloud_security_group" "default" {
-  		provider = "alicloud.sz"
+  		provider = alicloudalt
   		vpc_id   = data.alicloud_vpcs.default.ids.0
 	}
 
 	resource "alicloud_ecs_network_interface" "default" {
-  		provider           = "alicloud.sz"
+  		provider           = alicloudalt
   		vswitch_id         = data.alicloud_vswitches.default.ids.0
   		security_group_ids = [alicloud_security_group.default.id]
 	}
@@ -156,6 +139,6 @@ func testAccCheckAlicloudGaBasicEndpointsDataSourceName(rand int, attrMap map[st
   		endpoint_group_id = alicloud_ga_basic_endpoint.default.endpoint_group_id
 		%s
 	}
-`, rand, strings.Join(pairs, " \n "))
+`, rand, configAlternateRegionProvider("cn-shenzhen"), strings.Join(pairs, " \n "))
 	return config
 }

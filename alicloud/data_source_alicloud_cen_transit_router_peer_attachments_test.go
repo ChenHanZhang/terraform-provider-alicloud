@@ -8,19 +8,10 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestAccAlicloudCenTransitRouterPeerAttachmentsDataSource(t *testing.T) {
 	rand := acctest.RandInt()
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 	allConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudCenTransitRouterPeerAttachmentsDataSourceName(rand, map[string]string{
 			"ids":        `["${alicloud_cen_transit_router_peer_attachment.default.transit_router_attachment_id}"]`,
@@ -69,8 +60,8 @@ func TestAccAlicloudCenTransitRouterPeerAttachmentsDataSource(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, connectivity.CenTRSupportRegions)
 		},
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCenTransitRouterPeerAttachmentDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      nil,
 		Steps:             steps,
 	})
 }
@@ -85,24 +76,14 @@ variable "name" {
 	default = "tf-testAccTransitRouterPeerAttachment-%d"
 }
 
-provider "alicloud" {
-  alias = "bj"
-  region = "cn-beijing"
-}
-
-provider "alicloud" {
-  alias = "cn"
-  region = "cn-hangzhou"
-}
+%s
 
 resource "alicloud_cen_instance" "default" {
-  provider = alicloud.cn
   name = var.name
   protection_level = "REDUCED"
 }
 
 resource "alicloud_cen_bandwidth_package" "default" {
-  provider = alicloud.cn
   bandwidth                  = 5
   cen_bandwidth_package_name = var.name
   geographic_region_a_id     = "China"
@@ -110,25 +91,22 @@ resource "alicloud_cen_bandwidth_package" "default" {
 }
 
 resource "alicloud_cen_bandwidth_package_attachment" "default" {
-  provider = alicloud.cn
   instance_id          = alicloud_cen_instance.default.id
   bandwidth_package_id = alicloud_cen_bandwidth_package.default.id
 }
 
 resource "alicloud_cen_transit_router" "default_0" {
-  provider = alicloud.cn
   cen_id = alicloud_cen_bandwidth_package_attachment.default.instance_id
   transit_router_name = "${var.name}-00"
 }
 
 resource "alicloud_cen_transit_router" "default_1" {
-  provider = alicloud.bj
+  provider = alicloudalt
   cen_id = alicloud_cen_transit_router.default_0.cen_id
   transit_router_name = "${var.name}-01"
 }
 
 resource "alicloud_cen_transit_router_peer_attachment" "default" {
-  provider = alicloud.cn
   cen_id                                = alicloud_cen_instance.default.id
   transit_router_id                     = alicloud_cen_transit_router.default_0.transit_router_id
   peer_transit_router_region_id         = "cn-beijing"
@@ -140,10 +118,9 @@ resource "alicloud_cen_transit_router_peer_attachment" "default" {
 }
 
 data "alicloud_cen_transit_router_peer_attachments" "default" {
-  provider = alicloud.cn
   cen_id = alicloud_cen_transit_router_peer_attachment.default.cen_id
 	%s
 }
-`, rand, strings.Join(pairs, " \n "))
+`, rand, configAlternateRegionProvider("cn-beijing"), strings.Join(pairs, " \n "))
 	return config
 }

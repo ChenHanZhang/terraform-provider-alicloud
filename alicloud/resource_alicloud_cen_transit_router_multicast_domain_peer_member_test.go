@@ -7,21 +7,11 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAliCloudCenTransitRouterMulticastDomainPeerMember_basic1905(t *testing.T) {
-	var v map[string]interface{}
 	resourceId := "alicloud_cen_transit_router_multicast_domain_peer_member.default"
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 	ra := resourceAttrInit(resourceId, AliCloudCenTransitRouterMulticastDomainPeerMemberMap1905)
 	testAccCheck := ra.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
@@ -31,14 +21,13 @@ func TestAccAliCloudCenTransitRouterMulticastDomainPeerMember_basic1905(t *testi
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		ProviderFactories: providerFactories,
+		ProviderFactories: testAccProviderFactoriesAlternate(),
 		IDRefreshName:     resourceId,
-		CheckDestroy:      testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberDestroyWithProviders(&providers),
+		CheckDestroy:      testAccCheckCenTransitRouterMulticastDomainPeerMemberDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCenTransitRouterMulticastDomainPeerMemberCreateConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberExistsWithProviders(resourceId, v, &providers),
 					testAccCheck(map[string]string{
 						"transit_router_multicast_domain_id":      CHECKSET,
 						"peer_transit_router_multicast_domain_id": CHECKSET,
@@ -58,15 +47,7 @@ func testAccCenTransitRouterMulticastDomainPeerMemberCreateConfig(rand string) s
 		default = "%s"
 	}
 
-	provider "alicloud" {
-  		alias  = "hz"
-  		region = "cn-hangzhou"
-	}
-
-	provider "alicloud" {
-  		alias  = "qd"
-		region = "cn-qingdao"
-	}
+	%s
 
 	resource "alicloud_cen_instance" "default" {
   		cen_instance_name = var.name
@@ -85,19 +66,17 @@ func testAccCenTransitRouterMulticastDomainPeerMemberCreateConfig(rand string) s
 	}
 
 	resource "alicloud_cen_transit_router" "default" {
-  		provider          = alicloud.hz
   		cen_id            = alicloud_cen_bandwidth_package_attachment.default.instance_id
   		support_multicast = true
 	}
 
 	resource "alicloud_cen_transit_router" "peer" {
-  		provider          = alicloud.qd
+  		provider          = alicloudalt
   		cen_id            = alicloud_cen_bandwidth_package_attachment.default.instance_id
   		support_multicast = true
 	}
 
 	resource "alicloud_cen_transit_router_peer_attachment" "default" {
-  		provider                              = alicloud.hz
   		cen_id                                = alicloud_cen_bandwidth_package_attachment.default.instance_id
   		transit_router_id                     = alicloud_cen_transit_router.default.transit_router_id
   		peer_transit_router_id                = alicloud_cen_transit_router.peer.transit_router_id
@@ -109,76 +88,28 @@ func testAccCenTransitRouterMulticastDomainPeerMemberCreateConfig(rand string) s
 	}
 
 	resource "alicloud_cen_transit_router_multicast_domain" "default" {
-  		provider                                    = alicloud.hz
   		transit_router_id                           = alicloud_cen_transit_router_peer_attachment.default.transit_router_id
   		transit_router_multicast_domain_name        = var.name
   		transit_router_multicast_domain_description = var.name
 	}
 
 	resource "alicloud_cen_transit_router_multicast_domain" "peer" {
-  		provider                                    = alicloud.qd
+  		provider                                    = alicloudalt
   		transit_router_id                           = alicloud_cen_transit_router_peer_attachment.default.peer_transit_router_id
   		transit_router_multicast_domain_name        = var.name
   		transit_router_multicast_domain_description = var.name
 	}
 
 	resource "alicloud_cen_transit_router_multicast_domain_peer_member" "default" {
-  		provider                                = alicloud.hz
   		transit_router_multicast_domain_id      = alicloud_cen_transit_router_multicast_domain.default.id
   		peer_transit_router_multicast_domain_id = alicloud_cen_transit_router_multicast_domain.peer.id
   		group_ip_address                        = "239.0.0.8"
 	}
-`, rand)
+`, rand, configAlternateRegionProvider("cn-qingdao"))
 }
 
-func testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberExistsWithProviders(n string, res map[string]interface{}, providers *[]*schema.Provider) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("no alicloud_cen_inter_region_transit_router_multicast_domain_peer_member ID is set")
-		}
-		for _, provider := range *providers {
-			if provider.Meta() == nil {
-				continue
-			}
-
-			client := provider.Meta().(*connectivity.AliyunClient)
-			cbnService := CbnService{client}
-
-			resp, err := cbnService.DescribeCenTransitRouterMulticastDomainPeerMember(rs.Primary.ID)
-			if err != nil {
-				if NotFoundError(err) {
-					continue
-				}
-				return err
-			}
-			res = resp
-			return nil
-		}
-		return fmt.Errorf("alicloud_cen_inter_region_transit_router_multicast_domain_peer_member not found")
-	}
-}
-
-func testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, provider := range *providers {
-			if provider.Meta() == nil {
-				continue
-			}
-			if err := testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberDestroyWithProvider(s, provider); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-func testAccCheckCenInterRegionTransitRouterMulticastDomainPeerMemberDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
-	client := provider.Meta().(*connectivity.AliyunClient)
+func testAccCheckCenTransitRouterMulticastDomainPeerMemberDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*connectivity.AliyunClient)
 	cbnService := CbnService{client}
 
 	for _, rs := range s.RootModule().Resources {

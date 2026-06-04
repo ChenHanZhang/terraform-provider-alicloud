@@ -8,8 +8,6 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAliCloudLogStore_basic(t *testing.T) {
@@ -1248,53 +1246,17 @@ var logStoreMap = map[string]string{
 	"project": CHECKSET,
 }
 
-func testAccCheckSLSLogStoreDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, provider := range *providers {
-			if provider.Meta() == nil {
-				continue
-			}
-			if err := testAccCheckSLSLogStoreDestroyWithProvider(s, provider); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-func testAccCheckSLSLogStoreDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
-	client := provider.Meta().(*connectivity.AliyunClient)
-	slsServiceV2 := SlsServiceV2{client}
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "alicloud_log_store" {
-			continue
-		}
-
-		_, err := slsServiceV2.DescribeSlsLogStore(rs.Primary.ID)
-		if err != nil {
-			if NotFoundError(err) {
-				continue
-			}
-			return err
-		}
-	}
-
-	return nil
-}
 
 func TestAccAliCloudSlsLogStore_basic5614_old(t *testing.T) {
+	var v *sls.LogStore
 	resourceId := "alicloud_log_store.default"
 	ra := resourceAttrInit(resourceId, AlicloudSlsLogStoreMap5614_old)
-	testAccCheck := ra.resourceAttrMapUpdateSet()
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
+	serviceFunc := func() interface{} {
+		return &LogService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}
+	rc := resourceCheckInit(resourceId, &v, serviceFunc)
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%sslslogstore%d", defaultRegionToTest, rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudSlsLogStoreBasicDependence5614_old)
@@ -1304,8 +1266,8 @@ func TestAccAliCloudSlsLogStore_basic5614_old(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.SLSLiteSupportRegions)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckSLSLogStoreDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1600,11 +1562,6 @@ variable "project_name" {
   default = "terraform-logstore-test"
 }
 
-provider "alicloud" {
-	alias  = "hz"
-	region = "cn-hangzhou"
-}
-
 resource "alicloud_log_project" "defaultbRFbyS" {
   description = "terraform-logstore-test"
   name        = var.name
@@ -1612,17 +1569,14 @@ resource "alicloud_log_project" "defaultbRFbyS" {
 }
 
 data "alicloud_vpcs" "default" {
-  provider   = alicloud.hz
   name_regex = "^default-NODELETING$"
 }
 
 data "alicloud_vswitches" "default" {
-  provider   = alicloud.hz
   vpc_id  = data.alicloud_vpcs.default.ids.0
 }
 
 resource "alicloud_kms_instance" "default" {
-  provider   = alicloud.hz
   product_version = "3"
   vpc_id          = data.alicloud_vpcs.default.ids.0
   zone_ids = [
@@ -1641,7 +1595,6 @@ resource "alicloud_kms_instance" "default" {
 }
 
 resource "alicloud_kms_key" "default" {
-  provider          = alicloud.hz
   description = "Default"
   status = "Enabled"
   pending_window_in_days = 7
@@ -1716,17 +1669,15 @@ resource "alicloud_ram_policy" "defaultLPolicy" {
 
 // Case 5614_old  twin
 func TestAccAliCloudSlsLogStore_basic5614_old_twin(t *testing.T) {
+	var v *sls.LogStore
 	resourceId := "alicloud_log_store.default"
 	ra := resourceAttrInit(resourceId, AlicloudSlsLogStoreMap5614_old)
-	testAccCheck := ra.resourceAttrMapUpdateSet()
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
+	serviceFunc := func() interface{} {
+		return &LogService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}
+	rc := resourceCheckInit(resourceId, &v, serviceFunc)
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%sslslogstore%d", defaultRegionToTest, rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudSlsLogStoreBasicDependence5614_old)
@@ -1736,8 +1687,8 @@ func TestAccAliCloudSlsLogStore_basic5614_old_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.SLSLiteSupportRegions)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckSLSLogStoreDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

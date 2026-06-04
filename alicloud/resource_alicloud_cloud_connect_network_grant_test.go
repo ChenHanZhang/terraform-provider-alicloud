@@ -16,14 +16,6 @@ import (
 func TestAccAlicloudCloudConnectNetworkGrant_basic(t *testing.T) {
 	var grantRule smartag.GrantRule
 	resourceId := "alicloud_cloud_connect_network_grant.default"
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 
 	ra := resourceAttrInit(resourceId, ccnGrantMap)
 	testAccCheck := ra.resourceAttrMapUpdateSet()
@@ -37,11 +29,9 @@ func TestAccAlicloudCloudConnectNetworkGrant_basic(t *testing.T) {
 			testAccPreCheckWithMultipleAccount(t)
 			testAccPreCheckWithRegions(t, true, connectivity.SmartagSupportedRegions)
 		},
-
-		// module name
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCcnGrantDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      testAccCheckCcnGrantDestroyWithProviders(&[]*schema.Provider{testAccProvider}),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -53,7 +43,7 @@ func TestAccAlicloudCloudConnectNetworkGrant_basic(t *testing.T) {
 						"alicloud_cen_instance.cen"},
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCcnGrantExistsWithProviders(resourceId, &grantRule, &providers),
+					testAccCheckCcnGrantExistsWithProviders(resourceId, &grantRule, &[]*schema.Provider{testAccProvider}),
 					testAccCheck(map[string]string{
 						"ccn_id":  CHECKSET,
 						"cen_id":  CHECKSET,
@@ -68,14 +58,6 @@ func TestAccAlicloudCloudConnectNetworkGrant_basic(t *testing.T) {
 func TestAccAlicloudCloudConnectNetworkGrant_multi(t *testing.T) {
 	var grantRule smartag.GrantRule
 	resourceId := "alicloud_cloud_connect_network_grant.default.2"
-	var providers []*schema.Provider
-	providerFactories := map[string]func() (*schema.Provider, error){
-		"alicloud": func() (*schema.Provider, error) {
-			p := Provider()
-			providers = append(providers, p)
-			return p, nil
-		},
-	}
 
 	ra := resourceAttrInit(resourceId, ccnGrantMap)
 	testAccCheck := ra.resourceAttrMapUpdateSet()
@@ -89,11 +71,9 @@ func TestAccAlicloudCloudConnectNetworkGrant_multi(t *testing.T) {
 			testAccPreCheckWithMultipleAccount(t)
 			testAccPreCheckWithRegions(t, true, connectivity.SmartagSupportedRegions)
 		},
-
-		// module name
 		IDRefreshName:     resourceId,
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckCcnGrantDestroyWithProviders(&providers),
+		ProviderFactories: testAccProviderFactoriesAlternate(),
+		CheckDestroy:      testAccCheckCcnGrantDestroyWithProviders(&[]*schema.Provider{testAccProvider}),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -106,7 +86,7 @@ func TestAccAlicloudCloudConnectNetworkGrant_multi(t *testing.T) {
 						"alicloud_cen_instance.cen"},
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCcnGrantExistsWithProviders(resourceId, &grantRule, &providers),
+					testAccCheckCcnGrantExistsWithProviders(resourceId, &grantRule, &[]*schema.Provider{testAccProvider}),
 					testAccCheck(nil),
 				),
 			},
@@ -125,15 +105,10 @@ func resourceCcnGrantBasicDependence(name string) string {
 	secret2 := os.Getenv("ALICLOUD_SECRET_KEY_2")
 
 	return fmt.Sprintf(`
-	provider "alicloud" {
-  		alias = "ccn_account"
-	}
-
-	provider "alicloud" {
+	provider "alicloudalt" {
   		region     = "cn-hangzhou"
   		access_key = "%s"
   		secret_key = "%s"
-  		alias      = "cen_account"
 	}
 
 	variable "name" {
@@ -141,12 +116,11 @@ func resourceCcnGrantBasicDependence(name string) string {
 	}
 
 	resource "alicloud_cen_instance" "cen" {
-  		provider = "alicloud.cen_account"
+  		provider = alicloudalt
   		name     = "${var.name}"
 	}
 
 	resource "alicloud_cloud_connect_network" "ccn" {
-  		provider   = "alicloud.ccn_account"
   		name       = "${var.name}"
   		is_default = "true"
 	}
