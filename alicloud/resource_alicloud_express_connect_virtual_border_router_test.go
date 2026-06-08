@@ -550,22 +550,21 @@ func TestUnitAliCloudExpressConnectVirtualBorderRouter(t *testing.T) {
 }
 
 // Test ExpressConnect VirtualBorderRouter. >>> Resource test cases, automatically generated.
-// Case VirtualBorderRouter_v3 11568
-func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
+// Case VirtualBorderRouter_v4 11964
+func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11964(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_express_connect_virtual_border_router.default"
-	ra := resourceAttrInit(resourceId, AliCloudExpressConnectVirtualBorderRouterMap11568)
+	ra := resourceAttrInit(resourceId, AlicloudExpressConnectVirtualBorderRouterMap11964)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeExpressConnectVirtualBorderRouter")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 2999)
+	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudExpressConnectVirtualBorderRouterBasicDependence11568)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudExpressConnectVirtualBorderRouterBasicDependence11964)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -574,19 +573,101 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip":       "10.0.0.1",
-					"peer_gateway_ip":        "10.0.0.2",
-					"peering_subnet_mask":    "255.255.255.252",
-					"physical_connection_id": "${data.alicloud_express_connect_physical_connections.default.ids.0}",
-					"vlan_id":                fmt.Sprint(rand),
+					"physical_connection_id":     "${var.pconn1}",
+					"peer_gateway_ip":            "10.0.0.1",
+					"description":                "kongyan-test",
+					"virtual_border_router_name": name,
+					"peering_subnet_mask":        "255.255.255.0",
+					"local_gateway_ip":           "10.0.0.2",
+					"vlan_id":                    "2088",
+					"circuit_code":               "1024",
+					"min_rx_interval":            "1000",
+					"min_tx_interval":            "1000",
+					"detect_multiplier":          "3",
+					"enable_ipv6":                "true",
+					"vbr_owner_id":               "1903286717072367",
+					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"status":                     "active",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+					"mtu":                        "1500",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"local_gateway_ip":       "10.0.0.1",
-						"peer_gateway_ip":        "10.0.0.2",
-						"peering_subnet_mask":    "255.255.255.252",
-						"physical_connection_id": CHECKSET,
-						"vlan_id":                fmt.Sprint(rand),
+						"physical_connection_id":     CHECKSET,
+						"peer_gateway_ip":            "10.0.0.1",
+						"description":                "kongyan-test",
+						"virtual_border_router_name": name,
+						"peering_subnet_mask":        "255.255.255.0",
+						"local_gateway_ip":           "10.0.0.2",
+						"vlan_id":                    "2088",
+						"circuit_code":               CHECKSET,
+						"min_rx_interval":            "1000",
+						"min_tx_interval":            "1000",
+						"detect_multiplier":          "3",
+						"enable_ipv6":                "true",
+						"vbr_owner_id":               "1903286717072367",
+						"resource_group_id":          CHECKSET,
+						"status":                     "active",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+						"mtu":                        "1500",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"virtual_border_router_name": name + "_update",
+					"vlan_id":                    "2089",
+					"min_rx_interval":            "600",
+					"min_tx_interval":            "600",
+					"detect_multiplier":          "6",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+					"sitelink_enable":            "true",
+					"bandwidth":                  "50",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"virtual_border_router_name": name + "_update",
+						"vlan_id":                    "2089",
+						"min_rx_interval":            "600",
+						"min_tx_interval":            "600",
+						"detect_multiplier":          "6",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+						"sitelink_enable":            "true",
+						"bandwidth":                  "50",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+					"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+					"sitelink_enable":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+						"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+						"sitelink_enable":          "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "kongyan-tes",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "kongyan-tes",
 					}),
 				),
 			},
@@ -602,162 +683,6 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"circuit_code": "1024",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"circuit_code": "1024",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"description": name,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"description": name,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"detect_multiplier": "6",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"detect_multiplier": "6",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"enable_ipv6":              "true",
-					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::2",
-					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/56",
-					"local_ipv6_gateway_ip":    "2408:4004:cc:400::1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"enable_ipv6":              "true",
-						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::2",
-						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/56",
-						"local_ipv6_gateway_ip":    "2408:4004:cc:400::1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peering_subnet_mask": "255.255.255.0",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peering_subnet_mask": "255.255.255.0",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip": "10.0.0.3",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"local_gateway_ip": "10.0.0.3",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"local_ipv6_gateway_ip": "2408:4004:cc:400::6",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"local_ipv6_gateway_ip": "2408:4004:cc:400::6",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"min_rx_interval": "600",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"min_rx_interval": "600",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"min_tx_interval": "600",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"min_tx_interval": "600",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"mtu": "1500",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"mtu": "1500",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peer_gateway_ip": "10.0.0.4",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peer_gateway_ip": "10.0.0.4",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peer_ipv6_gateway_ip": "2408:4004:cc:400::8",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peer_ipv6_gateway_ip": "2408:4004:cc:400::8",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/55",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/55",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"resource_group_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"sitelink_enable": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"sitelink_enable": "true",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
 					"status": "terminated",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -777,22 +702,32 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"virtual_border_router_name": name,
-				}),
+				Config: testAccConfig(map[string]interface{}{}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"virtual_border_router_name": name,
-					}),
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"vlan_id": fmt.Sprint(rand + 1),
+					"peer_gateway_ip":     "192.168.0.2",
+					"peering_subnet_mask": "255.255.0.0",
+					"local_gateway_ip":    "192.168.0.1",
+					"circuit_code":        "4096",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"vlan_id": fmt.Sprint(rand + 1),
+						"peer_gateway_ip":     "192.168.0.2",
+						"peering_subnet_mask": "255.255.0.0",
+						"local_gateway_ip":    "192.168.0.1",
+						"circuit_code":        CHECKSET,
+						"resource_group_id":   CHECKSET,
 					}),
 				),
 			},
@@ -848,138 +783,61 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_express_connect_virtual_border_router.default"
-	ra := resourceAttrInit(resourceId, AliCloudExpressConnectVirtualBorderRouterMap11568)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeExpressConnectVirtualBorderRouter")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 2999)
-	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudExpressConnectVirtualBorderRouterBasicDependence11568)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip":           "10.0.0.1",
-					"peer_gateway_ip":            "10.0.0.2",
-					"peering_subnet_mask":        "255.255.255.252",
-					"physical_connection_id":     "${data.alicloud_express_connect_physical_connections.default.ids.0}",
-					"vlan_id":                    fmt.Sprint(rand),
-					"bandwidth":                  "100",
-					"circuit_code":               "1024",
-					"description":                name,
-					"detect_multiplier":          "6",
-					"enable_ipv6":                "true",
-					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
-					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
-					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
-					"min_rx_interval":            "600",
-					"min_tx_interval":            "600",
-					"mtu":                        "1500",
-					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-					"sitelink_enable":            "true",
-					"status":                     "active",
-					"virtual_border_router_name": name,
-					"vbr_owner_id":               "${data.alicloud_account.default.id}",
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"local_gateway_ip":           "10.0.0.1",
-						"peer_gateway_ip":            "10.0.0.2",
-						"peering_subnet_mask":        "255.255.255.252",
-						"physical_connection_id":     CHECKSET,
-						"vlan_id":                    fmt.Sprint(rand),
-						"bandwidth":                  "100",
-						"circuit_code":               "1024",
-						"description":                name,
-						"detect_multiplier":          "6",
-						"enable_ipv6":                "true",
-						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
-						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
-						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
-						"min_rx_interval":            "600",
-						"min_tx_interval":            "600",
-						"mtu":                        "1500",
-						"resource_group_id":          CHECKSET,
-						"sitelink_enable":            "true",
-						"status":                     "active",
-						"virtual_border_router_name": name,
-						"tags.%":                     "2",
-						"tags.Created":               "TF",
-						"tags.For":                   "Test",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"vbr_owner_id"},
-			},
-		},
-	})
+var AlicloudExpressConnectVirtualBorderRouterMap11964 = map[string]string{
+	"route_table_id":                      CHECKSET,
+	"activation_time":                     CHECKSET,
+	"associated_physical_connections.#":   CHECKSET,
+	"vlan_interface_id":                   CHECKSET,
+	"physical_connection_status":          CHECKSET,
+	"physical_connection_owner_uid":       CHECKSET,
+	"termination_time":                    CHECKSET,
+	"recovery_time":                       CHECKSET,
+	"associated_cens.#":                   CHECKSET,
+	"pconn_vbr_expire_time":               CHECKSET,
+	"create_time":                         CHECKSET,
+	"type":                                CHECKSET,
+	"access_point_id":                     CHECKSET,
+	"physical_connection_business_status": CHECKSET,
+	"cloud_box_instance_id":               CHECKSET,
 }
 
-var AliCloudExpressConnectVirtualBorderRouterMap11568 = map[string]string{
-	"detect_multiplier": CHECKSET,
-	"min_rx_interval":   CHECKSET,
-	"min_tx_interval":   CHECKSET,
-	"mtu":               CHECKSET,
-	"resource_group_id": CHECKSET,
-	"status":            CHECKSET,
-	"route_table_id":    CHECKSET,
-	"create_time":       CHECKSET,
-}
-
-func AliCloudExpressConnectVirtualBorderRouterBasicDependence11568(name string) string {
+func AlicloudExpressConnectVirtualBorderRouterBasicDependence11964(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
-  default = "%s"
+    default = "%s"
 }
 
-data "alicloud_account" "default" {
+variable "pconn1" {
+  default = "pc-bp1j6up8jcs8jogazdb6j"
 }
 
-data "alicloud_resource_manager_resource_groups" "default" {
+variable "pconn2" {
+  default = "pc-bp1oasymmf8oe0j92m125"
 }
 
-data "alicloud_express_connect_physical_connections" "default" {
-  name_regex = "^preserved-NODELETING"
+variable "region_id" {
+  default = "cn-hangzhou"
 }
+
+
 `, name)
 }
 
-// Case VirtualBorderRouter_v3 11569
-func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569(t *testing.T) {
+// Case VirtualBorderRouter_v3 11835
+func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11835(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_express_connect_virtual_border_router.default"
-	ra := resourceAttrInit(resourceId, AliCloudExpressConnectVirtualBorderRouterMap11569)
+	ra := resourceAttrInit(resourceId, AlicloudExpressConnectVirtualBorderRouterMap11835)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeExpressConnectVirtualBorderRouter")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 2999)
+	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudExpressConnectVirtualBorderRouterBasicDependence11569)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudExpressConnectVirtualBorderRouterBasicDependence11835)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -988,175 +846,111 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip":       "10.0.0.1",
-					"peer_gateway_ip":        "10.0.0.2",
-					"peering_subnet_mask":    "255.255.255.252",
-					"physical_connection_id": "${data.alicloud_express_connect_virtual_physical_connections.default.ids.0}",
-					"vlan_id":                "${data.alicloud_express_connect_virtual_physical_connections.default.connections.0.vlan_id}",
+					"physical_connection_id":     "${var.pconn1}",
+					"peer_gateway_ip":            "10.0.0.1",
+					"description":                "kongyan-test",
+					"virtual_border_router_name": name,
+					"peering_subnet_mask":        "255.255.255.0",
+					"local_gateway_ip":           "10.0.0.2",
+					"vlan_id":                    "2088",
+					"circuit_code":               "1024",
+					"bandwidth":                  "50",
+					"min_rx_interval":            "1000",
+					"min_tx_interval":            "1000",
+					"detect_multiplier":          "3",
+					"enable_ipv6":                "true",
+					"vbr_owner_id":               "1903286717072367",
+					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"status":                     "active",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+					"mtu":                        "1500",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"local_gateway_ip":       "10.0.0.1",
-						"peer_gateway_ip":        "10.0.0.2",
-						"peering_subnet_mask":    "255.255.255.252",
-						"physical_connection_id": CHECKSET,
-						"vlan_id":                CHECKSET,
+						"physical_connection_id":     CHECKSET,
+						"peer_gateway_ip":            "10.0.0.1",
+						"description":                "kongyan-test",
+						"virtual_border_router_name": name,
+						"peering_subnet_mask":        "255.255.255.0",
+						"local_gateway_ip":           "10.0.0.2",
+						"vlan_id":                    "2088",
+						"circuit_code":               CHECKSET,
+						"bandwidth":                  "50",
+						"min_rx_interval":            "1000",
+						"min_tx_interval":            "1000",
+						"detect_multiplier":          "3",
+						"enable_ipv6":                "true",
+						"vbr_owner_id":               "1903286717072367",
+						"resource_group_id":          CHECKSET,
+						"status":                     "active",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+						"mtu":                        "1500",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"circuit_code": "1024",
+					"virtual_border_router_name": name + "_update",
+					"vlan_id":                    "2089",
+					"min_rx_interval":            "600",
+					"min_tx_interval":            "600",
+					"detect_multiplier":          "6",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+					"sitelink_enable":            "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"circuit_code": "1024",
+						"virtual_border_router_name": name + "_update",
+						"vlan_id":                    "2089",
+						"min_rx_interval":            "600",
+						"min_tx_interval":            "600",
+						"detect_multiplier":          "6",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+						"sitelink_enable":            "true",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"description": name,
+					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+					"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+					"sitelink_enable":          "false",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"description": name,
+						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+						"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+						"sitelink_enable":          "false",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"detect_multiplier": "6",
+					"description": "kongyan-tes",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"detect_multiplier": "6",
+						"description": "kongyan-tes",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"enable_ipv6":              "true",
-					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::2",
-					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/56",
-					"local_ipv6_gateway_ip":    "2408:4004:cc:400::1",
+					"bandwidth": "100",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"enable_ipv6":              "true",
-						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::2",
-						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/56",
-						"local_ipv6_gateway_ip":    "2408:4004:cc:400::1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peering_subnet_mask": "255.255.255.0",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peering_subnet_mask": "255.255.255.0",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip": "10.0.0.3",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"local_gateway_ip": "10.0.0.3",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"local_ipv6_gateway_ip": "2408:4004:cc:400::6",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"local_ipv6_gateway_ip": "2408:4004:cc:400::6",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"min_rx_interval": "600",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"min_rx_interval": "600",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"min_tx_interval": "600",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"min_tx_interval": "600",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"mtu": "1500",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"mtu": "1500",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peer_gateway_ip": "10.0.0.4",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peer_gateway_ip": "10.0.0.4",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peer_ipv6_gateway_ip": "2408:4004:cc:400::8",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peer_ipv6_gateway_ip": "2408:4004:cc:400::8",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/55",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/55",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"resource_group_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"sitelink_enable": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"sitelink_enable": "true",
+						"bandwidth": "100",
 					}),
 				),
 			},
@@ -1181,12 +975,32 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
 				Config: testAccConfig(map[string]interface{}{
-					"virtual_border_router_name": name,
+					"peer_gateway_ip":     "192.168.0.2",
+					"peering_subnet_mask": "255.255.0.0",
+					"local_gateway_ip":    "192.168.0.1",
+					"circuit_code":        "4096",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"virtual_border_router_name": name,
+						"peer_gateway_ip":     "192.168.0.2",
+						"peering_subnet_mask": "255.255.0.0",
+						"local_gateway_ip":    "192.168.0.1",
+						"circuit_code":        CHECKSET,
+						"resource_group_id":   CHECKSET,
 					}),
 				),
 			},
@@ -1242,21 +1056,61 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569_twin(t *testing.T) {
+var AlicloudExpressConnectVirtualBorderRouterMap11835 = map[string]string{
+	"route_table_id":                      CHECKSET,
+	"activation_time":                     CHECKSET,
+	"associated_physical_connections.#":   CHECKSET,
+	"vlan_interface_id":                   CHECKSET,
+	"physical_connection_status":          CHECKSET,
+	"physical_connection_owner_uid":       CHECKSET,
+	"termination_time":                    CHECKSET,
+	"recovery_time":                       CHECKSET,
+	"associated_cens.#":                   CHECKSET,
+	"pconn_vbr_expire_time":               CHECKSET,
+	"create_time":                         CHECKSET,
+	"type":                                CHECKSET,
+	"access_point_id":                     CHECKSET,
+	"physical_connection_business_status": CHECKSET,
+	"cloud_box_instance_id":               CHECKSET,
+}
+
+func AlicloudExpressConnectVirtualBorderRouterBasicDependence11835(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "pconn1" {
+  default = "pc-bp1j6up8jcs8jogazdb6j"
+}
+
+variable "pconn2" {
+  default = "pc-bp1oasymmf8oe0j92m125"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+
+`, name)
+}
+
+// Case VirtualBorderRouter_v2 11568
+func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11568(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_express_connect_virtual_border_router.default"
-	ra := resourceAttrInit(resourceId, AliCloudExpressConnectVirtualBorderRouterMap11569)
+	ra := resourceAttrInit(resourceId, AlicloudExpressConnectVirtualBorderRouterMap11568)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeExpressConnectVirtualBorderRouter")
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1, 2999)
+	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudExpressConnectVirtualBorderRouterBasicDependence11569)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudExpressConnectVirtualBorderRouterBasicDependence11568)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
@@ -1265,27 +1119,164 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569_twin(t *testing
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"local_gateway_ip":           "10.0.0.1",
-					"peer_gateway_ip":            "10.0.0.2",
-					"peering_subnet_mask":        "255.255.255.252",
-					"physical_connection_id":     "${data.alicloud_express_connect_virtual_physical_connections.default.ids.0}",
-					"vlan_id":                    "${data.alicloud_express_connect_virtual_physical_connections.default.connections.0.vlan_id}",
-					"bandwidth":                  "${data.alicloud_express_connect_virtual_physical_connections.default.connections.0.bandwidth}",
+					"physical_connection_id":     "${var.pconn1}",
+					"peer_gateway_ip":            "10.0.0.1",
+					"description":                "kongyan-test",
+					"virtual_border_router_name": name,
+					"peering_subnet_mask":        "255.255.255.0",
+					"local_gateway_ip":           "10.0.0.2",
+					"vlan_id":                    "2088",
 					"circuit_code":               "1024",
-					"description":                name,
-					"detect_multiplier":          "6",
+					"bandwidth":                  "50",
+					"min_rx_interval":            "1000",
+					"min_tx_interval":            "1000",
+					"detect_multiplier":          "3",
 					"enable_ipv6":                "true",
+					"vbr_owner_id":               "1903286717072367",
+					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"status":                     "active",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"physical_connection_id":     CHECKSET,
+						"peer_gateway_ip":            "10.0.0.1",
+						"description":                "kongyan-test",
+						"virtual_border_router_name": name,
+						"peering_subnet_mask":        "255.255.255.0",
+						"local_gateway_ip":           "10.0.0.2",
+						"vlan_id":                    "2088",
+						"circuit_code":               CHECKSET,
+						"bandwidth":                  "50",
+						"min_rx_interval":            "1000",
+						"min_tx_interval":            "1000",
+						"detect_multiplier":          "3",
+						"enable_ipv6":                "true",
+						"vbr_owner_id":               "1903286717072367",
+						"resource_group_id":          CHECKSET,
+						"status":                     "active",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"virtual_border_router_name": name + "_update",
+					"vlan_id":                    "2089",
+					"min_rx_interval":            "600",
+					"min_tx_interval":            "600",
+					"detect_multiplier":          "6",
 					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
 					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
 					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
-					"min_rx_interval":            "600",
-					"min_tx_interval":            "600",
-					"mtu":                        "1500",
-					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 					"sitelink_enable":            "true",
-					"status":                     "active",
-					"virtual_border_router_name": name,
-					"vbr_owner_id":               "${data.alicloud_account.default.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"virtual_border_router_name": name + "_update",
+						"vlan_id":                    "2089",
+						"min_rx_interval":            "600",
+						"min_tx_interval":            "600",
+						"detect_multiplier":          "6",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+						"sitelink_enable":            "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+					"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+					"sitelink_enable":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+						"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+						"sitelink_enable":          "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "kongyan-tes",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "kongyan-tes",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"bandwidth": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"bandwidth": "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "terminated",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "terminated",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "active",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "active",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_gateway_ip":     "192.168.0.2",
+					"peering_subnet_mask": "255.255.0.0",
+					"local_gateway_ip":    "192.168.0.1",
+					"circuit_code":        "4096",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_gateway_ip":     "192.168.0.2",
+						"peering_subnet_mask": "255.255.0.0",
+						"local_gateway_ip":    "192.168.0.1",
+						"circuit_code":        CHECKSET,
+						"resource_group_id":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
 					"tags": map[string]string{
 						"Created": "TF",
 						"For":     "Test",
@@ -1293,29 +1284,36 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569_twin(t *testing
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"local_gateway_ip":           "10.0.0.1",
-						"peer_gateway_ip":            "10.0.0.2",
-						"peering_subnet_mask":        "255.255.255.252",
-						"physical_connection_id":     CHECKSET,
-						"vlan_id":                    CHECKSET,
-						"bandwidth":                  CHECKSET,
-						"circuit_code":               "1024",
-						"description":                name,
-						"detect_multiplier":          "6",
-						"enable_ipv6":                "true",
-						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
-						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
-						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
-						"min_rx_interval":            "600",
-						"min_tx_interval":            "600",
-						"mtu":                        "1500",
-						"resource_group_id":          CHECKSET,
-						"sitelink_enable":            "true",
-						"status":                     "active",
-						"virtual_border_router_name": name,
-						"tags.%":                     "2",
-						"tags.Created":               "TF",
-						"tags.For":                   "Test",
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
 					}),
 				),
 			},
@@ -1329,31 +1327,585 @@ func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11569_twin(t *testing
 	})
 }
 
-var AliCloudExpressConnectVirtualBorderRouterMap11569 = map[string]string{
-	"detect_multiplier": CHECKSET,
-	"min_rx_interval":   CHECKSET,
-	"min_tx_interval":   CHECKSET,
-	"mtu":               CHECKSET,
-	"resource_group_id": CHECKSET,
-	"status":            CHECKSET,
-	"route_table_id":    CHECKSET,
-	"create_time":       CHECKSET,
+var AlicloudExpressConnectVirtualBorderRouterMap11568 = map[string]string{
+	"route_table_id":                      CHECKSET,
+	"activation_time":                     CHECKSET,
+	"associated_physical_connections.#":   CHECKSET,
+	"vlan_interface_id":                   CHECKSET,
+	"physical_connection_status":          CHECKSET,
+	"physical_connection_owner_uid":       CHECKSET,
+	"termination_time":                    CHECKSET,
+	"recovery_time":                       CHECKSET,
+	"associated_cens.#":                   CHECKSET,
+	"pconn_vbr_expire_time":               CHECKSET,
+	"create_time":                         CHECKSET,
+	"type":                                CHECKSET,
+	"access_point_id":                     CHECKSET,
+	"physical_connection_business_status": CHECKSET,
+	"cloud_box_instance_id":               CHECKSET,
 }
 
-func AliCloudExpressConnectVirtualBorderRouterBasicDependence11569(name string) string {
+func AlicloudExpressConnectVirtualBorderRouterBasicDependence11568(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
-  default = "%s"
+    default = "%s"
 }
 
-data "alicloud_account" "default" {
+variable "pconn1" {
+  default = "pc-bp1j6up8jcs8jogazdb6j"
 }
 
-data "alicloud_resource_manager_resource_groups" "default" {
+variable "pconn2" {
+  default = "pc-bp1oasymmf8oe0j92m125"
 }
 
-data "alicloud_express_connect_virtual_physical_connections" "default" {
+variable "region_id" {
+  default = "cn-hangzhou"
 }
+
+
+`, name)
+}
+
+// Case VirtualBorderRouter_202509_小浒_副本 11493
+func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11493(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_express_connect_virtual_border_router.default"
+	ra := resourceAttrInit(resourceId, AlicloudExpressConnectVirtualBorderRouterMap11493)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeExpressConnectVirtualBorderRouter")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudExpressConnectVirtualBorderRouterBasicDependence11493)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"physical_connection_id":     "${var.pconn1}",
+					"peer_gateway_ip":            "10.0.0.1",
+					"description":                "kongyan-test",
+					"virtual_border_router_name": name,
+					"peering_subnet_mask":        "255.255.255.0",
+					"local_gateway_ip":           "10.0.0.2",
+					"vlan_id":                    "2088",
+					"circuit_code":               "1024",
+					"bandwidth":                  "50",
+					"min_rx_interval":            "1000",
+					"min_tx_interval":            "1000",
+					"detect_multiplier":          "3",
+					"enable_ipv6":                "true",
+					"vbr_owner_id":               "1903286717072367",
+					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"status":                     "active",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"physical_connection_id":     CHECKSET,
+						"peer_gateway_ip":            "10.0.0.1",
+						"description":                "kongyan-test",
+						"virtual_border_router_name": name,
+						"peering_subnet_mask":        "255.255.255.0",
+						"local_gateway_ip":           "10.0.0.2",
+						"vlan_id":                    "2088",
+						"circuit_code":               CHECKSET,
+						"bandwidth":                  "50",
+						"min_rx_interval":            "1000",
+						"min_tx_interval":            "1000",
+						"detect_multiplier":          "3",
+						"enable_ipv6":                "true",
+						"vbr_owner_id":               "1903286717072367",
+						"resource_group_id":          CHECKSET,
+						"status":                     "active",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"virtual_border_router_name": name + "_update",
+					"vlan_id":                    "2089",
+					"min_rx_interval":            "600",
+					"min_tx_interval":            "600",
+					"detect_multiplier":          "6",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+					"sitelink_enable":            "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"virtual_border_router_name": name + "_update",
+						"vlan_id":                    "2089",
+						"min_rx_interval":            "600",
+						"min_tx_interval":            "600",
+						"detect_multiplier":          "6",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+						"sitelink_enable":            "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+					"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+					"sitelink_enable":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+						"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+						"sitelink_enable":          "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "kongyan-tes",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "kongyan-tes",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"bandwidth": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"bandwidth": "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "terminated",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "terminated",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "active",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "active",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_gateway_ip":     "192.168.0.2",
+					"peering_subnet_mask": "255.255.0.0",
+					"local_gateway_ip":    "192.168.0.1",
+					"circuit_code":        "4096",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_gateway_ip":     "192.168.0.2",
+						"peering_subnet_mask": "255.255.0.0",
+						"local_gateway_ip":    "192.168.0.1",
+						"circuit_code":        CHECKSET,
+						"resource_group_id":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vbr_owner_id"},
+			},
+		},
+	})
+}
+
+var AlicloudExpressConnectVirtualBorderRouterMap11493 = map[string]string{
+	"route_table_id":                      CHECKSET,
+	"activation_time":                     CHECKSET,
+	"associated_physical_connections.#":   CHECKSET,
+	"vlan_interface_id":                   CHECKSET,
+	"physical_connection_status":          CHECKSET,
+	"physical_connection_owner_uid":       CHECKSET,
+	"termination_time":                    CHECKSET,
+	"recovery_time":                       CHECKSET,
+	"associated_cens.#":                   CHECKSET,
+	"pconn_vbr_expire_time":               CHECKSET,
+	"create_time":                         CHECKSET,
+	"type":                                CHECKSET,
+	"access_point_id":                     CHECKSET,
+	"physical_connection_business_status": CHECKSET,
+	"cloud_box_instance_id":               CHECKSET,
+}
+
+func AlicloudExpressConnectVirtualBorderRouterBasicDependence11493(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "pconn1" {
+  default = "pc-bp1j6up8jcs8jogazdb6j"
+}
+
+variable "pconn2" {
+  default = "pc-bp1oasymmf8oe0j92m125"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+
+`, name)
+}
+
+// Case VirtualBorderRouter_202509_小浒 11440
+func TestAccAliCloudExpressConnectVirtualBorderRouter_basic11440(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_express_connect_virtual_border_router.default"
+	ra := resourceAttrInit(resourceId, AlicloudExpressConnectVirtualBorderRouterMap11440)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &ExpressConnectServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeExpressConnectVirtualBorderRouter")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccexpressconnect%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudExpressConnectVirtualBorderRouterBasicDependence11440)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"physical_connection_id":     "${var.pconn1}",
+					"peer_gateway_ip":            "10.0.0.1",
+					"description":                "kongyan-test",
+					"virtual_border_router_name": name,
+					"peering_subnet_mask":        "255.255.255.0",
+					"local_gateway_ip":           "10.0.0.2",
+					"vlan_id":                    "2088",
+					"circuit_code":               "1024",
+					"bandwidth":                  "50",
+					"min_rx_interval":            "1000",
+					"min_tx_interval":            "1000",
+					"detect_multiplier":          "3",
+					"enable_ipv6":                "true",
+					"vbr_owner_id":               "1903286717072367",
+					"resource_group_id":          "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"status":                     "active",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"physical_connection_id":     CHECKSET,
+						"peer_gateway_ip":            "10.0.0.1",
+						"description":                "kongyan-test",
+						"virtual_border_router_name": name,
+						"peering_subnet_mask":        "255.255.255.0",
+						"local_gateway_ip":           "10.0.0.2",
+						"vlan_id":                    "2088",
+						"circuit_code":               CHECKSET,
+						"bandwidth":                  "50",
+						"min_rx_interval":            "1000",
+						"min_tx_interval":            "1000",
+						"detect_multiplier":          "3",
+						"enable_ipv6":                "true",
+						"vbr_owner_id":               "1903286717072367",
+						"resource_group_id":          CHECKSET,
+						"status":                     "active",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::8",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/55",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::7",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"virtual_border_router_name": name + "_update",
+					"vlan_id":                    "2089",
+					"min_rx_interval":            "600",
+					"min_tx_interval":            "600",
+					"detect_multiplier":          "6",
+					"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+					"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+					"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+					"sitelink_enable":            "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"virtual_border_router_name": name + "_update",
+						"vlan_id":                    "2089",
+						"min_rx_interval":            "600",
+						"min_tx_interval":            "600",
+						"detect_multiplier":          "6",
+						"peer_ipv6_gateway_ip":       "2408:4004:cc:400::2",
+						"peering_ipv6_subnet_mask":   "2408:4004:cc:400::/56",
+						"local_ipv6_gateway_ip":      "2408:4004:cc:400::1",
+						"sitelink_enable":            "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+					"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+					"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+					"sitelink_enable":          "false",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_ipv6_gateway_ip":     "2408:4004:cc:400::4",
+						"peering_ipv6_subnet_mask": "2408:4004:cc:400::/57",
+						"local_ipv6_gateway_ip":    "2408:4004:cc:400::3",
+						"sitelink_enable":          "false",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "kongyan-tes",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "kongyan-tes",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"bandwidth": "100",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"bandwidth": "100",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "terminated",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "terminated",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"status": "active",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"status": "active",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"peer_gateway_ip":     "192.168.0.2",
+					"peering_subnet_mask": "255.255.0.0",
+					"local_gateway_ip":    "192.168.0.1",
+					"circuit_code":        "4096",
+					"resource_group_id":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"peer_gateway_ip":     "192.168.0.2",
+						"peering_subnet_mask": "255.255.0.0",
+						"local_gateway_ip":    "192.168.0.1",
+						"circuit_code":        CHECKSET,
+						"resource_group_id":   CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vbr_owner_id"},
+			},
+		},
+	})
+}
+
+var AlicloudExpressConnectVirtualBorderRouterMap11440 = map[string]string{
+	"route_table_id":                      CHECKSET,
+	"activation_time":                     CHECKSET,
+	"associated_physical_connections.#":   CHECKSET,
+	"vlan_interface_id":                   CHECKSET,
+	"physical_connection_status":          CHECKSET,
+	"physical_connection_owner_uid":       CHECKSET,
+	"termination_time":                    CHECKSET,
+	"recovery_time":                       CHECKSET,
+	"associated_cens.#":                   CHECKSET,
+	"pconn_vbr_expire_time":               CHECKSET,
+	"create_time":                         CHECKSET,
+	"type":                                CHECKSET,
+	"access_point_id":                     CHECKSET,
+	"physical_connection_business_status": CHECKSET,
+	"cloud_box_instance_id":               CHECKSET,
+}
+
+func AlicloudExpressConnectVirtualBorderRouterBasicDependence11440(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "pconn1" {
+  default = "pc-bp1j6up8jcs8jogazdb6j"
+}
+
+variable "pconn2" {
+  default = "pc-bp1oasymmf8oe0j92m125"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+
 `, name)
 }
 

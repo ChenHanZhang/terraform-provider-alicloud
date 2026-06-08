@@ -1279,7 +1279,6 @@ func (s *ExpressConnectServiceV2) DescribeExpressConnectVirtualBorderRouter(id s
 	request["RegionId"] = client.RegionId
 	request["IncludeCrossAccountVbr"] = "true"
 	jsonString := convertObjectToJsonString(request)
-	jsonString, _ = sjson.Set(jsonString, "Filter.0.Key", "VbrId")
 	jsonString, _ = sjson.Set(jsonString, "Filter.0.Value.0", id)
 	_ = json.Unmarshal([]byte(jsonString), &request)
 

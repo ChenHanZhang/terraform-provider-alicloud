@@ -27,6 +27,102 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"access_point_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"activation_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"associated_cens": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cen_status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"cen_owner_id": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"cen_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"associated_physical_connections": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"peer_gateway_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"circuit_code": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"physical_connection_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"vlan_interface_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"physical_connection_status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"peer_ipv6_gateway_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"physical_connection_owner_uid": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"peering_subnet_mask": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"enable_ipv6": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"peering_ipv6_subnet_mask": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"local_gateway_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"local_ipv6_gateway_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"vlan_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"physical_connection_business_status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"bandwidth": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -35,6 +131,10 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 			"circuit_code": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"cloud_box_instance_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"create_time": {
 				Type:     schema.TypeString,
@@ -77,6 +177,10 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: IntInSlice([]int{0, 1500, 8500}),
 			},
+			"pconn_vbr_expire_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"peer_gateway_ip": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -93,10 +197,26 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"physical_connection_business_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"physical_connection_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"physical_connection_owner_uid": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"physical_connection_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"recovery_time": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -117,6 +237,14 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchema(),
+			"termination_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"vbr_owner_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -129,15 +257,9 @@ func resourceAliCloudExpressConnectVirtualBorderRouter() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"associated_physical_connections": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Field `associated_physical_connections` has been deprecated from provider version 1.263.0. Please use the resource `alicloud_express_connect_vbr_pconn_association` instead.",
-			},
-			"include_cross_account_vbr": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Removed:  "Field `include_cross_account_vbr` has been removed from provider version 1.263.0.",
+			"vlan_interface_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -196,7 +318,7 @@ func resourceAliCloudExpressConnectVirtualBorderRouterCreate(d *schema.ResourceD
 	request["PeeringSubnetMask"] = d.Get("peering_subnet_mask")
 	request["PhysicalConnectionId"] = d.Get("physical_connection_id")
 	request["PeerGatewayIp"] = d.Get("peer_gateway_ip")
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
@@ -216,6 +338,12 @@ func resourceAliCloudExpressConnectVirtualBorderRouterCreate(d *schema.ResourceD
 
 	d.SetId(fmt.Sprint(response["VbrId"]))
 
+	expressConnectServiceV2 := ExpressConnectServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"active", "unconfirmed"}, d.Timeout(schema.TimeoutCreate), 1*time.Second, expressConnectServiceV2.ExpressConnectVirtualBorderRouterStateRefreshFunc(d.Id(), "Status", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
+	}
+
 	return resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d, meta)
 }
 
@@ -233,35 +361,84 @@ func resourceAliCloudExpressConnectVirtualBorderRouterRead(d *schema.ResourceDat
 		return WrapError(err)
 	}
 
-	d.Set("bandwidth", formatInt(objectRaw["Bandwidth"]))
+	d.Set("access_point_id", objectRaw["AccessPointId"])
+	d.Set("activation_time", objectRaw["ActivationTime"])
+	d.Set("bandwidth", objectRaw["Bandwidth"])
 	d.Set("circuit_code", objectRaw["CircuitCode"])
+	d.Set("cloud_box_instance_id", objectRaw["CloudBoxInstanceId"])
 	d.Set("create_time", objectRaw["CreationTime"])
 	d.Set("description", objectRaw["Description"])
-	if v, ok := objectRaw["DetectMultiplier"]; ok && fmt.Sprint(v) != "0" {
-		d.Set("detect_multiplier", formatInt(v))
-	}
+	d.Set("detect_multiplier", objectRaw["DetectMultiplier"])
 	d.Set("enable_ipv6", objectRaw["EnableIpv6"])
 	d.Set("local_gateway_ip", objectRaw["LocalGatewayIp"])
 	d.Set("local_ipv6_gateway_ip", objectRaw["LocalIpv6GatewayIp"])
-	if v, ok := objectRaw["MinRxInterval"]; ok && fmt.Sprint(v) != "0" {
-		d.Set("min_rx_interval", formatInt(v))
-	}
-	if v, ok := objectRaw["MinTxInterval"]; ok && fmt.Sprint(v) != "0" {
-		d.Set("min_tx_interval", formatInt(v))
-	}
+	d.Set("min_rx_interval", objectRaw["MinRxInterval"])
+	d.Set("min_tx_interval", objectRaw["MinTxInterval"])
 	d.Set("mtu", objectRaw["Mtu"])
+	d.Set("pconn_vbr_expire_time", objectRaw["PConnVbrExpireTime"])
 	d.Set("peer_gateway_ip", objectRaw["PeerGatewayIp"])
 	d.Set("peer_ipv6_gateway_ip", objectRaw["PeerIpv6GatewayIp"])
 	d.Set("peering_ipv6_subnet_mask", objectRaw["PeeringIpv6SubnetMask"])
 	d.Set("peering_subnet_mask", objectRaw["PeeringSubnetMask"])
+	d.Set("physical_connection_business_status", objectRaw["PhysicalConnectionBusinessStatus"])
 	d.Set("physical_connection_id", objectRaw["PhysicalConnectionId"])
+	d.Set("physical_connection_owner_uid", objectRaw["PhysicalConnectionOwnerUid"])
+	d.Set("physical_connection_status", objectRaw["PhysicalConnectionStatus"])
+	d.Set("recovery_time", objectRaw["RecoveryTime"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("route_table_id", objectRaw["RouteTableId"])
 	d.Set("sitelink_enable", objectRaw["SitelinkEnable"])
 	d.Set("status", objectRaw["Status"])
+	d.Set("termination_time", objectRaw["TerminationTime"])
+	d.Set("type", objectRaw["Type"])
 	d.Set("virtual_border_router_name", objectRaw["Name"])
-	d.Set("vlan_id", formatInt(objectRaw["VlanId"]))
+	d.Set("vlan_id", objectRaw["VlanId"])
+	d.Set("vlan_interface_id", objectRaw["VlanInterfaceId"])
 
+	associatedCenRaw, _ := jsonpath.Get("$.AssociatedCens.AssociatedCen", objectRaw)
+	associatedCensMaps := make([]map[string]interface{}, 0)
+	if associatedCenRaw != nil {
+		for _, associatedCenChildRaw := range convertToInterfaceArray(associatedCenRaw) {
+			associatedCensMap := make(map[string]interface{})
+			associatedCenChildRaw := associatedCenChildRaw.(map[string]interface{})
+			associatedCensMap["cen_id"] = associatedCenChildRaw["CenId"]
+			associatedCensMap["cen_owner_id"] = associatedCenChildRaw["CenOwnerId"]
+			associatedCensMap["cen_status"] = associatedCenChildRaw["CenStatus"]
+
+			associatedCensMaps = append(associatedCensMaps, associatedCensMap)
+		}
+	}
+	if err := d.Set("associated_cens", associatedCensMaps); err != nil {
+		return err
+	}
+	associatedPhysicalConnectionRaw, _ := jsonpath.Get("$.AssociatedPhysicalConnections.AssociatedPhysicalConnection", objectRaw)
+	associatedPhysicalConnectionsMaps := make([]map[string]interface{}, 0)
+	if associatedPhysicalConnectionRaw != nil {
+		for _, associatedPhysicalConnectionChildRaw := range convertToInterfaceArray(associatedPhysicalConnectionRaw) {
+			associatedPhysicalConnectionsMap := make(map[string]interface{})
+			associatedPhysicalConnectionChildRaw := associatedPhysicalConnectionChildRaw.(map[string]interface{})
+			associatedPhysicalConnectionsMap["circuit_code"] = associatedPhysicalConnectionChildRaw["CircuitCode"]
+			associatedPhysicalConnectionsMap["enable_ipv6"] = associatedPhysicalConnectionChildRaw["EnableIpv6"]
+			associatedPhysicalConnectionsMap["local_gateway_ip"] = associatedPhysicalConnectionChildRaw["LocalGatewayIp"]
+			associatedPhysicalConnectionsMap["local_ipv6_gateway_ip"] = associatedPhysicalConnectionChildRaw["LocalIpv6GatewayIp"]
+			associatedPhysicalConnectionsMap["peer_gateway_ip"] = associatedPhysicalConnectionChildRaw["PeerGatewayIp"]
+			associatedPhysicalConnectionsMap["peer_ipv6_gateway_ip"] = associatedPhysicalConnectionChildRaw["PeerIpv6GatewayIp"]
+			associatedPhysicalConnectionsMap["peering_ipv6_subnet_mask"] = associatedPhysicalConnectionChildRaw["PeeringIpv6SubnetMask"]
+			associatedPhysicalConnectionsMap["peering_subnet_mask"] = associatedPhysicalConnectionChildRaw["PeeringSubnetMask"]
+			associatedPhysicalConnectionsMap["physical_connection_business_status"] = associatedPhysicalConnectionChildRaw["PhysicalConnectionBusinessStatus"]
+			associatedPhysicalConnectionsMap["physical_connection_id"] = associatedPhysicalConnectionChildRaw["PhysicalConnectionId"]
+			associatedPhysicalConnectionsMap["physical_connection_owner_uid"] = associatedPhysicalConnectionChildRaw["PhysicalConnectionOwnerUid"]
+			associatedPhysicalConnectionsMap["physical_connection_status"] = associatedPhysicalConnectionChildRaw["PhysicalConnectionStatus"]
+			associatedPhysicalConnectionsMap["status"] = associatedPhysicalConnectionChildRaw["Status"]
+			associatedPhysicalConnectionsMap["vlan_id"] = associatedPhysicalConnectionChildRaw["VlanId"]
+			associatedPhysicalConnectionsMap["vlan_interface_id"] = associatedPhysicalConnectionChildRaw["VlanInterfaceId"]
+
+			associatedPhysicalConnectionsMaps = append(associatedPhysicalConnectionsMaps, associatedPhysicalConnectionsMap)
+		}
+	}
+	if err := d.Set("associated_physical_connections", associatedPhysicalConnectionsMaps); err != nil {
+		return err
+	}
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tags", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
 
@@ -274,7 +451,6 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	d.Partial(true)
 
 	expressConnectServiceV2 := ExpressConnectServiceV2{client}
 	objectRaw, _ := expressConnectServiceV2.DescribeExpressConnectVirtualBorderRouter(d.Id())
@@ -370,12 +546,10 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 	}
 	if !d.IsNewResource() && d.HasChange("bandwidth") {
 		update = true
-
-		if v, ok := d.GetOkExists("bandwidth"); ok || d.HasChange("bandwidth") {
-			request["Bandwidth"] = v
-		}
 	}
-
+	if v, ok := d.GetOkExists("bandwidth"); ok || d.HasChange("bandwidth") {
+		request["Bandwidth"] = v
+	}
 	if !d.IsNewResource() && d.HasChange("description") {
 		update = true
 	}
@@ -412,12 +586,10 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 	}
 	if !d.IsNewResource() && d.HasChange("enable_ipv6") {
 		update = true
-
-		if v, ok := d.GetOkExists("enable_ipv6"); ok {
-			request["EnableIpv6"] = v
-		}
 	}
-
+	if v, ok := d.GetOkExists("enable_ipv6"); ok || d.HasChange("enable_ipv6") {
+		request["EnableIpv6"] = v
+	}
 	if !d.IsNewResource() && d.HasChange("peer_ipv6_gateway_ip") {
 		update = true
 	}
@@ -446,23 +618,17 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 	if v, ok := d.GetOkExists("detect_multiplier"); ok || d.HasChange("detect_multiplier") {
 		request["DetectMultiplier"] = v
 	}
-
 	if d.HasChange("sitelink_enable") {
 		update = true
-
-		if v, ok := d.GetOkExists("sitelink_enable"); ok || d.HasChange("sitelink_enable") {
-			request["SitelinkEnable"] = v
-		}
 	}
-
+	if v, ok := d.GetOkExists("sitelink_enable"); ok || d.HasChange("sitelink_enable") {
+		request["SitelinkEnable"] = v
+	}
 	if !d.IsNewResource() && d.HasChange("peer_gateway_ip") {
 		update = true
 	}
 	request["PeerGatewayIp"] = d.Get("peer_gateway_ip")
 	if update {
-		if v, ok := d.GetOk("associated_physical_connections"); ok {
-			request["AssociatedPhysicalConnections"] = v
-		}
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
@@ -478,6 +644,11 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		expressConnectServiceV2 := ExpressConnectServiceV2{client}
+		stateConf := BuildStateConf([]string{}, []string{"active"}, d.Timeout(schema.TimeoutUpdate), 1*time.Second, expressConnectServiceV2.ExpressConnectVirtualBorderRouterStateRefreshFunc(d.Id(), "Status", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 	update = false
@@ -516,7 +687,6 @@ func resourceAliCloudExpressConnectVirtualBorderRouterUpdate(d *schema.ResourceD
 			return WrapError(err)
 		}
 	}
-	d.Partial(false)
 	return resourceAliCloudExpressConnectVirtualBorderRouterRead(d, meta)
 }
 
@@ -533,7 +703,7 @@ func resourceAliCloudExpressConnectVirtualBorderRouterDelete(d *schema.ResourceD
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 		if err != nil {
@@ -552,6 +722,12 @@ func resourceAliCloudExpressConnectVirtualBorderRouterDelete(d *schema.ResourceD
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	}
+
+	expressConnectServiceV2 := ExpressConnectServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 1*time.Second, expressConnectServiceV2.ExpressConnectVirtualBorderRouterStateRefreshFunc(d.Id(), "$.VbrId", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
 	return nil
