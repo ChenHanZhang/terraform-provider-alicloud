@@ -10,6 +10,543 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
+// Test Cr Instance. >>> Resource test cases, automatically generated.
+// Case resourceCase_20260526_Mmd6on 12845
+func TestAccAliCloudCrInstance_basic12845(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap12845)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence12845)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"default_oss_bucket": "true",
+					"instance_name":      name,
+					"renewal_status":     "ManualRenewal",
+					"image_scanner":      "DISABLE",
+					"period":             "1",
+					"payment_type":       "Subscription",
+					"instance_type":      "Economy",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"default_oss_bucket": CHECKSET,
+						"instance_name":      name,
+						"renewal_status":     "ManualRenewal",
+						"image_scanner":      "DISABLE",
+						"period":             "1",
+						"payment_type":       "Subscription",
+						"instance_type":      "Economy",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap12845 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence12845(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 实例生命周期测试 7970
+func TestAccAliCloudCrInstance_basic7970(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap7970)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence7970)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_name":      name,
+					"period":             "1",
+					"renewal_status":     "AutoRenewal",
+					"image_scanner":      "SAS",
+					"instance_type":      "Standard",
+					"payment_type":       "Subscription",
+					"renew_period":       "1",
+					"resource_group_id":  "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"default_oss_bucket": "false",
+					"custom_oss_bucket":  "${alicloud_oss_bucket.defaultkcvHCP.id}",
+					"password":           "terraformtest123",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_name":      name,
+						"period":             "1",
+						"renewal_status":     "AutoRenewal",
+						"image_scanner":      "SAS",
+						"instance_type":      "Standard",
+						"payment_type":       "Subscription",
+						"renew_period":       "1",
+						"resource_group_id":  CHECKSET,
+						"default_oss_bucket": CHECKSET,
+						"custom_oss_bucket":  CHECKSET,
+						"password":           "terraformtest123",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+					"password":          "terraformtest124",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+						"password":          "terraformtest124",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap7970 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence7970(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_oss_bucket" "defaultkcvHCP" {
+  storage_class = "Standard"
+}
+
+
+`, name)
+}
+
+// Case 实例生命周期测试_3 7574
+func TestAccAliCloudCrInstance_basic7574(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap7574)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence7574)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_name":      name,
+					"period":             "1",
+					"renewal_status":     "AutoRenewal",
+					"image_scanner":      "ACR",
+					"instance_type":      "Advanced",
+					"payment_type":       "Subscription",
+					"renew_period":       "1",
+					"resource_group_id":  "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"default_oss_bucket": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_name":      name,
+						"period":             "1",
+						"renewal_status":     "AutoRenewal",
+						"image_scanner":      "ACR",
+						"instance_type":      "Advanced",
+						"payment_type":       "Subscription",
+						"renew_period":       "1",
+						"resource_group_id":  CHECKSET,
+						"default_oss_bucket": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap7574 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence7574(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 实例生命周期测试_2_new_more_api 8614
+func TestAccAliCloudCrInstance_basic8614(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap8614)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence8614)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_name":      name,
+					"period":             "1",
+					"renewal_status":     "ManualRenewal",
+					"image_scanner":      "SAS",
+					"instance_type":      "Standard",
+					"payment_type":       "Subscription",
+					"resource_group_id":  "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"default_oss_bucket": "false",
+					"custom_oss_bucket":  "${alicloud_oss_bucket.defaultkcvHCP.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_name":      name,
+						"period":             "1",
+						"renewal_status":     "ManualRenewal",
+						"image_scanner":      "SAS",
+						"instance_type":      "Standard",
+						"payment_type":       "Subscription",
+						"resource_group_id":  CHECKSET,
+						"default_oss_bucket": CHECKSET,
+						"custom_oss_bucket":  CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap8614 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence8614(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_oss_bucket" "defaultkcvHCP" {
+  storage_class = "Standard"
+}
+
+
+`, name)
+}
+
+// Case 实例生命周期测试_3_more_api_cn 8662
+func TestAccAliCloudCrInstance_basic8662(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap8662)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence8662)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_name":      name,
+					"period":             "1",
+					"renewal_status":     "AutoRenewal",
+					"image_scanner":      "ACR",
+					"instance_type":      "Advanced",
+					"payment_type":       "Subscription",
+					"renew_period":       "1",
+					"resource_group_id":  "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"default_oss_bucket": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_name":      name,
+						"period":             "1",
+						"renewal_status":     "AutoRenewal",
+						"image_scanner":      "ACR",
+						"instance_type":      "Advanced",
+						"payment_type":       "Subscription",
+						"renew_period":       "1",
+						"resource_group_id":  CHECKSET,
+						"default_oss_bucket": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap8662 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence8662(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Case 实例生命周期测试_1_cn 8646
+func TestAccAliCloudCrInstance_basic8646(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_ee_instance.default"
+	ra := resourceAttrInit(resourceId, AlicloudCrInstanceMap8646)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudCrInstanceBasicDependence8646)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_name":      name,
+					"period":             "1",
+					"renewal_status":     "AutoRenewal",
+					"image_scanner":      "ACR",
+					"instance_type":      "Basic",
+					"renew_period":       "1",
+					"default_oss_bucket": "false",
+					"payment_type":       "Subscription",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_name":      name,
+						"period":             "1",
+						"renewal_status":     "AutoRenewal",
+						"image_scanner":      "ACR",
+						"instance_type":      "Basic",
+						"renew_period":       "1",
+						"default_oss_bucket": CHECKSET,
+						"payment_type":       "Subscription",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"password":          "QQQqwer1234",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+						"password":          "QQQqwer1234",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom_oss_bucket", "default_oss_bucket", "image_scanner", "instance_type", "namespace_quota", "password", "period", "repo_quota", "vpc_quota"},
+			},
+		},
+	})
+}
+
+var AlicloudCrInstanceMap8646 = map[string]string{
+	"end_time":             CHECKSET,
+	"modified_time":        CHECKSET,
+	"status":               CHECKSET,
+	"instance_issue":       CHECKSET,
+	"create_time":          CHECKSET,
+	"instance_endpoints.#": CHECKSET,
+}
+
+func AlicloudCrInstanceBasicDependence8646(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+resource "alicloud_oss_bucket" "defaultkcvHCP" {
+  storage_class = "Standard"
+}
+
+
+`, name)
+}
+
+// Test Cr Instance. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudCrInstance_Basic(t *testing.T) {
 	var v *cr_ee.GetInstanceResponse
 	resourceId := "alicloud_cr_ee_instance.default"

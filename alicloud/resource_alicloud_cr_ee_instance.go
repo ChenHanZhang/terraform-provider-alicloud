@@ -48,7 +48,7 @@ func resourceAliCloudCrInstance() *schema.Resource {
 			"image_scanner": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"ACR", "SAS"}, false),
+				ValidateFunc: StringInSlice([]string{"ACR", "SAS", "DISABLE"}, false),
 			},
 			"instance_endpoints": {
 				Type:     schema.TypeList,
@@ -82,6 +82,10 @@ func resourceAliCloudCrInstance() *schema.Resource {
 					},
 				},
 			},
+			"instance_issue": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"instance_name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -90,22 +94,16 @@ func resourceAliCloudCrInstance() *schema.Resource {
 			"instance_type": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: StringInSlice([]string{"Basic", "Standard", "Advanced"}, false),
+				ValidateFunc: StringInSlice([]string{"Basic", "Standard", "Advanced", "Economy"}, false),
+			},
+			"modified_time": {
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"namespace_quota": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					v := val.(int)
-					if v < 0 || v > 100000 {
-						errs = append(errs, fmt.Errorf("%q must be between 0 and 100000 inclusive, and multiple of 5, got: %d", key, v))
-					}
-
-					if !skipResourceSchemaValidation() && (v > 0 && v%5 != 0) {
-						errs = append(errs, fmt.Errorf("%q must be multiple of 5, got: %d", key, v))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntBetween(0, 100000),
 			},
 			"kms_encrypted_password": {
 				Type:             schema.TypeString,
@@ -135,10 +133,6 @@ func resourceAliCloudCrInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"region_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"renew_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -152,18 +146,9 @@ func resourceAliCloudCrInstance() *schema.Resource {
 				ValidateFunc: StringInSlice([]string{"AutoRenewal", "ManualRenewal"}, false),
 			},
 			"repo_quota": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					v := val.(int)
-					if v < 0 || v > 1000000 {
-						errs = append(errs, fmt.Errorf("%q must be between 0 and 1000000 inclusive, multiple of 1000: %d", key, v))
-					}
-					if !skipResourceSchemaValidation() && (v > 0 && v%1000 != 0) {
-						errs = append(errs, fmt.Errorf("%q must be multiple of 1000, got: %d", key, v))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntBetween(0, 1000000),
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -175,15 +160,9 @@ func resourceAliCloudCrInstance() *schema.Resource {
 				Computed: true,
 			},
 			"vpc_quota": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					v := val.(int)
-					if v < 0 || v > 100 {
-						errs = append(errs, fmt.Errorf("%q must be between 0 and 100 inclusive, got: %d", key, v))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: IntBetween(0, 100),
 			},
 			"created_time": {
 				Type:       schema.TypeString,
@@ -332,7 +311,9 @@ func resourceAliCloudCrInstanceRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Set("create_time", objectRaw["CreateTime"])
+	d.Set("instance_issue", objectRaw["InstanceIssue"])
 	d.Set("instance_name", objectRaw["InstanceName"])
+	d.Set("modified_time", objectRaw["ModifiedTime"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	if objectRaw["InstanceSpecification"] != nil {
 		d.Set("instance_type", strings.TrimPrefix(objectRaw["InstanceSpecification"].(string), "Enterprise_"))
@@ -347,7 +328,6 @@ func resourceAliCloudCrInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("end_time", objectRaw["EndTime"])
 	d.Set("payment_type", objectRaw["SubscriptionType"])
-	d.Set("region_id", objectRaw["Region"])
 	d.Set("renew_period", objectRaw["RenewalDuration"])
 	d.Set("renewal_status", objectRaw["RenewStatus"])
 
@@ -356,8 +336,7 @@ func resourceAliCloudCrInstanceRead(d *schema.ResourceData, meta interface{}) er
 		return WrapError(err)
 	}
 
-	endpointsRaw, _ := jsonpath.Get("$.Endpoints", objectRaw)
-
+	endpointsRaw := objectRaw["Endpoints"]
 	instanceEndpointsMaps := make([]map[string]interface{}, 0)
 	if endpointsRaw != nil {
 		for _, endpointsChildRaw := range convertToInterfaceArray(endpointsRaw) {
@@ -396,7 +375,6 @@ func resourceAliCloudCrInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	d.Partial(true)
 
 	var err error
 	action := "ChangeResourceGroup"
@@ -471,7 +449,6 @@ func resourceAliCloudCrInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	d.Partial(false)
 	return resourceAliCloudCrInstanceRead(d, meta)
 }
 
