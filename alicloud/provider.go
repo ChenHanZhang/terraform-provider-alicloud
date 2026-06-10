@@ -924,6 +924,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_compute_nest_skill_space":                             resourceAliCloudComputeNestSkillSpace(),
 			"alicloud_amqp_open_source_account":                             resourceAliCloudAmqpOpenSourceAccount(),
 			"alicloud_vpc_ipv6_cidr_block":                                  resourceAliCloudVpcIpv6CidrBlock(),
 			"alicloud_amqp_open_source_permission":                          resourceAliCloudAmqpOpenSourcePermission(),
