@@ -14,17 +14,11 @@ VPC IPv6 additional CIDR block.
 
 For information about VPC Ipv6 Cidr Block and how to use it, see [What is Ipv6 Cidr Block](https://next.api.alibabacloud.com/document/Vpc/2016-04-28/AssociateVpcCidrBlock).
 
--> **NOTE:** Available since v1.280.0.
+-> **NOTE:** Available since v1.282.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_vpc_ipv6_cidr_block&exampleId=9ff282f7-39f5-ba4a-3fad-6b76c5ee241fa00e2b3c&activeTab=example&spm=docs.r.vpc_ipv6_cidr_block.0.9ff282f739&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -63,20 +57,20 @@ resource "alicloud_vpc_ipv6_cidr_block" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_ipv6_cidr_block&spm=docs.r.vpc_ipv6_cidr_block.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
-* `ipv6_cidr_block` - (Optional, ForceNew, Computed) The additional IPv6 CIDR block. Both `ipv6_cidr_block` and `ipv6_cidr_mask` are optional and can be left empty. If neither is specified, the system automatically allocates a `/56` IPv6 CIDR block to the VPC from the Alibaba Cloud GUA address pool.
+* `ipv6_cidr_block` - (Optional, ForceNew, Computed) An additional IPv6 CIDR block.
 
--> **NOTE:**  If you specify `ipv6_cidr_block`, the CIDR block must be reserved beforehand by calling the AllocateVpcIpv6Cidr operation, or you can specify `ipv6_ipam_pool_id` instead. If you specify `ipv6_cidr_mask`, you must also specify `ipv6_ipam_pool_id`.
+Both `Ipv6CidrBlock` and `Ipv6CidrMask` are optional parameters, and you can omit both. If neither is specified, the system automatically assigns an IPv6 CIDR block with a /56 prefix length to the VPC from the Alibaba Cloud GUA address pool.
 
-* `ipv6_cidr_mask` - (Optional, Int) The IPv6 CIDR mask used to allocate an IPv6 CIDR block from the IPAM address pool to the VPC.
+-> **NOTE:**  If you specify only `Ipv6CidrBlock`, you must first call the `AllocateVpcIpv6Cidr` API to reserve the CIDR block.
 
--> **NOTE:**  When assigning an additional IPv6 CIDR block from an IPAM address pool to a VPC, you must specify at least one of the `Ipv6CidrBlock` or `Ipv6CidrMask` properties.
+-> **NOTE:**  If you specify `Ipv6IpamPoolId`, you can directly assign an IPv6 CIDR block by providing either `Ipv6CidrBlock` or `Ipv6CidrMask`, without requiring prior reservation.
+
+* `ipv6_cidr_mask` - (Optional, Int) Add an IPv6 CIDR block to the VPC from an IPAM address pool by specifying a mask length.
+
+-> **NOTE:**  When assigning an additional IPv6 CIDR block to a VPC from an IPAM address pool, you must specify at least one of the `Ipv6CidrBlock` or `Ipv6CidrMask` properties.
 
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
@@ -86,7 +80,6 @@ The following arguments are supported:
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `vpc_id` - (Required, ForceNew) The ID of the VPC.
-You can specify up to 20 VPC IDs, separated by commas (,).
 
 ## Attributes Reference
 
