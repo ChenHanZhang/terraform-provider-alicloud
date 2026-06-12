@@ -894,30 +894,22 @@ func (s *VpcServiceV2) DescribeVpcDescribeRouteTableList(id string) (object map[
 		return object, WrapErrorf(NotFoundErr("Vpc", id), NotFoundMsg, response)
 	}
 
-	result, _ := v.([]interface{})
-	for _, v := range result {
-		item := v.(map[string]interface{})
-		if fmt.Sprint(item["RouteTableType"]) != "System" {
-			continue
-		}
-		if fmt.Sprint(item["VpcId"]) != id {
-			continue
-		}
-		return item, nil
-	}
-	return object, WrapErrorf(NotFoundErr("Vpc", id), NotFoundMsg, response)
+	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
 func (s *VpcServiceV2) VpcVpcStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.VpcVpcStateRefreshFuncWithApi(id, field, failStates, s.DescribeVpcVpc)
+}
+
+func (s *VpcServiceV2) VpcVpcStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeVpcVpc(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return nil, "", nil
+				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
