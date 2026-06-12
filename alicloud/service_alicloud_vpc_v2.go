@@ -755,17 +755,15 @@ func (s *VpcServiceV2) VpcPublicIpAddressPoolCidrBlockStateRefreshFunc(id string
 // DescribeVpcVswitch <<< Encapsulated get interface for Vpc Vswitch.
 
 func (s *VpcServiceV2) DescribeVpcVswitch(id string) (object map[string]interface{}, err error) {
-
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribeVSwitchAttributes"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-
-	query["VSwitchId"] = id
+	request["VSwitchId"] = id
 	request["RegionId"] = client.RegionId
+	action := "DescribeVSwitchAttributes"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -778,35 +776,44 @@ func (s *VpcServiceV2) DescribeVpcVswitch(id string) (object map[string]interfac
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{}) {
-			return object, WrapErrorf(NotFoundErr("Vswitch", id), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
-		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
 	currentStatus := response["VSwitchId"]
-	if currentStatus == "" {
-		return object, WrapErrorf(NotFoundErr("Vswitch", id), NotFoundMsg, ProviderERROR, fmt.Sprint(response["RequestId"]))
+	if fmt.Sprint(currentStatus) == "" {
+		return object, WrapErrorf(NotFoundErr("Vswitch", id), NotFoundMsg, response)
 	}
 
 	return response, nil
 }
 
 func (s *VpcServiceV2) VpcVswitchStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.VpcVswitchStateRefreshFuncWithApi(id, field, failStates, s.DescribeVpcVswitch)
+}
+
+func (s *VpcServiceV2) VpcVswitchStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeVpcVswitch(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
 
-		currentStatus := fmt.Sprint(object[field])
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
 		for _, failState := range failStates {
 			if currentStatus == failState {
 				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
