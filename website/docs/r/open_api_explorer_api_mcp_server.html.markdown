@@ -20,12 +20,6 @@ For information about Open Api Explorer Api Mcp Server and how to use it, see [W
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_open_api_explorer_api_mcp_server&exampleId=7a051bd9-3d05-d9fb-4f24-9ecd60128e221924d64b&activeTab=example&spm=docs.r.open_api_explorer_api_mcp_server.0.7a051bd93d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -200,18 +194,16 @@ resource "alicloud_vpc" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_open_api_explorer_api_mcp_server&spm=docs.r.open_api_explorer_api_mcp_server.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `additional_api_descriptions` - (Optional, Set) Additional OpenAPI description information that can override the default behavior of APIs, including:
+* `additional_api_descriptions` - (Optional, List) Additional OpenAPI description information that can override the default behavior of APIs, including:
   - API name  
   - Modification or removal of API parameter names  
   - Whether to exclude the API from the output API response structure definition  
   - Whether to return a CLI execution command instead of directly executing the API  
   - Configuration of constant values for API parameters; parameters set as constants will not have their definitions returned in the tool list   See [`additional_api_descriptions`](#additional_api_descriptions) below.
-* `apis` - (Required, Set) The list of APIs to be included in the API MCP Server. See [`apis`](#apis) below.
+* `apis` - (Required, List) The list of APIs to be included in the API MCP Server. See [`apis`](#apis) below.
 * `assume_role_extra_policy` - (Optional, JsonString) When multi-account access is enabled, this field defines an additional policy for role assumption. If specified, this policy overrides the original permissions defined for the role, and the assumed role’s permissions are determined solely by this policy.
 * `assume_role_name` - (Optional) The name of the RAM role in the target account to assume when enabling multi-account access for cross-account operations.
 * `description` - (Optional) Description of the API MCP service.
@@ -222,14 +214,14 @@ The following arguments are supported:
 * `name` - (Required, ForceNew) Name of the MCP Server. It can contain digits, English letters, and hyphens (-).
 * `oauth_client_id` - (Optional) The custom OAuth Client ID when selecting a custom OAuth configuration.
 `Supported only for Web/Native applications, and the OAuth scope must include /acs/mcp-server.`
-* `prompts` - (Optional, Set) List of prompts supported by the MCP Server. For the MCP protocol, clients retrieve this list through the prompts/list RPC call. See [`prompts`](#prompts) below.
+* `prompts` - (Optional, List) List of prompts supported by the MCP Server. For the MCP protocol, clients retrieve this list through the prompts/list RPC call. See [`prompts`](#prompts) below.
 * `public_access` - (Optional) Whether to enable public network access. This setting takes precedence over the account-level configuration and supports the following options:
   - on: enables public network access;
   - off: disables public network access;
   - follow: inherits the account-level configuration.
-* `system_tools` - (Optional, Set) Enabled system services.
-* `terraform_tools` - (Optional, Set) A list of Terraform Tools. The MCP Server allows using Terraform HCL code as a complete tool to improve the determinism of orchestration. See [`terraform_tools`](#terraform_tools) below.
-* `vpc_whitelists` - (Optional, Set) When public network access is disabled, this field specifies the VPC whitelist that restricts source VPCs. If not set or left empty, no restriction is applied to the source.
+* `system_tools` - (Optional, List) Enabled system services.
+* `terraform_tools` - (Optional, List) A list of Terraform Tools. The MCP Server allows using Terraform HCL code as a complete tool to improve the determinism of orchestration. See [`terraform_tools`](#terraform_tools) below.
+* `vpc_whitelists` - (Optional, List) When public network access is disabled, this field specifies the VPC whitelist that restricts source VPCs. If not set or left empty, no restriction is applied to the source.
 
 ### `additional_api_descriptions`
 
@@ -240,7 +232,7 @@ The additional_api_descriptions supports the following:
 -> **NOTE:** Note that required parameters must not be removed; otherwise, calls by the large model will continuously fail due to missing required parameters.>  
 
 * `api_version` - (Optional) API version information, typically in date format, such as 2014-05-26.  
-* `const_parameters` - (Optional, Set) Constant configuration information. When the MCP Server needs to fix certain tool parameters to specific values, you can configure this parameter to enforce those fixed values.  
+* `const_parameters` - (Optional, List) Constant configuration information. When the MCP Server needs to fix certain tool parameters to specific values, you can configure this parameter to enforce those fixed values.  
 Parameters configured as constants will not be returned as tool parameters through the MCP protocol. Large models cannot define these parameters. During execution, the MCP Server merges these constant values into the API call parameters.   See [`const_parameters`](#additional_api_descriptions-const_parameters) below.
 * `enable_output_schema` - (Optional) By default, this feature is disabled, and the MCP Server returns only the structure definition of input parameters. When enabled, the MCP Server returns the output parameter structure definition via the MCP protocol.  
 
@@ -255,6 +247,7 @@ For tools whose single API execution exceeds 30 minutes, we recommend enabling t
 -> **NOTE:** The identity used to execute the CLI differs from the identity used by the MCP Server. Pay attention to the associated security risks.>  
 
 * `product` - (Optional) The name of the cloud product, such as Ecs.  
+* `tool_alias` - (Optional, Available since v1.282.0) Tool alias. When set, the alias is used as the tool name in tools/list instead of the default {popCode}-{popVersion}-{apiName} naming. Format: 1-64 characters, starts with a letter, contains only letters, digits, underscores, and hyphens.
 
 ### `additional_api_descriptions-const_parameters`
 
@@ -279,12 +272,12 @@ Configurations such as body.Name.Sub are not supported. If you need to set body.
 The apis supports the following:
 * `api_version` - (Required) API version information, typically in date format—for example, the version for ECS is 2014-05-26.
 * `product` - (Required) Product code, such as Ecs.
-* `selectors` - (Required, Set) Selectors in array format, where each item is an API name—for example, GetApiDefinition or ListApiDefinitions. You can obtain the complete list of supported APIs from the Alibaba Cloud Developer Portal.
+* `selectors` - (Required, List) Selectors in array format, where each item is an API name—for example, GetApiDefinition or ListApiDefinitions. You can obtain the complete list of supported APIs from the Alibaba Cloud Developer Portal.
 
 ### `prompts`
 
 The prompts supports the following:
-* `arguments` - (Optional, Set) Parameters for the prompt. See [`arguments`](#prompts-arguments) below.
+* `arguments` - (Optional, List) Parameters for the prompt. See [`arguments`](#prompts-arguments) below.
 * `content` - (Optional) Full content of the prompt, supporting dynamic parameters. Parameters must be defined in Arguments, using the format {{ARG}}, where ARG supports English characters. Example: My name is: {{name}}.
 * `description` - (Optional) Description of the prompt.
 * `name` - (Optional) Name of the prompt.
@@ -311,8 +304,23 @@ The terraform_tools supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - MCP Server creation time in China Standard Time (CST), for example, 2025-12-04 19:46:52.  
+* `id` - The ID of the resource supplied above. 
+* `api_infos` - List of APIs associated with the current API MCP Server.
+  * `api_name` - API name, such as DescribeRegions.
+  * `api_version` - API version, typically a date such as 2014-05-26.
+  * `product` - Cloud service name, such as Ecs.
+* `create_time` - MCP Server creation time in China Standard Time (CST), for example, 2025-12-04 19:46:52.
+* `required_ram_policy` - The set of RAM policies required when the MCP Server is executed.
+* `source_type` - API MCP service type.
+* `system_mcp_server_info` - Applies only when the current MCP Server is of the built-in system type.
+  * `name` - System MCP name, such as oss-basic.
+  * `product` - The product name corresponding to the system MCP, such as Ecs or FC.
+* `update_time` - The update time of the MCP Server, in China Standard Time (CST), for example, 2025-12-04 19:46:52.
+* `urls` - Connection endpoints for both SSE and Streamable HTTP protocols.
+  * `mcp` - Public network Streamable HTTP protocol endpoint.
+  * `sse` - Public internet endpoint for the SSE protocol.
+  * `vpc_mcp` - VPC Streamable HTTP protocol endpoint.
+  * `vpc_sse` - SSE protocol endpoint within a VPC environment.
 
 ## Timeouts
 
