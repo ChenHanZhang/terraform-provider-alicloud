@@ -90,6 +90,254 @@ func testSweepFnfFlow(region string) error {
 	return nil
 }
 
+// Test FnF Flow. >>> Resource test cases, automatically generated.
+// Case FnF下Flow测试用例 21
+func TestAccAliCloudFnFFlow_basic21(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fnf_flow.default"
+	ra := resourceAttrInit(resourceId, AlicloudFnFFlowMap21)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &FnFServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFnFFlow")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfnf%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFnFFlowBasicDependence21)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudFnFFlowMap21 = map[string]string{
+	"create_time":             CHECKSET,
+	"tracing_configuration.#": CHECKSET,
+	"flow_id":                 CHECKSET,
+	"last_modified_time":      CHECKSET,
+}
+
+func AlicloudFnFFlowBasicDependence21(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case FnF下Flow测试用例 361
+func TestAccAliCloudFnFFlow_basic361(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fnf_flow.default"
+	ra := resourceAttrInit(resourceId, AlicloudFnFFlowMap361)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &FnFServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFnFFlow")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccfnf%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFnFFlowBasicDependence361)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudFnFFlowMap361 = map[string]string{
+	"create_time":             CHECKSET,
+	"tracing_configuration.#": CHECKSET,
+	"flow_id":                 CHECKSET,
+	"last_modified_time":      CHECKSET,
+}
+
+func AlicloudFnFFlowBasicDependence361(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case 全生命周期 1393
+func TestAccAliCloudFnFFlow_basic1393(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_fnf_flow.default"
+	ra := resourceAttrInit(resourceId, AlicloudFnFFlowMap1393)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &FnFServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeFnFFlow")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 100)
+	name := fmt.Sprintf("tfacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudFnFFlowBasicDependence1393)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"type":        "FDL",
+					"description": "test",
+					"flow_name":   name,
+					"definition":  "version: v1beta1\\ntype: flow\\nsteps:\\n  - type: pass\\n    name: helloworld",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"type":        "FDL",
+						"description": "test",
+						"flow_name":   name,
+						"definition":  "version: v1beta1\ntype: flow\nsteps:\n  - type: pass\n    name: helloworld",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": "testupdate",
+					"definition":  "version: v1beta1\\ntype: flow\\nsteps:\\n  - type: pass\\n    name: helloworld11",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": "testupdate",
+						"definition":  "version: v1beta1\ntype: flow\nsteps:\n  - type: pass\n    name: helloworld11",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudFnFFlowMap1393 = map[string]string{
+	"create_time":             CHECKSET,
+	"tracing_configuration.#": CHECKSET,
+	"flow_id":                 CHECKSET,
+	"last_modified_time":      CHECKSET,
+}
+
+func AlicloudFnFFlowBasicDependence1393(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Test FnF Flow. <<< Resource test cases, automatically generated.
+
 func TestAccAlicloudFnfFlow_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_fnf_flow.default"
@@ -296,7 +544,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudFnfFlowCreate(dInit, rawClient)
+	err = resourceAliCloudFnFFlowCreate(dInit, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	ReadMockResponseDiff := map[string]interface{}{
@@ -322,7 +570,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudFnfFlowCreate(dInit, rawClient)
+		err := resourceAliCloudFnFFlowCreate(dInit, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -349,7 +597,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudFnfFlowUpdate(dExisted, rawClient)
+	err = resourceAliCloudFnFFlowUpdate(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	// UpdateFlow
@@ -389,7 +637,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudFnfFlowUpdate(dExisted, rawClient)
+		err := resourceAliCloudFnFFlowUpdate(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -428,7 +676,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudFnfFlowRead(dExisted, rawClient)
+		err := resourceAliCloudFnFFlowRead(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":
@@ -447,7 +695,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			StatusCode: tea.Int(400),
 		}
 	})
-	err = resourceAlicloudFnfFlowDelete(dExisted, rawClient)
+	err = resourceAliCloudFnFFlowDelete(dExisted, rawClient)
 	patches.Reset()
 	assert.NotNil(t, err)
 	errorCodes = []string{"NonRetryableError", "Throttling", "InternalServerError", "nil", "FlowNotExists"}
@@ -469,7 +717,7 @@ func TestUnitAlicloudFnfFlow(t *testing.T) {
 			}
 			return ReadMockResponse, nil
 		})
-		err := resourceAlicloudFnfFlowDelete(dExisted, rawClient)
+		err := resourceAliCloudFnFFlowDelete(dExisted, rawClient)
 		patches.Reset()
 		switch errorCode {
 		case "NonRetryableError":

@@ -1615,7 +1615,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_kvstore_connection":                                    resourceAlicloudKvstoreConnection(),
 			"alicloud_cms_alarm_contact_group":                               resourceAlicloudCmsAlarmContactGroup(),
 			"alicloud_cms_group_metric_rule":                                 resourceAliCloudCmsGroupMetricRule(),
-			"alicloud_fnf_flow":                                              resourceAlicloudFnfFlow(),
+			"alicloud_fnf_flow":                                              resourceAliCloudFnFFlow(),
 			"alicloud_fnf_schedule":                                          resourceAlicloudFnfSchedule(),
 			"alicloud_ros_change_set":                                        resourceAlicloudRosChangeSet(),
 			"alicloud_ros_stack":                                             resourceAlicloudRosStack(),
