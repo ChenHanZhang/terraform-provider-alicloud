@@ -20,12 +20,6 @@ For information about Function Compute Service V3 (FCV3) Function and how to use
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_fcv3_function&exampleId=9c93b29f-29a3-2a4a-410e-7ff176f24eb199f2f587&activeTab=example&spm=docs.r.fcv3_function.0.9c93b29f29&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -114,36 +108,34 @@ resource "alicloud_fcv3_function" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_fcv3_function&spm=docs.r.fcv3_function.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `code` - (Optional, List) Function code ZIP package. code and customContainerConfig. See [`code`](#code) below.
+* `code` - (Optional, Set) Function code ZIP package. code and customContainerConfig. See [`code`](#code) below.
 
--> **NOTE:** This parameter only applies during resource creation, update. If modified in isolation without other property changes, Terraform will not trigger any action.
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
 * `cpu` - (Optional, Computed, Float) The CPU specification of the function. The unit is vCPU, which is a multiple of the 0.05 vCPU.
-* `custom_container_config` - (Optional, List) The configuration of the custom container runtime. After the configuration is successful, the function can use the custom container image to execute the function. code and customContainerConfig. See [`custom_container_config`](#custom_container_config) below.
-* `custom_dns` - (Optional, List) Function custom DNS configuration See [`custom_dns`](#custom_dns) below.
-* `custom_runtime_config` - (Optional, List) Customize the runtime configuration. See [`custom_runtime_config`](#custom_runtime_config) below.
+* `custom_container_config` - (Optional, Set) The configuration of the custom container runtime. After the configuration is successful, the function can use the custom container image to execute the function. code and customContainerConfig. See [`custom_container_config`](#custom_container_config) below.
+* `custom_dns` - (Optional, Set) Function custom DNS configuration See [`custom_dns`](#custom_dns) below.
+* `custom_runtime_config` - (Optional, Set) Customize the runtime configuration. See [`custom_runtime_config`](#custom_runtime_config) below.
 * `description` - (Optional) The description of the function. The function compute system does not use this attribute value, but we recommend that you set a concise and clear description for the function.
 * `disk_size` - (Optional, Computed, Int) The disk specification of the function, in MB. The optional value is 512 MB or 10240MB.
 * `environment_variables` - (Optional, Map) The environment variable set for the function, you can get the value of the environment variable in the function.
 * `function_name` - (Optional, ForceNew, Computed) The function name. Consists of uppercase and lowercase letters, digits (0 to 9), underscores (_), and dashes (-). It must begin with an English letter (a ~ z), (A ~ Z), or an underscore (_). Case sensitive. The length is 1~128 characters.
-* `gpu_config` - (Optional, List) Function GPU configuration. See [`gpu_config`](#gpu_config) below.
+* `gpu_config` - (Optional, Set) Function GPU configuration. See [`gpu_config`](#gpu_config) below.
 * `handler` - (Required) Function Handler: the call entry for the function compute system to run your function.
 * `idle_timeout` - (Optional, ForceNew, Int, Available since v1.266.0) Destroy an instance when the instance no-request duration exceeds this attribute. - 1 means that the threshold is cleared and the system default behavior is used.
 * `instance_concurrency` - (Optional, Computed, Int) Maximum instance concurrency.
 * `instance_isolation_mode` - (Optional, Computed, Available since v1.256.0) Instance isolation mode
-* `instance_lifecycle_config` - (Optional, List) Instance lifecycle callback method configuration. See [`instance_lifecycle_config`](#instance_lifecycle_config) below.
+* `instance_lifecycle_config` - (Optional, Set) Instance lifecycle callback method configuration. See [`instance_lifecycle_config`](#instance_lifecycle_config) below.
 * `internet_access` - (Optional, Computed) Allow function to access public network
-* `invocation_restriction` - (Optional, List, Available since v1.255.0) Invocation Restriction Detail See [`invocation_restriction`](#invocation_restriction) below.
+* `invocation_restriction` - (Optional, Set) Invocation Restriction Detail See [`invocation_restriction`](#invocation_restriction) below.
 * `layers` - (Optional, List) The list of layers.
-* `log_config` - (Optional, List) The logs generated by the function are written to the configured Logstore. See [`log_config`](#log_config) below.
+* `log_config` - (Optional, Set) The logs generated by the function are written to the configured Logstore. See [`log_config`](#log_config) below.
 * `memory_size` - (Optional, Computed, Int) The memory specification of the function. The unit is MB. The memory size is a multiple of 64MB. The minimum value is 128MB and the maximum value is 32GB. At the same time, the ratio of cpu to memorySize (calculated by GB) should be between 1:1 and 1:4.
-* `nas_config` - (Optional, Computed, List) NAS configuration. After this parameter is configured, the function can access the specified NAS resource. See [`nas_config`](#nas_config) below.
-* `oss_mount_config` - (Optional, Computed, List) OSS mount configuration See [`oss_mount_config`](#oss_mount_config) below.
+* `nas_config` - (Optional, Computed, Set) NAS configuration. After this parameter is configured, the function can access the specified NAS resource. See [`nas_config`](#nas_config) below.
+* `oss_mount_config` - (Optional, Computed, Set) OSS mount configuration See [`oss_mount_config`](#oss_mount_config) below.
 * `resource_group_id` - (Optional, Computed, Available since v1.260.0) Resource Group ID
 * `role` - (Optional) The user is authorized to the RAM role of function compute. After the configuration, function compute will assume this role to generate temporary access credentials. In the function, you can use the temporary access credentials of the role to access the specified Alibaba cloud service, such as OSS and OTS
 * `runtime` - (Required) Function runtime type
@@ -151,7 +143,7 @@ The following arguments are supported:
 * `session_affinity_config` - (Optional, Available since v1.256.0) When you set the sessionAffinity affinity type, you need to set the relevant affinity configuration. For example, the MCP_SSE affinity needs to fill in the mcpssessionaffinityconfig configuration. The Cookie affinity needs to be filled with the CookieSessionAffinityConfig configuration, and the Header Field affinity needs to be filled with the HeaderFieldSessionAffinityConfig configuration.
 * `tags` - (Optional, Map, Available since v1.242.0) The tag of the resource
 * `timeout` - (Optional, Computed, Int) The maximum running time of the function, in seconds.
-* `vpc_config` - (Optional, Computed, List) VPC configuration. After this parameter is configured, the function can access the specified VPC resources. See [`vpc_config`](#vpc_config) below.
+* `vpc_config` - (Optional, Computed, Set) VPC configuration. After this parameter is configured, the function can access the specified VPC resources. See [`vpc_config`](#vpc_config) below.
 
 ### `code`
 
@@ -164,23 +156,23 @@ The code supports the following:
 ### `custom_container_config`
 
 The custom_container_config supports the following:
-* `acceleration_type` - (Optional, Deprecated since v1.228.0) Whether to enable Image acceleration. Default: The Default value, indicating that image acceleration is enabled. None: indicates that image acceleration is disabled. (Obsolete)
-* `acr_instance_id` - (Optional, Deprecated since v1.228.0) ACR Enterprise version Image Repository ID, which must be entered when using ACR Enterprise version image. (Obsolete)
+* `acceleration_type` - (Optional, Deprecated since v1.282.0) Whether to enable Image acceleration. Default: The Default value, indicating that image acceleration is enabled. None: indicates that image acceleration is disabled. (Obsolete)
+* `acr_instance_id` - (Optional, Deprecated since v1.282.0) ACR Enterprise version Image Repository ID, which must be entered when using ACR Enterprise version image. (Obsolete)
 * `command` - (Optional, List) Container startup parameters.
 * `entrypoint` - (Optional, List) Container start command.
-* `health_check_config` - (Optional, List) Function custom health check configuration See [`health_check_config`](#custom_container_config-health_check_config) below.
+* `health_check_config` - (Optional, Computed, Set) Function custom health check configuration See [`health_check_config`](#custom_container_config-health_check_config) below.
 * `image` - (Optional) The container Image address.
 * `port` - (Optional, Int) The listening port of the HTTP Server when the custom container runs.
 
 ### `custom_container_config-health_check_config`
 
 The custom_container_config-health_check_config supports the following:
-* `failure_threshold` - (Optional, Int) The health check failure threshold. The system considers the health check failure when the health check fails. The value range is 1~120. The default value is 3.
-* `http_get_url` - (Optional) The URL of the container's custom health check.
-* `initial_delay_seconds` - (Optional, Int) The delay between the start of the container and the initiation of the health check. Value range 0~120. The default value is 0.
-* `period_seconds` - (Optional, Int) Health check cycle. The value range is 1~120. The default value is 3.
-* `success_threshold` - (Optional, Int) The threshold for the number of successful health checks. When the threshold is reached, the system considers that the health check is successful. The value range is 1~120. The default value is 1.
-* `timeout_seconds` - (Optional, Int) Health check timeout. Value range 1~3. The default value is 1.
+* `failure_threshold` - (Optional, Computed, Int) The health check failure threshold. The system considers the health check failure when the health check fails. The value range is 1~120. The default value is 3.
+* `http_get_url` - (Optional, Computed) The URL of the container's custom health check.
+* `initial_delay_seconds` - (Optional, Computed, Int) The delay between the start of the container and the initiation of the health check. Value range 0~120. The default value is 0.
+* `period_seconds` - (Optional, Computed, Int) Health check cycle. The value range is 1~120. The default value is 3.
+* `success_threshold` - (Optional, Computed, Int) The threshold for the number of successful health checks. When the threshold is reached, the system considers that the health check is successful. The value range is 1~120. The default value is 1.
+* `timeout_seconds` - (Optional, Computed, Int) Health check timeout. Value range 1~3. The default value is 1.
 
 ### `custom_dns`
 
@@ -200,18 +192,18 @@ The custom_dns-dns_options supports the following:
 The custom_runtime_config supports the following:
 * `args` - (Optional, List) Instance startup parameters.
 * `command` - (Optional, List) Instance start command.
-* `health_check_config` - (Optional, List) Function custom health check configuration. See [`health_check_config`](#custom_runtime_config-health_check_config) below.
+* `health_check_config` - (Optional, Computed, Set) Function custom health check configuration. See [`health_check_config`](#custom_runtime_config-health_check_config) below.
 * `port` - (Optional, Computed, Int) The listening port of the HTTP Server.
 
 ### `custom_runtime_config-health_check_config`
 
 The custom_runtime_config-health_check_config supports the following:
 * `failure_threshold` - (Optional, Computed, Int) The health check failure threshold. The system considers the health check failure when the health check fails. The value range is 1~120. The default value is 3.
-* `http_get_url` - (Optional) The URL of the container's custom health check. No more than 2048 characters in length.
-* `initial_delay_seconds` - (Optional, Int) The delay between the start of the container and the initiation of the health check. Value range 0~120. The default value is 0.
-* `period_seconds` - (Optional, Int) Health check cycle. The value range is 1~120. The default value is 3.
-* `success_threshold` - (Optional, Int) The threshold for the number of successful health checks. When the threshold is reached, the system considers that the health check is successful. The value range is 1~120. The default value is 1.
-* `timeout_seconds` - (Optional, Int) Health check timeout. Value range 1~3. The default value is 1.
+* `http_get_url` - (Optional, Computed) The URL of the container's custom health check. No more than 2048 characters in length.
+* `initial_delay_seconds` - (Optional, Computed, Int) The delay between the start of the container and the initiation of the health check. Value range 0~120. The default value is 0.
+* `period_seconds` - (Optional, Computed, Int) Health check cycle. The value range is 1~120. The default value is 3.
+* `success_threshold` - (Optional, Computed, Int) The threshold for the number of successful health checks. When the threshold is reached, the system considers that the health check is successful. The value range is 1~120. The default value is 1.
+* `timeout_seconds` - (Optional, Computed, Int) Health check timeout. Value range 1~3. The default value is 1.
 
 ### `gpu_config`
 
@@ -225,8 +217,8 @@ The gpu_config supports the following:
 ### `instance_lifecycle_config`
 
 The instance_lifecycle_config supports the following:
-* `initializer` - (Optional, List) Initializer handler method configuration See [`initializer`](#instance_lifecycle_config-initializer) below.
-* `pre_stop` - (Optional, List) PreStop handler method configuration See [`pre_stop`](#instance_lifecycle_config-pre_stop) below.
+* `initializer` - (Optional, Set) Initializer handler method configuration See [`initializer`](#instance_lifecycle_config-initializer) below.
+* `pre_stop` - (Optional, Set) PreStop handler method configuration See [`pre_stop`](#instance_lifecycle_config-pre_stop) below.
 
 ### `instance_lifecycle_config-initializer`
 
@@ -245,7 +237,7 @@ The instance_lifecycle_config-pre_stop supports the following:
 
 The invocation_restriction supports the following:
 * `disable` - (Optional, Available since v1.255.0) Whether invocation is disabled
-* `reason` - (Optional, Available since v1.255.0) Disable Reason
+* `reason` - (Optional) Disable Reason
 
 ### `log_config`
 
@@ -287,34 +279,34 @@ The oss_mount_config-mount_points supports the following:
 ### `vpc_config`
 
 The vpc_config supports the following:
-* `security_group_id` - (Optional) Security group ID
+* `security_group_id` - (Optional, Computed) Security group ID
 * `vswitch_ids` - (Optional, List) Switch List
-* `vpc_id` - (Optional) VPC network ID
+* `vpc_id` - (Optional, Computed) VPC network ID
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `code_size` - The code package size of the function returned by the system, in byte Example : 1024
+* `id` - The ID of the resource supplied above. 
+* `code_size` - The code package size of the function returned by the system, in byte Example : 1024.
 * `create_time` - The creation time of the function.
-* `custom_container_config` - The configuration of the custom container runtime. After the configuration is successful, the function can use the custom container image to execute the function. code and customContainerConfig.
-  * `acceleration_info` - (Deprecated since v1.242.0) Image Acceleration Information (Obsolete)
-    * `status` - Image Acceleration Status (Deprecated)
-  * `resolved_image_uri` - The actual digest version of the deployed Image. The code version specified by this digest is used when the function starts.
-* `function_arn` - ARN of function
-* `function_id` - The first ID of the resource
-* `invocation_restriction` - Invocation Restriction Detail
-  * `last_modified_time` - Last modified time of invocation restriction
-* `last_modified_time` - Last time the function was Updated
-* `last_update_status` - The status of the last function update operation. When the function is created successfully, the value is Successful. Optional values are Successful, Failed, and InProgress.
-* `last_update_status_reason` - The reason that caused the last function to update the Operation State to the current value
-* `last_update_status_reason_code` - Status code of the reason that caused the last function update operation status to the current value
-* `state` - Function Status
-* `state_reason` - The reason why the function is in the current state
+* `custom_container_config` - The configuration of the custom container runtime.
+  * `acceleration_info` - Image Acceleration Information (Obsolete).
+    * `status` - Image Acceleration Status (Deprecated).
+  * `resolved_image_uri` - The actual digest version of the deployed Image.
+* `function_arn` - ARN of function.
+* `function_id` - The first ID of the resource.
+* `invocation_restriction` - Invocation Restriction Detail.
+  * `last_modified_time` - Last modified time of invocation restriction.
+* `last_modified_time` - Last time the function was Updated.
+* `last_update_status` - The status of the last function update operation.
+* `last_update_status_reason` - The reason that caused the last function to update the Operation State to the current value.
+* `last_update_status_reason_code` - Status code of the reason that caused the last function update operation status to the current value.
+* `state` - Function Status.
+* `state_reason` - The reason why the function is in the current state.
 * `state_reason_code` - The status code of the reason the function is in the current state.
-* `tracing_config` - Tracing configuration
-  * `params` - Tracing parameters
-  * `type` - The tracing protocol type. Currently, only Jaeger is supported.
+* `tracing_config` - Tracing configuration.
+  * `params` - Tracing parameters.
+  * `type` - The tracing protocol type.
 
 ## Timeouts
 
@@ -328,5 +320,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Function Compute Service V3 (FCV3) Function can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_fcv3_function.example <id>
+$ terraform import alicloud_fcv3_function.example <function_name>
 ```
