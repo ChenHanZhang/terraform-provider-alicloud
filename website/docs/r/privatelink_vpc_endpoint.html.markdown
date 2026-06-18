@@ -20,12 +20,6 @@ For information about Private Link Vpc Endpoint and how to use it, see [What is 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_privatelink_vpc_endpoint&exampleId=5272b15f-709e-789e-0a7b-61727e7a83a1e65c68d6&activeTab=example&spm=docs.r.privatelink_vpc_endpoint.0.5272b15f70&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -71,63 +65,90 @@ resource "alicloud_privatelink_vpc_endpoint" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_privatelink_vpc_endpoint&spm=docs.r.privatelink_vpc_endpoint.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `address_ip_version` - (Optional, Computed, Available since v1.239.0) The IP address version. Valid values:
-  - `IPv4` (default): IPv4.
-  - `DualStack`: dual-stack.
-* `cross_region_bandwidth` - (Optional, Computed, Int, Available since v1.282.0) The cross-region bandwidth that is supported by the cross-region endpoint.
-* `dry_run` - (Optional) Specifies whether to perform only a dry run, without performing the actual request. Valid values:
-  - `true`: performs only a dry run. The system checks the request for potential issues, including missing parameter values, incorrect request syntax, and service limits. If the request fails the dry run, an error message is returned. If the request passes the dry run, the DryRunOperation error code is returned.
-  - **false (default)**: performs a dry run and performs the actual request. If the request passes the dry run, a 2xx HTTP status code is returned and the operation is performed.
-* `endpoint_description` - (Optional) The description of the endpoint.
-* `endpoint_type` - (Optional, ForceNew, Computed, Available since v1.212.0) The type of the endpoint. Valid values:
-  - `Interface`: an interface endpoint. You can add Application Load Balancer (ALB), Classic Load Balancer (CLB), and Network Load Balancer (NLB) instances as service resources.
-  - `GatewayLoadBalancer`: a Gateway Load Balancer endpoint. You can add a Gateway Load Balancer (GWLB) as a service resource.
-* `policy_document` - (Optional, Available since v1.223.2) RAM access policies. For more information about policy definitions, see Alibaba Cloud-access control (RAM) official guidance.
-* `protected_enabled` - (Optional, Available since v1.212.0) Specifies whether to enable user authentication. This parameter is available in Security Token Service (STS) mode. Valid values:
-  - `true`: enables user authentication. After user authentication is enabled, only the user who creates the endpoint can modify or delete the endpoint in STS mode.
-  - **false (default)**: disables user authentication.
-* `resource_group_id` - (Optional, Computed, Available since v1.212.0) The resource group ID.
-* `security_group_ids` - (Optional, Set) The ID of the security group that is associated with the endpoint ENI. The security group can be used to control data transfer between the VPC and the endpoint ENI.
+* `address_ip_version` - (Optional, Computed, Available since v1.239.0) The IP version. Valid values:
+  - `IPv4`: IPv4 (default).
+  - `DualStack`: Dual stack.
 
-  The endpoint can be associated with up to 10 security groups.
-* `service_id` - (Optional, ForceNew, Computed) The ID of the endpoint service with which the endpoint is associated.
-* `service_region_id` - (Optional, Computed, ForceNew, Available since v1.282.0) The region ID of the endpoint service.
-* `service_name` - (Optional, ForceNew, Computed) The name of the endpoint service with which the endpoint is associated.
+-> **NOTE:**  To support dual stack, both the connected endpoint service and the VPC where the endpoint resides must support dual stack.
+
+* `cross_region_bandwidth` - (Optional, Computed, Int, Available since v1.282.0) The cross-region bandwidth value. This parameter applies only when the endpoint and the endpoint service are in different regions. Unit: Mbps. Valid values:
+  - `Minimum`: 100.
+  - `Maximum`: Limited by your account quota (for details, see the [Quotas and limits](https://help.aliyun.com/zh/privatelink/quotas-and-limits?spm=a2c4g.11174283.help-menu-search-120462.d_0) section).
+
+-> **NOTE:**  If you want to specify this parameter, ensure that you are working with a cross-region endpoint.
+
+* `dry_run` - (Optional) Specifies whether to only precheck the request. Valid values:
+  - `true`: Sends a dry-run request without creating the endpoint. The system checks whether required parameters are specified, whether the request format is valid, and whether the request complies with business limits. If the check fails, an error is returned. If the check succeeds, the error code `DryRunOperation` is returned.
+  - `false` (default): Sends a normal request. If the request passes the check, an HTTP 2xx status code is returned and the operation is performed.
+
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
+
+* `endpoint_description` - (Optional) The description of the endpoint.
+The description must be 2 to 256 characters in length and cannot start with `http://` or `https://`.
+* `endpoint_type` - (Optional, ForceNew, Computed, Available since v1.212.0) The endpoint type. Valid values:
+  - `Interface`: indicates an interface endpoint. You can add service resource types such as Application Load Balancer (ALB), Classic Load Balancer (CLB), and Network Load Balancer (NLB).
+  - `Reverse`: indicates a reverse endpoint. You can add a VPC NAT gateway as a service resource.
+  - `GatewayLoadBalancer`: indicates a Gateway Load Balancer endpoint. You can add Gateway Load Balancer (GWLB) as a service resource.
+
+-> **NOTE:**  Services that support reverse endpoints can only be provided by Alibaba Cloud and its ecosystem partners. By default, you cannot create such services yourself. If you need to create one, contact your account manager to apply.
+
+* `policy_document` - (Optional, Computed, Available since v1.223.2) The RAM policy. For more information about policy definitions, see [Basic elements of a policy](https://help.aliyun.com/document_detail/93738.html).
+* `protected_enabled` - (Optional, Available since v1.212.0) Specifies whether managed protection is enabled. This setting takes effect only for STS-based API calls. Valid values:
+  - `true`: Enabled. After managed protection is enabled, only the user who created the endpoint can modify or delete it through STS.
+  - `false` (default): Disabled.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `resource_group_id` - (Optional, Computed, Available since v1.212.0) The ID of the resource group.
+* `security_group_ids` - (Optional, List) The list of security groups associated with the endpoint ENI.
+* `service_id` - (Optional, ForceNew, Computed) The ID of the endpoint service associated with the endpoint.
+* `service_name` - (Optional, ForceNew, Computed) The name of the endpoint service associated with the endpoint.
+* `service_region_id` - (Optional, ForceNew, Computed, Available since v1.282.0) The region ID of the endpoint service associated with the endpoint.
 * `tags` - (Optional, Map, Available since v1.212.0) The list of tags.
 * `vpc_endpoint_name` - (Optional) The name of the endpoint.
-* `vpc_id` - (Required, ForceNew) The ID of the VPC to which the endpoint belongs.
-* `zone_private_ip_address_count` - (Optional, ForceNew, Computed, Int, Available since v1.212.0) The number of private IP addresses that are assigned to an elastic network interface (ENI) in each zone. Only 1 is returned.
+The name must be 2 to 128 characters in length, and can contain letters, digits, hyphens (-), and underscores (_). It must start with a letter or a Chinese character.
+* `vpc_id` - (Required, ForceNew) The virtual private cloud (VPC) to which the endpoint belongs.
+* `zone_private_ip_address_count` - (Optional, ForceNew, Computed, Int) The number of private IP addresses for the ENI in each zone. Valid value: `1` only.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `bandwidth` - The bandwidth of the endpoint connection.  1024 to 10240. Unit: Mbit/s.
-
-  Note: The bandwidth of an endpoint connection is in the range of 100 to 10,240 Mbit/s. The default bandwidth is 1,024 Mbit/s. When the endpoint is connected to the endpoint service, the default bandwidth is the minimum bandwidth. In this case, the connection bandwidth range is 1,024 to 10,240 Mbit/s.
-* `connection_status` - The state of the endpoint connection. 
-* `create_time` - The time when the endpoint was created.
-* `endpoint_business_status` - The service state of the endpoint. 
-* `endpoint_domain` - The domain name of the endpoint.
-* `region_id` - (Available since v1.239.0) The region ID of the endpoint.
-* `status` - The state of the endpoint. 
+* `id` - The ID of the resource supplied above. 
+* `bandwidth` - The connection bandwidth of the endpoint.
+* `connection_status` - The endpoint connection status.
+* `connections` - VPC endpoint connection information.
+  * `bandwidth` - The bandwidth of the VPC endpoint connection, in Mbps.
+  * `connection_status` - The status of the VPC endpoint connection.
+  * `endpoint_owner_id` - The ID of the account to which the VPC endpoint belongs.
+  * `modified_time` - The time when the connection was modified.
+  * `zones` - List of zone information.
+    * `eni_id` - The endpoint ENI ID.
+    * `resource_id` - The service resource ID.
+    * `vswitch_id` - The vSwitch to which the endpoint belongs.
+    * `zone_domain` - The zone domain name.
+    * `zone_id` - The zone ID.
+* `create_time` - The creation time of the endpoint.
+* `endpoint_business_status` - The business status of the endpoint.
+* `endpoint_domain` - The endpoint domain name.
+* `payer` - The payer.
+* `resource_owner` - Indicates whether the endpoint and the endpoint service belong to the same account.
+* `status` - The status of the endpoint.
+* `zone_affinity_enabled` - Specifies whether the endpoint domain name of the connected service supports zone-affinity-based DNS resolution.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Vpc Endpoint.
+* `create` - (Defaults to 6 mins) Used when create the Vpc Endpoint.
 * `delete` - (Defaults to 5 mins) Used when delete the Vpc Endpoint.
-* `update` - (Defaults to 5 mins) Used when update the Vpc Endpoint.
+* `update` - (Defaults to 7 mins) Used when update the Vpc Endpoint.
 
 ## Import
 
 Private Link Vpc Endpoint can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_privatelink_vpc_endpoint.example <id>
+$ terraform import alicloud_privatelink_vpc_endpoint.example <endpoint_id>
 ```
