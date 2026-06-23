@@ -520,6 +520,197 @@ resource "alicloud_wafv3_defense_template" "defaultfIoHt5-hf" {
 }
 
 // Test Wafv3 DefenseRule. >>> Resource test cases, automatically generated.
+// Case  DefenseRule__地址簿_白名单 12724
+func TestAccAliCloudWafv3DefenseRule_basic12724(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_wafv3_defense_rule.default"
+	ra := resourceAttrInit(resourceId, AlicloudWafv3DefenseRuleMap12724)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeWafv3DefenseRule")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccwafv3%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DefenseRuleBasicDependence12724)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04E.id}",
+					"defense_type":   "template",
+					"defense_scene":  "whitelist",
+					"rule_status":    "1",
+					"template_id":    "${alicloud_wafv3_defense_template.defaultBQg9ZY.defense_template_id}",
+					"rule_name":      "tf-whitelist",
+					"defense_origin": "custom",
+					"config": []map[string]interface{}{
+						{
+							"conditions": []map[string]interface{}{
+								{
+									"op_value": "contain",
+									"values":   "abc",
+									"key":      "URL",
+									"sub_key":  "request_url",
+								},
+								{
+									"op_value": "contain",
+									"values":   "test",
+									"key":      "URLPath",
+									"sub_key":  "reqeust-url",
+								},
+								{
+									"op_value": "eq",
+									"values":   "2.2.2.2",
+									"key":      "IP",
+									"sub_key":  "requset-ip",
+								},
+								{
+									"key":      "IP",
+									"op_value": "in-list",
+									"values":   "${alicloud_wafv3_address_book.defaultURndOy.address_book_id}",
+								},
+							},
+							"bypass_tags": []string{
+								"customrule", "blacklist", "antiscan", "regular_type"},
+							"bypass_regular_types": []string{
+								"xss", "sql", "code_exec"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"instance_id":    CHECKSET,
+						"defense_type":   "template",
+						"defense_scene":  "whitelist",
+						"rule_status":    "1",
+						"template_id":    CHECKSET,
+						"rule_name":      "tf-whitelist",
+						"defense_origin": "custom",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"rule_status": "0",
+					"rule_name":   "test-whietest-update",
+					"config": []map[string]interface{}{
+						{
+							"conditions": []map[string]interface{}{
+								{
+									"op_value": "lt",
+									"values":   "10",
+									"key":      "Content-Length",
+									"sub_key":  "requeset-content-length",
+								},
+							},
+							"bypass_tags": []string{
+								"cc", "regular_type"},
+							"bypass_regular_types": []string{
+								"xss"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"rule_status": "0",
+						"rule_name":   "test-whietest-update",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"rule_status": "1",
+					"rule_name":   "whitelist-update-2",
+					"config": []map[string]interface{}{
+						{
+							"conditions": []map[string]interface{}{
+								{
+									"op_value": "contain",
+									"values":   "abc",
+									"key":      "URL",
+									"sub_key":  "testurl",
+								},
+							},
+							"bypass_tags": []string{
+								"regular_type"},
+							"bypass_regular_types": []string{
+								"sqli", "xss", "code_exec"},
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"rule_status": "1",
+						"rule_name":   "whitelist-update-2",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudWafv3DefenseRuleMap12724 = map[string]string{
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
+}
+
+func AlicloudWafv3DefenseRuleBasicDependence12724(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+variable "region_id" {
+  default = "cn-hangzhou"
+}
+
+resource "alicloud_wafv3_instance" "defaultnxb04E" {
+}
+
+resource "alicloud_wafv3_defense_template" "defaultBQg9ZY" {
+  status                = "1"
+  description           = "testCreate"
+  instance_id           = alicloud_wafv3_instance.defaultnxb04E.id
+  defense_template_name = "1782208648"
+  template_origin       = "custom"
+  defense_scene         = "whitelist"
+  template_type         = "user_custom"
+}
+
+resource "alicloud_wafv3_address_book" "defaultURndOy" {
+  description       = "test"
+  instance_id       = alicloud_wafv3_instance.defaultnxb04E.id
+  address_book_name = "1782208648"
+  address_book_type = "ip"
+  address_list      = ["100.100.100.100/32"]
+}
+
+resource "alicloud_wafv3_address_book" "default1aeUw7" {
+  description       = "test"
+  instance_id       = alicloud_wafv3_instance.defaultnxb04E.id
+  address_book_name = "1782208648"
+  address_book_type = "ip"
+  address_list      = ["100.100.100.100/32"]
+}
+
+
+`, name)
+}
+
 // Case  DefenseRule-20250715_resource 11029
 func TestAccAliCloudWafv3DefenseRule_basic11029(t *testing.T) {
 	var v map[string]interface{}
@@ -544,7 +735,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11029(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "resource",
 					"defense_scene":  "account_identifier",
 					"rule_status":    "1",
@@ -631,7 +822,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11029(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11029 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11029(name string) string {
@@ -655,13 +847,10 @@ resource "alicloud_wafv3_domain" "defaultICMRhk" {
   redirect {
     loadbalance = "iphash"
     backends    = ["39.98.217.197"]
-    connect_timeout = 5
-    read_timeout    = 120
-    write_timeout   = 120
   }
-  domain      = "testfromtftest01.wafqax.top"
+  domain      = "1511928242963727.wafqax.top"
   access_type = "share"
-  instance_id = data.alicloud_wafv3_instances.default.ids.0
+  instance_id = alicloud_wafv3_instance.defaultnxb04D.id
   listen {
     http_ports = ["80"]
   }
@@ -696,7 +885,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11017(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"defense_origin": "custom",
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"config": []map[string]interface{}{
 						{
 							"rule_action": "block",
@@ -1019,7 +1208,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11017(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11017 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11017(name string) string {
@@ -1036,9 +1226,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultfIoHt5" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078439"
+  defense_template_name = "1782208652"
   defense_scene         = "custom_acl"
   template_type         = "user_custom"
   status                = "1"
@@ -1073,7 +1263,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11097(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "whitelist",
 					"rule_status":    "1",
@@ -1189,7 +1379,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11097(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11097 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11097(name string) string {
@@ -1206,9 +1397,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultZmPPmw" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078467"
+  defense_template_name = "1782208654"
   defense_scene         = "whitelist"
   template_type         = "user_custom"
   status                = "1"
@@ -1243,7 +1434,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11070(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "ip_blacklist",
 					"rule_status":    "1",
@@ -1300,7 +1491,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11070(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11070 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11070(name string) string {
@@ -1317,9 +1509,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultZmPPmw-ipblack" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078494"
+  defense_template_name = "1782208655"
   defense_scene         = "ip_blacklist"
   template_type         = "user_custom"
   status                = "1"
@@ -1354,7 +1546,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11081(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "dlp",
 					"rule_status":    "1",
@@ -1435,7 +1627,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11081(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11081 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11081(name string) string {
@@ -1452,9 +1645,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultZmPPmw-dlp" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078522"
+  defense_template_name = "1782208657"
   defense_scene         = "dlp"
   template_type         = "user_custom"
   status                = "1"
@@ -1489,7 +1682,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11079(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "tamperproof",
 					"rule_status":    "1",
@@ -1546,7 +1739,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11079(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11079 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11079(name string) string {
@@ -1563,9 +1757,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultZmPPmw-fcg" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078550"
+  defense_template_name = "1782208659"
   defense_scene         = "tamperproof"
   template_type         = "user_custom"
   status                = "1"
@@ -1600,7 +1794,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11076(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "whitelist",
 					"rule_status":    "1",
@@ -1715,7 +1909,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11076(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11076 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11076(name string) string {
@@ -1732,9 +1927,9 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultBQg9ZY" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078580"
+  defense_template_name = "1782208660"
   defense_scene         = "whitelist"
   template_type         = "user_custom"
   status                = "1"
@@ -1769,7 +1964,7 @@ func TestAccAliCloudWafv3DefenseRule_basic11084(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
+					"instance_id":    "${alicloud_wafv3_instance.defaultnxb04D.id}",
 					"defense_type":   "template",
 					"defense_scene":  "spike_throttle",
 					"rule_status":    "1",
@@ -1857,7 +2052,8 @@ func TestAccAliCloudWafv3DefenseRule_basic11084(t *testing.T) {
 }
 
 var AlicloudWafv3DefenseRuleMap11084 = map[string]string{
-	"rule_id": CHECKSET,
+	"rule_id":      CHECKSET,
+	"gmt_modified": CHECKSET,
 }
 
 func AlicloudWafv3DefenseRuleBasicDependence11084(name string) string {
@@ -1874,116 +2070,10 @@ data "alicloud_wafv3_instances" "default" {
 }
 
 resource "alicloud_wafv3_defense_template" "defaultfIoHt5-hf" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
+instance_id           = data.alicloud_wafv3_instances.default.ids.0
   template_origin       = "custom"
-  defense_template_name = "1758078609"
+  defense_template_name = "1782208662"
   defense_scene         = "spike_throttle"
-  template_type         = "user_custom"
-  status                = "1"
-  description           = "testCreate"
-}
-
-
-`, name)
-}
-
-// Case  DefenseRule__20250723——CC，删除时报错 11078
-func TestAccAliCloudWafv3DefenseRule_basic11078(t *testing.T) {
-	// there is a bug in delete api
-	t.Skipf("Skipping the test case because there is a bug in delete api")
-	t.Skipped()
-	var v map[string]interface{}
-	resourceId := "alicloud_wafv3_defense_rule.default"
-	ra := resourceAttrInit(resourceId, AlicloudWafv3DefenseRuleMap11078)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &Wafv3ServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeWafv3DefenseRule")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccwafv3%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudWafv3DefenseRuleBasicDependence11078)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"instance_id":    "${data.alicloud_wafv3_instances.default.ids.0}",
-					"defense_type":   "template",
-					"defense_scene":  "cc",
-					"rule_status":    "1",
-					"template_id":    "${alicloud_wafv3_defense_template.defaultZmPPmw-cc.defense_template_id}",
-					"defense_origin": "custom",
-					"config": []map[string]interface{}{
-						{
-							"mode": "0",
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"instance_id":    CHECKSET,
-						"defense_type":   "template",
-						"defense_scene":  "cc",
-						"rule_status":    "1",
-						"template_id":    CHECKSET,
-						"defense_origin": "custom",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"rule_status": "0",
-					"config": []map[string]interface{}{
-						{
-							"mode": "1",
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"rule_status": "0",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
-			},
-		},
-	})
-}
-
-var AlicloudWafv3DefenseRuleMap11078 = map[string]string{
-	"rule_id": CHECKSET,
-}
-
-func AlicloudWafv3DefenseRuleBasicDependence11078(name string) string {
-	return fmt.Sprintf(`
-variable "name" {
-    default = "%s"
-}
-
-variable "region_id" {
-  default = "cn-hangzhou"
-}
-
-data "alicloud_wafv3_instances" "default" {
-}
-
-resource "alicloud_wafv3_defense_template" "defaultZmPPmw-cc" {
-  instance_id           = data.alicloud_wafv3_instances.default.ids.0
-  template_origin       = "custom"
-  defense_template_name = "1761808233"
-  defense_scene         = "cc"
   template_type         = "user_custom"
   status                = "1"
   description           = "testCreate"
