@@ -10,7 +10,7 @@ description: |-
 
 Provides a Distributed Relational Database Service (DRDS) Polardbx Instance resource.
 
-PolarDB-X Database Instance.
+PolarDB-X database instance.
 
 For information about Distributed Relational Database Service (DRDS) Polardbx Instance and how to use it, see [What is Polardbx Instance](https://www.alibabacloud.com/help/en/polardb/polardb-for-xscale/api-createdbinstance-1).
 
@@ -19,12 +19,6 @@ For information about Distributed Relational Database Service (DRDS) Polardbx In
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_drds_polardbx_instance&exampleId=fbf375da-c462-25f1-a343-5a1971bc805bcf3c5f9b&activeTab=example&spm=docs.r.drds_polardbx_instance.0.fbf375dac4&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -59,45 +53,77 @@ resource "alicloud_drds_polardbx_instance" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_drds_polardbx_instance&spm=docs.r.drds_polardbx_instance.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `cn_class` - (Required, ForceNew) Compute node specifications.
-* `cn_node_count` - (Required, Int) Number of computing nodes.
-* `description` - (Optional, Available since v1.268.0) Instance remarks
-* `dn_class` - (Required, ForceNew) Storage node specifications.
-* `dn_node_count` - (Required, Int) The number of storage nodes.
-* `engine_version` - (Optional, ForceNew, Computed, Available since v1.268.0) Engine version, default 5.7
-* `is_read_db_instance` - (Optional, Available since v1.268.0) Whether the instance is read-only.
-  - `true`: Yes
-  - `false`: No
+* `cn_class` - (Required) Compute node specifications:
+  - **polarx.x4.medium.2e**: 2 cores, 8 GB
+  - **polarx.x4.large.2e**: 4 cores, 16 GB
+  - **polarx.x8.large.2e**: 4 cores, 32 GB
+  - **polarx.x4.xlarge.2e**: 8 cores, 32 GB
+  - **polarx.x8.xlarge.2e**: 8 cores, 64 GB
+  - **polarx.x4.2xlarge.2e**: 16 cores, 64 GB
+  - **polarx.x8.2xlarge.2e**: 16 cores, 128 GB
+  - **polarx.x4.4xlarge.2e**: 32 cores, 128 GB
+  - **polarx.x8.4xlarge.2e**: 32 cores, 256 GB
+  - **polarx.st.8xlarge.2e**: 60 cores, 470 GB
+  - **polarx.st.12xlarge.2e**: 90 cores, 720 GB
+* `cn_node_count` - (Required, Int) Number of compute nodes.
+* `description` - (Optional, Available since v1.268.0) Database description.
+* `dn_class` - (Required) Storage node specifications:
+  - **mysql.n4.medium.25**: 2 cores, 8 GB  
+  - **mysql.n4.large.25**: 4 cores, 16 GB  
+  - **mysql.x8.large.25**: 4 cores, 32 GB  
+  - **mysql.n4.xlarge.25**: 8 cores, 32 GB  
+  - **mysql.x8.xlarge.25**: 8 cores, 64 GB  
+  - **mysql.n4.2xlarge.25**: 16 cores, 64 GB  
+  - **mysql.x8.2xlarge.25**: 16 cores, 128 GB  
+  - **mysql.x4.4xlarge.25**: 32 cores, 128 GB  
+  - **mysql.x8.4xlarge.25**: 32 cores, 256 GB  
+  - **mysql.st.8xlarge.25**: 60 cores, 470 GB  
+  - **mysql.st.12xlarge.25**: 90 cores, 720 GB.  
+* `dn_node_count` - (Required, Int) Number of storage nodes.  
+* `dn_storage_space` - (Optional, Available since v1.283.0) Disk space size of the storage node.
+* `engine_version` - (Optional, ForceNew, Computed, Available since v1.268.0) The MySQL engine version, which can be 5.7 or 8.0.
+* `is_read_db_instance` - (Optional, Available since v1.268.0) Indicates whether the instance is a read-only instance.
+  - `true`: Yes  
+  - `false`: No.  
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `primary_db_instance_name` - (Optional, Available since v1.268.0) If the instance is a read-only instance, you must specify the primary instance.
+* `primary_db_instance_name` - (Optional, Available since v1.268.0) If this is a read-only instance, you must specify the primary instance.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `primary_zone` - (Required, ForceNew) Primary Availability Zone.
-* `resource_group_id` - (Optional, Computed) The resource group ID can be empty. This parameter is not supported for the time being.
-* `secondary_zone` - (Optional, ForceNew) Secondary availability zone.
-* `tertiary_zone` - (Optional, ForceNew) Third Availability Zone.
+* `primary_zone` - (Required, ForceNew) Primary zone.  
+* `resource_group_id` - (Optional, Computed) Resource group ID. This parameter can be empty and is currently unsupported.
+* `secondary_zone` - (Optional, ForceNew) Secondary zone.
+* `specified_dnscale` - (Optional, Available since v1.283.0, Deprecated since v1.283.0) SpecifiedDNScale  
+* `specified_dnspec_map_json` - (Optional, Available since v1.283.0) SpecifiedDNSpecMapJson
+* `storage_type` - (Optional, Computed, Available since v1.283.0) Storage type:  
+  - Local disk: custom_local_ssd  
+  - Cloud disk: cloud_auto
+* `switch_time_mode` - (Optional, Available since v1.283.0) Switch mode:
+  - 0: Switch immediately.
+  - 1: Switch during maintenance window.
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `tertiary_zone` - (Optional, ForceNew) Third availability zone.
 * `topology_type` - (Required, ForceNew) Topology type:
-  - `3azones`: three available areas;
-  - `1azone`: Single zone.
-* `vswitch_id` - (Required, ForceNew) The ID of the virtual switch.
-* `vpc_id` - (Required, ForceNew) The VPC ID.
+  - `3azones`: Three availability zones.
+  - `1azone`: Single availability zone.
+* `vswitch_id` - (Required, ForceNew) Virtual switch ID.
+* `vpc_id` - (Required, ForceNew) VPC ID.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `create_time` - The creation time of the resource
-* `region_id` - The region ID of the resource
-* `status` - The status of the resource
+* `id` - The ID of the resource supplied above. 
+* `create_time` - Creation time.
+* `db_node_class` - The node specification of the instance.
+* `db_node_count` - Number of instance nodes.
+* `status` - The status of the instance.
 
 ## Timeouts
 
@@ -111,5 +137,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Distributed Relational Database Service (DRDS) Polardbx Instance can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_drds_polardbx_instance.example <id>
+$ terraform import alicloud_drds_polardbx_instance.example <polardbx_instance_id>
 ```
