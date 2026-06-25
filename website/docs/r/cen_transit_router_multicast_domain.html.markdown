@@ -20,12 +20,6 @@ For information about Cloud Enterprise Network (CEN) Transit Router Multicast Do
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cen_transit_router_multicast_domain&exampleId=d621188c-0864-7543-c36d-b5a26de26ca4f1e06fdf&activeTab=example&spm=docs.r.cen_transit_router_multicast_domain.0.d621188c08&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -51,28 +45,27 @@ resource "alicloud_cen_transit_router_multicast_domain" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cen_transit_router_multicast_domain&spm=docs.r.cen_transit_router_multicast_domain.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `options` - (Optional, Set, Available since v1.242.0) The function options of the multicast domain. See [`options`](#options) below.
-* `tags` - (Optional, Map) A mapping of tags to assign to the resource.
-* `transit_router_id` - (Required, ForceNew) The ID of the forwarding router instance.
+* `cen_id` - (Optional, ForceNew, Available since v1.283.0) CenId
+* `options` - (Optional, Computed, Set, Available since v1.242.0) Options See [`options`](#options) below.
+* `tags` - (Optional, Map) The tag of the resource
+* `transit_router_id` - (Optional, ForceNew) The ID of the forwarding router instance.
 * `transit_router_multicast_domain_description` - (Optional) The description of the multicast domain.
 * `transit_router_multicast_domain_name` - (Optional) The name of the multicast domain.
 
 ### `options`
 
 The options supports the following:
-* `igmpv2_support` - (Optional) Whether to enable IGMP function for multicast domain. Default value: `disable`. Valid values: `enable`, `disable`.
+* `igmpv2_support` - (Optional, Computed) Igmpv2Support
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The resource ID in terraform of Transit Router Multicast Domain.
-* `region_id` - (Available since v1.242.0) The region ID of the transit router.
-* `status` - The status of the Transit Router Multicast Domain.
+* `id` - The ID of the resource supplied above. 
+* `region_id` - The ID of the region to which the forwarding router instance belongs.
+* `status` - The status of the multicast domain.
 
 ## Timeouts
 
@@ -86,5 +79,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Cloud Enterprise Network (CEN) Transit Router Multicast Domain can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cen_transit_router_multicast_domain.example <id>
+$ terraform import alicloud_cen_transit_router_multicast_domain.example <transit_router_multicast_domain_id>
 ```
