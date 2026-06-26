@@ -20,12 +20,6 @@ For information about ESA Origin Pool and how to use it, see [What is Origin Poo
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_esa_origin_pool&exampleId=9e425e76-fb68-2057-33b6-502f60913fc8fcaeab69&activeTab=example&spm=docs.r.esa_origin_pool.0.9e425e76fb&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 data "alicloud_esa_sites" "default" {
   plan_subscribe_type = "enterpriseplan"
@@ -98,27 +92,30 @@ resource "alicloud_esa_origin_pool" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_esa_origin_pool&spm=docs.r.esa_origin_pool.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `enabled` - (Optional) Whether the source address pool is enabled:
+* `enabled` - (Optional, Computed) Whether the source address pool is enabled:
   - `true`: Enabled;
   - `false`: Not enabled.
 * `origin_pool_name` - (Required, ForceNew) The source address pool name.
-* `origins` - (Optional, Set) The Source station information added to the source address pool. Multiple Source stations use arrays to transfer values. See [`origins`](#origins) below.
+* `origins` - (Optional, List) The Source station information added to the source address pool. Multiple Source stations use arrays to transfer values. See [`origins`](#origins) below.
 * `site_id` - (Required, ForceNew) The site ID.
 
 ### `origins`
 
 The origins supports the following:
 * `address` - (Optional) Origin Address.
-* `auth_conf` - (Optional, List) The authentication information. When the source Station is an OSS or S3 and other source stations need to be authenticated, the authentication-related configuration information needs to be transmitted. See [`auth_conf`](#origins-auth_conf) below.
+* `auth_conf` - (Optional, Set) The authentication information. When the source Station is an OSS or S3 and other source stations need to be authenticated, the authentication-related configuration information needs to be transmitted. See [`auth_conf`](#origins-auth_conf) below.
 * `enabled` - (Optional) Whether the source station is enabled:
   - `true`: Enabled;
   - `false`: Not enabled.
 * `header` - (Optional) The request header that is sent when returning to the source. Only Host is supported.
+* `ip_version_policy` - (Optional, Computed, Available since v1.283.0) IP protocol version used for origin requests:
+  - `round_robin`: Default policy; randomly alternates between IPv4 and IPv6 origin servers.
+  - `ipv4_first`: Prefers IPv4 origin servers.
+  - `ipv6_first`: Prefers IPv6 origin servers.
+  - `follow`: Follows the IP version used by the client.
 * `name` - (Optional) Origin Name.
 * `type` - (Optional) Source station type:
 ip_domain: ip or domain name type origin station;
@@ -142,10 +139,22 @@ The origins-auth_conf supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<site_id>:<origin_pool_id>`.
-* `origin_pool_id` - OriginPool Id
-* `origins` - The Source station information added to the source address pool. Multiple Source stations use arrays to transfer values.
+* `id` - The ID of the resource supplied above. The value is formulated as `<site_id>:<origin_pool_id>`.
+* `origin_pool_id` - OriginPool Id.
+* `origins` - The Source station information added to the source address pool.
   * `origin_id` - Origin ID.
+* `record_name` - The domain name assigned to the source address pool can be used as the source address recorded under the site.
+* `reference_lb_count` - How many load balancers are referenced.
+* `references` - The source address pool is referred to when the source address pool is configured by the load balancer or recorded as the source station.
+  * `dns_records` - Use this source address pool for the seven-level record list of the source station.
+    * `dns_record_id` - Record ID.
+    * `name` - Record Name.
+  * `ip_a_records` - Use this source address pool as a list of Layer 4 records for the source station.
+    * `ipa_record_id` - Record ID.
+    * `name` - Record Name.
+  * `load_balancers` - A list of load balancers that use this source address pool.
+    * `load_balancer_id` - Load Balancer ID.
+    * `name` - Load Balancer Name.
 
 ## Timeouts
 
