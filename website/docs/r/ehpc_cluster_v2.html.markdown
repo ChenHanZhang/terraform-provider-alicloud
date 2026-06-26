@@ -20,12 +20,6 @@ For information about Ehpc Cluster V2 and how to use it, see [What is Cluster V2
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ehpc_cluster_v2&exampleId=0c55a428-eb99-e56f-1d51-a5b38c350d4abddffba9&activeTab=example&spm=docs.r.ehpc_cluster_v2.0.0c55a428eb&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -157,9 +151,6 @@ resource "alicloud_ehpc_cluster_v2" "default" {
   }
 }
 ```
-
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_ehpc_cluster_v2&spm=docs.r.ehpc_cluster_v2.example&intl_lang=EN_US)
 
 ## Argument Reference
 
@@ -318,11 +309,14 @@ The shared_storages supports the following:
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above. 
+* `cluster_status` - The cluster state.
 * `create_time` - The time when the cluster was created.
+* `ehpc_version` - The E-HPC version.
 * `manager` - The configurations of the cluster management node.
   * `manager_node` - The hardware configurations of the management node.
     * `expired_time` - The expiration time of the management node.
     * `instance_id` - The instance ID of the management node.
+* `modify_time` - The time when the cluster was last modified.
 
 ## Timeouts
 
