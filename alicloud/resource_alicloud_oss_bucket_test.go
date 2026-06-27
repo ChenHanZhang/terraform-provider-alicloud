@@ -132,6 +132,147 @@ func testSweepOSSBuckets(region string) error {
 	return nil
 }
 
+// Test Oss Bucket. >>> Resource test cases, automatically generated.
+// Case 测试阻止公共访问 9964
+func TestAccAliCloudOssBucket_basic9964(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_oss_bucket.default"
+	ra := resourceAttrInit(resourceId, AlicloudOssBucketMap9964)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeOssBucket")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccoss%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketBasicDependence9964)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"bucket_name":   name,
+					"storage_class": "Standard",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"bucket_name":   name,
+						"storage_class": "Standard",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudOssBucketMap9964 = map[string]string{
+	"owner.#":           CHECKSET,
+	"extranet_endpoint": CHECKSET,
+	"create_time":       CHECKSET,
+	"intranet_endpoint": CHECKSET,
+	"location":          CHECKSET,
+}
+
+func AlicloudOssBucketBasicDependence9964(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+
+`, name)
+}
+
+// Case Bucket资源组测试 6372
+func TestAccAliCloudOssBucket_basic6372(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_oss_bucket.default"
+	ra := resourceAttrInit(resourceId, AlicloudOssBucketMap6372)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &OssServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeOssBucket")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccoss%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudOssBucketBasicDependence6372)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"bucket_name":       name,
+					"storage_class":     "Standard",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"bucket_name":       name,
+						"storage_class":     "Standard",
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource_group_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+var AlicloudOssBucketMap6372 = map[string]string{
+	"owner.#":           CHECKSET,
+	"extranet_endpoint": CHECKSET,
+	"create_time":       CHECKSET,
+	"intranet_endpoint": CHECKSET,
+	"location":          CHECKSET,
+}
+
+func AlicloudOssBucketBasicDependence6372(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {}
+
+
+`, name)
+}
+
+// Test Oss Bucket. <<< Resource test cases, automatically generated.
+
 func TestAccAliCloudOssBucketBasic(t *testing.T) {
 	var v oss.GetBucketInfoResult
 
