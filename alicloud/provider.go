@@ -117,7 +117,7 @@ func Provider() terraform.ResourceProvider {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  descriptions["configuration_source"],
-				ValidateFunc: validation.StringLenBetween(0, 1024),
+				ValidateFunc: validation.StringLenBetween(0, 128),
 				DefaultFunc:  schema.EnvDefaultFunc("TF_APPEND_USER_AGENT", ""),
 			},
 			"protocol": {
@@ -171,8 +171,6 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"alicloud_wafv3_address_books":                        dataSourceAliCloudWafv3AddressBooks(),
-			"alicloud_wafv3_defense_rules":                        dataSourceAliCloudWafv3DefenseRules(),
 			"alicloud_amqp_open_source_accounts":                  dataSourceAliCloudAmqpOpenSourceAccounts(),
 			"alicloud_vpc_ipv6_cidr_blocks":                       dataSourceAliCloudVpcIpv6CidrBlocks(),
 			"alicloud_amqp_open_source_permissions":               dataSourceAliCloudAmqpOpenSourcePermissions(),
@@ -927,9 +925,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_resource_manager_resource_directory_sharing":          resourceAliCloudResourceManagerResourceDirectorySharing(),
-			"alicloud_wafv3_address_book":                                   resourceAliCloudWafv3AddressBook(),
-			"alicloud_threat_detection_service_linked_role":                 resourceAliCloudThreatDetectionServiceLinkedRole(),
 			"alicloud_amqp_open_source_account":                             resourceAliCloudAmqpOpenSourceAccount(),
 			"alicloud_vpc_ipv6_cidr_block":                                  resourceAliCloudVpcIpv6CidrBlock(),
 			"alicloud_amqp_open_source_permission":                          resourceAliCloudAmqpOpenSourcePermission(),
@@ -1395,7 +1390,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_slb_acl":                       resourceAlicloudSlbAcl(),
 			"alicloud_slb_ca_certificate":            resourceAlicloudSlbCaCertificate(),
 			"alicloud_slb_server_certificate":        resourceAlicloudSlbServerCertificate(),
-			"alicloud_oss_bucket":                    resourceAlicloudOssBucket(),
+			"alicloud_oss_bucket":                    resourceAliCloudOssBucket(),
 			"alicloud_oss_bucket_object":             resourceAlicloudOssBucketObject(),
 			"alicloud_oss_bucket_replication":        resourceAlicloudOssBucketReplication(),
 			"alicloud_ons_instance":                  resourceAlicloudOnsInstance(),
