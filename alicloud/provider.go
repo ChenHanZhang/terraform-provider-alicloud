@@ -933,6 +933,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_das_sql_log_configs":                              dataSourceAliCloudDasSqlLogConfigs(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_apig_plugin_class":                                    resourceAliCloudApigPluginClass(),
 			"alicloud_cr_artifact_lifecycle_rule":                           resourceAliCloudCrArtifactLifecycleRule(),
 			"alicloud_das_sql_log_config":                                   resourceAliCloudDasSqlLogConfig(),
 			"alicloud_cms_alert_rule_v2":                                    resourceAliCloudCmsAlertRuleV2(),
