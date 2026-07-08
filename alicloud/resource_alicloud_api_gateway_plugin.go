@@ -4,7 +4,6 @@ package alicloud
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -33,24 +32,30 @@ func resourceAliCloudApiGatewayPlugin() *schema.Resource {
 				Computed: true,
 			},
 			"description": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("(.*)"), "The description of the plug-in, which cannot exceed 200 characters."),
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"modified_time": {
+				Type:      schema.TypeString,
+				Sensitive: true,
 			},
 			"plugin_data": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"plugin_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: StringMatch(regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_]+$"), "The name of the plug-in that you want to create. It can contain uppercase English letters, lowercase English letters, Chinese characters, numbers, and underscores (_). It must be 4 to 50 characters in length and cannot start with an underscore (_)."),
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"plugin_type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"trafficControl", "ipControl", "backendSignature", "jwtAuth", "basicAuth", "cors", "caching", "routing", "accessControl", "errorMapping", "circuitBreaker", "remoteAuth", "logMask", "transformer"}, false),
+			},
+			"region_id": {
+				Type:      schema.TypeString,
+				Sensitive: true,
 			},
 			"tags": tagsSchema(),
 		},
@@ -89,9 +94,9 @@ func resourceAliCloudApiGatewayPluginCreate(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_api_gateway_plugin", action, AlibabaCloudSdkGoERROR)
@@ -118,9 +123,11 @@ func resourceAliCloudApiGatewayPluginRead(d *schema.ResourceData, meta interface
 
 	d.Set("create_time", objectRaw["CreatedTime"])
 	d.Set("description", objectRaw["Description"])
+	d.Set("modified_time", objectRaw["ModifiedTime"])
 	d.Set("plugin_data", objectRaw["PluginData"])
 	d.Set("plugin_name", objectRaw["PluginName"])
 	d.Set("plugin_type", objectRaw["PluginType"])
+	d.Set("region_id", objectRaw["RegionId"])
 
 	tagsMaps, _ := jsonpath.Get("$.Tags.TagInfo", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -134,11 +141,13 @@ func resourceAliCloudApiGatewayPluginUpdate(d *schema.ResourceData, meta interfa
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-	action := "ModifyPlugin"
+
 	var err error
+	action := "ModifyPlugin"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["PluginId"] = d.Id()
+	request["PluginId"] = d.Id()
+
 	if d.HasChange("description") {
 		update = true
 		request["Description"] = d.Get("description")
@@ -163,9 +172,9 @@ func resourceAliCloudApiGatewayPluginUpdate(d *schema.ResourceData, meta interfa
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
 			return nil
 		})
+		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -189,12 +198,11 @@ func resourceAliCloudApiGatewayPluginDelete(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	query["PluginId"] = d.Id()
+	request["PluginId"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("CloudAPI", "2016-07-14", action, query, request, true)
-
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -202,12 +210,12 @@ func resourceAliCloudApiGatewayPluginDelete(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"500"}) {
+		if IsExpectedErrors(err, []string{"500"}) || NotFoundError(err) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
