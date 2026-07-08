@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -89,10 +90,11 @@ func (s *ApiGatewayServiceV2) DescribeApiGatewayPlugin(id string) (object map[st
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
-	action := "DescribePlugins"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	query["PluginId"] = id
+	request["PluginId"] = id
+
+	action := "DescribePlugins"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -105,11 +107,10 @@ func (s *ApiGatewayServiceV2) DescribeApiGatewayPlugin(id string) (object map[st
 			}
 			return resource.NonRetryableError(err)
 		}
-		addDebug(action, response, request)
 		return nil
 	})
+	addDebug(action, response, request)
 	if err != nil {
-		addDebug(action, response, request)
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -126,17 +127,27 @@ func (s *ApiGatewayServiceV2) DescribeApiGatewayPlugin(id string) (object map[st
 }
 
 func (s *ApiGatewayServiceV2) ApiGatewayPluginStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ApiGatewayPluginStateRefreshFuncWithApi(id, field, failStates, s.DescribeApiGatewayPlugin)
+}
+
+func (s *ApiGatewayServiceV2) ApiGatewayPluginStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeApiGatewayPlugin(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
 
 		for _, failState := range failStates {
 			if currentStatus == failState {
@@ -152,8 +163,8 @@ func (s *ApiGatewayServiceV2) ApiGatewayPluginStateRefreshFunc(id string, field 
 // SetResourceTags <<< Encapsulated tag function for ApiGateway.
 func (s *ApiGatewayServiceV2) SetResourceTags(d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
-		var err error
 		var action string
+		var err error
 		client := s.client
 		var request map[string]interface{}
 		var response map[string]interface{}
@@ -171,6 +182,7 @@ func (s *ApiGatewayServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
+
 			for i, key := range removedTagKeys {
 				request[fmt.Sprintf("TagKey.%d", i+1)] = key
 			}
@@ -186,9 +198,9 @@ func (s *ApiGatewayServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
@@ -200,6 +212,7 @@ func (s *ApiGatewayServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 			request = make(map[string]interface{})
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
+
 			count := 1
 			for key, value := range added {
 				request[fmt.Sprintf("Tag.%d.Key", count)] = key
@@ -218,9 +231,9 @@ func (s *ApiGatewayServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 					}
 					return resource.NonRetryableError(err)
 				}
-				addDebug(action, response, request)
 				return nil
 			})
+			addDebug(action, response, request)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}

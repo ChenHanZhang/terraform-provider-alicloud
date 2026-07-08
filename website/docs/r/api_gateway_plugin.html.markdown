@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_api_gateway_plugin
 
-Provides a Api Gateway Plugin resource. 
+Provides a Api Gateway Plugin resource.
+
+
 
 For information about Api Gateway Plugin and how to use it, see [What is Plugin](https://www.alibabacloud.com/help/en/api-gateway/developer-reference/api-cloudapi-2016-07-14-createplugin).
 
@@ -17,12 +19,6 @@ For information about Api Gateway Plugin and how to use it, see [What is Plugin]
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_api_gateway_plugin&exampleId=0459c282-24f0-8aa1-1585-b60a576f4cbc7a5bd10e&activeTab=example&spm=docs.r.api_gateway_plugin.0.0459c28224&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -77,8 +73,6 @@ resource "alicloud_api_gateway_plugin" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_api_gateway_plugin&spm=docs.r.api_gateway_plugin.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -99,14 +93,16 @@ The following arguments are supported:
   - "circuitBreaker"
   - "remoteAuth"
   - "logMask"
-  - "transformer".
-* `tags` - (Optional, Map) The tag of the resource.
+  - "transformer"
+* `tags` - (Optional, Map) The tag of the resource
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - Create time.
+* `modified_time` - Modify time.
+* `region_id` - Region id.
 
 ## Timeouts
 
@@ -120,5 +116,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Api Gateway Plugin can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_api_gateway_plugin.example <id>
+$ terraform import alicloud_api_gateway_plugin.example <plugin_id>
 ```
