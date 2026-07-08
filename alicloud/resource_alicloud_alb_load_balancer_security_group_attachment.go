@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -68,7 +69,7 @@ func resourceAliCloudAlbLoadBalancerSecurityGroupAttachmentCreate(d *schema.Reso
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Alb", "2020-06-16", action, query, request, true)
 		if err != nil {
@@ -86,7 +87,7 @@ func resourceAliCloudAlbLoadBalancerSecurityGroupAttachmentCreate(d *schema.Reso
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_alb_load_balancer_security_group_attachment", action, AlibabaCloudSdkGoERROR)
 	}
 
-	SecurityGroupIdsVar, _ := request["SecurityGroupIds.1"]
+	SecurityGroupIdsVar, _ := jsonpath.Get("SecurityGroupIds[0]", request)
 	d.SetId(fmt.Sprintf("%v:%v", request["LoadBalancerId"], SecurityGroupIdsVar))
 
 	albServiceV2 := AlbServiceV2{client}
@@ -112,7 +113,7 @@ func resourceAliCloudAlbLoadBalancerSecurityGroupAttachmentRead(d *schema.Resour
 		return WrapError(err)
 	}
 
-	d.Set("security_group_id", objectRaw)
+	d.Set("security_group_id", objectRaw["$"])
 
 	parts := strings.Split(d.Id(), ":")
 	d.Set("load_balancer_id", parts[0])
@@ -143,11 +144,9 @@ func resourceAliCloudAlbLoadBalancerSecurityGroupAttachmentDelete(d *schema.Reso
 	if v, ok := d.GetOkExists("dry_run"); ok {
 		request["DryRun"] = v
 	}
-	wait := incrementalWait(3*time.Second, 5*time.Second)
+	wait := incrementalWait(5*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Alb", "2020-06-16", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
-
 		if err != nil {
 			if IsExpectedErrors(err, []string{"IncorrectStatus.LoadBalancer"}) || NeedRetry(err) {
 				wait()
