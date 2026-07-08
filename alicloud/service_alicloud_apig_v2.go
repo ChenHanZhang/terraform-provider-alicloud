@@ -493,9 +493,10 @@ func (s *ApigServiceV2) DescribeApigPlugin(id string) (object map[string]interfa
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
-	action := fmt.Sprintf("/v1/plugins")
 	request = make(map[string]interface{})
 	query = make(map[string]*string)
+
+	action := fmt.Sprintf("/v1/plugins")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -511,11 +512,12 @@ func (s *ApigServiceV2) DescribeApigPlugin(id string) (object map[string]interfa
 		return nil
 	})
 	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"DatabaseError.RecordNotFound"}) {
-			return object, WrapErrorf(NotFoundErr("Plugin", id), NotFoundMsg, err)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	if response == nil {
+		return object, WrapErrorf(NotFoundErr("Plugin", id), NotFoundMsg, response)
+	}
+	code, _ := jsonpath.Get("$.code", response)
+	if InArray(fmt.Sprint(code), []string{"DatabaseError.RecordNotFound"}) {
+		return object, WrapErrorf(NotFoundErr("Plugin", id), NotFoundMsg, response)
 	}
 
 	v, err := jsonpath.Get("$.data.items[*]", response)
@@ -539,15 +541,18 @@ func (s *ApigServiceV2) DescribeApigPlugin(id string) (object map[string]interfa
 }
 
 func (s *ApigServiceV2) ApigPluginStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ApigPluginStateRefreshFuncWithApi(id, field, failStates, s.DescribeApigPlugin)
+}
+
+func (s *ApigServiceV2) ApigPluginStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.DescribeApigPlugin(id)
+		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
