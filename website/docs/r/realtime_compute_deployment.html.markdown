@@ -10,7 +10,7 @@ description: |-
 
 Provides a Realtime Compute Deployment resource.
 
-Deployment in the Realtime Compute console.
+Job instance deployed in the Realtime Compute console.
 
 For information about Realtime Compute Deployment and how to use it, see [What is Deployment](https://next.api.alibabacloud.com/document/ververica/2022-07-18/CreateDeployment).
 
@@ -19,12 +19,6 @@ For information about Realtime Compute Deployment and how to use it, see [What i
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_realtime_compute_deployment&exampleId=766c53f8-d02a-7fff-35f3-c1cbd11deba50ba16ccd&activeTab=example&spm=docs.r.realtime_compute_deployment.0.766c53f8d0&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -88,33 +82,31 @@ resource "alicloud_realtime_compute_deployment" "create_Deployment9" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_realtime_compute_deployment&spm=docs.r.realtime_compute_deployment.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `artifact` - (Required, List) Content of the deployment job See [`artifact`](#artifact) below.
-* `batch_resource_setting` - (Optional, List) Batch job resource settings See [`batch_resource_setting`](#batch_resource_setting) below.
+* `artifact` - (Required, Set) Content of the deployment job See [`artifact`](#artifact) below.
+* `batch_resource_setting` - (Optional, Set) Batch job resource settings See [`batch_resource_setting`](#batch_resource_setting) below.
 * `deployment_name` - (Required) Name of the deployment
-* `deployment_target` - (Required, List) Deployment target See [`deployment_target`](#deployment_target) below.
+* `deployment_target` - (Required, Set) Deployment target See [`deployment_target`](#deployment_target) below.
 * `description` - (Optional) Description
 * `engine_version` - (Optional, Computed) Engine version of the deployment instance
 * `execution_mode` - (Required, ForceNew) Execution mode. Valid values: STREAMING or BATCH.
 * `flink_conf` - (Optional, Computed, Map) Flink configuration
 * `labels` - (Optional, Map) Deployment labels
-* `local_variables` - (Optional, Set) Job variables See [`local_variables`](#local_variables) below.
-* `logging` - (Optional, Computed, List) Job log configuration   See [`logging`](#logging) below.
+* `local_variables` - (Optional, List) Job variables See [`local_variables`](#local_variables) below.
+* `logging` - (Optional, Computed, Set) Job log configuration   See [`logging`](#logging) below.
 * `namespace` - (Required, ForceNew) Namespace name
 * `resource_id` - (Optional, ForceNew, Computed) Workspace resource ID
-* `streaming_resource_setting` - (Optional, Computed, List) Resource settings for streaming mode See [`streaming_resource_setting`](#streaming_resource_setting) below.
+* `streaming_resource_setting` - (Optional, Computed, Set) Resource settings for streaming mode See [`streaming_resource_setting`](#streaming_resource_setting) below.
 
 ### `artifact`
 
 The artifact supports the following:
-* `jar_artifact` - (Optional, List) JarArtifact See [`jar_artifact`](#artifact-jar_artifact) below.
+* `jar_artifact` - (Optional, Set) JarArtifact See [`jar_artifact`](#artifact-jar_artifact) below.
 * `kind` - (Required, ForceNew) Artifact type
-* `python_artifact` - (Optional, List) PythonArtifact See [`python_artifact`](#artifact-python_artifact) below.
-* `sql_artifact` - (Optional, List) SqlArtifact See [`sql_artifact`](#artifact-sql_artifact) below.
+* `python_artifact` - (Optional, Set) PythonArtifact See [`python_artifact`](#artifact-python_artifact) below.
+* `sql_artifact` - (Optional, Set) SqlArtifact See [`sql_artifact`](#artifact-sql_artifact) below.
 
 ### `artifact-jar_artifact`
 
@@ -143,15 +135,15 @@ The artifact-sql_artifact supports the following:
 ### `batch_resource_setting`
 
 The batch_resource_setting supports the following:
-* `basic_resource_setting` - (Optional, List) Resource settings for basic mode See [`basic_resource_setting`](#batch_resource_setting-basic_resource_setting) below.
+* `basic_resource_setting` - (Optional, Set) Resource settings for basic mode See [`basic_resource_setting`](#batch_resource_setting-basic_resource_setting) below.
 * `max_slot` - (Optional, Int) Maximum number of slots
 
 ### `batch_resource_setting-basic_resource_setting`
 
 The batch_resource_setting-basic_resource_setting supports the following:
-* `jobmanager_resource_setting_spec` - (Optional, List) JobManager resource settings See [`jobmanager_resource_setting_spec`](#batch_resource_setting-basic_resource_setting-jobmanager_resource_setting_spec) below.
+* `jobmanager_resource_setting_spec` - (Optional, Set) JobManager resource settings See [`jobmanager_resource_setting_spec`](#batch_resource_setting-basic_resource_setting-jobmanager_resource_setting_spec) below.
 * `parallelism` - (Optional, Int) Parallelism.
-* `taskmanager_resource_setting_spec` - (Optional, List) TaskManager resource settings See [`taskmanager_resource_setting_spec`](#batch_resource_setting-basic_resource_setting-taskmanager_resource_setting_spec) below.
+* `taskmanager_resource_setting_spec` - (Optional, Set) TaskManager resource settings See [`taskmanager_resource_setting_spec`](#batch_resource_setting-basic_resource_setting-taskmanager_resource_setting_spec) below.
 
 ### `batch_resource_setting-basic_resource_setting-jobmanager_resource_setting_spec`
 
@@ -181,8 +173,8 @@ The local_variables supports the following:
 
 The logging supports the following:
 * `log4j2_configuration_template` - (Optional, Computed) Custom log template  
-* `log4j_loggers` - (Optional, Computed, Set) log4j configuration   See [`log4j_loggers`](#logging-log4j_loggers) below.
-* `log_reserve_policy` - (Optional, Computed, List) Log retention policy   See [`log_reserve_policy`](#logging-log_reserve_policy) below.
+* `log4j_loggers` - (Optional, Computed, List) log4j configuration   See [`log4j_loggers`](#logging-log4j_loggers) below.
+* `log_reserve_policy` - (Optional, Computed, Set) Log retention policy   See [`log_reserve_policy`](#logging-log_reserve_policy) below.
 * `logging_profile` - (Optional, Computed) Default system log template  
 
 ### `logging-log4j_loggers`
@@ -200,21 +192,21 @@ The logging-log_reserve_policy supports the following:
 ### `streaming_resource_setting`
 
 The streaming_resource_setting supports the following:
-* `basic_resource_setting` - (Optional, Computed, List) Resource settings for basic mode See [`basic_resource_setting`](#streaming_resource_setting-basic_resource_setting) below.
-* `expert_resource_setting` - (Optional, Computed, List) Expert mode resource settings See [`expert_resource_setting`](#streaming_resource_setting-expert_resource_setting) below.
+* `basic_resource_setting` - (Optional, Computed, Set) Resource settings for basic mode See [`basic_resource_setting`](#streaming_resource_setting-basic_resource_setting) below.
+* `expert_resource_setting` - (Optional, Computed, Set) Expert mode resource settings See [`expert_resource_setting`](#streaming_resource_setting-expert_resource_setting) below.
 * `resource_setting_mode` - (Optional, Computed) Resource mode used in streaming mode, valid values: BASIC or EXPERT
 
 ### `streaming_resource_setting-basic_resource_setting`
 
 The streaming_resource_setting-basic_resource_setting supports the following:
-* `jobmanager_resource_setting_spec` - (Optional, Computed, List) JobManager resource settings See [`jobmanager_resource_setting_spec`](#streaming_resource_setting-basic_resource_setting-jobmanager_resource_setting_spec) below.
+* `jobmanager_resource_setting_spec` - (Optional, Computed, Set) JobManager resource settings See [`jobmanager_resource_setting_spec`](#streaming_resource_setting-basic_resource_setting-jobmanager_resource_setting_spec) below.
 * `parallelism` - (Optional, Computed, Int) Parallelism
-* `taskmanager_resource_setting_spec` - (Optional, Computed, List) TaskManager resource settings See [`taskmanager_resource_setting_spec`](#streaming_resource_setting-basic_resource_setting-taskmanager_resource_setting_spec) below.
+* `taskmanager_resource_setting_spec` - (Optional, Computed, Set) TaskManager resource settings See [`taskmanager_resource_setting_spec`](#streaming_resource_setting-basic_resource_setting-taskmanager_resource_setting_spec) below.
 
 ### `streaming_resource_setting-expert_resource_setting`
 
 The streaming_resource_setting-expert_resource_setting supports the following:
-* `jobmanager_resource_setting_spec` - (Optional, List) Basic resource settings for JobManager See [`jobmanager_resource_setting_spec`](#streaming_resource_setting-expert_resource_setting-jobmanager_resource_setting_spec) below.
+* `jobmanager_resource_setting_spec` - (Optional, Set) Basic resource settings for JobManager See [`jobmanager_resource_setting_spec`](#streaming_resource_setting-expert_resource_setting-jobmanager_resource_setting_spec) below.
 * `resource_plan` - (Optional) Resource plan for expert mode
 
 ### `streaming_resource_setting-expert_resource_setting-jobmanager_resource_setting_spec`
@@ -238,8 +230,14 @@ The streaming_resource_setting-basic_resource_setting-taskmanager_resource_setti
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<resource_id>:<namespace>:<deployment_id>`.
-* `deployment_id` - Resource property field representing the primary resource ID
+* `id` - The ID of the resource supplied above. The value is formulated as `<resource_id>:<namespace>:<deployment_id>`.
+* `created_time` - Creation time.
+* `creator` - Creator.
+* `creator_name` - Creator name.
+* `deployment_id` - Resource property field representing the primary resource ID.
+* `modified_time` - Modification time.
+* `modifier` - Modifier.
+* `modifier_name` - Name of the Modifier.
 
 ## Timeouts
 
