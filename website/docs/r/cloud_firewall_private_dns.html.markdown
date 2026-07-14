@@ -20,12 +20,6 @@ For information about Cloud Firewall Private Dns and how to use it, see [What is
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_private_dns&exampleId=f68cdacc-ea89-f884-d0a3-59638c21c7d491f9b290&activeTab=example&spm=docs.r.cloud_firewall_private_dns.0.f68cdaccea&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -75,33 +69,42 @@ resource "alicloud_cloud_firewall_private_dns" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_private_dns&spm=docs.r.cloud_firewall_private_dns.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `access_instance_name` - (Required) The name of Private DNS instance
-* `domain_name_list` - (Optional, Set) Private DNS domain name list
-* `firewall_type` - (Required, ForceNew, List) The type of firewall
-* `ip_protocol` - (Optional, ForceNew) IP protocol
-* `member_uid` - (Optional, ForceNew, Int) The member Uid
-* `port` - (Optional, ForceNew, Int) The Port of Private DNS instance
-* `primary_dns` - (Optional) Primary DNS IP
-* `primary_vswitch_id` - (Optional, ForceNew) Primary zone Switch ID
-* `primary_vswitch_ip` - (Optional, ForceNew) Primary zone switch IP
-* `private_dns_type` - (Required) The type of Private DNS instance
-* `region_no` - (Required, ForceNew) The region ID of Private DNS instance
-* `standby_dns` - (Optional) Standby DNS IP
-* `standby_vswitch_id` - (Optional, ForceNew) Standby zone switch ID
-* `standby_vswitch_ip` - (Optional, ForceNew) Standby zone switch IP address
-* `vpc_id` - (Required, ForceNew) The ID of the VPC.
+* `access_instance_name` - (Required) The name of the private DNS instance.
+* `domain_name_list` - (Optional, List) The list of added private domain names.
+* `firewall_type` - (Required, ForceNew, List) The Cloud Firewall type. Valid values:
+  - `internet`
+  - `vpc`
+  - `nat`.
+* `ip_protocol` - (Optional, ForceNew) The IP protocol. Valid values:
+  - `TCP`
+  - `UDP`.
+* `member_uid` - (Optional, ForceNew, Int) The UID of the member account associated with the current Alibaba Cloud account.
+* `port` - (Optional, ForceNew, Int) The port number.
+* `primary_dns` - (Optional) The primary DNS.
+* `primary_vswitch_id` - (Optional, ForceNew) The ID of the primary vSwitch.
+* `primary_vswitch_ip` - (Optional, ForceNew) The IP address of the primary vSwitch.
+* `private_dns_type` - (Required) The private DNS type. Valid values:
+  - `PrivateZone`
+  - `Custom` (default).
+* `region_no` - (Required, ForceNew) The ID of the region where the instance resides.
+
+-> **NOTE:**  For more information about the regions supported by Cloud Firewall, see [Supported regions](https://help.aliyun.com/document_detail/195657.html).
+
+* `standby_dns` - (Optional) The secondary DNS server.
+* `standby_vswitch_id` - (Optional, ForceNew) The ID of the secondary vSwitch.
+* `standby_vswitch_ip` - (Optional, ForceNew) The IP address of the standby vSwitch.
+* `vpc_id` - (Required, ForceNew) The ID of the VPC instance.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.The value is formulated as `<access_instance_id>:<region_no>`.
-* `access_instance_id` - The id of Private DNS instance
-* `status` - status
+* `id` - The ID of the resource supplied above. The value is formulated as `<access_instance_id>:<region_no>`.
+* `access_instance_id` - The ID of the private DNS resolution instance.
+* `status` - The status of the instance.
+* `task_id` - The task ID, which uniquely identifies the task.
 
 ## Timeouts
 
