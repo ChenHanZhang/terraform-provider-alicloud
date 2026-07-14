@@ -2,7 +2,6 @@
 subcategory: "Cloud Firewall"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cloud_firewall_control_policy"
-sidebar_current: "docs-alicloud-resource-cloud-firewall-control-policy"
 description: |-
   Provides a Alicloud Cloud Firewall Control Policy resource.
 ---
@@ -11,6 +10,8 @@ description: |-
 
 Provides a Cloud Firewall Control Policy resource.
 
+Access Control Policy.
+
 For information about Cloud Firewall Control Policy and how to use it, see [What is Control Policy](https://www.alibabacloud.com/help/doc-detail/138867.htm).
 
 -> **NOTE:** Available since v1.129.0.
@@ -18,12 +19,6 @@ For information about Cloud Firewall Control Policy and how to use it, see [What
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_control_policy&exampleId=9466770b-c784-5cd7-73b1-db97948c811470394f57&activeTab=example&spm=docs.r.cloud_firewall_control_policy.0.9466770bc7&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -43,76 +38,161 @@ resource "alicloud_cloud_firewall_control_policy" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_control_policy&spm=docs.r.cloud_firewall_control_policy.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `acl_action` - (Required) The action that Cloud Firewall performs on traffic based on the access control policy. Valid values:
+  - `accept`: allows the traffic
+  - `drop`: blocks the traffic
+  - `log`: monitors the traffic
+* `application_name` - (Optional) The application type supported by the access control policy. The following application types are supported:
+  - `ANY`
+  - `HTTP`
+  - `HTTPS`
+  - `MySQL`
+  - `SMTP`
+  - `SMTPS`
+  - `RDP`
+  - `VNC`
+  - `SSH`
+  - `Redis`
+  - `MQTT`
+  - `MongoDB`
+  - `Memcache`
+  - `SSL`
 
-* `direction` - (Required, ForceNew) The direction of the traffic to which the access control policy applies. Valid values: `in`, `out`.
+-> **NOTE:**  `ANY` indicates that the policy applies to all application types.
+
+-> **NOTE:**  You must specify either ApplicationNameList or ApplicationName. They cannot both be left empty. If both parameters are specified, ApplicationNameList takes precedence.
+
+* `application_name_list` - (Optional, List, Available since v1.232.0) The list of application names.
+
+-> **NOTE:**  You must specify either ApplicationNameList or ApplicationName. They cannot both be empty. If both ApplicationNameList and ApplicationName are specified, ApplicationNameList takes precedence.
+
 * `description` - (Required) The description of the access control policy.
-* `acl_action` - (Required) The action that Cloud Firewall performs on the traffic. Valid values: `accept`, `drop`, `log`.
-* `source` - (Required) The source address in the access control policy.
-* `source_type` - (Required) The type of the source address in the access control policy. Valid values: `net`, `group`, `location`.
+* `dest_port` - (Optional, Computed) The destination port for traffic in the access control policy.
+* `dest_port_group` - (Optional) The name of the destination port address book for traffic in the access control policy.
+* `dest_port_type` - (Optional, Computed) The destination port type for traffic in the access control policy. Valid values:
+  - `port`: port
+  - `group`: port address book.
 * `destination` - (Required) The destination address in the access control policy.
-* `destination_type` - (Required) The type of the destination address in the access control policy. Valid values: `net`, `group`, `domain`, `location`.
-* `proto` - (Required) The protocol type supported by the access control policy. Valid values: `ANY`, ` TCP`, `UDP`, `ICMP`.
-* `application_name` - (Optional) The application type supported by the access control policy. Valid values: `ANY`, `HTTP`, `HTTPS`, `MQTT`, `Memcache`, `MongoDB`, `MySQL`, `RDP`, `Redis`, `SMTP`, `SMTPS`, `SSH`, `SSL`, `VNC`.
--> **NOTE:** If `proto` is set to `TCP`, you can set `application_name` to any valid value. If `proto` is set to `UDP`, `ICMP`, or `ANY`, you can only set `application_name` to `ANY`.
-* `dest_port` - (Optional) The destination port in the access control policy. **Note:** If `dest_port_type` is set to `port`, you must specify `dest_port`.
-* `dest_port_group` - (Optional) The name of the destination port address book in the access control policy. **Note:** If `dest_port_type` is set to `group`, you must specify `dest_port_group`.
-* `dest_port_type` - (Optional) The type of the destination port in the access control policy. Valid values: `port`, `group`.
-* `ip_version` - (Optional, ForceNew) The IP version supported by the access control policy. Default value: `4`. Valid values:
-  - `4`: IPv4.
-  - `6`: IPv6.
+  - When `DestinationType` is set to net, `Destination` specifies the destination CIDR block. Example: 1.2.XX.XX/24.
+  - When `DestinationType` is set to group, `Destination` specifies the name of the destination address book. Example: db_group.
+  - When `DestinationType` is set to domain, `Destination` specifies the destination domain name. Example: *.aliyuncs.com.
+  - When `DestinationType` is set to location, `Destination` specifies the destination region (see the following section for specific region codes). Example: \["BJ11", "ZB"\].
+* `destination_type` - (Required) The destination address type in the access control policy. Valid values:
+  - `net`: destination CIDR block
+  - `group`: destination address book
+  - `domain`: destination domain name
+  - `location`: destination region.
+* `direction` - (Required, ForceNew) The traffic direction of the access control policy. Valid values:
+  - `in`: inbound traffic (from the Internet to an internal network)
+  - `out`: outbound traffic (from an internal network to the Internet).
 * `domain_resolve_type` - (Optional, Available since v1.232.0) The domain name resolution method of the access control policy. Valid values:
-  - `FQDN`: Fully qualified domain name (FQDN)-based resolution.
-  - `DNS`: DNS-based dynamic resolution.
-  - `FQDN_AND_DNS`: FQDN and DNS-based dynamic resolution.
-* `repeat_type` - (Optional, Available since v1.232.0) The recurrence type for the access control policy to take effect. Default value: `Permanent`. Valid values:
-  - `Permanent`: The policy always takes effect.
-  - `None`: The policy takes effect for only once.
-  - `Daily`: The policy takes effect on a daily basis.
-  - `Weekly`: The policy takes effect on a weekly basis.
-  - `Monthly`: The policy takes effect on a monthly basis.
-* `start_time` - (Optional, Int, Available since v1.232.0) The time when the access control policy starts to take effect. The value is a UNIX timestamp. Unit: seconds. The value must be on the hour or on the half hour, and at least 30 minutes earlier than the end time.
-* `end_time` - (Optional, Int, Available since v1.232.0) The time when the access control policy stops taking effect. The value is a UNIX timestamp. Unit: seconds. The value must be on the hour or on the half hour, and at least 30 minutes later than the start time.
--> **NOTE:** If `repeat_type` is set to `None`, `Daily`, `Weekly`, or `Monthly`, `start_time` and `end_time` must be set.
-* `repeat_start_time` - (Optional, Available since v1.232.0) The point in time when the recurrence starts. Example: `08:00`. The start time must be on the hour or on the half hour, and at least 30 minutes earlier than the end time.
-* `repeat_end_time` - (Optional, Available since v1.232.0) The point in time when the recurrence ends. Example: `23:30`. The end time must be on the hour or on the half hour, and at least 30 minutes later than the start time.
--> **NOTE:** If `repeat_type` is set to `Daily`, `Weekly`, or `Monthly`, `repeat_start_time` and `repeat_end_time` must be set.
-* `repeat_days` - (Optional, List, Available since v1.232.0) The days of a week or of a month on which the access control policy takes effect. Valid values:
-  - If `repeat_type` is set to `Weekly`. Valid values: `0` to `6`.
-  - If `repeat_type` is set to `Monthly`. Valid values: `1` to `31`.
--> **NOTE:** If `repeat_type` is set to `Weekly`, or `Monthly`, `repeat_days` must be set.
-* `application_name_list` - (Optional, List, Available since v1.232.0) The application types supported by the access control policy.
--> **NOTE:** If `proto` is set to `TCP`, you can set `application_name_list` to any valid value. If `proto` is set to `UDP`, `ICMP`, or `ANY`, you can only set `application_name_list` to `["ANY"]`. From version 1.232.0, You must specify at least one of the `application_name_list` and `application_name`. If you specify both `application_name_list` and `application_name`, only the `application_name_list` takes effect.
-* `release` - (Optional) The status of the access control policy. Valid values: `true`, `false`.
-* `source_ip` - (Optional) The source IP address of the request.
-* `lang` - (Optional) The language of the content within the request and response. Valid values: `zh`, `en`.
+
+  - `FQDN`: FQDN-based
+  - `DNS`: DNS-based dynamic resolution
+  - `FQDN_AND_DNS`: FQDN and DNS-based dynamic resolution
+* `end_time` - (Optional, Int, Available since v1.232.0) The end time of the validity period for the access control policy. This value is a UNIX timestamp in seconds. The time must be on the hour or half-hour and must be at least 30 minutes later than the start time.
+
+-> **NOTE:**  If RepeatType is set to Permanent, EndTime is left empty. If RepeatType is set to None, Daily, Weekly, or Monthly, EndTime is required and you must specify an end time.
+
+* `ip_version` - (Optional, ForceNew, Computed, Int) The supported IP address version.
+
+Valid values:
+  - `4`: IPv4 address
+  - `6`: IPv6 address
+* `lang` - (Optional) The language of the request and response messages.
+
+Valid values:
+  - `zh` (default): Chinese
+  - `en`: English
+
+-> **NOTE:** This parameter is only evaluated during resource creation and deletion. Modifying it in isolation will not trigger any action.
+
+* `proto` - (Required) The protocol type for traffic in the access control policy. Supported application types include:
+  - `ANY`
+  - `TCP`
+  - `UDP`
+  - `ICMP`
+
+-> **NOTE:**  `ANY` indicates that the policy applies to all application types.
+
+-> **NOTE:**  For outbound traffic, if the destination address belongs to a threat intelligence address book or a cloud service address book of the domain name type, you can select TCP or ANY as the protocol. If you select TCP, you can choose from five applications: HTTP, HTTPS, SMTP, SMTPS, and SSL. If you select ANY, the application must be set to ANY.
+
+* `release` - (Optional, Computed) Specifies whether the access control policy is enabled. By default, a newly created policy is enabled. Valid values:
+  - `true`: Enable the access control policy.
+  - `false`: Do not enable the access control policy.
+* `repeat_days` - (Optional, List, Available since v1.232.0) The set of recurring days for the validity period of the access control policy.
+  - If RepeatType is set to `Permanent`, `None`, or `Daily`, RepeatDays is an empty set.
+  Example: []
+  - If RepeatType is set to Weekly, RepeatDays cannot be empty.
+  Example: [0, 6]
+
+-> **NOTE:**  If RepeatType is set to Weekly, duplicate values are not allowed in RepeatDays.
+  - If RepeatType is set to `Monthly`, RepeatDays cannot be empty.
+  Example: [1, 31]
+
+-> **NOTE:**  If RepeatType is set to Monthly, duplicate values are not allowed in RepeatDays.
+
+* `repeat_end_time` - (Optional, Available since v1.232.0) The repeat end time of the validity period for the access control policy. Example: 23:30. The value must be on the hour or half-hour and must be at least 30 minutes later than the repeat start time.
+
+-> **NOTE:**  When RepeatType is set to Permanent or None, RepeatEndTime is left empty. When RepeatType is set to Daily, Weekly, or Monthly, RepeatEndTime is required and you must specify a repeat end time.
+
+-> **NOTE:**  The time format is HH:mm (24-hour clock), such as 08:00 or 23:30.
+
+* `repeat_start_time` - (Optional, Available since v1.232.0) The repeat start time of the validity period for the access control policy. Example: 08:00. The value must be on the hour or half-hour and must be at least 30 minutes earlier than the repeat end time.
+
+-> **NOTE:**  When RepeatType is set to Permanent or None, RepeatStartTime is left empty. When RepeatType is set to Daily, Weekly, or Monthly, RepeatStartTime is required and you must specify a repeat start time.
+
+-> **NOTE:**  The time format is HH:mm (24-hour clock), such as 08:00 or 23:30.
+
+* `repeat_type` - (Optional, Computed, Available since v1.232.0) The repeat type of the validity period for the access control policy. Valid values:
+  - `Permanent` (default): Always
+  - `None`: One-time only
+  - `Daily`: Every day
+  - `Weekly`: Every week
+  - `Monthly`: Every month
+* `source` - (Required) The source address in the access control policy.
+  - If `SourceType` is set to net, `Source` specifies the source CIDR block. Example: 1.2.XX.XX/24.
+  - If `SourceType` is set to group, `Source` specifies the name of the source address book. Example: db_group.
+  - If `SourceType` is set to location, `Source` specifies the source region code (see the following section for specific region codes). Example: \["BJ11", "ZB"\].
+* `source_type` - (Required) The type of the source address in the access control policy. Valid values:
+  - `net`: source CIDR block
+  - `group`: source address book
+  - `location`: source region
+* `start_time` - (Optional, Int, Available since v1.232.0) The start time of the validity period for the access control policy. The value is a timestamp in seconds. The time must be on the hour or half-hour and must be at least 30 minutes earlier than the end time.
+
+-> **NOTE:**  If RepeatType is set to Permanent, StartTime is left empty. If RepeatType is set to None, Daily, Weekly, or Monthly, StartTime is required and you must specify a start time.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Control Policy. It formats as `<acl_uuid>:<direction>`.
-* `acl_uuid` - (Available since v1.148.0) The unique ID of the access control policy.
-* `create_time` - (Available since v1.232.0) The time when the access control policy was created.
+* `id` - The ID of the resource supplied above. The value is formulated as `<direction>:<ip_version>:<acl_uuid>`.
+* `acl_uuid` - The unique identifier of the access control policy.
+* `application_id` - The application ID configured for traffic access in the access control policy.
+* `create_time` - The time when the policy was created.
+* `dest_port_group_ports` - The list of ports contained in the destination port address book.
+* `destination_group_cidrs` - The list of CIDR blocks in the destination address book of the access control policy.
+* `destination_group_type` - The type of the destination address book in the access control policy.
+* `dns_result` - The DNS resolution result.
+* `dns_result_time` - The timestamp of DNS resolution.
+* `hit_times` - The number of times the access control policy is matched.
+* `source_group_cidrs` - The list of CIDR blocks in the source address book of the access control policy.
+* `source_group_type` - The type of the source address book in the access control policy.
 
 ## Timeouts
 
--> **NOTE:** Available since v1.232.0.
-
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Control Policy.
-* `update` - (Defaults to 5 mins) Used when update the Control Policy.
 * `delete` - (Defaults to 5 mins) Used when delete the Control Policy.
+* `update` - (Defaults to 5 mins) Used when update the Control Policy.
 
 ## Import
 
 Cloud Firewall Control Policy can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cloud_firewall_control_policy.example <acl_uuid>:<direction>
+$ terraform import alicloud_cloud_firewall_control_policy.example <direction>:<ip_version>:<acl_uuid>
 ```
