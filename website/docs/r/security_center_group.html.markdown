@@ -1,29 +1,24 @@
 ---
-subcategory: "Security Center"
+subcategory: "Threat Detection"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_security_center_group"
-sidebar_current: "docs-alicloud-resource-security-center-group"
 description: |-
-  Provides a Alicloud Security Center Group resource.
+  Provides a Alicloud Threat Detection Group resource.
 ---
 
 # alicloud_security_center_group
 
-Provides a Security Center Group resource.
+Provides a Threat Detection Group resource.
 
-For information about Security Center Group and how to use it, see [What is Group](https://www.alibabacloud.com/help/en/security-center/developer-reference/api-sas-2018-12-03-createorupdateassetgroup).
+Asset grouping in Security Center.
+
+For information about Threat Detection Group and how to use it, see [What is Group](https://www.alibabacloud.com/help/en/security-center/developer-reference/api-sas-2018-12-03-createorupdateassetgroup).
 
 -> **NOTE:** Available since v1.133.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_security_center_group&exampleId=16e39a32-3945-dbc5-1207-e45939b63e2d4609fb6b&activeTab=example&spm=docs.r.security_center_group.0.16e39a3239&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -34,34 +29,34 @@ resource "alicloud_security_center_group" "example" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_security_center_group&spm=docs.r.security_center_group.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `group_id` - (Optional, ForceNew, Computed, Int) The ID of the server group for which you want to add to or remove servers.
 
-* `group_id` - (Optional, ForceNew) GroupId.
-* `group_name` - (Optional) GroupName.
+-> **NOTE:**   To modify the mapping between an asset and an asset group, you must provide the ID of the asset group. You can call the [DescribeAllGroups](~~DescribeAllGroups~~) to query the IDs of asset groups. If you do not configure this parameter when you call this operation, an asset group is created.
+
+* `group_name` - (Optional) The name of the server group that you want to create or the server group for which you want to add or remove a server.
+
+-> **NOTE:**   To modify the mapping between a server and a server group, you must provide the name of the server group. You can call the [DescribeAllGroups](~~DescribeAllGroups~~) operation to query the names of server groups. If you do not configure GroupID when you call this operation, a server group is created. In this case, you must configure GroupName.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID in terraform of Group. Its value is same as `group_id`.
+* `id` - The ID of the resource supplied above. 
+* `group_flag` - The type of the server group.
 
 ## Timeouts
 
--> **NOTE:** Available since v1.163.0.
-
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
-* `create` - (Defaults to 1 mins) Used when create the Security Center Group.
-* `update` - (Defaults to 1 mins) Used when update the Security Center Group.
-* `delete` - (Defaults to 1 mins) Used when delete the Security Center Group.
+* `create` - (Defaults to 5 mins) Used when create the Group.
+* `delete` - (Defaults to 5 mins) Used when delete the Group.
+* `update` - (Defaults to 5 mins) Used when update the Group.
 
 ## Import
 
-Security Center Group can be imported using the id, e.g.
+Threat Detection Group can be imported using the id, e.g.
 
 ```shell
 $ terraform import alicloud_security_center_group.example <group_id>
