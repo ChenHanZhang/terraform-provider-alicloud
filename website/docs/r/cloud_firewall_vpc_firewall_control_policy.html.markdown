@@ -10,25 +10,15 @@ description: |-
 
 Provides a Cloud Firewall Vpc Firewall Control Policy resource.
 
-VPC Control Policy.
+VPC Firewall Control Policy.
 
 For information about Cloud Firewall Vpc Firewall Control Policy and how to use it, see [What is Vpc Firewall Control Policy](https://www.alibabacloud.com/help/en/cloud-firewall/latest/createvpcfirewallcontrolpolicy).
 
 -> **NOTE:** Available since v1.194.0.
 
-~> **NOTE** Since v1.276.0. Set `new_order = -1` or omit the argument to let the Cloud Backend manage policy ordering automatically. You can also use `alicloud_cloud_firewall_vpc_firewall_control_policy_order` to manage the policy ordering.<br>
-  If you want manged the policy order in parallel **do not** set the `new_order`, instead use `alicloud_cloud_firewall_vpc_firewall_control_policy_order` manage the policy order.
-
-
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_vpc_firewall_control_policy&exampleId=6c065235-0ee8-66b0-1ddf-c9ee5c40e5e0f9ad03f2&activeTab=example&spm=docs.r.cloud_firewall_vpc_firewall_control_policy.0.6c0652350e&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -66,76 +56,160 @@ resource "alicloud_cloud_firewall_vpc_firewall_control_policy" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_vpc_firewall_control_policy&spm=docs.r.cloud_firewall_vpc_firewall_control_policy.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `vpc_firewall_id` - (Required, ForceNew) The ID of the VPC firewall instance. Valid values:
-  - When the VPC firewall protects traffic between two VPCs connected through the cloud enterprise network, the policy group ID uses the cloud enterprise network instance ID.
-  - When the VPC firewall protects traffic between two VPCs connected through the express connection, the policy group ID uses the ID of the VPC firewall instance.
-* `application_name` - (Optional) The type of the applications that the access control policy supports. Valid values: `FTP`, `HTTP`, `HTTPS`, `MySQL`, `SMTP`, `SMTPS`, `RDP`, `VNC`, `SSH`, `Redis`, `MQTT`, `MongoDB`, `Memcache`, `SSL`, `ANY`.
-* `application_name_list` - (Optional, List, Available since v1.267.0) The list of application types that the access control policy supports.
+* `acl_action` - (Required) The action that Cloud Firewall performs on traffic based on the access control policy configured for the VPC firewall. Valid values:
+  - `accept`: allows the traffic.
+  - `drop`: blocks the traffic.
+  - `log`: monitors the traffic.
 
-  -> **NOTE:** If `proto` is set to `TCP`, you can set `application_name_list` to any valid value. If `proto` is set to `UDP`, `ICMP`, or `ANY`, you can only set `application_name_list` to `["ANY"]`. From version 1.267.0, You must specify at least one of the `application_name_list` and `application_name`. If you specify both `application_name_list` and `application_name`, only the `application_name_list` takes effect.
+-> **NOTE:**  If this parameter is not specified, all actions are queried.
 
-* `description` - (Required) Access control over VPC firewalls description of the strategy information.
-* `acl_action` - (Required) The action that Cloud Firewall performs on the traffic. Valid values: `accept`, `drop`, `log`.
-* `source` - (Required) Access control over VPC firewalls strategy in the source address.
-* `source_type` - (Required) The type of the source address in the access control policy. Valid values: `net`, `group`.
-* `destination` - (Required) The destination address in the access control policy. Valid values:
-  - If `destination_type` is set to `net`, the value of `destination` must be a CIDR block.
-  - If `destination_type` is set to `group`, the value of `destination` must be an address book.
-  - If `destination_type` is set to `domain`, the value of `destination` must be a domain name.
-* `destination_type` - (Required) The type of the destination address in the access control policy. Valid values: `net`, `group`, `domain`.
-* `proto` - (Required) The type of the protocol in the access control policy. Valid values: `ANY`, `TCP`, `UDP`, `ICMP`.
-* `order` - (Optional, Computed, Int) The priority of the access control policy. The priority value starts from 1. A smaller priority value indicates a higher priority.
-* `dest_port` - (Optional) The destination port in the access control policy.
+* `application_name` - (Optional) The application type supported by the access control policy of the VPC firewall. Valid values:
+  - `FTP`
+  - `HTTP`
+  - `HTTPS`
+  - `MySQL`
+  - `SMTP`
+  - `SMTPS`
+  - `RDP`
+  - `VNC`
+  - `SSH`
+  - `Redis`
+  - `MQTT`
+  - `MongoDB`
+  - `Memcache`
+  - `SSL`
+  - `ANY` (indicates all application types).
+* `application_name_list` - (Optional, List, Available since v1.267.0) The list of application types supported by the access control policy.
+* `description` - (Required) The description of the VPC firewall access control policy. Fuzzy search is supported.
+* `dest_port` - (Optional, Computed) The destination port of the traffic in the VPC firewall access control policy.
+* `dest_port_group` - (Optional) The name of the destination port address book for traffic access in the VPC firewall access control policy.
 
-  ->**Note:** If `dest_port_type` is set to `port`, `dest_port` is mandatory.
+-> **NOTE:**  Set this parameter when `DestPortType` is set to `group`.
 
-* `dest_port_group` - (Optional) Access control policy in the access traffic of the destination port address book name.
+* `dest_port_type` - (Optional, Computed) The type of the destination port for traffic in a VPC firewall access control policy. Valid values:
+  - `port`: single port
+  - `group`: port address book
+* `destination` - (Required) The destination address in the access control policy.
+  - When `DestinationType` is set to `net`, Destination specifies the destination CIDR block.
+  
+  Example: 10.2.3.0/24
+  - When `DestinationType` is set to `group`, Destination specifies the name of the destination address book.
 
-  ->**Note:** If `dest_port_type` is set to `group`, `dest_port_group` is mandatory.
+  Example: db_group
+  - When `DestinationType` is set to `domain`, Destination specifies the destination domain name.
 
-* `dest_port_type` - (Optional) The type of the destination port in the access control policy. Valid values: `port`, `group`.
-* `release` - (Optional) The enabled status of the access control policy. The policy is enabled by default after it is created.. Valid values:
-  - `true`: Enable access control policies.
-  - `false`: does not enable access control policies.
-* `member_uid` - (Optional, ForceNew) The UID of the member account of the current Alibaba cloud account.
-* `domain_resolve_type` - (Optional, Available since v1.267.0) The domain name resolution method for the access control policy. Valid values: `FQDN`, `DNS`, `FQDN_AND_DNS`.
-* `repeat_type` - (Optional, Available since v1.267.0) The recurrence type for the policy validity period. Default value: `Permanent`. Valid values: `Permanent`, `None`, `Daily`, `Weekly`, `Monthly`.
-* `repeat_days` - (Optional, List, Available since v1.267.0) The days of the week or month on which the policy is recurrently active. Valid values:
-  - If `repeat_type` is set to `Weekly`. Valid values: `0` to `6`.
-  - If `repeat_type` is set to `Monthly`. Valid values: `1` to `31`.
-* `repeat_end_time` - (Optional, Available since v1.267.0) The recurring end time of the policy validity period.
-* `repeat_start_time` - (Optional, Available since v1.267.0) The recurring start time of the policy validity period.
-* `start_time` - (Optional, Int, Available since v1.267.0) The start time of the policy validity period.
-* `end_time` - (Optional, Int, Available since v1.267.0) The end time of the policy validity period.
-* `lang` - (Optional) The language of the content within the request and response. Valid values: `zh`, `en`.
+  Example: *.aliyuncs.com.
+* `destination_type` - (Required) The type of the destination address in a VPC firewall access control policy. Valid values:
+  - `net`: destination CIDR block
+  - `group`: destination address book
+  - `domain`: destination domain name
+* `domain_resolve_type` - (Optional, Computed, Available since v1.267.0) The domain name resolution method of the access control policy. Valid values:
+
+  - `FQDN`: FQDN-based.
+  - `DNS`: DNS-based dynamic resolution.
+  - `FQDN_AND_DNS`: FQDN and DNS-based dynamic resolution.
+* `end_time` - (Optional, Int, Available since v1.267.0) The end time of the validity period for the access control policy. The value is a UNIX timestamp in seconds. The time must be on the hour or half-hour and must be at least 30 minutes later than the start time.
+
+-> **NOTE:**  If RepeatType is set to Permanent, EndTime is left empty. If RepeatType is set to None, Daily, Weekly, or Monthly, EndTime is required and you must specify an end time.
+
+* `lang` - (Optional) The language of the request and response.
+
+Valid values:
+  - `zh` (default): Chinese
+  - `en`: English
+
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
+
+* `member_uid` - (Optional, ForceNew, Computed) The UID of the member account that belongs to the current Alibaba Cloud account.
+* `old_order` - (Optional, Available since v1.286.0) The original priority of the access control policy before the priority is modified.
+
+-> **NOTE:**  This parameter is not recommended. We recommend that you use the AclUuid parameter to specify the policy to be modified.
+
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `order` - (Required, Int, Deprecated since v1.286.0) The new priority of the access control policy after the priority is modified.
+
+-> **NOTE:**  For the valid values of the new priority, see [Query the effective range of priorities](https://help.aliyun.com/document_detail/474145.html).
+
+* `proto` - (Required) The protocol type of traffic in a VPC firewall access control policy. Valid values:
+  - `TCP`
+  - `UDP`
+  - `ICMP`
+  - `ANY` (all protocol types)
+
+-> **NOTE:**  If you do not specify this parameter, all protocol types are queried.
+
+* `release` - (Optional, Computed) The enabled status of the access control policy. By default, the policy is enabled after it is created. Valid values:
+  - `true`: The access control policy is enabled.
+  - `false`: The access control policy is not enabled.
+* `repeat_days` - (Optional, List, Available since v1.267.0) The set of recurring days for the validity period of the access control policy.
+  - When RepeatType is set to `Permanent`, `None`, or `Daily`, RepeatDays is an empty set.
+  Example: []
+  - When RepeatType is set to Weekly, RepeatDays cannot be empty.
+  Example: [0, 6]
+
+-> **NOTE:**  When RepeatType is set to Weekly, duplicate values are not allowed in RepeatDays.
+  - When RepeatType is set to `Monthly`, RepeatDays cannot be empty.
+  Example: [1, 31]
+
+-> **NOTE:**  When RepeatType is set to Monthly, duplicate values are not allowed in RepeatDays.
+
+* `repeat_end_time` - (Optional, Available since v1.267.0) The repeat end time of the validity period for the access control policy. Example: 23:30. The value must be on the hour or half-hour and must be at least 30 minutes later than the repeat start time.
+
+-> **NOTE:**  If RepeatType is set to Permanent or None, RepeatEndTime is empty. If RepeatType is set to Daily, Weekly, or Monthly, RepeatEndTime is required and you must specify a repeat end time. The format is HH:MM (24-hour clock). Example: 08:00.
+
+* `repeat_start_time` - (Optional, Available since v1.267.0) The repeat start time of the validity period for an access control policy. Example: 08:00. The value must be on the hour or half-hour and must be at least 30 minutes earlier than the repeat end time.
+
+-> **NOTE:**  When RepeatType is set to Permanent or None, RepeatStartTime is empty. When RepeatType is set to Daily, Weekly, or Monthly, RepeatStartTime is required and you must specify a repeat start time.
+The format is HH:MM (24-hour clock). Example: 08:00.
+* `repeat_type` - (Optional, Computed, Available since v1.267.0) The repeat type of the validity period for the access control policy. Valid values:
+  - `Permanent` (default): Always.
+  - `None`: One-time only.
+  - `Daily`: Every day.
+  - `Weekly`: Every week.
+  - `Monthly`: Every month.
+* `source` - (Required) The source address in a VPC firewall access control policy. Valid values:
+  - If `SourceType` is set to `net`, Source specifies the source CIDR block.
+  - If `SourceType` is set to `group`, Source specifies the name of the address book.
+* `source_type` - (Required) The type of the source address in the VPC firewall access control policy. Valid values:
+  - `net`: source CIDR block
+  - `group`: source address book
+* `start_time` - (Optional, Int, Available since v1.267.0) The start time of the validity period for the access control policy. The value is a timestamp in seconds. The time must be on the hour or half-hour and must be at least 30 minutes earlier than the end time.
+
+-> **NOTE:**  If RepeatType is set to Permanent, StartTime is left empty. If RepeatType is set to None, Daily, Weekly, or Monthly, StartTime is required and you must specify a start time.
+
+* `vpc_firewall_id` - (Required, ForceNew) The instance ID of the VPC firewall. You can call the [DescribeVpcFirewallAclGroupList](https://help.aliyun.com/document_detail/159760.html) operation to obtain the ID.
+  - If the VPC firewall protects a Cloud Enterprise Network (CEN), set this parameter to the CEN instance ID.
+
+  Example: cen-ervw0g12b5jbw*\*\*\*
+  - If the VPC firewall protects an Express Connect circuit, set this parameter to the VPC firewall instance ID.
+
+  Example: vfw-a42bbb7b887148c9*\*\*\*
 
 ## Attributes Reference
 
 The following attributes are exported:
-
-* `id` - The resource ID of Vpc Firewall Control Policy. The value formats as `<vpc_firewall_id>:<acl_uuid>`.
-* `acl_uuid` - Access control over VPC firewalls strategy unique identifier.
-* `application_id` - Policy specifies the application ID.
-* `source_group_cidrs` - SOURCE address of the address list.
-* `source_group_type` - The source address type in the access control policy.
-* `destination_group_cidrs` - Destination address book defined in the address list.
-* `destination_group_type` - The destination address book type in the access control policy.
-* `dest_port_group_ports` - Port Address Book port list.
-* `hit_times` - Control strategy of hits per second.
-* `create_time` - (Available since v1.267.0) The time when the policy was created.
+* `id` - The ID of the resource supplied above. The value is formulated as `<vpc_firewall_id>:<acl_uuid>`.
+* `acl_uuid` - The unique ID of the access control policy for the VPC firewall.
+* `application_id` - The ID of the application that handles traffic in the access control policy for the VPC firewall.
+* `create_time` - The time when the policy was created.
+* `dest_port_group_ports` - The details of the destination port address book in a VPC firewall access control policy.
+* `destination_group_cidrs` - The CIDR block information in the destination address book of the VPC firewall access control policy.
+* `destination_group_type` - The type of the destination address book in the access control policy.
+* `hit_times` - The number of times that the VPC firewall access control policy is matched.
+* `source_group_cidrs` - The details of the source address book in the VPC firewall access control policy.
+* `source_group_type` - The type of the source address book in the access control policy.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-
 * `create` - (Defaults to 5 mins) Used when create the Vpc Firewall Control Policy.
-* `update` - (Defaults to 5 mins) Used when update the Vpc Firewall Control Policy.
 * `delete` - (Defaults to 5 mins) Used when delete the Vpc Firewall Control Policy.
+* `update` - (Defaults to 5 mins) Used when update the Vpc Firewall Control Policy.
 
 ## Import
 
