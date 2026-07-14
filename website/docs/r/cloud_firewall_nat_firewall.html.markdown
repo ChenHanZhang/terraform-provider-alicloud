@@ -8,7 +8,9 @@ description: |-
 
 # alicloud_cloud_firewall_nat_firewall
 
-Provides a Cloud Firewall Nat Firewall resource. 
+Provides a Cloud Firewall Nat Firewall resource.
+
+
 
 For information about Cloud Firewall Nat Firewall and how to use it, see [What is Nat Firewall](https://www.alibabacloud.com/help/zh/cloud-firewall/developer-reference/api-cloudfw-2017-12-07-createsecurityproxy).
 
@@ -17,12 +19,6 @@ For information about Cloud Firewall Nat Firewall and how to use it, see [What i
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_nat_firewall&exampleId=19d83e5d-c8c8-684a-59b0-b0b5f4d5458dab48e0cc&activeTab=example&spm=docs.r.cloud_firewall_nat_firewall.0.19d83e5dc8&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -98,42 +94,76 @@ resource "alicloud_cloud_firewall_nat_firewall" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_nat_firewall&spm=docs.r.cloud_firewall_nat_firewall.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `firewall_switch` - (Optional) Safety protection switch. Value:-**open**: open-**close**: close.
-* `lang` - (Optional) Lang.
-* `nat_gateway_id` - (Required, ForceNew) NAT gateway ID.
-* `nat_route_entry_list` - (Required, ForceNew) The list of routes to be switched by the NAT gateway. See [`nat_route_entry_list`](#nat_route_entry_list) below.
-* `proxy_name` - (Required, ForceNew) NAT firewall name.
-* `region_no` - (Required, ForceNew) Region.
-* `status` - (Optional, Computed) The status of the resource.
-* `strict_mode` - (Optional, ForceNew) Whether strict mode is enabled 1-Enable strict mode 0-Disable strict mode.
-* `vswitch_id` - (Optional) The switch ID. Required for switch manual mode.
+* `firewall_switch` - (Optional) The security protection switch. Valid values:
+  - `open`: enabled
+  - `close`: disabled.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `lang` - (Optional) The language of the request and response. Valid values:
+  - `zh` (default): Chinese
+  - `en`: English.
+
+-> **NOTE:** This parameter is only evaluated during resource creation, update and deletion. Modifying it in isolation will not trigger any action.
+
+* `nat_gateway_id` - (Required, ForceNew) The ID of the NAT gateway to query.
+* `nat_route_entry_list` - (Required, ForceNew, List) The list of routes to be switched for the NAT gateway. See [`nat_route_entry_list`](#nat_route_entry_list) below.
+* `proxy_name` - (Required, ForceNew) The name of the NAT firewall. The name must be 4 to 50 characters in length and can contain uppercase and lowercase letters, Chinese characters, digits, and underscores (_). It cannot start with an underscore.
+* `region_no` - (Required, ForceNew) The region ID of the VPC.
+
+-> **NOTE:**  For more information about regions supported by Cloud Firewall, see [Supported regions](https://help.aliyun.com/document_detail/195657.html).
+
+* `status` - (Optional, Computed) The status of Cloud Firewall. Valid values:
+  - configuring: Creating
+  - deleting: Deleting
+  - normal: Normal
+  - abnormal: Abnormal
+  - opening: Enabling
+  - closing: Disabling
+  - closed: Disabled
+* `strict_mode` - (Optional, ForceNew, Int) Specifies whether to enable strict mode.
+  - 1: Enable strict mode.
+  - 0: Disable strict mode.
+* `vswitch_id` - (Optional) The vSwitch ID. This parameter is required when manual mode is enabled for vSwitches.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `vpc_id` - (Required, ForceNew) The ID of the VPC instance.
-* `vswitch_auto` - (Optional) Whether to use switch automatic mode. Value: **true**: Use automatic mode: **false**: Use manual mode.
-* `vswitch_cidr` - (Optional) The network segment of the virtual switch. Required for Switch automatic mode.
+* `vswitch_auto` - (Optional) Specifies whether to enable automatic mode for vSwitches. Valid values:
+  - `true`: Automatic mode
+  - `false`: Manual mode
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `vswitch_cidr` - (Optional) The CIDR block of the vSwitch. This parameter is required when automatic mode is enabled for vSwitches.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 
 ### `nat_route_entry_list`
 
 The nat_route_entry_list supports the following:
-* `destination_cidr` - (Required, ForceNew) The destination network segment of the default route.
+* `destination_cidr` - (Required, ForceNew) The destination CIDR block of the default route.
 * `nexthop_id` - (Required, ForceNew) The next hop address of the original NAT gateway.
-* `nexthop_type` - (Required, ForceNew) The network type of the next hop. Value: NatGateway : NAT Gateway.
-* `route_table_id` - (Required, ForceNew) The route table where the default route of the NAT gateway is located.
+* `nexthop_type` - (Required, ForceNew) The network type of the next hop. Valid value: NatGateway (NAT gateway).
+* `route_table_id` - (Required, ForceNew) The route table to which the default route of the NAT gateway belongs.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
+* `ali_uid` - The UID of the Alibaba Cloud account.
+* `member_uid` - The UID of the member account that belongs to the current Alibaba Cloud account.
+* `nat_gateway_name` - The name of the NAT gateway.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Nat Firewall.
-* `delete` - (Defaults to 5 mins) Used when delete the Nat Firewall.
+* `create` - (Defaults to 10 mins) Used when create the Nat Firewall.
+* `delete` - (Defaults to 13 mins) Used when delete the Nat Firewall.
 * `update` - (Defaults to 5 mins) Used when update the Nat Firewall.
 
 ## Import
@@ -141,5 +171,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Cloud Firewall Nat Firewall can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cloud_firewall_nat_firewall.example <id>
+$ terraform import alicloud_cloud_firewall_nat_firewall.example <proxy_id>
 ```
