@@ -20,12 +20,6 @@ For information about Cloud Firewall Vpc Firewall Ips Config and how to use it, 
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_vpc_firewall_ips_config&exampleId=96479fd1-1d8f-89fd-0062-a2182c616b889990f0ee&activeTab=example&spm=docs.r.cloud_firewall_vpc_firewall_ips_config.0.96479fd11d&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -51,9 +45,6 @@ resource "alicloud_cloud_firewall_vpc_firewall_ips_config" "default" {
 
 Terraform cannot destroy resource `alicloud_cloud_firewall_vpc_firewall_ips_config`. Terraform will remove this resource from the state file, however resources may remain.
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_vpc_firewall_ips_config&spm=docs.r.cloud_firewall_vpc_firewall_ips_config.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -65,11 +56,11 @@ The following arguments are supported:
   - `0`: Off.
 * `lang` - (Optional) Language
 
-  -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `member_uid` - (Optional) MemberUid
 
-  -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `rule_class` - (Optional) IPS rule Group
 * `run_mode` - (Required, Int) IPS defense mode. Value:
@@ -82,7 +73,7 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 
 ## Timeouts
 
@@ -95,5 +86,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Cloud Firewall Vpc Firewall Ips Config can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cloud_firewall_vpc_firewall_ips_config.example <id>
+$ terraform import alicloud_cloud_firewall_vpc_firewall_ips_config.example <vpc_firewall_id>
 ```
