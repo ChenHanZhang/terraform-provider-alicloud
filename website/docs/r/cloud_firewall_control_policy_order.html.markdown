@@ -2,7 +2,6 @@
 subcategory: "Cloud Firewall"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_cloud_firewall_control_policy_order"
-sidebar_current: "docs-alicloud-resource-cloud-firewall-control-policy-order"
 description: |-
   Provides a Alicloud Cloud Firewall Control Policy Order resource.
 ---
@@ -11,6 +10,8 @@ description: |-
 
 Provides a Cloud Firewall Control Policy Order resource.
 
+Access policy priority.
+
 For information about Cloud Firewall Control Policy Order and how to use it, see [What is Control Policy Order](https://www.alibabacloud.com/help/doc-detail/138867.htm).
 
 -> **NOTE:** Available since v1.130.0.
@@ -18,12 +19,6 @@ For information about Cloud Firewall Control Policy Order and how to use it, see
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cloud_firewall_control_policy_order&exampleId=5a361d38-71eb-6652-01ae-b979cb63ce2a68cd5f16&activeTab=example&spm=docs.r.cloud_firewall_control_policy_order.0.5a361d3871&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -49,27 +44,49 @@ resource "alicloud_cloud_firewall_control_policy_order" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_cloud_firewall_control_policy_order&spm=docs.r.cloud_firewall_control_policy_order.example&intl_lang=EN_US)
+### Deleting `alicloud_cloud_firewall_control_policy_order` or removing it from your configuration
+
+Terraform cannot destroy resource `alicloud_cloud_firewall_control_policy_order`. Terraform will remove this resource from the state file, however resources may remain.
 
 ## Argument Reference
 
 The following arguments are supported:
+* `acl_uuid` - (Required, ForceNew) The Security Access Control Strategy Is the Unique Identifier of the ID.
+* `direction` - (Optional) Access Control Policy of the Direction of the Flow
+* `lang` - (Optional, Available since v1.286.0) The language type of the received message. Value:
+  - zh (default): Chinese.
+  - en: English.
 
-* `acl_uuid` - (Required, ForceNew) The unique ID of the access control policy.
-* `direction` - (Required, ForceNew) The direction of the traffic to which the access control policy applies. Valid values: `in`, `out`.
-* `order` - (Required, Int) The priority of the access control policy. The priority value starts from 1. A small priority value indicates a high priority. **NOTE:** The value of `-1` indicates the lowest priority.
--> **NOTE:** From version 1.227.1, `order` must be set.
+-> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
+
+* `new_order` - (Optional, Available since v1.286.0) Set a new priority for the Internet border firewall IPv4 access control policy.
+Priority is represented by a number. Enter the number 1 to indicate the highest priority. The larger the number, the lower the priority.
+
+-> **NOTE:**  The new priority number cannot exceed the scope of the Internet border firewall IPv4 policy priority you have created, otherwise it will cause an error when calling the interface.
+
+-> **NOTE:**  We recommend that you call [DescribePolicyPriorUsed](~~ 138862 ~~) to query the IPv4 policy priority range of the specified traffic direction of the Internet boundary firewall before calling this interface.
+
+
+-> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
+
+* `order` - (Required, ForceNew, Int) Security Access Control Policies Will Go into Effect of Priority. The Priority Value Starts from 1, the Smaller the Priority Number, the Higher the Priority.> **-1** Indicates the Lowest Priority.
 
 ## Attributes Reference
 
 The following attributes are exported:
+* `id` - The ID of the resource supplied above. 
+* `create_time` - The time when the policy was created.
 
-* `id` - The resource ID in terraform of Control Policy Order. It formats as `<acl_uuid>:<direction>`.
+## Timeouts
+
+The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+* `create` - (Defaults to 5 mins) Used when create the Control Policy Order.
+* `update` - (Defaults to 5 mins) Used when update the Control Policy Order.
 
 ## Import
 
 Cloud Firewall Control Policy Order can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_cloud_firewall_control_policy_order.example <acl_uuid>:<direction>
+$ terraform import alicloud_cloud_firewall_control_policy_order.example <acl_uuid>
 ```
