@@ -280,16 +280,18 @@ func (s *ResourceManagerServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			query = make(map[string]interface{})
 			request["ResourceId.1"] = d.Id()
 
-			for i, key := range removedTagKeys {
-				request[fmt.Sprintf("TagKey.%d", i+1)] = key
+			if v, ok := d.GetOk("tags"); ok {
+				tagsTagKeyJsonPath, err := jsonpath.Get("$.tag_key", v)
+				if err == nil && tagsTagKeyJsonPath != "" {
+					request["TagKey"] = tagsTagKeyJsonPath
+				}
 			}
-
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("ResourceDirectoryMaster", "2022-04-19", action, query, request, true)
+				response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ConcurrentCallNotSupported"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -320,9 +322,9 @@ func (s *ResourceManagerServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
-				response, err = client.RpcPost("ResourceDirectoryMaster", "2022-04-19", action, query, request, true)
+				response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 				if err != nil {
-					if IsExpectedErrors(err, []string{"ConcurrentCallNotSupported"}) || NeedRetry(err) {
+					if NeedRetry(err) {
 						wait()
 						return resource.RetryableError(err)
 					}
@@ -1690,3 +1692,115 @@ func (s *ResourceManagerServiceV2) ResourceManagerResourceDirectorySharingStateR
 }
 
 // DescribeResourceManagerResourceDirectorySharing >>> Encapsulated.
+// DescribeResourceManagerResourceGroup <<< Encapsulated get interface for ResourceManager ResourceGroup.
+
+func (s *ResourceManagerServiceV2) DescribeResourceManagerResourceGroup(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceGroupId"] = id
+
+	action := "GetResourceGroup"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.ResourceGroup", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.ResourceGroup", response)
+	}
+
+	currentStatus := v.(map[string]interface{})["Status"]
+	if fmt.Sprint(currentStatus) == "PendingDelete" {
+		return object, WrapErrorf(NotFoundErr("ResourceGroup", id), NotFoundMsg, response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+func (s *ResourceManagerServiceV2) DescribeResourceGroupListTagResources(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceId.1"] = id
+
+	request["ResourceType"] = "ResourceGroup"
+	action := "ListTagResources"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"EntityNotExists.Resource"}) {
+			return object, WrapErrorf(NotFoundErr("ResourceGroup", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	return response, nil
+}
+
+func (s *ResourceManagerServiceV2) ResourceManagerResourceGroupStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+	return s.ResourceManagerResourceGroupStateRefreshFuncWithApi(id, field, failStates, s.DescribeResourceManagerResourceGroup)
+}
+
+func (s *ResourceManagerServiceV2) ResourceManagerResourceGroupStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeResourceManagerResourceGroup >>> Encapsulated.

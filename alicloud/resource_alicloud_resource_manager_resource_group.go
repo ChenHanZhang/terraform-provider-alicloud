@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -21,88 +22,78 @@ func resourceAliCloudResourceManagerResourceGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(11 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"display_name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"resource_group_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"name"},
-			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"resource_group_name"},
-				Deprecated:    "Field `name` has been deprecated from provider version 1.114.0. New field `resource_group_name` instead.",
-			},
-			"tags": tagsSchema(),
 			"account_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": {
+			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"display_name": {
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"region_statuses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"region_id": {
+						"status": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"status": {
+						"region_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"create_date": {
+			"resource_group_id": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Removed:  "Field 'create_date' has been removed from provider version 1.114.0.",
 			},
+			"resource_group_name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAliCloudResourceManagerResourceGroupCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
-	resourceManagerService := ResourcemanagerService{client}
-	var response map[string]interface{}
+
 	action := "CreateResourceGroup"
-	request := make(map[string]interface{})
+	var request map[string]interface{}
+	var response map[string]interface{}
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
 
-	request["DisplayName"] = d.Get("display_name")
-
-	if v, ok := d.GetOk("resource_group_name"); ok {
-		request["Name"] = v
-	} else if v, ok := d.GetOk("name"); ok {
-		request["Name"] = v
-	} else {
-		return WrapError(Error(`[ERROR] Argument "resource_group_name" or "name" must be set one!`))
-	}
-
+	request["Name"] = d.Get("resource_group_name")
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
-		request["Tag"] = tagsMap
+		request["Tags"] = tagsMap
 	}
 
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
-		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, nil, request, true)
+	request["DisplayName"] = d.Get("display_name")
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -118,14 +109,11 @@ func resourceAliCloudResourceManagerResourceGroupCreate(d *schema.ResourceData, 
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_resource_manager_resource_group", action, AlibabaCloudSdkGoERROR)
 	}
 
-	if resp, err := jsonpath.Get("$.ResourceGroup", response); err != nil || resp == nil {
-		return WrapErrorf(err, IdMsg, "alicloud_resource_manager_resource_group")
-	} else {
-		resourceGroupId := resp.(map[string]interface{})["Id"]
-		d.SetId(fmt.Sprint(resourceGroupId))
-	}
+	id, _ := jsonpath.Get("$.ResourceGroup.Id", response)
+	d.SetId(fmt.Sprint(id))
 
-	stateConf := BuildStateConf([]string{}, []string{"OK"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, resourceManagerService.ResourceManagerResourceGroupStateRefreshFunc(d.Id(), []string{}))
+	resourceManagerServiceV2 := ResourceManagerServiceV2{client}
+	stateConf := BuildStateConf([]string{}, []string{"OK"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, resourceManagerServiceV2.ResourceManagerResourceGroupStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -135,78 +123,73 @@ func resourceAliCloudResourceManagerResourceGroupCreate(d *schema.ResourceData, 
 
 func resourceAliCloudResourceManagerResourceGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	resourceManagerService := ResourcemanagerService{client}
+	resourceManagerServiceV2 := ResourceManagerServiceV2{client}
 
-	object, err := resourceManagerService.DescribeResourceManagerResourceGroup(d.Id())
+	objectRaw, err := resourceManagerServiceV2.DescribeResourceManagerResourceGroup(d.Id())
 	if err != nil {
 		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_resource_manager_resource_group resourceManagerService.DescribeResourceManagerResourceGroup Failed!!! %s", err)
+			log.Printf("[DEBUG] Resource alicloud_resource_manager_resource_group DescribeResourceManagerResourceGroup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("display_name", object["DisplayName"])
-	d.Set("resource_group_name", object["Name"])
-	d.Set("name", object["Name"])
-	d.Set("account_id", object["AccountId"])
-	d.Set("status", object["Status"])
+	d.Set("account_id", objectRaw["AccountId"])
+	d.Set("create_time", objectRaw["CreateDate"])
+	d.Set("display_name", objectRaw["DisplayName"])
+	d.Set("resource_group_name", objectRaw["Name"])
+	d.Set("status", objectRaw["Status"])
+	d.Set("resource_group_id", objectRaw["Id"])
 
-	listTagResourcesObject, err := resourceManagerService.ListTagResources(d.Id(), "ResourceGroup")
-	if err != nil {
+	regionStatusRaw, _ := jsonpath.Get("$.RegionStatuses.RegionStatus", objectRaw)
+	regionStatusesMaps := make([]map[string]interface{}, 0)
+	if regionStatusRaw != nil {
+		for _, regionStatusChildRaw := range convertToInterfaceArray(regionStatusRaw) {
+			regionStatusesMap := make(map[string]interface{})
+			regionStatusChildRaw := regionStatusChildRaw.(map[string]interface{})
+			regionStatusesMap["region_id"] = regionStatusChildRaw["RegionId"]
+			regionStatusesMap["status"] = regionStatusChildRaw["Status"]
+
+			regionStatusesMaps = append(regionStatusesMaps, regionStatusesMap)
+		}
+	}
+	if err := d.Set("region_statuses", regionStatusesMaps); err != nil {
+		return err
+	}
+
+	objectRaw, err = resourceManagerServiceV2.DescribeResourceGroupListTagResources(d.Id())
+	if err != nil && !NotFoundError(err) {
 		return WrapError(err)
 	}
 
-	d.Set("tags", tagsToMap(listTagResourcesObject))
-
-	if regionStatuses, ok := object["RegionStatuses"]; ok {
-		if regionStatusList, ok := regionStatuses.(map[string]interface{})["RegionStatus"]; ok {
-			regionStatusesMaps := make([]map[string]interface{}, 0)
-			for _, regionStatus := range regionStatusList.([]interface{}) {
-				regionStatusArg := regionStatus.(map[string]interface{})
-				regionStatusMap := map[string]interface{}{}
-
-				if regionId, ok := regionStatusArg["RegionId"]; ok {
-					regionStatusMap["region_id"] = regionId
-				}
-
-				if status, ok := regionStatusArg["Status"]; ok {
-					regionStatusMap["status"] = status
-				}
-
-				regionStatusesMaps = append(regionStatusesMaps, regionStatusMap)
-			}
-
-			d.Set("region_statuses", regionStatusesMaps)
-		}
-	}
+	tagsMaps := objectRaw["TagResources"]
+	d.Set("tags", tagsToMap(tagsMaps))
 
 	return nil
 }
 
 func resourceAliCloudResourceManagerResourceGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	resourceManagerService := ResourcemanagerService{client}
+	var request map[string]interface{}
 	var response map[string]interface{}
-	var err error
-	d.Partial(true)
-
+	var query map[string]interface{}
 	update := false
-	request := map[string]interface{}{
-		"ResourceGroupId": d.Id(),
-	}
+
+	var err error
+	action := "UpdateResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceGroupId"] = d.Id()
 
 	if d.HasChange("display_name") {
 		update = true
 	}
 	request["NewDisplayName"] = d.Get("display_name")
-
 	if update {
-		action := "UpdateResourceGroup"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("ResourceManager", "2020-03-31", action, nil, request, true)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -217,43 +200,64 @@ func resourceAliCloudResourceManagerResourceGroupUpdate(d *schema.ResourceData, 
 			return nil
 		})
 		addDebug(action, response, request)
-
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
+	}
+	update = false
+	action = "UpdateResourceGroup"
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["ResourceGroupId"] = d.Id()
 
-		d.SetPartial("display_name")
+	if d.HasChange("display_name") {
+		update = true
+	}
+	request["NewDisplayName"] = d.Get("display_name")
+	if update {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			response, err = client.RpcPost("ResourceManager", "2016-11-11", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
 	}
 
 	if d.HasChange("tags") {
-		if err := resourceManagerService.SetResourceTags(d, "ResourceGroup"); err != nil {
+		resourceManagerServiceV2 := ResourceManagerServiceV2{client}
+		if err := resourceManagerServiceV2.SetResourceTags(d, "ResourceGroup"); err != nil {
 			return WrapError(err)
 		}
-
-		d.SetPartial("tags")
 	}
-
-	d.Partial(false)
-
 	return resourceAliCloudResourceManagerResourceGroupRead(d, meta)
 }
 
 func resourceAliCloudResourceManagerResourceGroupDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteResourceGroup"
+	var request map[string]interface{}
 	var response map[string]interface{}
-
+	query := make(map[string]interface{})
 	var err error
+	request = make(map[string]interface{})
+	request["ResourceGroupId"] = d.Id()
 
-	request := map[string]interface{}{
-		"ResourceGroupId": d.Id(),
-	}
-
-	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
-		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, nil, request, true)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		response, err = client.RpcPost("ResourceManager", "2020-03-31", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"DeleteConflict.ResourceGroup.Resource"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
