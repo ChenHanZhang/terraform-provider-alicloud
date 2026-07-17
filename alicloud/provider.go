@@ -940,6 +940,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_apig_plugin_classes":                              dataSourceAliCloudApigPluginClasses(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_apig_service":                                         resourceAliCloudApigService(),
 			"alicloud_gpdb_api_key":                                         resourceAliCloudGpdbApiKey(),
 			"alicloud_apig_plugin":                                          resourceAliCloudApigPlugin(),
 			"alicloud_apig_plugin_class":                                    resourceAliCloudApigPluginClass(),
