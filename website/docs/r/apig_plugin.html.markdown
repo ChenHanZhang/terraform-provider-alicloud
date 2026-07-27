@@ -1,5 +1,5 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_plugin"
 description: |-
@@ -14,17 +14,11 @@ Provides a APIG Plugin resource.
 
 For information about APIG Plugin and how to use it, see [What is Plugin](https://next.api.alibabacloud.com/document/APIG/2024-03-27/InstallPlugin).
 
--> **NOTE:** Available since v1.286.0.
+-> **NOTE:** Available since v2.1.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_apig_plugin&exampleId=f546e7ba-4494-7f4c-99fc-55e14089a0ccdd0e4750&activeTab=example&spm=docs.r.apig_plugin.0.f546e7ba44&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -80,18 +74,14 @@ resource "alicloud_apig_plugin" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_apig_plugin&spm=docs.r.apig_plugin.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
-* `gateway_id` - (Required, ForceNew) The filter parameter for the gateway instance ID.
+* `gateway_id` - (Required) The filter parameter for the gateway instance ID.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `plugin_class_id` - (Required, ForceNew) The plugin class ID.
+* `plugin_class_id` - (Required) The plugin class ID.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
