@@ -1,5 +1,5 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_route"
 description: |-
@@ -10,9 +10,11 @@ description: |-
 
 Provides a APIG Route resource.
 
+
+
 For information about APIG Route and how to use it, see [What is Route](https://next.api.alibabacloud.com/document/APIG/2024-03-27/CreateHttpApiRoute).
 
--> **NOTE:** Available since v1.287.0.
+-> **NOTE:** Available since v2.1.0.
 
 ## Example Usage
 
@@ -27,66 +29,50 @@ provider "alicloud" {
   region = "cn-hangzhou"
 }
 
-resource "alicloud_apig_http_api" "route_httpapi_arr" {
-  http_api_name = "cspec-route-arr-httpapi"
-  protocols     = ["HTTP"]
-  type          = "Rest"
-  description   = "array example httpapi"
-  base_path     = "/cspec-route-arr"
+resource "alicloud_apig_http_api" "route_httpapi_svc" {
+  http_api_name  = "cspec-route-svc-httpapi"
+  protocols      = ["HTTP"]
+  type           = "Rest"
+  description    = "svc example httpapi"
+  ai_protocols   = ["OpenAI"]
+  base_path      = "/cspec-route-svc"
+  enable_auth    = false
+  deploy_configs = [Array]
+  model_category = "LLM"
 }
 
 
 resource "alicloud_apig_route" "default" {
   backend {
     services {
-      version    = "v1.0"
-      port       = "8080"
+      version    = "v1"
+      port       = "80"
       protocol   = "HTTP"
-      weight     = "70"
-      service_id = "svc-a"
-    }
-    services {
-      version    = "v1.0"
-      port       = "8081"
-      protocol   = "HTTP"
-      weight     = "30"
-      service_id = "svc-b"
+      weight     = "100"
+      service_id = "svc-mock-001"
     }
     scene = "SingleService"
   }
-  description = "array route description"
-  route_name  = "cspec-arr-route"
-  domain_infos {
-  }
-  domain_infos {
-  }
-  http_api_id = alicloud_apig_http_api.route_httpapi_arr.id
+  description = "svc route description"
+  route_name  = "cspec-svc-route"
+  http_api_id = alicloud_apig_http_api.route_httpapi_svc.id
+  domain_ids  = ["domain-mock-001"]
   match {
     path {
       type  = "Prefix"
-      value = "/arr-path"
+      value = "/svc-path"
     }
     headers {
       type  = "Exact"
-      value = "v1"
-      name  = "h1"
-    }
-    headers {
-      type  = "Prefix"
-      value = "v2"
-      name  = "h2"
+      value = "custom-val"
+      name  = "x-custom"
     }
     query_params {
       type  = "Exact"
-      value = "v1"
-      name  = "q1"
+      value = "active"
+      name  = "filter"
     }
-    query_params {
-      type  = "Prefix"
-      value = "v2"
-      name  = "q2"
-    }
-    methods         = ["GET", "POST", "PUT"]
+    methods         = ["GET", "POST"]
     ignore_uri_case = false
   }
 }
@@ -104,7 +90,7 @@ The following arguments are supported:
 * `environment_info` - (Optional, ForceNew, Set) The environment information of the route. See [`environment_info`](#environment_info) below.
 * `http_api_id` - (Optional, ForceNew, Computed) The ID of the HTTP API to which the route belongs.
 * `match` - (Optional, Set) The route match rule. See [`match`](#match) below.
-* `route_name` - (Optional, ForceNew) The name of the route.
+* `route_name` - (Optional) The name of the route.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
@@ -166,27 +152,26 @@ The match-query_params supports the following:
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above. The value is formulated as `<http_api_id>:<route_id>`.
+* `backend` - Backend service.
+  * `services` - Backend service.
+    * `name` - The name of the service.
 * `builtin` - Indicates whether the route is a built-in route.
 * `create_time` - The creation time in UTC format: yyyy-MM-ddTHH:mm:ssZ.
-* `gateway_status` - The publishing status of the route on each gateway.
+* `environment_info` - The environment information of the route.
+  * `alias` - The alias of the environment name.
+  * `gateway_info` - The gateway instance information corresponding to the environment.
+    * `gateway_edition` - The edition of the gateway instance.
+    * `gateway_id` - The ID of the Cloud-native API Gateway.
+    * `name` - The name of the gateway.
+  * `name` - The environment name.
+  * `sub_domains` - The default second-level domain names of the environment.
+    * `domain_id` - The ID of the second-level domain name.
+    * `name` - The name of the second-level domain name.
+    * `network_type` - The domain access type, such as Intranet or Internet.
+    * `protocol` - The domain protocol, such as HTTP or HTTPS.
 * `route_id` - The route ID.
 * `status` - The deployment status of the route.
 * `update_time` - The update time in Greenwich Mean Time (GMT).
-* `backend` - Backend service.
-    * `services` - Backend service.
-        * `name` - The name of the service.
-* `environment_info` - The environment information of the route.
-    * `alias` - The alias of the environment name.
-    * `name` - The environment name.
-    * `gateway_info` - The gateway instance information corresponding to the environment.
-        * `gateway_edition` - The edition of the gateway instance.
-        * `gateway_id` - The ID of the Cloud-native API Gateway.
-        * `name` - The name of the gateway.
-    * `sub_domains` - The default second-level domain names of the environment.
-        * `domain_id` - The ID of the second-level domain name.
-        * `network_type` - The domain access type, such as Intranet or Internet.
-        * `protocol` - The domain protocol, such as HTTP or HTTPS.
-        * `name` - The name of the second-level domain name.
 
 ## Timeouts
 
