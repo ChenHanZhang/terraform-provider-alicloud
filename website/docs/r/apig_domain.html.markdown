@@ -1,5 +1,5 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_domain"
 description: |-
@@ -14,17 +14,11 @@ Provides a APIG Domain resource.
 
 For information about APIG Domain and how to use it, see [What is Domain](https://next.api.alibabacloud.com/document/APIG/2024-03-27/CreateDomain).
 
--> **NOTE:** Available since v1.286.0.
+-> **NOTE:** Available since v2.1.0.
 
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_apig_domain&exampleId=ad9e2dce-a831-a305-f5a1-65382c85ade59e31a009&activeTab=example&spm=docs.r.apig_domain.0.ad9e2dcea8&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -43,26 +37,25 @@ resource "alicloud_apig_domain" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_apig_domain&spm=docs.r.apig_domain.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
 * `ca_cert_identifier` - (Optional) CA certificate identifier
 * `cert_identifier` - (Optional) The certificate identifier.
 * `client_ca_cert` - (Optional) client CA certificate
-* `domain_name` - (Required, ForceNew) Domain name.
-* `domain_scope` - (Optional, Computed) domain scope. Valid values: `Dedicated`, `Serverless`. Defaults to `Dedicated` when not specified. **Note: The parameter is immutable after resource creation.** For a `Serverless` domain, `protocol` must be omitted (the domain is HTTPS-only, driven by `force_https`) and `cert_identifier` is not required (a managed certificate is used).
-* `force_https` - (Optional) Specifies whether to enable forced HTTPS redirection. Required for a `Serverless` domain and for a `Dedicated` domain when `protocol` is `HTTPS`; not validated for a `Dedicated` domain when `protocol` is `HTTP`.
-* `gateway_type` - (Optional) Gateway type. Valid values: `API`, `AI`. Defaults to `API` when not specified.
+* `domain_name` - (Required) Domain name.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `domain_scope` - (Optional, Computed) domain scope
+* `force_https` - (Optional) Specifies whether to enable forced HTTPS redirection when the protocol is set to HTTPS. This parameter is required if the protocol is HTTPS.
+* `gateway_type` - (Optional) Gateway type.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `http2_option` - (Optional) HTTP/2 settings.
 * `m_tls_enabled` - (Optional) Whether to enable mTLS mutual authentication
-* `protocol` - (Optional, Computed) The protocol types supported by the domain. Required for a `Dedicated` domain; must be omitted for a `Serverless` domain.
+* `protocol` - (Optional, Computed) The protocol types supported by the domain.
   - HTTP: Supports HTTP only.
   - HTTPS: Supports HTTPS only.
 * `resource_group_id` - (Optional, Computed) Resource group ID (https://help.aliyun.com/document_detail/151181.html).
