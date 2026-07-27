@@ -1,5 +1,5 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_gateway"
 description: |-
@@ -19,12 +19,6 @@ For information about APIG Gateway and how to use it, see [What is Gateway](http
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_apig_gateway&exampleId=6a041ca8-aa0e-8c55-950d-af10c2df89b01a30ef4f&activeTab=example&spm=docs.r.apig_gateway.0.6a041ca8aa&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -75,38 +69,41 @@ resource "alicloud_apig_gateway" "default" {
 
 ### Deleting `alicloud_apig_gateway` or removing it from your configuration
 
-The `alicloud_apig_gateway` resource allows you to manage  `payment_type = "Subscription"`  instance, but Terraform cannot destroy it.
+The `alicloud_apig_gateway` resource allows you to manage  `payment_type = "PayAsYouGo"`  instance, but Terraform cannot destroy it.
 Deleting the subscription resource or removing it from your configuration will remove it from your state file and management, but will not destroy the Instance.
 You can resume managing the subscription instance via the AlibabaCloud Console.
-
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_apig_gateway&spm=docs.r.apig_gateway.example&intl_lang=EN_US)
-
 
 ## Argument Reference
 
 The following arguments are supported:
-* `gateway_edition` - (Optional, ForceNew, Computed, Available since v1.284.0) Gateway instance edition. Valid values:
-  - Professional: Standard instance.
-  - Serverless: Serverless instance.
-  - MultiTenantServerless: Multi-tenant Serverless instance.
+* `gateway_edition` - (Optional, ForceNew, Computed, Available since v1.284.0) Gateway instance edition:
+  - Professional: Standard instance
+  - Serverless: Serverless instance
+  - MultiTenantServerless: Multi-tenant Serverless instance
 * `gateway_name` - (Optional) Query by exact match of the gateway name.
 * `gateway_type` - (Optional, ForceNew, Computed, Available since v1.260.1) The gateway type. Valid values:
   - API: API Gateway
   - AI: AI Gateway
-* `log_config` - (Optional, Set) The log configuration for the gateway instance. See [`log_config`](#log_config) below. **Note: The parameter is immutable after resource creation.**
-* `network_access_config` - (Optional, Set) The network access type of the gateway instance. See [`network_access_config`](#network_access_config) below. **Note: The parameter is immutable after resource creation.**
+* `log_config` - (Optional, Set) The log configuration for the gateway instance. See [`log_config`](#log_config) below.
 
-* `payment_type` - (Required, ForceNew) Payment type. Valid values:
-  - PayAsYouGo: Pay-as-you-go.
-  - Subscription: Subscription.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `network_access_config` - (Optional, Set) The network access type of the gateway instance. See [`network_access_config`](#network_access_config) below.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `payment_type` - (Required, ForceNew) Payment type:
+  - POSTPAY: Pay-as-you-go.
+  - PREPAY: Subscription.
 * `resource_group_id` - (Optional, Computed) The ID of the destination resource group.
 * `spec` - (Optional, ForceNew) Gateway specification:  
   - apigw.small.x1: Small specification.  
 * `tags` - (Optional, Map) The tag of the resource
 * `vswitch` - (Optional, ForceNew, Set) The vSwitch associated with the gateway. See [`vswitch`](#vswitch) below.
 * `vpc` - (Optional, ForceNew, Set) The Virtual Private Cloud (VPC) associated with the gateway. See [`vpc`](#vpc) below.
-* `zone_config` - (Required, Set) The availability zone selection option for the gateway. See [`zone_config`](#zone_config) below. **Note: The parameter is immutable after resource creation.**
+* `zone_config` - (Required, Set) The availability zone selection option for the gateway. See [`zone_config`](#zone_config) below.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `zones` - (Optional, ForceNew, Computed, List) The list of zones associated with the gateway. See [`zones`](#zones) below.
 
@@ -128,7 +125,7 @@ The network_access_config supports the following:
 ### `vswitch`
 
 The vswitch supports the following:
-* `vswitch_id` - (Optional, ForceNew) The ID of the virtual switch.
+* `vswitch_id` - (Optional) The ID of the virtual switch.
 
 ### `vpc`
 
@@ -149,48 +146,48 @@ The zones supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_from` - The source from which the gateway was created.
-* `create_time` - The creation timestamp. Unit: milliseconds.
+* `create_time` - Creation timestamp.
 * `environments` - The list of environments associated with the gateway.
-    * `alias` - The alias of the environment.
-    * `environment_id` - The ID of the environment.
-    * `name` - The name of the environment.
-* `expire_time` - Timestamp indicating when the subscription expires. Unit: milliseconds.
+  * `alias` - The alias of the environment.
+  * `environment_id` - The ID of the environment.
+  * `name` - The name of the environment.
+* `expire_time` - Timestamp indicating when the subscription expires.
 * `load_balancers` - The list of Gateway ingress addresses.
-    * `address` - The address of the load balancer for the gateway.
-    * `address_ip_version` - The IP version of the load balancer.
-    * `address_type` - The load balancer address type.
-    * `gateway_default` - Indicates whether this is the default ingress address of the gateway.
-    * `ipv4_addresses` - The list of IPv4 addresses.
-    * `ipv6_addresses` - The list of IPv6 addresses.
-    * `load_balancer_id` - The ID of the load balancer associated with the gateway.
-    * `mode` - The load balancing provisioning mode for the gateway.
-    * `ports` - The list of listening ports.
-        * `port` - The port number of the load balancer listener.
-        * `protocol` - The protocol of the load balancer listener.
-    * `status` - The status of the load balancer.
-    * `type` - The type of the load balancer.
-* `security_group` - The security group of the gateway.
-    * `name` - The name of the security group.
-    * `security_group_id` - The ID of the security group.
-* `status` - The status of the gateway.
+  * `address` - The address of the load balancer for the gateway.
+  * `address_ip_version` - IP version:.
+  * `address_type` - Load balancer address type:.
+  * `gateway_default` - Indicates whether this is the default ingress address of the gateway.
+  * `ipv4_addresses` - The list of IPv4 addresses.
+  * `ipv6_addresses` - The list of IPv6 addresses.
+  * `load_balancer_id` - The ID of the load balancer associated with the gateway.
+  * `mode` - Load balancing provisioning mode for the gateway:.
+  * `ports` - The list of listening ports.
+    * `port` - The port number of the load balancer listener.
+    * `protocol` - Protocol:.
+  * `status` - Load balancer status:.
+  * `type` - Load balancer type:.
+* `security_group` - Security group of the gateway.
+  * `name` - The name of the security group.
+  * `security_group_id` - The ID of the security group.
+* `status` - Gateway status:.
 * `target_version` - The target version of the gateway instance.
-* `update_time` - The timestamp when the gateway was last updated. Unit: milliseconds.
+* `update_time` - The timestamp when the resource was last updated.
 * `vswitch` - The vSwitch associated with the gateway.
-    * `name` - The name of the virtual switch associated with the gateway.
+  * `name` - The name of the virtual switch associated with the gateway.
 * `version` - The current running version of the gateway instance.
 * `vpc` - The Virtual Private Cloud (VPC) associated with the gateway.
-    * `name` - The name of the VPC gateway.
+  * `name` - The name of the VPC gateway.
 * `zones` - The list of zones associated with the gateway.
-    * `name` - The name of the availability zone for the gateway.
+  * `name` - The name of the availability zone for the gateway.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
 * `create` - (Defaults to 11 mins) Used when create the Gateway.
 * `delete` - (Defaults to 5 mins) Used when delete the Gateway.
-* `update` - (Defaults to 5 mins) Used when update the Gateway.
+* `update` - (Defaults to 6 mins) Used when update the Gateway.
 
 ## Import
 
