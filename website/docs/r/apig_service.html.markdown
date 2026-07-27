@@ -1,18 +1,20 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_service"
 description: |-
-  Provides an Alicloud APIG Service resource.
+  Provides a Alicloud APIG Service resource.
 ---
 
 # alicloud_apig_service
 
-Provides an APIG Service resource.
+Provides a APIG Service resource.
+
+
 
 For information about APIG Service and how to use it, see [What is Service](https://next.api.alibabacloud.com/document/APIG/2024-03-27/CreateService).
 
--> **NOTE:** Available since v1.286.0.
+-> **NOTE:** Available since v2.1.0.
 
 ## Example Usage
 
@@ -88,25 +90,79 @@ resource "alicloud_apig_service" "default" {
 ## Argument Reference
 
 The following arguments are supported:
-* `addresses` - (Optional, List) A list of domain names or fixed addresses.
-* `dns_servers` - (Optional, List) The list of DNS server addresses. Used when `source_type` is `DNS`.
-* `express_type` - (Optional, ForceNew) The service express type, which identifies a special type or mode of the service. Example value: `Standard`.
+* `addresses` - (Optional, Computed, List) A list of domain names or fixed addresses.
+* `agent_service_config` - (Optional, Set) Agent service configuration See [`agent_service_config`](#agent_service_config) below.
+* `ai_service_config` - (Optional, ForceNew, Set) ai service configuration when sourceType equals AI. See [`ai_service_config`](#ai_service_config) below.
+* `dns_servers` - (Optional, List) DNS servers
+* `express_type` - (Optional, ForceNew) Express type
 * `gateway_id` - (Optional, ForceNew) The ID of the Cloud Native API Gateway.
-* `health_check_config` - (Optional, Set) Health check configuration See [`health_check_config`](#health_check_config) below.
-* `healthy_panic_threshold` - (Optional, Float) Healthy panic threshold
-* `namespace` - (Optional, ForceNew) The namespace of the service.
-* `outlier_detection_config` - (Optional, Set) Outlier detection configuration See [`outlier_detection_config`](#outlier_detection_config) below.
-* `protocol` - (Optional) Service protocol.
+* `group_name` - (Optional, ForceNew) The service group name.
+Required when sourceType is MSE_NACOS.
+* `health_check_config` - (Optional, Computed, Set) Health check configuration See [`health_check_config`](#health_check_config) below.
+* `healthy_panic_threshold` - (Optional, Computed, Float) Healthy panic threshold
+* `model_provider_id` - (Optional) Model provider ID
+* `namespace` - (Optional, ForceNew) The namespace of the service:
+  - sourceType is K8S, indicating the namespace of the K8S service.
+When-sourceType is set to MSE_NACOS, it indicates the namespace in Nacos.
 
--> **NOTE:** The parameter `protocol` is immutable after resource creation. Changing it after creation has no effect.
+When the sourceType is K8S and MSE_NACOS, it needs to be specified.
+* `outlier_detection_config` - (Optional, Computed, Set) Outlier detection configuration See [`outlier_detection_config`](#outlier_detection_config) below.
+* `ports` - (Optional, Computed, List) Port information See [`ports`](#ports) below.
 
-* `qualifier` - (Optional, ForceNew) The function version or alias. Used when `source_type` is `FC3`.
-* `resource_group_id` - (Optional, Computed) The ID of the resource group.
-* `service_name` - (Optional, ForceNew) The service name.
-* `source_type` - (Optional, ForceNew) The service source type. Valid values: `DNS`, `VIP`, `FC3`.
-  - `VIP`: a fixed-address service (set `addresses`).
-  - `DNS`: a DNS domain service (set `addresses`, optionally `dns_servers`).
-  - `FC3`: a Function Compute service (set `qualifier`).
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `protocol` - (Optional, Computed) Service protocol
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `qualifier` - (Optional, ForceNew) The function version or alias.
+* `resource_group_id` - (Optional, Computed) The ID of the resource group
+* `service_name` - (Optional, ForceNew) Service Name, need to fill in manually when sourceType is VIP/DNS/AI.
+* `source_type` - (Optional, ForceNew) service source type, optional value is K8S/MSE_NACOS/FC3/SAE_K8S_SERVICE/VIP/DNS/AI
+
+### `agent_service_config`
+
+The agent_service_config supports the following:
+* `address` - (Optional) Address
+* `custom_config` - (Optional, Set) Custom service configuration See [`custom_config`](#agent_service_config-custom_config) below.
+* `dash_scope_config` - (Optional, Set) DashScope service configuration See [`dash_scope_config`](#agent_service_config-dash_scope_config) below.
+* `dify_config` - (Optional, Set) Dify service configuration See [`dify_config`](#agent_service_config-dify_config) below.
+* `enable_health_check` - (Optional) Enable health check
+* `enable_outlier_detection` - (Optional) Enable outlier detection
+* `protocols` - (Optional, List) Protocols
+* `provider` - (Optional) Provider
+
+### `agent_service_config-custom_config`
+
+The agent_service_config-custom_config supports the following:
+* `api_key` - (Optional) API key
+* `api_key_generate_mode` - (Optional) API key generate mode
+
+### `agent_service_config-dash_scope_config`
+
+The agent_service_config-dash_scope_config supports the following:
+* `app_credentials` - (Optional, List) Application credentials See [`app_credentials`](#agent_service_config-dash_scope_config-app_credentials) below.
+
+### `agent_service_config-dify_config`
+
+The agent_service_config-dify_config supports the following:
+* `api_key` - (Optional) API key
+* `bot_type` - (Optional) Bot type
+
+### `agent_service_config-dash_scope_config-app_credentials`
+
+The agent_service_config-dash_scope_config-app_credentials supports the following:
+* `api_key` - (Optional) API key
+* `app_id` - (Optional) Application ID
+
+### `ai_service_config`
+
+The ai_service_config supports the following:
+* `address` - (Optional) ai provider address
+* `api_keys` - (Optional, List) api key list
+* `enable_health_check` - (Optional) whether enable health check
+* `protocols` - (Optional, List) model protocol list
+* `provider` - (Optional) ai model provider
 
 ### `health_check_config`
 
@@ -130,17 +186,20 @@ The outlier_detection_config supports the following:
 * `failure_percentage_threshold` - (Optional, Int) Failure percentage threshold
 * `interval` - (Optional, Int) Detection interval
 
+### `ports`
+
+The ports supports the following:
+* `name` - (Optional, Computed) Port name
+* `port` - (Optional, Computed, Int) Port number
+* `protocol` - (Optional, Computed) Protocol TCP|UDP
+
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_timestamp` - Creation timestamp.
 * `health_status` - Health status.
 * `outlier_endpoints` - Outlier endpoints.
-* `ports` - Port information derived by the gateway. Each element contains:
-    * `name` - Port name.
-    * `port` - Port number.
-    * `protocol` - Protocol (`TCP` or `UDP`).
 * `runtime_detail_error_code` - Runtime detail error code.
 * `runtime_detail_status` - Runtime detail status.
 * `unhealthy_endpoints` - Unhealthy endpoints.
