@@ -1,5 +1,5 @@
 ---
-subcategory: "Cloud Native API Gateway (APIG)"
+subcategory: "APIG"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_apig_http_api"
 description: |-
@@ -19,12 +19,6 @@ For information about APIG Http Api and how to use it, see [What is Http Api](ht
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_apig_http_api&exampleId=663376aa-68d1-c514-bf85-c36ddfc4ff787f19c9d2&activeTab=example&spm=docs.r.apig_http_api.0.663376aa68&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -55,22 +49,18 @@ resource "alicloud_apig_http_api" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_apig_http_api&spm=docs.r.apig_http_api.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
-* `ai_protocols` - (Optional, List, Available since v1.285.0) AI API protocols. Currently the supported value is `OpenAI/v1`.
+* `ai_protocols` - (Optional, List, Available since v1.285.0) AI protocols
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `base_path` - (Optional) API base path. It must start with a forward slash (/), be at most 256 bytes long, and must not contain spaces. It is required when `type` is `Rest`; when `type` is `LLM`, `Ai`, or `Agent`, it can be omitted and defaults to `/`.
+* `base_path` - (Optional) API base path, which must start with a forward slash (/).
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `deploy_configs` - (Optional, List, Available since v1.285.0) API deployment configurations. It is required when `type` is `LLM` or `Ai`, and only a single deployment configuration can be specified. Other types do not need this field.
+* `deploy_configs` - (Optional, List, Available since v1.285.0) API deployment configurations. Currently, only AI APIs support deployment configurations, and only a single deployment configuration can be specified.
 
 -> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
@@ -84,10 +74,10 @@ The following arguments are supported:
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `protocols` - (Required, List) List of API access protocols. Valid values: `HTTP`, `HTTPS`.
-* `resource_group_id` - (Optional, Computed) The ID of the resource group. It can be modified to migrate the resource to another resource group.
-* `type` - (Required, ForceNew) The type of the HTTP API. Multiple types are supported and must be separated by commas (,).
-  - Http
+* `protocols` - (Required, ForceNew, List) List of API access protocols.
+* `resource_group_id` - (Optional, ForceNew, Computed) Target resource group ID.
+* `type` - (Required, ForceNew) The type of the HTTP API. Multiple types are supported and must be separated by commas (,).  
+  - Http  
   - Rest  
   - LLM  
   - WebSocket  
