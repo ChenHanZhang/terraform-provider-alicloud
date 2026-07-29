@@ -1016,6 +1016,7 @@ func (s *CloudFirewallServiceV2) CloudFirewallVpcFirewallIpsConfigStateRefreshFu
 
 func (s *CloudFirewallServiceV2) DescribeCloudFirewallInstance(id string) (object map[string]interface{}, err error) {
 	client := s.client
+	id := d.Id()
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
@@ -1024,15 +1025,26 @@ func (s *CloudFirewallServiceV2) DescribeCloudFirewallInstance(id string) (objec
 	request["InstanceIDs"] = id
 
 	var endpoint string
-	request["ProductCode"] = "cfw"
+	request["ProductCode"] = ""
+	request["ProductType"] = ""
+	if client.IsInternationalAccount() {
+		request["ProductType"] = ""
+	}
 	action := "QueryAvailableInstances"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
+				return resource.RetryableError(err)
+			}
+			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{""}) {
+				request["ProductCode"] = ""
+				request["ProductType"] = ""
+				endpoint = connectivity.BssOpenAPIEndpointInternational
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
@@ -1041,29 +1053,25 @@ func (s *CloudFirewallServiceV2) DescribeCloudFirewallInstance(id string) (objec
 	})
 	addDebug(action, response, request)
 	if err != nil {
+		if IsExpectedErrors(err, []string{"-103205"}) {
+			return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
+		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
 	v, err := jsonpath.Get("$.Data.InstanceList[*]", response)
 	if err != nil {
-		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Data.InstanceList[*]", response)
 	}
 
 	if len(v.([]interface{})) == 0 {
 		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
 	}
 
-	currentStatus := v.([]interface{})[0].(map[string]interface{})["InstanceID"]
-	if currentStatus == nil {
-		return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
-	}
-
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
-
 func (s *CloudFirewallServiceV2) DescribeInstanceDescribeUserBuyVersion(id string) (object map[string]interface{}, err error) {
 	client := s.client
-	var endpoint string
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
@@ -1075,13 +1083,11 @@ func (s *CloudFirewallServiceV2) DescribeInstanceDescribeUserBuyVersion(id strin
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, query, request, true, endpoint)
+		response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
-			} else if IsExpectedErrors(err, []string{"not valid instanceId"}) {
-				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
@@ -1095,7 +1101,6 @@ func (s *CloudFirewallServiceV2) DescribeInstanceDescribeUserBuyVersion(id strin
 
 	return response, nil
 }
-
 func (s *CloudFirewallServiceV2) DescribeInstanceDescribeAssetStatistic(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -1121,7 +1126,7 @@ func (s *CloudFirewallServiceV2) DescribeInstanceDescribeAssetStatistic(id strin
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"ErrorParamsNotEnough"}) {
+		if IsExpectedErrors(err, []string{"ErrorParamsNotEnough", "-103205"}) {
 			return object, WrapErrorf(NotFoundErr("Instance", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
