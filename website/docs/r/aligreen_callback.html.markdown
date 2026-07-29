@@ -20,12 +20,6 @@ For information about Aligreen Callback and how to use it, see [What is Callback
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_aligreen_callback&exampleId=eb2f06de-71b9-821a-e3d7-bf40f41ed53c301f5190&activeTab=example&spm=docs.r.aligreen_callback.0.eb2f06de71&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform_example"
@@ -45,8 +39,6 @@ resource "alicloud_aligreen_callback" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_aligreen_callback&spm=docs.r.aligreen_callback.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -59,7 +51,7 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - The creation time of the Callback.
 
 ## Timeouts
@@ -74,5 +66,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Aligreen Callback can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_aligreen_callback.example <id>
+$ terraform import alicloud_aligreen_callback.example <callback_id>
 ```
