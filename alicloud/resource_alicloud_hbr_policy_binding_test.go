@@ -115,7 +115,10 @@ func TestAccAliCloudHbrPolicyBinding_basic6221(t *testing.T) {
 }
 
 var AlicloudHbrPolicyBindingMap6221 = map[string]string{
-	"create_time": CHECKSET,
+	"created_by_tag":    CHECKSET,
+	"create_time":       CHECKSET,
+	"policy_binding_id": CHECKSET,
+	"hit_tags.#":        CHECKSET,
 }
 
 func AlicloudHbrPolicyBindingBasicDependence6221(name string) string {
@@ -126,11 +129,11 @@ variable "name" {
 
 resource "alicloud_hbr_vault" "defaultyk84Hc" {
   vault_type = "STANDARD"
-  vault_name = var.name
+  vault_name = "vault-example-1785738058"
 }
 
 resource "alicloud_hbr_policy" "defaultoqWvHQ" {
-  policy_name = var.name
+  policy_name = "terraform-test-时间引用：GetCurrentUnixTimeStamp(0,'ms','s')-478"
   rules {
     rule_type    = "BACKUP"
     backup_type  = "COMPLETE"
@@ -228,7 +231,10 @@ func TestAccAliCloudHbrPolicyBinding_basic7242(t *testing.T) {
 }
 
 var AlicloudHbrPolicyBindingMap7242 = map[string]string{
-	"create_time": CHECKSET,
+	"created_by_tag":    CHECKSET,
+	"create_time":       CHECKSET,
+	"policy_binding_id": CHECKSET,
+	"hit_tags.#":        CHECKSET,
 }
 
 func AlicloudHbrPolicyBindingBasicDependence7242(name string) string {
@@ -239,11 +245,11 @@ variable "name" {
 
 resource "alicloud_hbr_vault" "defaultQNFISO" {
   vault_type = "STANDARD"
-  vault_name = var.name
+  vault_name = "vault-example-1785738060"
 }
 
 resource "alicloud_hbr_policy" "defaultoqWvHQ" {
-  policy_name = var.name
+  policy_name = "policy-example-1785738060"
   rules {
     rule_type    = "BACKUP"
     backup_type  = "COMPLETE"
