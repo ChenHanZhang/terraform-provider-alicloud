@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tidwall/sjson"
 )
 
 func resourceAliCloudHbrPolicyBinding() *schema.Resource {
@@ -32,7 +34,6 @@ func resourceAliCloudHbrPolicyBinding() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -61,7 +62,6 @@ func resourceAliCloudHbrPolicyBinding() *schema.Resource {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
-							ForceNew: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -87,6 +87,10 @@ func resourceAliCloudHbrPolicyBinding() *schema.Resource {
 			},
 			"create_time": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"created_by_tag": {
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 			"cross_account_role_name": {
@@ -120,6 +124,26 @@ func resourceAliCloudHbrPolicyBinding() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"hit_tags": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"operator": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"include": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -127,6 +151,10 @@ func resourceAliCloudHbrPolicyBinding() *schema.Resource {
 			"policy_binding_description": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"policy_binding_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"policy_id": {
 				Type:     schema.TypeString,
@@ -168,51 +196,39 @@ func resourceAliCloudHbrPolicyBindingCreate(d *schema.ResourceData, meta interfa
 	}
 
 	policyBindingListDataList := make(map[string]interface{})
-
 	if v, ok := d.GetOkExists("disabled"); ok {
 		policyBindingListDataList["Disabled"] = v
 	}
-
 	if v, ok := d.GetOkExists("include"); ok {
 		policyBindingListDataList["Include"] = v
 	}
-
 	if v, ok := d.GetOkExists("cross_account_role_name"); ok {
 		policyBindingListDataList["CrossAccountRoleName"] = v
 	}
-
 	if v, ok := d.GetOkExists("cross_account_user_id"); ok {
 		policyBindingListDataList["CrossAccountUserId"] = v
 	}
-
 	if v, ok := d.GetOkExists("data_source_id"); ok {
 		policyBindingListDataList["DataSourceId"] = v
 	}
-
 	if v, ok := d.GetOkExists("source_type"); ok {
 		policyBindingListDataList["SourceType"] = v
 	}
-
 	if v, ok := d.GetOkExists("policy_binding_description"); ok {
 		policyBindingListDataList["PolicyBindingDescription"] = v
 	}
-
 	if v, ok := d.GetOkExists("speed_limit"); ok {
 		policyBindingListDataList["SpeedLimit"] = v
 	}
-
 	if v, ok := d.GetOkExists("source"); ok {
 		policyBindingListDataList["Source"] = v
 	}
-
 	if v, ok := d.GetOkExists("cross_account_type"); ok {
 		policyBindingListDataList["CrossAccountType"] = v
 	}
-
 	if v, ok := d.GetOkExists("exclude"); ok {
 		policyBindingListDataList["Exclude"] = v
 	}
-
 	if v := d.Get("advanced_options"); !IsNil(v) {
 		advancedOptions := make(map[string]interface{})
 		ossDetail := make(map[string]interface{})
@@ -263,6 +279,11 @@ func resourceAliCloudHbrPolicyBindingCreate(d *schema.ResourceData, meta interfa
 	}
 	request["PolicyBindingList"] = string(policyBindingListDataListJson)
 
+	jsonString := convertObjectToJsonString(request)
+	jsonString, _ = sjson.Set(jsonString, "PolicyBindingList.0.DataSourceId", d.Get("data_source_id"))
+	jsonString, _ = sjson.Set(jsonString, "PolicyBindingList.0.SourceType", d.Get("source_type"))
+	_ = json.Unmarshal([]byte(jsonString), &request)
+
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("hbr", "2017-09-08", action, query, request, true)
@@ -281,8 +302,8 @@ func resourceAliCloudHbrPolicyBindingCreate(d *schema.ResourceData, meta interfa
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_hbr_policy_binding", action, AlibabaCloudSdkGoERROR)
 	}
 
-	PolicyBindingListSourceTypeVar := d.Get("source_type")
-	PolicyBindingListDataSourceIdVar := d.Get("data_source_id")
+	PolicyBindingListSourceTypeVar, _ := jsonpath.Get("PolicyBindingList[0].SourceType", request)
+	PolicyBindingListDataSourceIdVar, _ := jsonpath.Get("PolicyBindingList[0].DataSourceId", request)
 	d.SetId(fmt.Sprintf("%v:%v:%v", request["PolicyId"], PolicyBindingListSourceTypeVar, PolicyBindingListDataSourceIdVar))
 
 	return resourceAliCloudHbrPolicyBindingRead(d, meta)
@@ -303,6 +324,7 @@ func resourceAliCloudHbrPolicyBindingRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("create_time", objectRaw["CreatedTime"])
+	d.Set("created_by_tag", objectRaw["CreatedByTag"])
 	d.Set("cross_account_role_name", objectRaw["CrossAccountRoleName"])
 	d.Set("cross_account_type", objectRaw["CrossAccountType"])
 	d.Set("cross_account_user_id", objectRaw["CrossAccountUserId"])
@@ -310,6 +332,7 @@ func resourceAliCloudHbrPolicyBindingRead(d *schema.ResourceData, meta interface
 	d.Set("exclude", objectRaw["Exclude"])
 	d.Set("include", objectRaw["Include"])
 	d.Set("policy_binding_description", objectRaw["PolicyBindingDescription"])
+	d.Set("policy_binding_id", objectRaw["PolicyBindingId"])
 	d.Set("source", objectRaw["Source"])
 	d.Set("speed_limit", objectRaw["SpeedLimit"])
 	d.Set("data_source_id", objectRaw["DataSourceId"])
@@ -365,6 +388,22 @@ func resourceAliCloudHbrPolicyBindingRead(d *schema.ResourceData, meta interface
 		advancedOptionsMaps = append(advancedOptionsMaps, advancedOptionsMap)
 	}
 	if err := d.Set("advanced_options", advancedOptionsMaps); err != nil {
+		return err
+	}
+	hitTagsRaw := objectRaw["HitTags"]
+	hitTagsMaps := make([]map[string]interface{}, 0)
+	if hitTagsRaw != nil {
+		for _, hitTagsChildRaw := range convertToInterfaceArray(hitTagsRaw) {
+			hitTagsMap := make(map[string]interface{})
+			hitTagsChildRaw := hitTagsChildRaw.(map[string]interface{})
+			hitTagsMap["key"] = hitTagsChildRaw["Key"]
+			hitTagsMap["operator"] = hitTagsChildRaw["Operator"]
+			hitTagsMap["value"] = hitTagsChildRaw["Value"]
+
+			hitTagsMaps = append(hitTagsMaps, hitTagsMap)
+		}
+	}
+	if err := d.Set("hit_tags", hitTagsMaps); err != nil {
 		return err
 	}
 
@@ -499,7 +538,10 @@ func resourceAliCloudHbrPolicyBindingDelete(d *schema.ResourceData, meta interfa
 	request = make(map[string]interface{})
 	request["PolicyId"] = parts[0]
 	request["SourceType"] = parts[1]
-	request["DataSourceIds"] = "[\"" + parts[2] + "\"]"
+
+	jsonString := convertObjectToJsonString(request)
+	jsonString, _ = sjson.Set(jsonString, "DataSourceIds.0", parts[2])
+	_ = json.Unmarshal([]byte(jsonString), &request)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
