@@ -109,7 +109,7 @@ func Provider() terraform.ResourceProvider {
 			"skip_region_validation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SKIP_REGION_VALIDATION", false),
+				Default:     false,
 				Description: descriptions["skip_region_validation"],
 			},
 			"configuration_source": {
@@ -175,10 +175,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_apig_gateways":                              dataSourceAliCloudApigGateways(),
 			"alicloud_apig_plugins":                               dataSourceAliCloudApigPlugins(),
 			"alicloud_apig_domains":                               dataSourceAliCloudApigDomains(),
-			"alicloud_apig_routes":                                dataSourceAliCloudApigRoutes(),
 			"alicloud_express_connect_router_vpc_associations":    dataSourceAliCloudExpressConnectRouterVpcAssociations(),
 			"alicloud_ssl_certificates_service_companies":         dataSourceAliCloudSslCertificatesServiceCompanies(),
-			"alicloud_ssl_certificates_service_contacts":          dataSourceAliCloudSslCertificatesServiceContacts(),
 			"alicloud_express_connect_router_tr_associations":     dataSourceAliCloudExpressConnectRouterTrAssociations(),
 			"alicloud_express_connect_router_vbr_child_instances": dataSourceAliCloudExpressConnectRouterVbrChildInstances(),
 			"alicloud_cr_artifact_lifecycle_rules":                dataSourceAliCloudCrArtifactLifecycleRules(),
@@ -946,16 +944,13 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_apig_plugin_classes":                              dataSourceAliCloudApigPluginClasses(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_message_service_account_logging":                      resourceAliCloudMessageServiceAccountLogging(),
 			"alicloud_apig_ai_model_provider":                               resourceAliCloudApigAiModelProvider(),
 			"alicloud_apig_service":                                         resourceAliCloudApigService(),
 			"alicloud_gpdb_api_key":                                         resourceAliCloudGpdbApiKey(),
 			"alicloud_apig_plugin":                                          resourceAliCloudApigPlugin(),
 			"alicloud_ssl_certificates_service_company":                     resourceAliCloudSslCertificatesServiceCompany(),
-			"alicloud_ssl_certificates_service_contact":                     resourceAliCloudSslCertificatesServiceContact(),
 			"alicloud_apig_plugin_class":                                    resourceAliCloudApigPluginClass(),
 			"alicloud_apig_domain":                                          resourceAliCloudApigDomain(),
-			"alicloud_apig_route":                                           resourceAliCloudApigRoute(),
 			"alicloud_cr_artifact_lifecycle_rule":                           resourceAliCloudCrArtifactLifecycleRule(),
 			"alicloud_das_sql_log_config":                                   resourceAliCloudDasSqlLogConfig(),
 			"alicloud_cms_alert_rule_v2":                                    resourceAliCloudCmsAlertRuleV2(),
@@ -1585,8 +1580,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_account":                                       resourceAliCloudPolarDbAccount(),
 			"alicloud_polardb_account_privilege":                             resourceAlicloudPolarDBAccountPrivilege(),
 			"alicloud_polardb_endpoint":                                      resourceAlicloudPolarDBEndpoint(),
-			"alicloud_polardb_dynamo_table":                                  resourceAlicloudPolarDBDynamoTable(),
-			"alicloud_polardb_dynamo_item":                                   resourceAlicloudPolarDBDynamoItem(),
 			"alicloud_polardb_endpoint_address":                              resourceAlicloudPolarDBEndpointAddress(),
 			"alicloud_polardb_primary_endpoint":                              resourceAlicloudPolarDBPrimaryEndpoint(),
 			"alicloud_polardb_application":                                   resourceAlicloudPolarDBApplication(),
@@ -1619,7 +1612,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cen_route_map":                                         resourceAlicloudCenRouteMap(),
 			"alicloud_resource_manager_role":                                 resourceAlicloudResourceManagerRole(),
 			"alicloud_resource_manager_resource_group":                       resourceAliCloudResourceManagerResourceGroup(),
-			"alicloud_resource_manager_resource_group_settings":              resourceAliCloudResourceManagerResourceGroupSettings(),
 			"alicloud_resource_manager_folder":                               resourceAliCloudResourceManagerFolder(),
 			"alicloud_resource_manager_handshake":                            resourceAliCloudResourceManagerHandshake(),
 			"alicloud_resource_manager_handshake_acceptance":                 resourceAliCloudResourceManagerHandshakeAcceptance(),
@@ -2549,7 +2541,7 @@ func init() {
 
 		"assume_role_session_expiration": "The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 0 (in this case Alicloud use own default value).",
 
-		"skip_region_validation": "Skip static validation of region ID. Used by users of alternative AlibabaCloud-like APIs or users w/ access to regions that are not public (yet). It can also be sourced from the `ALICLOUD_SKIP_REGION_VALIDATION` environment variable.",
+		"skip_region_validation": "Skip static validation of region ID. Used by users of alternative AlibabaCloud-like APIs or users w/ access to regions that are not public (yet).",
 
 		"configuration_source": "Use this to mark a terraform configuration file source.",
 
