@@ -20,12 +20,6 @@ For information about Network Load Balancer (NLB) Listener and how to use it, se
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_nlb_listener&exampleId=719b36d3-b3c5-f8e2-9897-0b9972458db784c383ce&activeTab=example&spm=docs.r.nlb_listener.0.719b36d3b3&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "tf-example"
@@ -115,91 +109,114 @@ resource "alicloud_nlb_listener" "default" {
 }
 ```
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_nlb_listener&spm=docs.r.nlb_listener.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
-* `alpn_enabled` - (Optional, Computed) Specifies whether to enable Application-Layer Protocol Negotiation (ALPN). Valid values:
-  - `true`
-  - `false` (default)
-
--> **NOTE:**  Effective only for TCPSSL listener
-
+* `alpn_enabled` - (Optional, Computed) Specifies whether to enable ALPN. Valid values:
+  - `true`: Enable.
+  - `false` (default): Disable.
 * `alpn_policy` - (Optional) The ALPN policy. Valid values:
-  - `HTTP1Only`: uses only HTTP 1.x. The priority of HTTP 1.1 is higher than the priority of HTTP 1.0.
-  - `HTTP2Only`: uses only HTTP 2.0.
-  - `HTTP2Optional`: preferentially uses HTTP 1.x over HTTP 2.0. The priority of HTTP 1.1 is higher than the priority of HTTP 1.0, and the priority of HTTP 1.0 is higher than the priority of HTTP 2.0.
-  - `HTTP2Preferred`: preferentially uses HTTP 2.0 over HTTP 1.x. The priority of HTTP 2.0 is higher than the priority of HTTP 1.1, and the priority of HTTP 1.1 is higher than the priority of HTTP 1.0.
+  - `HTTP1Only`: Only HTTP/1.x is negotiated. Priority: HTTP/1.1 > HTTP/1.0.
+  - `HTTP2Only`: Only HTTP/2.0 is negotiated.
+  - `HTTP2Optional`: HTTP/1.x is preferred, but HTTP/2.0 is also accepted. Priority: HTTP/1.1 > HTTP/1.0 > HTTP/2.0.
+  - `HTTP2Preferred`: HTTP/2.0 is preferred, but HTTP/1.x is also accepted. Priority: HTTP/2.0 > HTTP/1.1 > HTTP/1.0.
 
--> **NOTE:**  This parameter is required if AlpnEnabled is set to true.
+-> **NOTE:**  You must configure this parameter when `AlpnEnabled` is set to true.
 
--> **NOTE:**  Effective only for TCPSSL listener.
-
-* `ca_certificate_ids` - (Optional, List) The list of certificate authority (CA) certificates. This parameter takes effect only for listeners that use SSL over TCP. 
-
--> **NOTE:**  Only one CA certificate is supported.
-
-* `ca_enabled` - (Optional, Computed) Specifies whether to enable mutual authentication. Valid values:
-  - `true` : yes
-  - `false` (default): no
-* `certificate_ids` - (Optional, List) The list of server certificates. This parameter takes effect only for listeners that use SSL over TCP. 
+* `ca_certificate_ids` - (Optional, List) The information about the Certificate Authority (CA) certificate list. You can add only one CA certificate.
 
 -> **NOTE:**  This parameter takes effect only for TCPSSL listeners.
 
-* `cps` - (Optional, Int) The maximum number of connections that can be created per second on the NLB instance. Valid values: `0` to `1000000`. `0` specifies that the number of connections is unlimited.
-* `end_port` - (Optional, ForceNew, Int) The last port in the listener port range. Valid values: `0` to `65535`. The number of the last port must be greater than the number of the first port.
+* `ca_enabled` - (Optional, Computed) Specifies whether to enable mutual authentication. Valid values:
+  - `true`: enables mutual authentication.
+  - `false`: disables mutual authentication.
+* `certificate_ids` - (Optional, List) The information about the server certificate list. You can add only one server certificate.
+
+-> **NOTE:**  This parameter takes effect only for TCPSSL listeners.
+
+* `cps` - (Optional, Int) The limit on new connections per second processed by the listener in each zone (VIP). Valid values: `0` to `1000000`. `0` indicates that no limit is applied.
+* `end_port` - (Optional, ForceNew, Int) The end port for full-port listening. Valid values: `1` to `65535`.
+The value of the end port must be greater than that of the start port.
 
 -> **NOTE:**  This parameter is required when `ListenerPort` is set to `0`.
 
-* `idle_timeout` - (Optional, Computed, Int) The timeout period of idle connections. Unit: seconds. Valid values: `1` to `900`. Default value: `900`.
-* `listener_description` - (Optional) Enter a name for the listener.
-The description must be 2 to 256 characters in length, and can contain letters, digits, commas (,), periods (.), semicolons (;), forward slashes (/), at signs (@), underscores (\_), and hyphens (-).
-* `listener_port` - (Required, ForceNew, Int) The listener port. Valid values: `0` to `65535`.
-If you set the value to `0`, the listener listens by port range. If you set the value to `0`, you must specify `StartPort` and `EndPort`.
-* `listener_protocol` - (Required, ForceNew) The listening protocol. Valid values: `TCP`, `UDP`, and `TCPSSL`.
-* `load_balancer_id` - (Required, ForceNew) The ID of the Network Load Balancer (NLB) instance.
-* `mss` - (Optional, Int) The maximum size of a TCP segment. Unit: bytes. Valid values: `0` to `1500`. `0` specifies that the maximum segment size remains unchanged.
+* `idle_timeout` - (Optional, Computed, Int) The idle connection timeout period. Unit: seconds.
+  - When the listener protocol is `TCP` or `TCPSSL`, the valid values of the idle connection timeout period range from `10` to `900`. Default value: `900`.
+  - When the listener protocol is `UDP`, the valid values of the idle connection timeout period range from `10` to `20`. Default value: `20`.
+* `listener_description` - (Optional) The custom listener name.
+The name must be 2 to 256 characters in length and can contain Chinese characters, English letters, digits, commas (,), periods (.), semicolons (;), forward slashes (/), at signs (@), underscores (_), and hyphens (-).
+* `listener_port` - (Required, ForceNew, Int) The listening port. Valid values: `0` to `65535`.
 
--> **NOTE:**  This parameter is supported only by TCP listeners and listeners that use SSL over TCP.
+  - *0**: indicates that the all-port listening feature is used. If this parameter is set to `0`, you must configure `StartPort` and `EndPort`.
+* `listener_protocol` - (Required, ForceNew) The listener protocol. Valid values: `TCP`, `UDP`, and `TCPSSL`.
+* `load_balancer_id` - (Required, ForceNew) The ID of the Network Load Balancer instance.
+* `mss` - (Optional, Int) The maximum segment size (MSS) of TCP packets. Unit: bytes. Valid values: `0` to `1500`. A value of `0` indicates that the MSS value of user TCP packets is not modified.
 
-* `proxy_protocol_config` - (Optional, Computed, List, Available since v1.243.0) The Proxy Protocol is used to carry the VpcId, PrivateLinkEpId, and PrivateLinkEpsId information to the backend server for configuration. See [`proxy_protocol_config`](#proxy_protocol_config) below.
-* `proxy_protocol_enabled` - (Optional, Computed) Specifies whether to use the Proxy protocol to pass client IP addresses to backend servers. Valid values:
-  - `true`
-  - `false` (default)
-* `sec_sensor_enabled` - (Optional, Computed) Specifies whether to enable fine-grained monitoring. Valid values:
-  - `true`
-  - `false` (default)
+-> **NOTE:**  This field is supported only by TCP and TCPSSL listeners.
 
--> **NOTE:**  Before enabling this function, ensure that the HdMonitor storage has been configured in the region. Otherwise, create listener may fails.
+* `proxy_protocol_config` - (Optional, Computed, Set, Available since v1.243.0) The configuration for carrying VpcId, PrivateLinkEpId, and PrivateLinkEpsId information to backend servers through Proxy Protocol. See [`proxy_protocol_config`](#proxy_protocol_config) below.
+* `proxy_protocol_enabled` - (Optional, Computed) Specifies whether to enable Proxy Protocol to pass client source IP addresses to backend servers. Valid values:
+  - `true`: Enable.
+  - `false`: Disable.
+* `sec_sensor_enabled` - (Optional, Computed) Specifies whether to enable second-level monitoring. Valid values:
+  - `true`: Enable second-level monitoring.
+  - `false` (default): Disable second-level monitoring.
+* `security_policy_id` - (Optional, Computed) The ID of the security policy. System security policies and custom security policies are supported.
+  - System policy valid values: `tls_cipher_policy_1_0` (default), `tls_cipher_policy_1_1`, `tls_cipher_policy_1_2`, `tls_cipher_policy_1_2_strict`, or `tls_cipher_policy_1_2_strict_with_1_3`.
+  - Custom security policy: Enter a custom security policy ID.
+    - To create a custom security policy, see [CreateSecurityPolicy](https://help.aliyun.com/document_detail/445901.html).
+    - To query security policies, see [ListSecurityPolicy](https://help.aliyun.com/document_detail/445900.html).
 
-* `security_policy_id` - (Optional, Computed) The security policy ID. System security policies and custom security policies are supported.
+-> **NOTE:**  This parameter takes effect only for TCPSSL listeners.
 
-Valid values: `tls_cipher_policy\_1\_0` (default), `tls_cipher_policy\_1\_1`, `tls_cipher_policy\_1\_2`, `tls_cipher_policy\_1\_2\_strict`, and `tls_cipher_policy\_1\_2\_strict_with\_1\_3`.
+* `server_group_id` - (Optional) The ID of the server group.
 
--> **NOTE:**  This parameter takes effect only for listeners that use SSL over TCP.
+-> **NOTE:**  - When `ListenerProtocol` is set to `TCP`, the listener supports server groups whose backend protocol is `TCP` or `TCP_UDP`, but does not support server groups whose backend protocol is `UDP`.
 
-* `server_group_id` - (Required) The ID of the server group.
-* `start_port` - (Optional, ForceNew, Int) The first port in the listener port range. Valid values: `0` to `65535`.
+-> **NOTE:**  - When `ListenerProtocol` is set to `UDP`, the listener supports server groups whose backend protocol is `UDP` or `TCP_UDP`, but does not support server groups whose backend protocol is `TCP`.
+
+-> **NOTE:**  - When `ListenerProtocol` is set to `TCPSSL`, the listener supports server groups whose backend protocol is `TCP` and for which **client address preservation is disabled**. It does not support server groups whose backend protocol is `TCP` and for which **client address preservation is enabled**, or server groups whose backend protocol is `UDP` or `TCP_UDP`.
+
+* `server_group_tuples` - (Optional, List, Available since v1.287.0) The list of multiple server groups. See [`server_group_tuples`](#server_group_tuples) below.
+* `start_port` - (Optional, ForceNew, Int) The start port for all-port listening. Valid values: `1` to `65535`.
 
 -> **NOTE:**  This parameter is required when `ListenerPort` is set to `0`.
 
-* `status` - (Optional, Computed) The status of the resource. Valid values: `Running`, `Stopped`. When you want to enable this instance, you can set the property value to `Running`; 
-* `tags` - (Optional, Map) The tag of the resource
+* `status` - (Optional, Computed) The current status of the listener. Valid values:
+  - `Provisioning`: The listener is being created.
+  - `Running`: The listener is running.
+  - `Configuring`: The listener is being configured.
+  - `Stopping`: The listener is being stopped.
+  - `Stopped`: The listener is stopped.
+  - `Starting`: The listener is being started.
+  - `Deleting`: The listener is being deleted.
+  - `Deleted`: The listener is deleted.
+* `tags` - (Optional, Map) A collection of resources and their tags, which includes information such as resource IDs, resource types, and tag key-value pairs.
 
 ### `proxy_protocol_config`
 
 The proxy_protocol_config supports the following:
-* `proxy_protocol_config_private_link_ep_id_enabled` - (Optional, Computed, Available since v1.243.0) Whether to enable carrying PrivateLinkEpId to backend servers through Proxy Protocol.
-* `proxy_protocol_config_private_link_eps_id_enabled` - (Optional, Available since v1.243.0) Whether to enable carrying PrivateLinkEpsId to backend servers through the Proxy Protocol.
-* `proxy_protocol_config_vpc_id_enabled` - (Optional, Available since v1.243.0) Whether to enable carrying VpcId to backend servers through Proxy Protocol.
+* `proxy_protocol_config_private_link_ep_id_enabled` - (Optional, Computed, Available since v1.243.0) Specifies whether to enable the Proxy Protocol to pass Ppv2PrivateLinkEpId to backend servers. Valid values:
+  - `true`: Enabled.
+  - `false` (default): Disabled.
+* `proxy_protocol_config_private_link_eps_id_enabled` - (Optional, Available since v1.243.0) Specifies whether to enable carrying PrivateLinkEpsId to backend servers through Proxy Protocol. Valid values:
+  - `true`: Enabled.
+  - `false` (default): Disabled.
+* `proxy_protocol_config_vpc_id_enabled` - (Optional) Specifies whether to enable the Proxy Protocol to pass VpcId to backend servers. Valid values:
+  - `true`: Enabled.
+  - `false` (default): Disabled.
+
+### `server_group_tuples`
+
+The server_group_tuples supports the following:
+* `server_group_id` - (Optional, Available since v1.287.0) The server group ID.
+* `weight` - (Optional, Int, Available since v1.287.0) The weight.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
-* `region_id` - The ID of the region where the Network Load Balancer (NLB) instance is deployed.
-You can call the [DescribeRegions](https://www.alibabacloud.com/help/en/doc-detail/443657.html) operation to query the most recent region list.
+* `id` - The ID of the resource supplied above. 
+* `region_id` - The region ID of the Network Load Balancer (NLB) instance.
 
 ## Timeouts
 
@@ -213,5 +230,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Network Load Balancer (NLB) Listener can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_nlb_listener.example <id>
+$ terraform import alicloud_nlb_listener.example <listener_id>
 ```
