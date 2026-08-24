@@ -10,6 +10,8 @@ description: |-
 
 Provides a APIG Route resource.
 
+
+
 For information about APIG Route and how to use it, see [What is Route](https://next.api.alibabacloud.com/document/APIG/2024-03-27/CreateHttpApiRoute).
 
 -> **NOTE:** Available since v1.287.0.
@@ -17,12 +19,6 @@ For information about APIG Route and how to use it, see [What is Route](https://
 ## Example Usage
 
 Basic Usage
-
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_apig_route&exampleId=487c76d3-875e-c570-d6fd-6952296dc48910c65eb3&activeTab=example&spm=docs.r.apig_route.0.487c76d387&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
 
 ```terraform
 variable "name" {
@@ -98,23 +94,19 @@ resource "alicloud_apig_route" "default" {
 }
 ```
 
-
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_apig_route&spm=docs.r.apig_route.example&intl_lang=EN_US)
-
-
 ## Argument Reference
 
 The following arguments are supported:
 * `backend` - (Optional, Set) Backend service. See [`backend`](#backend) below.
 * `description` - (Optional) The description of the route.
-* `domain_ids` - (Optional, List) The list of domain name identifiers associated with this APIG route for inbound traffic routing.
+* `domain_ids` - (Optional, List) The domain name IDs.
 
 -> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
 * `environment_info` - (Optional, ForceNew, Set) The environment information of the route. See [`environment_info`](#environment_info) below.
 * `http_api_id` - (Optional, ForceNew, Computed) The ID of the HTTP API to which the route belongs.
 * `match` - (Optional, Set) The route match rule. See [`match`](#match) below.
-* `route_name` - (Optional, ForceNew) The name of the route.
+* `route_name` - (Optional) The name of the route.
 
 -> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
@@ -132,16 +124,47 @@ The backend supports the following:
 ### `backend-services`
 
 The backend-services supports the following:
+* `group_name` - (Optional, ForceNew) service group
+* `http_dubbo_transcoder` - (Optional, ForceNew, Set) HTTP to Dubbo transcoder configuration See [`http_dubbo_transcoder`](#backend-services-http_dubbo_transcoder) below.
+* `model_name` - (Optional) Target model name shared by multiple existing model backend scenes. Its routing or model-rewrite semantics depend on Backend.Scene. It is required for SemanticRouter; AiAutoRouter uses the AI service default model when it is omitted.
+* `name` - (Optional, ForceNew) The name of the service.
+* `namespace` - (Optional, ForceNew) service namespace
 * `port` - (Optional, ForceNew, Int) Service port. Do not specify this parameter for dynamic ports.
 * `protocol` - (Optional, ForceNew) Service protocol. Valid values: HTTP, TCP, and DUBBO.
-* `service_id` - (Optional) The unique identifier of the backend service to which this route forwards traffic.
-* `version` - (Optional, ForceNew) The version label of the backend service used for routing and canary release scenarios.
+* `service_id` - (Optional) Service ID.
+* `source_type` - (Optional, ForceNew) service source type
+* `version` - (Optional, ForceNew) Service version.
 * `weight` - (Optional, Int) The percentage value of the traffic ratio. You can specify the weight of the service when the scenario is proportional (canary) routing. This parameter is not required in other scenarios.
+
+### `backend-services-http_dubbo_transcoder`
+
+The backend-services-http_dubbo_transcoder supports the following:
+* `dubbo_service_group` - (Optional, ForceNew) Dubbo service group
+* `dubbo_service_name` - (Optional, ForceNew) Dubbo service name
+* `dubbo_service_version` - (Optional, ForceNew) Dubbo service version
+* `method_map_list` - (Optional, ForceNew, List) method mapping list See [`method_map_list`](#backend-services-http_dubbo_transcoder-method_map_list) below.
+
+### `backend-services-http_dubbo_transcoder-method_map_list`
+
+The backend-services-http_dubbo_transcoder-method_map_list supports the following:
+* `dubbo_method_name` - (Optional, ForceNew) Dubbo method name
+* `http_method` - (Optional, ForceNew) HTTP method
+* `method_path` - (Optional, ForceNew) method path
+* `param_maps_list` - (Optional, ForceNew, List) parameter mapping list See [`param_maps_list`](#backend-services-http_dubbo_transcoder-method_map_list-param_maps_list) below.
+* `pass_through_all_headers` - (Optional, ForceNew) header passthrough mode
+* `pass_through_list` - (Optional, ForceNew, List) passthrough header list
+
+### `backend-services-http_dubbo_transcoder-method_map_list-param_maps_list`
+
+The backend-services-http_dubbo_transcoder-method_map_list-param_maps_list supports the following:
+* `extract_key` - (Optional, ForceNew) parameter extraction key
+* `extract_key_spec` - (Optional, ForceNew) parameter extraction location
+* `mapping_type` - (Optional, ForceNew) backend parameter type
 
 ### `environment_info`
 
 The environment_info supports the following:
-* `environment_id` - (Optional, ForceNew) The unique identifier of the APIG environment where this route is published and deployed.
+* `environment_id` - (Optional, ForceNew) The environment ID.
 
 ### `match`
 
@@ -155,48 +178,46 @@ The match supports the following:
 ### `match-headers`
 
 The match-headers supports the following:
-* `name` - (Optional) The HTTP request header name used to match incoming requests to this route.
+* `name` - (Optional) The header name.
 * `type` - (Optional) The header matching rule type. Valid values: Exact (exact match), Prefix (prefix match), and Regex (regular expression match).
-* `value` - (Optional) The HTTP request header value that incoming requests must supply to be routed.
+* `value` - (Optional) The header value.
 
 ### `match-path`
 
 The match-path supports the following:
 * `type` - (Optional) The path matching type. Valid values: Exact (exact match), Prefix (prefix match), and Regex (regular expression match).
-* `value` - (Optional) The URI path pattern that incoming requests must match to be routed by this route.
+* `value` - (Optional) The path value.
 
 ### `match-query_params`
 
 The match-query_params supports the following:
-* `name` - (Optional) The query parameter name used to match incoming requests to this route.
+* `name` - (Optional) The parameter name.
 * `type` - (Optional) The matching rule for the query parameter. Valid values: Exact (exact match), Prefix (prefix match), and Regex (regular expression match).
-* `value` - (Optional) The query parameter value that incoming requests must supply to be routed by this route.
+* `value` - (Optional) The parameter value.
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above. The value is formulated as `<http_api_id>:<route_id>`.
+* `backend` - Backend service.
+  * `enable_system_models` - Read-only projection of whether the Model API that generated this route enabled platform system models.
 * `builtin` - Indicates whether the route is a built-in route.
 * `create_time` - The creation time in UTC format: yyyy-MM-ddTHH:mm:ssZ.
-* `gateway_status` - The publishing status of the route on each gateway.
-* `route_id` - The unique identifier of the APIG HTTP API route generated by the service backend.
+* `environment_info` - The environment information of the route.
+  * `alias` - The alias of the environment name.
+  * `gateway_info` - The gateway instance information corresponding to the environment.
+    * `gateway_edition` - The edition of the gateway instance.
+    * `gateway_id` - The ID of the Cloud-native API Gateway.
+    * `name` - The name of the gateway.
+  * `name` - The environment name.
+  * `sub_domains` - The default second-level domain names of the environment.
+    * `domain_id` - The ID of the second-level domain name.
+    * `name` - The name of the second-level domain name.
+    * `network_type` - The domain access type, such as Intranet or Internet.
+    * `protocol` - The domain protocol, such as HTTP or HTTPS.
+* `route_id` - The route ID.
 * `status` - The deployment status of the route.
 * `update_time` - The update time in Greenwich Mean Time (GMT).
-* `backend` - Backend service.
-    * `services` - Backend service.
-        * `name` - The name of the service.
-* `environment_info` - The environment information of the route.
-    * `alias` - The alias of the environment name.
-    * `name` - The human-readable name of the APIG environment where this route is published.
-    * `gateway_info` - The gateway instance information corresponding to the environment.
-        * `gateway_edition` - The edition of the gateway instance.
-        * `gateway_id` - The ID of the Cloud-native API Gateway.
-        * `name` - The name of the gateway.
-    * `sub_domains` - The default second-level domain names of the environment.
-        * `domain_id` - The ID of the second-level domain name.
-        * `network_type` - The domain access type, such as Intranet or Internet.
-        * `protocol` - The domain protocol, such as HTTP or HTTPS.
-        * `name` - The name of the second-level domain name.
 
 ## Timeouts
 
