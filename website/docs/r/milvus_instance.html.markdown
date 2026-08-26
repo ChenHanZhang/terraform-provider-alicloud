@@ -20,12 +20,6 @@ For information about Milvus Instance and how to use it, see [What is Instance](
 
 Basic Usage
 
-<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_milvus_instance&exampleId=74471fee-a02b-33d5-e171-b47ee729834fa8fa9bad&activeTab=example&spm=docs.r.milvus_instance.0.74471feea0&intl_lang=EN_US" target="_blank">
-    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
-  </a>
-</div></div>
-
 ```terraform
 variable "name" {
   default = "terraform-example"
@@ -85,17 +79,27 @@ The `alicloud_milvus_instance` resource allows you to manage  `payment_type = "S
 Deleting the subscription resource or removing it from your configuration will remove it from your state file and management, but will not destroy the Instance.
 You can resume managing the subscription instance via the AlibabaCloud Console.
 
-📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_milvus_instance&spm=docs.r.milvus_instance.example&intl_lang=EN_US)
-
 ## Argument Reference
 
 The following arguments are supported:
+* `ai_function` - (Optional, Available since v1.287.0) Whether AI features are enabled when the instance is created.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `auto_backup` - (Optional, Computed) Whether to enable automatic backup
 * `auto_pay` - (Optional, Available since v1.282.0) Whether to pay automatically.
 
 -> **NOTE:** This parameter is only evaluated during resource creation and update. Modifying it in isolation will not trigger any action.
 
-* `components` - (Optional, Set) Instance component information. Includes Starter Edition/Standard Edition.
+* `auto_renew` - (Optional, Available since v1.287.0) Whether auto-renewal is enabled when the instance is created.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `backup_restore_info` - (Optional, Set, Available since v1.287.0) The backup restoration information used to create the instance. See [`backup_restore_info`](#backup_restore_info) below.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
+* `components` - (Optional, List) Instance component information. Includes Starter Edition/Standard Edition.
   - Starter version: Array including standalone
   - Standard Edition: The configuration is different according to the 2.5 version and 2.6 version.
 2.5: proxy ,mix_coordinator,data,query,index
@@ -103,49 +107,84 @@ The following arguments are supported:
 * `configuration` - (Optional) User-defined configuration
 * `db_admin_password` - (Optional) DB administrator password, which can be used to log in to attu.
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
 * `db_version` - (Required, ForceNew) Milvus kernel version. Supported versions: 2.4, 2.5, 2.6.
 * `encrypted` - (Optional, ForceNew) Whether to use kms encryption. After enabling, you need to configure KmsKeyId. The default is false.
 * `ha` - (Optional) Whether to enable multiple copies of data
 * `instance_name` - (Required) Instance name. The length is limited to 1-64 characters and can only contain Chinese, letters, numbers,-,_
+* `is_multi_az_storage` - (Optional, Available since v1.287.0) Whether multi-zone storage is enabled when the instance is created.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `kms_key_id` - (Optional, ForceNew) Kms Key encryption id, need to be encrypted set to true.
+* `load_replicas` - (Optional, Int, Available since v1.287.0) The number of load replicas configured when the instance is created.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `multi_zone_mode` - (Optional, ForceNew) Availability Zone mode. The default Single.
   - Single: Single zone.
   - Two: Dual Availability Zones.
 * `payment_duration` - (Optional, Int) Instance Payment Duration
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `payment_duration_unit` - (Optional) Paid unit , Enumeration value:
-  - Month: Month
-  - Year: Year
+* `payment_duration_unit` - (Optional) Paid unit
+Enumeration value:
+Month:
+Month
+Year:
+Year
 
--> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
 
-* `payment_type` - (Required, ForceNew) Payment Type ,Enumeration value:
-  - PayAsYouGo: Pay by volume
-  - Subscription: Package year package month
+* `payment_type` - (Required, ForceNew) Payment Type
+Enumeration value:
+PayAsYouGo:
+Pay by volume
+Subscription:
+Package year package month
+* `promotion_no` - (Optional, Available since v1.287.0) The promotion code used to create the instance.
+
+-> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
+
 * `resource_group_id` - (Optional, Computed) Resource Group ID
 * `tags` - (Optional, Map) User Defined Label
 * `vswitch_ids` - (Optional, ForceNew, List) Switch list, configure the switch and zone. See [`vswitch_ids`](#vswitch_ids) below.
 * `vpc_id` - (Required, ForceNew) The VPC network ID. vpc-xxx.
 * `zone_id` - (Optional, ForceNew) The zone id. When multi-zone is enabled, it represents the primary zone.
 
+### `backup_restore_info`
+
+The backup_restore_info supports the following:
+* `backup_id` - (Optional, ForceNew, Available since v1.287.0) The backup ID used to restore the instance.
+* `backup_name` - (Optional, ForceNew, Available since v1.287.0) The backup name used to restore the instance.
+* `source_cluster_id` - (Optional, ForceNew, Available since v1.287.0) The source instance ID used for backup restoration.
+
 ### `components`
 
 The components supports the following:
 * `cu_num` - (Required, Int) The number of CU. For example: 4
 * `cu_type` - (Optional, ForceNew, Computed) The calculation type. The default value is general, and the ram type needs to be opened with a work order.
-  - general: Generic
-  - ram: Capacity
+general: Generic
+ram: Capacity
+* `data_disk` - (Optional, Set, Available since v1.287.0) The QueryNode data disk configuration. Only Type=query is supported. See [`data_disk`](#components-data_disk) below.
 * `disk_size_type` - (Optional, ForceNew, Computed) Default Normal. The Query Node is configured with the capacity type, performance type, and capacity type Large, and the rest are configured with Normal.
+* `pay_type` - (Optional, ForceNew, Available since v1.287.0) The default is consistent with the cluster
 * `replica` - (Required, Int) The number of component replicas. The number of highly available replicas must be greater than or equal to 2.
 * `type` - (Required) The component type. Different types need to be configured according to different versions.
   - Starter version: Array including standalone
   - Standard Edition: The configuration is different according to the 2.5 version and 2.6 version.
 2.5: proxy ,mix_coordinator,data,query,index
 2.6 need to configure: proxy,mix_coordinator,data,query,streaming
+
+### `components-data_disk`
+
+The components-data_disk supports the following:
+* `enabled` - (Optional, ForceNew, Available since v1.287.0) Whether to enable the QueryNode data disk.
+* `performance_level` - (Optional, ForceNew, Available since v1.287.0) The ESSD performance level. Supported values: PL0, PL1, PL2, and PL3.
+* `size` - (Optional, ForceNew, Int, Available since v1.287.0) The data disk size in GiB.
+* `storage_class` - (Optional, ForceNew, Available since v1.287.0) The data disk StorageClass. Supported values: alicloud-disk-essd-pl0, alicloud-disk-essd-pl1, alicloud-disk-essd-pl2, and alicloud-disk-essd-pl3.
 
 ### `vswitch_ids`
 
@@ -156,10 +195,13 @@ The vswitch_ids supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above.
+* `id` - The ID of the resource supplied above. 
 * `create_time` - Instance creation time.
-* `region_id` - regionId. For example: cn-hangzhou
-* `status` - Instance status. Value range:
+* `expire_time` - The expiration time of the instance, which is returned by the package year and month cluster.
+* `order_id` - Alibaba Cloud Order Number.
+* `running_time` - Instance running time.
+* `security_group_ids` - Configured Security Group id.
+* `status` - Instance status.
 
 ## Timeouts
 
@@ -173,5 +215,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Milvus Instance can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_milvus_instance.example <id>
+$ terraform import alicloud_milvus_instance.example <instance_id>
 ```
