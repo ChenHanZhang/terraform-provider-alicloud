@@ -966,7 +966,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_sls_metric_stores":                                dataSourceAliCloudSlsMetricStores(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_ehpc_user":                                            resourceAliCloudEhpcUser(),
+			"alicloud_vpc_route_target_group":                               resourceAliCloudVpcRouteTargetGroup(),
 			"alicloud_ens_load_balancer_udp_listener":                       resourceAliCloudEnsLoadBalancerUdpListener(),
 			"alicloud_gpdb_db_extension":                                    resourceAliCloudGpdbDbExtension(),
 			"alicloud_ecd_desktop_group":                                    resourceAliCloudEcdDesktopGroup(),
@@ -1327,7 +1327,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_quotas_template_applications":                         resourceAliCloudQuotasTemplateApplications(),
 			"alicloud_threat_detection_oss_scan_config":                     resourceAliCloudThreatDetectionOssScanConfig(),
 			"alicloud_threat_detection_malicious_file_whitelist_config":     resourceAliCloudThreatDetectionMaliciousFileWhitelistConfig(),
-			"alicloud_threat_detection_monitor_account":                     resourceAliCloudThreatDetectionMonitorAccount(),
 			"alicloud_adb_lake_account":                                     resourceAliCloudAdbLakeAccount(),
 			"alicloud_ens_security_group":                                   resourceAliCloudEnsSecurityGroup(),
 			"alicloud_ens_vswitch":                                          resourceAliCloudEnsVswitch(),
