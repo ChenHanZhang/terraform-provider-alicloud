@@ -15,10 +15,10 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,7 +129,7 @@ func TestAccAliCloudNasFileSystem_basic0(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -264,7 +264,7 @@ func TestAccAliCloudNasFileSystem_basic0_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -339,7 +339,7 @@ func TestAccAliCloudNasFileSystem_basic1(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -433,7 +433,7 @@ func TestAccAliCloudNasFileSystem_basic1_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -497,7 +497,7 @@ func TestAccAliCloudNasFileSystem_basic2(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -595,7 +595,7 @@ func TestAccAliCloudNasFileSystem_basic2_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -722,7 +722,7 @@ func AliCloudNasFileSystemBasicDependence1(name string) string {
 
 // lintignore: R001
 func TestUnitAliCloudNasFileSystem(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_nas_file_system"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_nas_file_system"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -881,15 +881,15 @@ func TestUnitAliCloudNasFileSystem(t *testing.T) {
 		for _, key := range []string{"description"} {
 			switch p["alicloud_nas_file_system"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_nas_file_system"].Schema).Data(nil, diff)
@@ -916,15 +916,15 @@ func TestUnitAliCloudNasFileSystem(t *testing.T) {
 		for _, key := range []string{"description", "tags"} {
 			switch p["alicloud_nas_file_system"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_nas_file_system"].Schema).Data(nil, diff)
@@ -951,15 +951,15 @@ func TestUnitAliCloudNasFileSystem(t *testing.T) {
 		for _, key := range []string{"tags"} {
 			switch p["alicloud_nas_file_system"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_nas_file_system"].Schema).Data(nil, diff)
@@ -1088,6 +1088,21 @@ func TestUnitAliCloudNasFileSystem(t *testing.T) {
 	})
 }
 
+// lintignore: R001
+func TestUnitAliCloudNasFileSystemAgenticStorageType(t *testing.T) {
+	resourceSchema := resourceAliCloudNasFileSystem()
+	assert.True(t, resourceSchema.Schema["storage_type"].Required)
+	assert.True(t, resourceSchema.Schema["storage_type"].ForceNew)
+	storageTypeValidate := resourceSchema.Schema["storage_type"].ValidateFunc
+	assert.NotNil(t, storageTypeValidate)
+	for _, value := range []string{"Agentic", "Performance", "Capacity", "standard", "advance", "advance_100", "advance_200", "Premium"} {
+		_, validationErrors := storageTypeValidate(value, "storage_type")
+		assert.Empty(t, validationErrors, "storage_type %q should be accepted", value)
+	}
+	_, validationErrors := storageTypeValidate("unknown", "storage_type")
+	assert.NotEmpty(t, validationErrors)
+}
+
 // Case create_cpfs_file_system 12182
 func TestAccAliCloudNasFileSystem_basic12182(t *testing.T) {
 	var v map[string]interface{}
@@ -1107,7 +1122,7 @@ func TestAccAliCloudNasFileSystem_basic12182(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1260,6 +1275,206 @@ resource "alicloud_vswitch" "CreateVswitchC" {
 `, name)
 }
 
+// Case 10730: Agentic is a valid storage_type for standard file systems (issue 10730).
+func TestAccAliCloudNasFileSystem_basic10730(t *testing.T) {
+	// Agentic file systems are whitelist-gated on the NAS service side; creating one on a
+	// non-whitelisted account is rejected by the API with InvalidAzone.NotSupport. Skip this
+	// case unless the test account has been whitelisted (set TEST_ACC_NAS_AGENTIC_WHITELIST).
+	if os.Getenv("TEST_ACC_NAS_AGENTIC_WHITELIST") == "" {
+		t.Skip("Agentic file system requires the NAS whitelist; set TEST_ACC_NAS_AGENTIC_WHITELIST to run this case on a whitelisted account")
+	}
+	var v map[string]interface{}
+	checkoutSupportedRegions(t, true, connectivity.NasClassicSupportedRegions)
+	resourceId := "alicloud_nas_file_system.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFileSystemMap10730)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileSystem")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testAcc%sAliCloudNasFileSystem%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFileSystemBasicDependence10730)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"protocol_type":    "NFS",
+					"storage_type":     "Agentic",
+					"file_system_type": "standard",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"protocol_type":    "NFS",
+						"storage_type":     "Agentic",
+						"file_system_type": "standard",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description": name,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description": name,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"snapshot_id"},
+			},
+		},
+	})
+}
+
+var AlicloudNasFileSystemMap10730 = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasFileSystemBasicDependence10730(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+`, name)
+}
+
+// Case 10730-order: TypeList redundancy_vswitch_ids reorder and convergence coverage
+func TestAccAliCloudNasFileSystem_memberOrder(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_nas_file_system.default"
+	ra := resourceAttrInit(resourceId, AlicloudNasFileSystemMapOrder)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &NasServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeNasFileSystem")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfaccnas%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNasFileSystemOrderDependence)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-beijing"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":            "tf-acc-nas-order",
+					"storage_type":           "advance_100",
+					"encrypt_type":           "0",
+					"vpc_id":                 "${alicloud_vpc.createEVpc_Cpfs.id}",
+					"redundancy_vswitch_ids": []string{"${alicloud_vswitch.CreateVswitchC.id}", "${alicloud_vswitch.CreateVswitchD.id}", "${alicloud_vswitch.CreateVswitchF.id}"},
+					"capacity":               "500",
+					"protocol_type":          "cpfs",
+					"file_system_type":       "cpfsse",
+					"redundancy_type":        "ZRS",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"description":              "tf-acc-nas-order",
+						"storage_type":             "advance_100",
+						"redundancy_vswitch_ids.#": "3",
+						"redundancy_type":          "ZRS",
+						"protocol_type":            "cpfs",
+						"file_system_type":         "cpfsse",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":            "tf-acc-nas-order",
+					"storage_type":           "advance_100",
+					"encrypt_type":           "0",
+					"vpc_id":                 "${alicloud_vpc.createEVpc_Cpfs.id}",
+					"redundancy_vswitch_ids": []string{"${alicloud_vswitch.CreateVswitchF.id}", "${alicloud_vswitch.CreateVswitchC.id}", "${alicloud_vswitch.CreateVswitchD.id}"},
+					"capacity":               "500",
+					"protocol_type":          "cpfs",
+					"file_system_type":       "cpfsse",
+					"redundancy_type":        "ZRS",
+				}),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"description":            "tf-acc-nas-order",
+					"storage_type":           "advance_100",
+					"encrypt_type":           "0",
+					"vpc_id":                 "${alicloud_vpc.createEVpc_Cpfs.id}",
+					"redundancy_vswitch_ids": []string{"${alicloud_vswitch.CreateVswitchF.id}", "${alicloud_vswitch.CreateVswitchC.id}", "${alicloud_vswitch.CreateVswitchD.id}"},
+					"capacity":               "500",
+					"protocol_type":          "cpfs",
+					"file_system_type":       "cpfsse",
+					"redundancy_type":        "ZRS",
+				}),
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+var AlicloudNasFileSystemMapOrder = map[string]string{
+	"status":      CHECKSET,
+	"create_time": CHECKSET,
+	"region_id":   CHECKSET,
+}
+
+func AlicloudNasFileSystemOrderDependence(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+    default = "%s"
+}
+
+resource "alicloud_vpc" "createEVpc_Cpfs" {
+  is_default  = false
+  cidr_block  = "192.168.0.0/16"
+  vpc_name    = "nas-teste1031-vpc"
+  enable_ipv6 = true
+}
+
+resource "alicloud_vswitch" "CreateVswitchF" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-i"
+  cidr_block   = "192.168.2.0/24"
+  vswitch_name = "nas-teste1031-vsw1sdw-F"
+}
+
+resource "alicloud_vswitch" "CreateVswitchC" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-l"
+  cidr_block   = "192.168.3.0/24"
+  vswitch_name = "nas-teste1031-vsw2sdw-C"
+}
+
+resource "alicloud_vswitch" "CreateVswitchD" {
+  is_default   = false
+  vpc_id       = alicloud_vpc.createEVpc_Cpfs.id
+  zone_id      = "cn-beijing-h"
+  cidr_block   = "192.168.4.0/24"
+  vswitch_name = "nas-teste1031-vsw3sdw-D"
+}
+
+`, name)
+}
+
 // Test Nas FileSystem. >>> Resource test cases, automatically generated.
 // Case 通用型性能型文件系统（SMB_ACL）_20250328 10635
 func TestAccAliCloudNasFileSystem_basic10635(t *testing.T) {
@@ -1280,7 +1495,7 @@ func TestAccAliCloudNasFileSystem_basic10635(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1482,7 +1697,7 @@ func TestAccAliCloudNasFileSystem_basic5328(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1616,7 +1831,7 @@ func TestAccAliCloudNasFileSystem_basic7668(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1749,7 +1964,7 @@ func TestAccAliCloudNasFileSystem_basic12188(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{

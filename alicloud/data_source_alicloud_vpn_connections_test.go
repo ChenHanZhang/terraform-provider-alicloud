@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccAlicloudVPNConnectionsDataSourceBasic(t *testing.T) {
@@ -14,6 +14,7 @@ func TestAccAlicloudVPNConnectionsDataSourceBasic(t *testing.T) {
 	name := fmt.Sprintf("tf-testAccVpnConnDataResource%d", rand)
 	preCheck := func() {
 		testAccPreCheck(t)
+		testAccPreCheckPrePaidResources(t)
 	}
 	testAccConfig := dataSourceTestAccConfigFunc(resourceId,
 		name, dataSourceVpnConnectionsConfigDependence)

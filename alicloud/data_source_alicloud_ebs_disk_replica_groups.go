@@ -6,8 +6,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceAlicloudEbsDiskReplicaGroups() *schema.Resource {
@@ -38,6 +38,10 @@ func dataSourceAlicloudEbsDiskReplicaGroups() *schema.Resource {
 						"description": {
 							Computed: true,
 							Type:     schema.TypeString,
+						},
+						"enable_rtc": {
+							Computed: true,
+							Type:     schema.TypeBool,
 						},
 						"destination_region_id": {
 							Computed: true,
@@ -122,14 +126,14 @@ func dataSourceAlicloudEbsDiskReplicaGroupsRead(d *schema.ResourceData, meta int
 	for {
 		action := "DescribeDiskReplicaGroups"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			resp, err := client.RpcPost("ebs", "2021-07-30", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			response = resp
 			addDebug(action, response, request)
@@ -161,6 +165,7 @@ func dataSourceAlicloudEbsDiskReplicaGroupsRead(d *schema.ResourceData, meta int
 		mapping := map[string]interface{}{
 			"id":                    fmt.Sprint(object["ReplicaGroupId"]),
 			"description":           object["Description"],
+			"enable_rtc":            object["EnableRtc"],
 			"destination_region_id": object["DestinationRegionId"],
 			"destination_zone_id":   object["DestinationZoneId"],
 			"group_name":            object["GroupName"],

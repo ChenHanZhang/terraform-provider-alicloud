@@ -9,8 +9,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudOceanBaseInstance() *schema.Resource {
@@ -215,14 +215,14 @@ func resourceAliCloudOceanBaseInstanceCreate(d *schema.ResourceData, meta interf
 		request["CpuArch"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("OceanBasePro", "2019-09-01", action, query, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -345,14 +345,14 @@ func resourceAliCloudOceanBaseInstanceUpdate(d *schema.ResourceData, meta interf
 	request["InstanceName"] = d.Get("instance_name")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("OceanBasePro", "2019-09-01", action, query, request, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -375,14 +375,14 @@ func resourceAliCloudOceanBaseInstanceUpdate(d *schema.ResourceData, meta interf
 	request["NodeNum"] = d.Get("node_num")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("OceanBasePro", "2019-09-01", action, query, request, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"Instance.Order.CreateFailed"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -415,14 +415,14 @@ func resourceAliCloudOceanBaseInstanceUpdate(d *schema.ResourceData, meta interf
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("OceanBasePro", "2019-09-01", action, query, request, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"Instance.Order.CreateFailed"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -444,8 +444,7 @@ func resourceAliCloudOceanBaseInstanceUpdate(d *schema.ResourceData, meta interf
 func resourceAliCloudOceanBaseInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("payment_type"); ok && fmt.Sprint(v) == "Subscription" {
-		log.Printf("[WARN] Cannot destroy resource alicloud_ocean_base_instance which payment_type valued Subscription. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
+		return WrapError(Error("'Subscription' instance cannot be destroyed: please unsubscribe it in the console or wait for it to expire. To remove it from the state only, run 'terraform state rm'."))
 	}
 
 	client := meta.(*connectivity.AliyunClient)
@@ -461,15 +460,15 @@ func resourceAliCloudOceanBaseInstanceDelete(d *schema.ResourceData, meta interf
 		request["BackupRetainMode"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("OceanBasePro", "2019-09-01", action, query, request, false)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil

@@ -83,6 +83,94 @@ resource "alicloud_amqp_instance" "default" {
 }
 ```
 
+Create a RabbitMQ (AMQP) serverless instance with the provisioned (reserved + elastic) billing type.
+
+<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_amqp_instance&exampleId=a4b19e84-fbe2-0ea9-da1c-ea143fb189f92c01cb18&activeTab=example&spm=docs.r.amqp_instance.2.a4b19e84fb&intl_lang=EN_US" target="_blank">
+    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
+  </a>
+</div></div>
+
+```terraform
+variable "name" {
+  default = "terraform-example"
+}
+
+data "alicloud_vpcs" "default" {
+  name_regex = "default-NODELETING"
+}
+
+data "alicloud_vswitches" "default" {
+  vpc_id = data.alicloud_vpcs.default.ids.0
+}
+
+data "alicloud_security_groups" "default" {
+  vpc_id     = data.alicloud_vpcs.default.ids.0
+  name_regex = "default-NODELETING"
+}
+
+resource "alicloud_amqp_instance" "default" {
+  instance_name          = var.name
+  payment_type           = "PayAsYouGo"
+  vpc_id                 = data.alicloud_vswitches.default.vpc_id
+  vswitch_ids            = [data.alicloud_vswitches.default.ids.0, data.alicloud_vswitches.default.ids.1]
+  security_group_id      = data.alicloud_security_groups.default.ids.0
+  serverless_charge_type = "provisioned"
+  edition                = "dedicated"
+  provisioned_capacity   = "20000"
+}
+```
+
+Create a RabbitMQ (AMQP) serverless instance with the provisioned (reserved + elastic, shared architecture) billing type.
+
+<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_amqp_instance&exampleId=9e96b870-cf6a-156c-5db1-1c44d3537abd6598629b&activeTab=example&spm=docs.r.amqp_instance.3.9e96b870cf&intl_lang=EN_US" target="_blank">
+    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
+  </a>
+</div></div>
+
+```terraform
+variable "name" {
+  default = "terraform-example"
+}
+
+data "alicloud_vpcs" "default" {
+  name_regex = "default-NODELETING"
+}
+
+data "alicloud_vswitches" "default" {
+  vpc_id = data.alicloud_vpcs.default.ids.0
+}
+
+data "alicloud_security_groups" "default" {
+  vpc_id     = data.alicloud_vpcs.default.ids.0
+  name_regex = "default-NODELETING"
+}
+
+resource "alicloud_amqp_instance" "default" {
+  instance_name          = var.name
+  payment_type           = "PayAsYouGo"
+  vpc_id                 = data.alicloud_vswitches.default.vpc_id
+  vswitch_ids            = [data.alicloud_vswitches.default.ids.0, data.alicloud_vswitches.default.ids.1]
+  security_group_id      = data.alicloud_security_groups.default.ids.0
+  serverless_charge_type = "provisioned"
+  edition                = "shared"
+  provisioned_capacity   = "20000"
+}
+```
+
+### Serverless billing modes and parameter combinations
+
+A Serverless instance (`payment_type = "PayAsYouGo"`) supports the following billing modes. The combination of `serverless_charge_type` and `edition` determines the deployment architecture and how `provisioned_capacity` is consumed:
+
+| Billing mode | `serverless_charge_type` | `edition` | `provisioned_capacity` | Description |
+| --- | --- | --- | --- | --- |
+| Pay-as-you-go (cumulative) | `onDemand` | not required | not applicable | Billed by actual traffic usage on a shared architecture. |
+| Reserved + elastic (shared) | `provisioned` | `shared` | set the reserved TPS capacity | Reserved baseline TPS with elastic burst on a shared architecture. |
+| Reserved + elastic (dedicated) | `provisioned` | `dedicated` | set the reserved TPS capacity | Reserved baseline TPS with elastic burst on a dedicated (isolated) architecture. |
+
+-> **NOTE:** For `provisioned` instances, `edition` distinguishes the deployment architecture. Modifying `edition` triggers instance cluster migration; submit a ticket before changing it. Storage encryption (`encrypted_instance = true`) is only supported on the `provisioned` + `dedicated` combination.
+
 ### Deleting `alicloud_amqp_instance` or removing it from your configuration
 
 The `alicloud_amqp_instance` resource allows you to manage  `payment_type = "PayAsYouGo"`  instance, but Terraform cannot destroy it.
@@ -94,6 +182,7 @@ You can resume managing the subscription instance via the AlibabaCloud Console.
 ## Argument Reference
 
 The following arguments are supported:
+
 * `auth_model` - (Optional, Available since v1.285.0) The authentication mode of the instance. Default value: `ram`. Valid values:
   - `ram`: RAM authentication.
   - `openSource`: Open source authentication.
@@ -106,23 +195,30 @@ The following arguments are supported:
   - `dedicated`: Dedicated architecture, applicable to reserved + elastic (dedicated) editions.
 
 -> **NOTE:**  Modifying the Edition parameter triggers instance cluster migration. Before making this change, submit a ticket to the cloud service team. [Submit a Ticket](https://smartservice.console.aliyun.com/service/create-ticket?entrance=100&product=rabbitmq)
-    
+
+* `encrypted_instance` - (Optional, ForceNew, Computed) Whether to enable storage encryption when creating the instance. When set to `true`, `kms_key_id` must also be specified. AMQP currently supports storage encryption for the following SKU combinations:
+  - `instance_type = "vip"`.
+  - `payment_type = "PayAsYouGo"`, `serverless_charge_type = "provisioned"`, and `edition = "dedicated"`.
+
+-> **NOTE:** SKU eligibility is validated by the AMQP API when the instance is created, and unsupported combinations are rejected by the backend. Storage encryption cannot be enabled or modified after creation. Changing `encrypted_instance` replaces the instance.
+
 * `instance_name` - (Optional, Computed) The instance name.
 * `instance_type` - (Optional, Computed) Instance type. Valid values:
-  - professional: professional Edition 
-  - enterprise: enterprise Edition 
+  - professional: professional Edition
+  - enterprise: enterprise Edition
   - vip: Platinum Edition.
   - serverless: Serverless Edition.
-  -> **NOTE:** There should not set the `instance_type` parameter when creating a serverless instance. Only need to set `payment_type = "PayAsYouGo"` and `serverless_charge_type = "onDemand"`.
+  -> **NOTE:** Do not set `instance_type` when creating a serverless instance. Set `payment_type = "PayAsYouGo"` and choose `serverless_charge_type = "onDemand"` or `serverless_charge_type = "provisioned"`.
 * `listener_mode` - (Optional, ForceNew, Available since v1.274.0) The Listener mode. Valid values: `tcp_and_ssl`, `ssl_only`.
+* `kms_key_id` - (Optional, ForceNew) The ID of the KMS key used for storage encryption. The key must be in the same region as the instance, enabled, symmetric, and usable for encryption and decryption. This argument must be specified together with `encrypted_instance = true` when the instance is created. Changing `kms_key_id` replaces the instance.
 * `max_connections` - (Optional, Computed, Available since v1.129.0) The maximum number of connections, according to the value given on the purchase page of the cloud message queue RabbitMQ version console.
 * `max_eip_tps` - (Optional, Computed) Peak TPS traffic of the public network, which must be a multiple of 128, unit: times per second.
 * `max_tps` - (Optional, Computed) Configure the private network TPS traffic peak, please set the value according to the cloud message queue RabbitMQ version of the console purchase page given.
 * `modify_type` - (Optional) This parameter must be provided while you change the instance specification. Type of instance lifting and lowering:
   - Upgrade: Upgrade
   - Downgrade: Downgrading.
-* `payment_type` - (Required, ForceNew) The Payment type. Valid value: 
-  - Subscription: Pre-paid. 
+* `payment_type` - (Required, ForceNew) The Payment type. Valid value:
+  - Subscription: Pre-paid.
   - PayAsYouGo: Post-paid, and for serverless Edition.
 * `period` - (Optional) Prepayment cycle, unit: periodCycle. This parameter is valid when PaymentType is set to Subscription.
 * `period_cycle` - (Optional, Available since v1.129.0) Prepaid cycle units. Value: Month, Year.
@@ -131,7 +227,7 @@ The following arguments are supported:
 * `renewal_duration` - (Optional, Computed) The number of automatic renewal cycles.
 * `renewal_duration_unit` - (Optional, Computed) Auto-Renewal Cycle Unit Values Include: Month: Month. Year: Years.
 * `renewal_status` - (Optional, Computed) The renewal status. Value: AutoRenewal: automatic renewal. ManualRenewal: manual renewal. NotRenewal: no renewal.
-* `serverless_charge_type` - (Optional, Available since v1.129.0) The billing type of the serverless instance. Value: onDemand.
+* `serverless_charge_type` - (Optional, Available since v1.129.0) The billing type of the serverless instance. Valid values: `onDemand`, `provisioned`.
 * `serverless_switch` - (Optional, Computed, Available since v1.283.0) Whether to enable the Serverless elastic capability on the instance.
   - `true`: Enable. The instance's maximum TPS is increased to base TPS multiplied by an edition factor (1.5x for Professional Edition, 2x for Enterprise and Platinum Edition).
   - `false`: Disable. The instance's maximum TPS reverts to its original base TPS.
@@ -147,13 +243,15 @@ The following arguments are supported:
 ## Attributes Reference
 
 The following attributes are exported:
+
 * `id` - The ID of the resource supplied above.
-* `create_time` - OrderCreateTime.
+* `create_time` - The time when the order was created. Unix timestamp, to millisecond level.
 * `status` - The status of the resource.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+
 * `create` - (Defaults to 5 mins) Used when create the Instance.
 * `delete` - (Defaults to 5 mins) Used when delete the Instance.
 * `update` - (Defaults to 5 mins) Used when update the Instance.

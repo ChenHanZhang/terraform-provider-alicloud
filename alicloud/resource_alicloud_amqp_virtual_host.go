@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudAmqpVirtualHost() *schema.Resource {
@@ -54,14 +55,14 @@ func resourceAliCloudAmqpVirtualHostCreate(d *schema.ResourceData, meta interfac
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("amqp-open", "2019-12-12", action, query, request, true)
 		if err != nil {
-			if NeedRetry(err) {
+			if NeedRetry(err) || isAmqpInstanceNotReadyError(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -113,15 +114,15 @@ func resourceAliCloudAmqpVirtualHostDelete(d *schema.ResourceData, meta interfac
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("amqp-open", "2019-12-12", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -135,4 +136,21 @@ func resourceAliCloudAmqpVirtualHostDelete(d *schema.ResourceData, meta interfac
 	}
 
 	return nil
+}
+
+// isAmqpInstanceNotReadyError reports whether err is the transient failure that
+// amqp-open returns while a newly created instance is still initializing. The
+// instance already reports SERVING by that point and GetInstance exposes no
+// finer-grained readiness field, so this error is the only available signal that
+// the instance cannot serve virtual host creation yet.
+//
+// The match is deliberately narrowed to this one message. Other InvalidParameter
+// failures, such as a malformed virtual host name, must keep failing fast.
+func isAmqpInstanceNotReadyError(err error) bool {
+	e, ok := err.(*tea.SDKError)
+	if !ok {
+		return false
+	}
+
+	return tea.StringValue(e.Code) == "InvalidParameter" && strings.Contains(tea.StringValue(e.Message), "the internal error!")
 }

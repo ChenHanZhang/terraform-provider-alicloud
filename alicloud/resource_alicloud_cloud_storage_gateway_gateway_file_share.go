@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudCloudStorageGatewayGatewayFileShare() *schema.Resource {
@@ -373,14 +373,14 @@ func resourceAlicloudCloudStorageGatewayGatewayFileShareCreate(d *schema.Resourc
 		request["WindowsAcl"] = v
 	}
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("sgw", "2018-05-11", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -399,7 +399,7 @@ func resourceAlicloudCloudStorageGatewayGatewayFileShareCreate(d *schema.Resourc
 
 	object, err := sgwService.DescribeTasks(fmt.Sprint(request["GatewayId"]), fmt.Sprint(response["TaskId"]))
 	if err != nil {
-		return nil
+		return WrapErrorf(err, DefaultErrorMsg, "alicloud_cloud_storage_gateway_gateway_file_share", "DescribeTasks", AlibabaCloudSdkGoERROR)
 	}
 
 	d.SetId(fmt.Sprint(request["GatewayId"], ":", object["RelatedResourceId"]))
@@ -604,14 +604,14 @@ func resourceAlicloudCloudStorageGatewayGatewayFileShareUpdate(d *schema.Resourc
 	if update {
 		action := "UpdateGatewayFileShare"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("sgw", "2018-05-11", action, nil, request, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -644,14 +644,14 @@ func resourceAlicloudCloudStorageGatewayGatewayFileShareDelete(d *schema.Resourc
 		"Force":     true,
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("sgw", "2018-05-11", action, nil, request, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"GatewayDeletionError"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

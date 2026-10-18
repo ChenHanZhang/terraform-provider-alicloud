@@ -104,10 +104,14 @@ to create several ECS instances one-click.
 
 The following arguments are supported:
 
-* `image_id` - (Optional) The Image to use for the instance. ECS instance's image can be replaced via changing `image_id`. When it is changed, the instance will reboot to make the change take effect. If you do not use `launch_template_id` or `launch_template_name` to specify a launch template, you must specify `image_id`.
+* `image_id` - (Optional) The Image to use for the instance. ECS instance's image can be replaced via changing `image_id`. If you do not use `launch_template_id` or `launch_template_name` to specify a launch template, you must specify `image_id`. How the change is applied is controlled by the provider argument `features.ecs_instance.replace_on_image_update`:
+  - `false` (default): The instance is stopped if it is running, its system disk is replaced with a new one created from the new image, and the instance is started again. It keeps its ID, its private IP address and its data disks, `system_disk_id` changes, and any key pair is attached again afterwards.
+  - `true`: The change is planned as `forces replacement`, so the existing instance is destroyed and a new one is created from the new image.
+
+  -> **NOTE:** The system disk is created anew from the image either way, so its data never survives an `image_id` change. Setting `replace_on_image_update` to `true` gives up the instance ID, the private IP address and the data disks as well, and requires the instance to be destroyable: a `prevent_destroy` lifecycle rule turns the planned replacement into an error, the provider refuses to destroy an instance whose `instance_charge_type` is `PrePaid` unless `force_delete` is `true`, and ECS rejects the deletion itself while `deletion_protection` is `true`. See the [`features.ecs_instance`](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs#features-ecs_instance) documentation for the cases in which a change cannot be planned as a replacement.
+
 * `instance_type` - (Optional) The type of instance to start. When it is changed, the instance will reboot to make the change take effect. If you do not use `launch_template_id` or `launch_template_name` to specify a launch template, you must specify `instance_type`.
-* `io_optimized` - (Removed) It has been deprecated on instance resource. All the launched alicloud instances will be I/O optimized.
-* `is_outdated` - (Optional) Whether to use outdated instance type.
+* `is_outdated` - (Optional) Whether to use outdated instance type. **Note: The parameter is immutable after resource creation.** It only controls the I/O optimization option sent when creating the instance.
 * `network_interface_id` - (Optional, ForceNew, Available since v1.284.0) The ID of the Primary ENI.
   
 -> **NOTE:** From version 1.284.0, `network_interface_id` can be set.
@@ -184,8 +188,12 @@ The following arguments are supported:
 * `dry_run` - (Optional) Specifies whether to send a dry-run request. Default to false.
   - true: Only a dry-run request is sent and no instance is created. The system checks whether the required parameters are set, and validates the request format, service permissions, and available ECS instances. If the validation fails, the corresponding error code is returned. If the validation succeeds, the `DryRunOperation` error code is returned.
   - false: A request is sent. If the validation succeeds, the instance is created.
+* `additional_attributes` - (Optional, Set, Available since v2.1.0) A set of additional attributes that the provider requests when reading the instance through the `DescribeInstances` API. It only affects the data returned during `terraform refresh` and `terraform import`, and changing it does not trigger any API call that modifies the instance. Configured values are merged into the default set of `META_OPTIONS`, `NETWORK_PRIMARY_ENI_IP`, `LOGIN_AS_NON_ROOT`, `DISK_HIGH_DENSITY_MODE` and `CPU_OPTIONS_TOPOLOGY_TYPE` that the provider always requests, so existing reads keep working. Other useful values include `DDH_CLUSTER`, `PRIVATE_DNS_OPTIONS`, `CURRENT_OS_NVME_SUPPORTED` and `MANAGED_HOST_ID`.
+
+  -> **NOTE:** The provider always merges its five default attributes into every `DescribeInstances` query and the API accepts at most `10` values, so at most `5` additional values can be set here. `MANAGED_HOST_ID` is requested only when configured here and makes the API return the managed host ID inside `AdditionalInfo`; the state value of `managed_host_id` is refreshed from the response only when `managed_host_id` is configured.
 * `private_ip` - (Optional) Instance private IP address can be specified when you creating new instance. It is valid when `vswitch_id` is specified. When it is changed, the instance will reboot to make the change take effect.
 * `credit_specification` - (Optional, Available since v1.57.1) Performance mode of the t5 burstable instance. Valid values: 'Standard', 'Unlimited'.
+-> **NOTE:** `credit_specification` is only supported by burstable instance families (e.g. `t5`, `t6`). For an existing or imported instance whose instance type does not support credit specification, this field is empty in the state and configuring it does not take effect; no change will be applied, which avoids the `Credit.NotFound` error from the API.
 * `spot_strategy` - (Optional, ForceNew) The spot strategy of a Pay-As-You-Go instance, and it takes effect only when parameter `instance_charge_type` is 'PostPaid'. Value range:
   - NoSpot: A regular Pay-As-You-Go instance.
   - SpotWithPriceLimit: A price threshold for a spot instance
@@ -206,8 +214,10 @@ The following arguments are supported:
 * `security_enhancement_strategy` - (Optional, ForceNew) The security enhancement strategy.
   - Active: Enable security enhancement strategy, it only works on system images.
   - Deactive: Disable security enhancement strategy, it works on all images.
-* `data_disks` - (Optional, ForceNew, Available since v1.23.1) The list of data disks created with instance. See [`data_disks`](#data_disks) below.
-* `network_interfaces` - (Optional, ForceNew, Available since v1.212.0) The list of network interfaces created with instance. See [`network_interfaces`](#network_interfaces) below.
+
+-> **NOTE:** The ECS API does not return `security_enhancement_strategy`, so the provider cannot read it back into the state. For an imported instance (or an instance created without this field), the state value is empty; in this case, configuring or changing `security_enhancement_strategy` is ignored and will not force the instance to be recreated.
+* `data_disks` - (Optional, ForceNew, Available since v1.23.1) The list of data disks created with instance. **Note: The parameter is immutable after resource creation.** This resource only configures these disks during instance creation; it does not update or refresh the inline disk settings. See [`data_disks`](#data_disks) below.
+* `network_interfaces` - (Optional, ForceNew, Available since v1.212.0) The list of network interfaces created with instance. **Note: The parameter is immutable after resource creation.** See [`network_interfaces`](#network_interfaces) below.
 * `status` - (Optional 1.85.0) The instance status. Valid values: ["Running", "Stopped"]. You can control the instance start and stop through this parameter. Default to `Running`.
 * `hpc_cluster_id` - (Optional, ForceNew, Available since v1.144.0) The ID of the Elastic High Performance Computing (E-HPC) cluster to which to assign the instance.
 * `secondary_private_ips` - (Optional, Available since v1.144.0) A list of Secondary private IP addresses which is selected from within the CIDR block of the vSwitch.
@@ -225,7 +235,7 @@ The following arguments are supported:
 * `maintenance_notify` - (Optional, Available since v1.181.0) Specifies whether to send an event notification before instance shutdown. Valid values: `true`, `false`. Default value: `false`.
   * `true` : sends an event notification.
   * `false` : does not send an event notification.
-* `spot_duration` - (Optional, Available since v1.188.0) The retention time of the preemptive instance in hours. Valid values: `0`, `1`, `2`, `3`, `4`, `5`, `6`. Retention duration 2~6 is under invitation test, please submit a work order if you need to open. If the value is `0`, the mode is no protection period. Default value is `1`.
+* `spot_duration` - (Optional, Available since v1.188.0) The retention time of the preemptive instance in hours. Valid values: `0`, `1`, `2`, `3`, `4`, `5`, `6`. Retention duration 2~6 is under invitation test, please submit a work order if you need to open. If the value is `0`, the mode is no protection period. Default value is `1`. **Note: The parameter is immutable after resource creation.** This resource sends it only when creating the instance.
 * `spot_interruption_behavior` - (Optional, ForceNew, Available since v1.275.0) The interruption mode of the spot instance. Default value: `Terminate`. Valid values:
   - `Terminate`: The instance is released.
   - `Stop`: The instance is stopped in economical mode.
@@ -234,14 +244,21 @@ The following arguments are supported:
   - required: forcefully uses the security-enhanced mode (IMDSv2). After you set this parameter to required, you cannot access instance metadata in normal mode.
 * `http_endpoint` - (Optional, Available since v1.192.0) Specifies whether to enable the access channel for instance metadata. Valid values: `enabled`, `disabled`. Default value: `enabled`.
 * `http_put_response_hop_limit` - (Optional, ForceNew) **NOTE:**: This parameter is not available for use yet. The HTTP PUT response hop limit for accessing instance metadata. Valid values: 1 to 64. Default value: 1.
+* `instance_metadata_tags` - (Optional, Available since v1.291.0) Specifies whether to expose the tags of the instance in the instance metadata. Valid values: `enabled`, `disabled`. Default value: `disabled`.
 * `ipv6_address_count` - (Optional, ForceNew, Available since v1.193.0) The number of IPv6 addresses to randomly generate for the primary ENI. Valid values: 1 to 10. **NOTE:** You cannot specify both the `ipv6_addresses` and `ipv6_address_count` parameters.
 * `ipv6_addresses` - (Optional, Available since v1.193.0) A list of IPv6 address to be assigned to the primary ENI. Support up to 10. **NOTE:** From version 1.241.0, `ipv6_addresses` can be modified.
 * `dedicated_host_id` - (Optional, ForceNew, Available since v1.201.0) The ID of the dedicated host on which to create the instance. If you set the DedicatedHostId parameter, the `spot_strategy` and `spot_price_limit` parameters cannot be set. This is because preemptible instances cannot be created on dedicated hosts.
-* `subnet_id` - (Removed since v1.210.0) The ID of the subnet. **NOTE:** Field `subnet_id` has been removed from provider version 1.210.0.
+* `managed_host_id` - (Optional, ForceNew, Available since v2.1.0) The ID of the managed host on which to create the instance, such as `mh-f2d3647ca21****`. The managed host refers to the physical machine in the intelligent fully-managed resource pool. **NOTE:** You cannot specify both the `managed_host_id` and `dedicated_host_id` parameters.
+
+  -> **NOTE:** The managed host of an instance cannot be changed after creation. Modifying it in the configuration triggers a replacement of the instance. The API returns the managed host ID only when `additional_attributes` contains `MANAGED_HOST_ID`, and the value is refreshed into the state only while `managed_host_id` is configured.
 * `launch_template_id` - (Optional, ForceNew, Available since v1.213.1) The ID of the launch template. For more information, see [DescribeLaunchTemplates](https://www.alibabacloud.com/help/en/ecs/developer-reference/api-describelaunchtemplates).To use a launch template to create an instance, you must use the `launch_template_id` or `launch_template_name` parameter to specify the launch template.
 * `launch_template_name` - (Optional, ForceNew, Available since v1.213.1) The name of the launch template.
 * `launch_template_version` - (Optional, ForceNew, Available since v1.213.1) The version of the launch template. If you set `launch_template_id` or `launch_template_name` parameter but do not set the version number of the launch template, the default template version is used.
 * `enable_jumbo_frame` - (Optional, Bool, Available since v1.223.2) Specifies whether to enable the Jumbo Frames feature for the instance. Valid values: `true`, `false`.
+* `enable_network_encryption` - (Optional, Bool, Available since v1.294.0) Specifies whether to enable network encryption for the instance. Valid values: `true`, `false`.
+
+  -> **NOTE:** VPC traffic encryption is currently in private preview. To use this feature, [submit a ticket](https://selfservice.console.aliyun.com/ticket/createIndex) to request access.
+
 * `enable_high_density_mode` - (Optional, Bool, Available since v1.283.0) Specifies whether to enable the high density mode for the instance. Valid values: `true`, `false`.
 
   -> **NOTE:** Modifying `enable_high_density_mode` requires the instance to be stopped.
@@ -262,7 +279,7 @@ The following arguments are supported:
   - `None`: No private pool. The capacity in private pools is not used.
 * `private_pool_options_id` - (Optional, Available since v1.253.0) The ID of the private pool.
 
-* `image_options` - (Optional, Set, Available since v1.237.0) The options of images. See [`image_options`](#image_options) below.
+* `image_options` - (Optional, Set, Available since v1.237.0) The options of images. **Note: The parameter is immutable after resource creation.** See [`image_options`](#image_options) below.
 * `cpu_options` - (Optional, Set, Available since v1.267.0) The options of cpu. See [`cpu_options`](#cpu_options) below.
 * `allocate_public_ip` - (Optional, Bool, Deprecated since v1.7.0) Field `allocate_public_ip` has been deprecated from provider version 1.7.0. Setting  `internet_max_bandwidth_out` larger than 0 will allocate public ip for instance.
 * `internet_max_bandwidth_in` - (Optional, Int, Deprecated since v1.121.2) Maximum incoming bandwidth from the public network, measured in Mbps (Mega bit per second). Value range: [1, 200]. If this value is not specified, then automatically sets it to 200 Mbps.
@@ -356,6 +373,9 @@ The cpu_options supports the following:
 * `core_count` - (Optional, Int) The maximum number of partitions in the storage set.
 * `threads_per_core` - (Optional, Int) The number of threads per CPU core.
 * `topology_type` - (Optional) The CPU topology type of the instance. Valid values: `ContinuousCoreToHTMapping`, `DiscreteCoreToHTMapping`.
+* `accelerators` - (Optional, List, ForceNew, Available since v1.294.0) The CPU accelerators to enable on the instance, such as the Intel vQAT (QuickAssist Technology) accelerator. Valid values are determined by the API and not yet documented; currently `vqat` is the only valid value, and invalid values are rejected by the API at apply time.
+
+  -> **NOTE:** `accelerators` can only be set at instance creation and is not reported back by the API. It is only supported by specific instance types, for example the standard 8th-generation Intel instance families (`ecs.g8i`, `ecs.c8i`, `ecs.r8i`, `ecs.hfc8i`, `ecs.hfg8i`) at 2xlarge size and above. Invalid accelerator values are rejected by the API with `InvalidParameter.CpuOptionsAccelerators`, and unsupported instance types with `InvalidInstanceType.NotSupportCpuOptionsAccelerators`.
 
 ## Attributes Reference
 

@@ -21,7 +21,7 @@ For information about Api Gateway Vpc Access and how to use it, see [What is Vpc
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_api_gateway_vpc_access&exampleId=c294ba3a-1165-1a88-dc20-73d448bd61fa76244d00&activeTab=example&spm=docs.r.api_gateway_vpc_access.0.c294ba3a11&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_api_gateway_vpc_access&exampleId=ab08bbc6-d4a3-aa84-a54c-11be55d764f5883a42b3&activeTab=example&spm=docs.r.api_gateway_vpc_access.0.ab08bbc6d4&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -84,10 +84,11 @@ resource "alicloud_instance" "default" {
 }
 
 resource "alicloud_api_gateway_vpc_access" "default" {
-  name        = var.name
-  vpc_id      = alicloud_vpc.default.id
-  instance_id = alicloud_instance.default.id
-  port        = 8080
+  name                 = var.name
+  vpc_id               = alicloud_vpc.default.id
+  instance_id          = alicloud_instance.default.id
+  port                 = 8080
+  vpc_target_host_name = "www.example.com"
 }
 ```
 
@@ -101,6 +102,7 @@ The following arguments are supported:
 * `vpc_id` - (Required, ForceNew) The ID of the VPC. The VPC must be an available one that belongs to the same account as the API.
 * `instance_id` - (Required, ForceNew) The ID of an ECS or SLB instance in the VPC.
 * `port` - (Required, ForceNew) The port number that corresponds to the instance.
+* `vpc_target_host_name` - (Optional, ForceNew) The host of the backend service.
 
 ## Attributes Reference
 
@@ -111,7 +113,7 @@ The following attributes are exported:
 
 ## Import
 
-Api Gateway Vpc Access can be imported using the id, e.g.
+Api Gateway Vpc Access can be imported using the id, which consists of name, vpc_id, instance_id and port, e.g.
 
 ```shell
 $ terraform import alicloud_api_gateway_vpc_access.example <name>:<vpc_id>:<instance_id>:<port>

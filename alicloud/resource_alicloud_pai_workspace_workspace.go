@@ -7,9 +7,19 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const paiWorkspaceNameTakenMsg = "The workspace name %q is already taken by the workspace %s in region %s. " +
+	"To manage that one with Terraform, run 'terraform import alicloud_pai_workspace_workspace.<name> %s' " +
+	"instead of creating it again."
+
+const paiWorkspaceNameRetainedMsg = "No workspace named %q is visible in region %s, but the name is still reserved - " +
+	"either by a workspace deleted within the last 14 days that now sits in the PAI recycle bin, or by a " +
+	"same-named DataWorks workspace (PAI and DataWorks share the workspace name space). Use a different " +
+	"workspace_name, or permanently delete the old workspace from the workspace recycle bin in the PAI " +
+	"or DataWorks console and try again."
 
 func resourceAliCloudPaiWorkspaceWorkspace() *schema.Resource {
 	return &schema.Resource{
@@ -92,20 +102,30 @@ func resourceAliCloudPaiWorkspaceWorkspaceCreate(d *schema.ResourceData, meta in
 
 	body = request
 	wait := incrementalWait(3*time.Second, 0*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RoaPost("AIWorkSpace", "2021-02-04", action, query, nil, body, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
 	addDebug(action, response, request)
 
 	if err != nil {
+		if IsExpectedErrors(err, []string{"100400009"}) {
+			workspaceName := d.Get("workspace_name").(string)
+			paiWorkspaceServiceV2 := PaiWorkspaceServiceV2{client}
+			if workspaceId, lookupErr := paiWorkspaceServiceV2.PaiWorkspaceWorkspaceIdByName(workspaceName); lookupErr == nil {
+				if workspaceId != "" {
+					return WrapErrorf(err, paiWorkspaceNameTakenMsg, workspaceName, workspaceId, client.RegionId, workspaceId)
+				}
+				return WrapErrorf(err, paiWorkspaceNameRetainedMsg, workspaceName, client.RegionId)
+			}
+		}
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_pai_workspace_workspace", action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -181,14 +201,14 @@ func resourceAliCloudPaiWorkspaceWorkspaceUpdate(d *schema.ResourceData, meta in
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 0*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("AIWorkSpace", "2021-02-04", action, query, nil, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -214,14 +234,14 @@ func resourceAliCloudPaiWorkspaceWorkspaceUpdate(d *schema.ResourceData, meta in
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 0*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("AIWorkSpace", "2021-02-04", action, query, nil, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -249,15 +269,15 @@ func resourceAliCloudPaiWorkspaceWorkspaceDelete(d *schema.ResourceData, meta in
 	request["WorkspaceId"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RoaDelete("AIWorkSpace", "2021-02-04", action, query, nil, nil, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

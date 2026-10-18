@@ -16,10 +16,11 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,14 +57,14 @@ func testSweepOosSecretParameter(region string) error {
 	var response map[string]interface{}
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("oos", "2019-06-01", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -128,9 +129,9 @@ func TestAccAliCloudOOSSecretParameter_basic0(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -231,9 +232,9 @@ func TestAccAliCloudOOSSecretParameter_basic1(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -273,6 +274,83 @@ func TestAccAliCloudOOSSecretParameter_basic1(t *testing.T) {
 	})
 }
 
+// TestAccAliCloudOOSSecretParameter_tagsIsolation verifies that each secret parameter
+// only reads back its own tags when multiple secret parameters exist in the same region.
+func TestAccAliCloudOOSSecretParameter_tagsIsolation(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_oos_secret_parameter.default"
+	checkoutSupportedRegions(t, true, connectivity.OOSSupportRegions)
+	ra := resourceAttrInit(resourceId, AlicloudOOSSecretParameterMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &OosService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeOosSecretParameter")
+	rac := resourceAttrCheckInit(rc, ra)
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%soossecretparameter%d", defaultRegionToTest, rand)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOosSecretParameterTagsIsolationConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("alicloud_oos_secret_parameter.default", "tags.%", "1"),
+					resource.TestCheckResourceAttr("alicloud_oos_secret_parameter.default", "tags.Created", "tfTestAcc"),
+					resource.TestCheckResourceAttr("alicloud_oos_secret_parameter.second", "tags.%", "1"),
+					resource.TestCheckResourceAttr("alicloud_oos_secret_parameter.second", "tags.For", "OosSecretParameterSecond"),
+				),
+			},
+		},
+	})
+}
+
+func testAccOosSecretParameterTagsIsolationConfig(name string) string {
+	return fmt.Sprintf(`
+	variable "name" {
+		default = "%s"
+	}
+
+	data "alicloud_kms_keys" "default" {
+		status = "Enabled"
+	}
+
+	resource "alicloud_kms_key" "default" {
+		count = length(data.alicloud_kms_keys.default.ids) > 0 ? 0 : 1
+		description = var.name
+		status = "Enabled"
+		pending_window_in_days = 7
+	}
+
+	locals {
+		key_id = length(data.alicloud_kms_keys.default.ids) > 0 ? data.alicloud_kms_keys.default.ids.0 : concat(alicloud_kms_key.default.*.id, [""])[0]
+	}
+
+	resource "alicloud_oos_secret_parameter" "default" {
+		secret_parameter_name = var.name
+		value                 = "tf-testacc-oos_secret_parameter"
+		type                  = "Secret"
+		key_id                = local.key_id
+		tags = {
+			Created = "tfTestAcc"
+		}
+	}
+
+	resource "alicloud_oos_secret_parameter" "second" {
+		secret_parameter_name = "${var.name}_second"
+		value                 = "tf-testacc-oos_secret_parameter_second"
+		type                  = "Secret"
+		key_id                = local.key_id
+		tags = {
+			For = "OosSecretParameterSecond"
+		}
+	}
+	`, name)
+}
+
 var AlicloudOOSSecretParameterMap0 = map[string]string{
 	"secret_parameter_name": CHECKSET,
 }
@@ -305,7 +383,7 @@ data "alicloud_resource_manager_resource_groups" "default" {}
 
 // lintignore: R001
 func TestUnitAlicloudOOSSecretParameter(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_oos_secret_parameter"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_oos_secret_parameter"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -346,6 +424,22 @@ func TestUnitAlicloudOOSSecretParameter(t *testing.T) {
 			},
 			"Type":            "type",
 			"ResourceGroupId": "resource_group_id",
+		},
+		"TagResources": map[string]interface{}{
+			"TagResource": []interface{}{
+				map[string]interface{}{
+					"TagKey":       "Created",
+					"TagValue":     "TF",
+					"ResourceId":   "MockName",
+					"ResourceType": "secretparameter",
+				},
+				map[string]interface{}{
+					"TagKey":       "For",
+					"TagValue":     "Test",
+					"ResourceId":   "MockName",
+					"ResourceType": "secretparameter",
+				},
+			},
 		},
 	}
 
@@ -458,15 +552,15 @@ func TestUnitAlicloudOOSSecretParameter(t *testing.T) {
 		for _, key := range []string{"value", "description", "resource_group_id", "tags"} {
 			switch p["alicloud_oos_secret_parameter"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_oos_secret_parameter"].Schema).Data(nil, diff)
@@ -493,15 +587,15 @@ func TestUnitAlicloudOOSSecretParameter(t *testing.T) {
 		for _, key := range []string{"value", "description", "resource_group_id", "tags"} {
 			switch p["alicloud_oos_secret_parameter"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_oos_secret_parameter"].Schema).Data(nil, diff)
@@ -626,9 +720,9 @@ func TestAccAliCloudOOSSecretParameter_basic9594(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithTime(t, []int{1})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

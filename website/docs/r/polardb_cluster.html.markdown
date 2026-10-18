@@ -65,11 +65,53 @@ resource "alicloud_polardb_cluster" "default" {
 
 ```
 
+Create a PolarDB PostgreSQL distributed cluster
+
+<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_cluster&exampleId=6a2fb509-2f5d-ea60-f6dd-3d048e279b4b8a53b1e7&activeTab=example&spm=docs.r.polardb_cluster.1.6a2fb5092f&intl_lang=EN_US" target="_blank">
+    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
+  </a>
+</div></div>
+
+```terraform
+data "alicloud_polardb_node_classes" "default" {
+  db_type    = "PostgreSQL"
+  db_version = "16"
+  category   = "Normal"
+  pay_type   = "PostPaid"
+}
+
+resource "alicloud_vpc" "default" {
+  vpc_name   = "terraform-example"
+  cidr_block = "172.16.0.0/16"
+}
+
+resource "alicloud_vswitch" "default" {
+  vpc_id       = alicloud_vpc.default.id
+  cidr_block   = "172.16.0.0/24"
+  zone_id      = data.alicloud_polardb_node_classes.default.classes[0].zone_id
+  vswitch_name = "terraform-example"
+}
+
+resource "alicloud_polardb_cluster" "default" {
+  db_type       = "PostgreSQL"
+  db_version    = "16"
+  pay_type      = "PostPaid"
+  cn_node_class = "polar.pg.x4.medium"
+  dn_node_class = "polar.pg.x4.medium"
+  cn_node_num   = 1
+  dn_node_num   = 2
+  vswitch_id    = alicloud_vswitch.default.id
+  vpc_id        = alicloud_vpc.default.id
+  description   = "terraform-example-distributed"
+}
+```
+
 When enabling TDE encryption, it is necessary to ensure that there is an AliyunRDSInstanceEncryptionDefaultRole role, and it is authorized under the account. If not, the following code can be used to create it.
 Note: If there is only the role AliyunRDSSInceEncryptionDefaultRole under the account, this example may not be applicable.
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_cluster&exampleId=ad8f542a-4a74-b8d8-7a2c-228ccb357ce050ece07e&activeTab=example&spm=docs.r.polardb_cluster.1.ad8f542a4a&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_polardb_cluster&exampleId=7fe72195-8276-56ac-7eea-a41843688621c173a84b&activeTab=example&spm=docs.r.polardb_cluster.2.7fe7219582&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -100,7 +142,7 @@ resource "alicloud_ram_role" "default" {
         ],
         "Version": "1"
     }
-	DEFINITION
+DEFINITION
   description = "RDS使用此角色来访问您在其他云产品中的资源"
 }
 
@@ -129,12 +171,16 @@ The following arguments are supported:
 * `db_version` - (Required, ForceNew) Database version. Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `DBVersion`.
 * `db_minor_version` - (Optional, ForceNew, Available since 1.247.0) Database minor version. Value options can refer to the latest docs [CreateDBCluster](https://www.alibabacloud.com/help/en/polardb/latest/createdbcluster-1) `DBMinorVersion`. This parameter takes effect only when `db_type` is MySQL and `db_version` is 8.0.
 * `target_minor_version` - (Optional, ForceNew, Available since 1.285.0) The target minor version of the cluster. Used during creation.
-* `db_node_class` - (Required) The db_node_class of cluster node.
+* `db_node_class` - (Optional) The db_node_class of cluster node. Required for non-distributed clusters.
 -> **NOTE:** Node specifications are divided into cluster version, single node version and History Library version. They can't change each other, but the general specification and exclusive specification of cluster version can be changed. 
   From version 1.204.0, If you need to create a Serverless cluster with MySQL , `db_node_class` can be set to `polar.mysql.sl.small` for enterprise edition, and `polar.mysql.sl.small.c` for standard edition.
-  From version 1.229.1, If you need to create a Serverless cluster with PostgreSQL, `db_node_class` can be set to `polar.pg.sl.small` for enterprise edition, and `polar.pg.sl.small.c` for standard edition. Region can refer to the latest docs(https://help.aliyun.com/zh/polardb/polardb-for-postgresql/the-public-preview-of-polardb-for-postgresql-serverless-ends?spm=a2c4g.11186623.0.0.2e9f6cf0B4rIfC).
-* `modify_type` - (Optional, Available since 1.71.2) Use as `db_node_class` change class, define upgrade or downgrade. Valid values are `Upgrade`, `Downgrade`, Default to `Upgrade`.
-* `db_node_count` - (Optional, Available since 1.95.0)Number of the PolarDB cluster nodes, default is 2(Each cluster must contain at least a primary node and a read-only node). Add/remove nodes by modifying this parameter, valid values: [2~16].  
+  From version 1.229.1, If you need to create a Serverless cluster with PostgreSQL, `db_node_class` can be set to `polar.pg.sl.small` for enterprise edition, and `polar.pg.sl.small.c` for standard edition. Region can refer to the latest docs(<https://help.aliyun.com/zh/polardb/polardb-for-postgresql/the-public-preview-of-polardb-for-postgresql-serverless-ends?spm=a2c4g.11186623.0.0.2e9f6cf0B4rIfC>).
+* `cn_node_class` - (Optional, Computed, Available since v1.293.0) The node class for CN (Coordinator Node) in a distributed cluster. For example: `polar.pg.x4.medium`. This argument conflicts with `db_node_class` and must be specified together with `dn_node_class` when creating a distributed cluster.
+* `cn_node_num` - (Optional, Computed, Int, Available since v1.293.0) The desired number of CN (Coordinator Node) nodes in a distributed cluster. Valid values: 1 or more.
+* `dn_node_class` - (Optional, Computed, Available since v1.293.0) The node class for DN (Data Node) in a distributed cluster. For example: `polar.pg.x4.medium`. This argument conflicts with `db_node_class` and must be specified together with `cn_node_class` when creating a distributed cluster.
+* `dn_node_num` - (Optional, Computed, Int, Available since v1.293.0) The desired number of DN (Data Node) nodes in a distributed cluster. Valid values: 2 or more.
+* `modify_type` - (Optional, Available since 1.71.2) Defines whether a `db_node_class`, `cn_node_class`, or `dn_node_class` change is an upgrade or downgrade. Valid values are `Upgrade`, `Downgrade`. Default to `Upgrade`.
+* `db_node_count` - (Optional, Available since 1.95.0)Number of the PolarDB cluster nodes, default is 2(Each cluster must contain at least a primary node and a read-only node). Add/remove nodes by modifying this parameter, valid values: [2~16]. This argument does not apply to distributed clusters and conflicts with `cn_node_num` and `dn_node_num`.
 -> **NOTE:** To avoid adding or removing multiple read-only nodes by mistake, the system allows you to add or remove one read-only node at a time.
 * `zone_id` - (Optional, ForceNew) The Zone to launch the DB cluster. it supports multiple zone.
 * `pay_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, Default to `PostPaid`.
@@ -156,12 +202,13 @@ The following arguments are supported:
 * `tags` - (Optional, Available since 1.68.0) A mapping of tags to assign to the resource.
   - Key: It can be up to 64 characters in length. It cannot begin with "aliyun", "acs:", "http://", or "https://". It cannot be a null string.
   - Value: It can be up to 128 characters in length. It cannot begin with "aliyun", "acs:", "http://", or "https://". It can be a null string.
-* `tde_status` - (Optional, Available since 1.121.3) turn on TDE encryption. Valid values are `Enabled`, `Disabled`. Default to `Disabled`. TDE cannot be closed after it is turned on. 
--> **NOTE:** `tde_status` Cannot modify after created when `db_type` is `PostgreSQL` or `Oracle`.`tde_status` only support modification from `Disabled` to `Enabled` when `db_type` is `MySQL`.
+* `tde_status` - (Optional, Available since 1.121.3) Specifies whether to enable TDE encryption. Valid values are `Enabled`, `Disabled`. Default to `Disabled`. TDE cannot be disabled after it is enabled. You can enable TDE during cluster creation or update an existing cluster to enable it.
+-> **NOTE:** `tde_status` only supports modification from `Disabled` to `Enabled`.
 * `encrypt_new_tables` - (Optional, Available since 1.124.1) turn on table auto encryption. Valid values are `ON`, `OFF`. Only MySQL 8.0 supports. 
 -> **NOTE:** `encrypt_new_tables` Polardb MySQL 8.0 cluster, after TDE and Automatic Encryption are enabled, all newly created tables are automatically encrypted in the cluster.
 * `encryption_key` - (Optional, Available since 1.200.0) The ID of the custom key. `encryption_key` cannot be modified after TDE is opened.
 * `role_arn` - (Optional, Available since 1.200.0) The Alibaba Cloud Resource Name (ARN) of the RAM role. A RAM role is a virtual identity that you can create within your Alibaba Cloud account. For more information see [RAM role overview](https://www.alibabacloud.com/help/en/resource-access-management/latest/ram-role-overview).
+* `enable_automatic_rotation` - (Optional, Type: bool, Available since v1.289.0) Specifies whether to enable automatic rotation of the TDE encryption key. Default to `false`. Valid values are `true`, `false`. This parameter takes effect only after TDE is enabled.
 * `security_group_ids` - (Optional, Available since 1.128.0) The ID of the security group. Separate multiple security groups with commas (,). You can add a maximum of three security groups to a cluster.
 -> **NOTE:** Because of data backup and migration, change DB cluster type and storage would cost 15~20 minutes. Please make full preparation before changing them.
 * `deletion_lock` - (Optional, Available since 1.169.0) turn on table deletion_lock. Valid values are 0, 1. 1 means to open the cluster protection lock, 0 means to close the cluster protection lock
@@ -240,6 +287,7 @@ The following arguments are supported:
 * `global_security_group_list` - (Optional, List, Available since v1.271.0) The list of global security ip group ids.
 * `enable_dynamodb` - (Optional, Bool, Available since v1.273.0) Specifies whether to enable DynamoDB compatibility. Valid values: `true`, `false`.
   -> **NOTE:** This parameter is valid only when the DBType parameter is set to PostgreSQL.
+
 ### `db_cluster_ip_array`
 
 The db_cluster_ip_array supports the following:
@@ -266,9 +314,13 @@ The following attributes are exported:
 * `port` - (Available since 1.196.0) PolarDB cluster connection port. 
 * `status` - (Available since 1.204.1) PolarDB cluster status.
 * `create_time` - (Available since 1.204.1) PolarDB cluster creation time.
+* `cn_node_ids` - (Available since v1.293.0) The IDs of the CN (Coordinator Node) nodes in a distributed cluster.
+* `dn_node_ids` - (Available since v1.293.0) The IDs of the DN (Data Node) nodes in a distributed cluster.
 * `tde_region` - (Available since 1.200.0) The region where the TDE key resides.
 -> **NOTE:** TDE can be enabled on clusters that have joined a global database network (GDN). After TDE is enabled on the primary cluster in a GDN, TDE is enabled on the secondary clusters in the GDN by default. The key used by the secondary clusters and the region for the key resides must be the same as the primary cluster. The region of the key cannot be modified.
 -> **NOTE:** You cannot enable TDE for the secondary clusters in a GDN. Used to view user KMS activation status.
+* `automatic_rotation` - (Available since v1.289.0) Indicates whether automatic rotation of the TDE encryption key is enabled.
+* `rotation_interval` - (Available since v1.289.0) The rotation interval of the TDE encryption key.
 
 * `db_revision_version_list` - (Available since v1.216.0) The db_revision_version_list supports the following:
   * `release_type` - (Available since v1.216.0) Database version release status. Valid values are `Stable`, `Old`, `HighRisk`.

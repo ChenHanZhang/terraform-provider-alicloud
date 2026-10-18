@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudPvtzUserVpcAuthorization() *schema.Resource {
@@ -33,6 +33,7 @@ func resourceAlicloudPvtzUserVpcAuthorization() *schema.Resource {
 			"auth_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice([]string{"NORMAL", "CLOUD_PRODUCT"}, false),
 			},
@@ -59,14 +60,14 @@ func resourceAlicloudPvtzUserVpcAuthorizationCreate(d *schema.ResourceData, meta
 	}
 	request["AuthorizedUserId"] = d.Get("authorized_user_id")
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("pvtz", "2018-01-01", action, nil, request, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"System.Busy"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -75,24 +76,39 @@ func resourceAlicloudPvtzUserVpcAuthorizationCreate(d *schema.ResourceData, meta
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_pvtz_user_vpc_authorization", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprint(request["AuthorizedUserId"], ":", request["AuthType"]))
+	// Default auth_type to NORMAL when omitted, matching the API default for
+	// DeleteUserVpcAuthorization. Reading request["AuthType"] would yield nil
+	// and produce a "<nil>" literal in the resource ID when the optional field
+	// is unset, breaking subsequent Read and Delete operations.
+	authType := d.Get("auth_type").(string)
+	if authType == "" {
+		authType = "NORMAL"
+	}
+	d.SetId(fmt.Sprintf("%s:%s", d.Get("authorized_user_id"), authType))
 
 	return resourceAlicloudPvtzUserVpcAuthorizationRead(d, meta)
 }
 func resourceAlicloudPvtzUserVpcAuthorizationRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	pvtzService := PvtzService{client}
-	_, err := pvtzService.DescribePvtzUserVpcAuthorization(d.Id())
+	parts, err := ParseResourceId(d.Id(), 2)
+	if err != nil {
+		return WrapError(err)
+	}
+	// Migrate legacy state IDs produced by a previous bug where unset auth_type
+	// resulted in ID = "<authorized_user_id>:<nil>". Treat "<nil>" as "NORMAL"
+	// so Read/Delete send the correct AuthType to the API.
+	if parts[1] == "<nil>" {
+		parts[1] = "NORMAL"
+		d.SetId(fmt.Sprintf("%s:%s", parts[0], parts[1]))
+	}
+	_, err = pvtzService.DescribePvtzUserVpcAuthorization(d.Id())
 	if err != nil {
 		if NotFoundError(err) {
 			log.Printf("[DEBUG] Resource alicloud_pvtz_user_vpc_authorization pvtzService.DescribePvtzUserVpcAuthorization Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
-		return WrapError(err)
-	}
-	parts, err := ParseResourceId(d.Id(), 2)
-	if err != nil {
 		return WrapError(err)
 	}
 	d.Set("auth_type", parts[1])
@@ -109,6 +125,10 @@ func resourceAlicloudPvtzUserVpcAuthorizationDelete(d *schema.ResourceData, meta
 	if err != nil {
 		return WrapError(err)
 	}
+	// Migrate legacy state IDs where auth_type was "<nil>" (see Read for details).
+	if parts[1] == "<nil>" {
+		parts[1] = "NORMAL"
+	}
 	action := "DeleteUserVpcAuthorization"
 	var response map[string]interface{}
 	request := map[string]interface{}{
@@ -117,14 +137,14 @@ func resourceAlicloudPvtzUserVpcAuthorizationDelete(d *schema.ResourceData, meta
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("pvtz", "2018-01-01", action, nil, request, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"System.Busy"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccAliCloudGaBasicAcceleratorsDataSource_basic0(t *testing.T) {
@@ -114,6 +114,7 @@ func TestAccAliCloudGaBasicAcceleratorsDataSource_basic0(t *testing.T) {
 
 	preCheck := func() {
 		testAccPreCheck(t)
+		testAccPreCheckPrePaidResources(t)
 		//testAccPreCheckWithTime(t, []int{1})
 	}
 

@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudFcv3Function() *schema.Resource {
@@ -164,6 +164,73 @@ func resourceAliCloudFcv3Function() *schema.Resource {
 						"image": {
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+						"registry_config": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"auth_config": {
+										Type:      schema.TypeList,
+										Optional:  true,
+										Sensitive: true,
+										MaxItems:  1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"user_name": {
+													Type:      schema.TypeString,
+													Optional:  true,
+													Sensitive: true,
+												},
+												"password": {
+													Type:      schema.TypeString,
+													Optional:  true,
+													Sensitive: true,
+												},
+											},
+										},
+									},
+									"cert_config": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"insecure": {
+													Type:     schema.TypeBool,
+													Optional: true,
+												},
+												"root_ca_cert_base64": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"network_config": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"security_group_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"vswitch_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"vpc_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -810,7 +877,50 @@ func resourceAliCloudFcv3FunctionCreate(d *schema.ResourceData, meta interface{}
 		if acrInstanceId1 != nil && acrInstanceId1 != "" {
 			customContainerConfig["acrInstanceId"] = acrInstanceId1
 		}
-
+		registryConfig := make(map[string]interface{})
+		authConfig := make(map[string]interface{})
+		userName, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].user_name", d.Get("custom_container_config"))
+		if userName != nil && userName != "" {
+			authConfig["userName"] = userName
+		}
+		password, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].password", d.Get("custom_container_config"))
+		if password != nil && password != "" {
+			authConfig["password"] = password
+		}
+		if len(authConfig) > 0 {
+			registryConfig["authConfig"] = authConfig
+		}
+		certConfig := make(map[string]interface{})
+		insecure, _ := jsonpath.Get("$[0].registry_config[0].cert_config[0].insecure", d.Get("custom_container_config"))
+		if insecure != nil {
+			certConfig["insecure"] = insecure
+		}
+		rootCaCertBase64, _ := jsonpath.Get("$[0].registry_config[0].cert_config[0].root_ca_cert_base64", d.Get("custom_container_config"))
+		if rootCaCertBase64 != nil && rootCaCertBase64 != "" {
+			certConfig["rootCaCertBase64"] = rootCaCertBase64
+		}
+		if len(certConfig) > 0 {
+			registryConfig["certConfig"] = certConfig
+		}
+		networkConfig := make(map[string]interface{})
+		securityGroupId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].security_group_id", d.Get("custom_container_config"))
+		if securityGroupId != nil && securityGroupId != "" {
+			networkConfig["securityGroupId"] = securityGroupId
+		}
+		vSwitchId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].vswitch_id", d.Get("custom_container_config"))
+		if vSwitchId != nil && vSwitchId != "" {
+			networkConfig["vSwitchId"] = vSwitchId
+		}
+		vpcId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].vpc_id", d.Get("custom_container_config"))
+		if vpcId != nil && vpcId != "" {
+			networkConfig["vpcId"] = vpcId
+		}
+		if len(networkConfig) > 0 {
+			registryConfig["networkConfig"] = networkConfig
+		}
+		if len(registryConfig) > 0 {
+			customContainerConfig["registryConfig"] = registryConfig
+		}
 		request["customContainerConfig"] = customContainerConfig
 	}
 
@@ -972,14 +1082,14 @@ func resourceAliCloudFcv3FunctionCreate(d *schema.ResourceData, meta interface{}
 	}
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RoaPost("FC", "2023-03-30", action, query, nil, body, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1090,6 +1200,69 @@ func resourceAliCloudFcv3FunctionRead(d *schema.ResourceData, meta interface{}) 
 			healthCheckConfigMaps = append(healthCheckConfigMaps, healthCheckConfigMap)
 		}
 		customContainerConfigMap["health_check_config"] = healthCheckConfigMaps
+		registryConfigMaps := make([]map[string]interface{}, 0)
+		registryConfigMap := make(map[string]interface{})
+		registryConfigRaw := make(map[string]interface{})
+		if customContainerConfigRaw["registryConfig"] != nil {
+			registryConfigRaw = customContainerConfigRaw["registryConfig"].(map[string]interface{})
+		}
+		// Only persist registry_config when the API response carries at least
+		// one populated sub-config. GetFunction returns a registryConfig object
+		// with all-null sub-fields both for functions that never declared
+		// registry_config and after it is cleared; persisting that default
+		// would create a spurious diff against a config without registry_config.
+		if len(registryConfigRaw) > 0 && (registryConfigRaw["authConfig"] != nil || registryConfigRaw["certConfig"] != nil || registryConfigRaw["networkConfig"] != nil) {
+			authConfigMaps := make([]map[string]interface{}, 0)
+			authConfigMap := make(map[string]interface{})
+			authConfigRaw := make(map[string]interface{})
+			if registryConfigRaw["authConfig"] != nil {
+				authConfigRaw = registryConfigRaw["authConfig"].(map[string]interface{})
+			}
+			if len(authConfigRaw) > 0 {
+				authConfigMap["user_name"] = authConfigRaw["userName"]
+				authConfigMap["password"] = authConfigRaw["password"]
+				authConfigMaps = append(authConfigMaps, authConfigMap)
+			} else {
+				// GetFunction does not return the sensitive authConfig
+				// (userName/password). Preserve the existing auth_config from
+				// state so a refresh does not produce a spurious diff.
+				existingUserName, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].user_name", d.Get("custom_container_config"))
+				existingPassword, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].password", d.Get("custom_container_config"))
+				if existingUserName != nil || existingPassword != nil {
+					authConfigMap["user_name"] = existingUserName
+					authConfigMap["password"] = existingPassword
+					authConfigMaps = append(authConfigMaps, authConfigMap)
+				}
+			}
+			registryConfigMap["auth_config"] = authConfigMaps
+			certConfigMaps := make([]map[string]interface{}, 0)
+			certConfigMap := make(map[string]interface{})
+			certConfigRaw := make(map[string]interface{})
+			if registryConfigRaw["certConfig"] != nil {
+				certConfigRaw = registryConfigRaw["certConfig"].(map[string]interface{})
+			}
+			if len(certConfigRaw) > 0 {
+				certConfigMap["insecure"] = certConfigRaw["insecure"]
+				certConfigMap["root_ca_cert_base64"] = certConfigRaw["rootCaCertBase64"]
+				certConfigMaps = append(certConfigMaps, certConfigMap)
+			}
+			registryConfigMap["cert_config"] = certConfigMaps
+			networkConfigMaps := make([]map[string]interface{}, 0)
+			networkConfigMap := make(map[string]interface{})
+			networkConfigRaw := make(map[string]interface{})
+			if registryConfigRaw["networkConfig"] != nil {
+				networkConfigRaw = registryConfigRaw["networkConfig"].(map[string]interface{})
+			}
+			if len(networkConfigRaw) > 0 {
+				networkConfigMap["security_group_id"] = networkConfigRaw["securityGroupId"]
+				networkConfigMap["vswitch_id"] = networkConfigRaw["vSwitchId"]
+				networkConfigMap["vpc_id"] = networkConfigRaw["vpcId"]
+				networkConfigMaps = append(networkConfigMaps, networkConfigMap)
+			}
+			registryConfigMap["network_config"] = networkConfigMaps
+			registryConfigMaps = append(registryConfigMaps, registryConfigMap)
+		}
+		customContainerConfigMap["registry_config"] = registryConfigMaps
 		customContainerConfigMaps = append(customContainerConfigMaps, customContainerConfigMap)
 	}
 	if err := d.Set("custom_container_config", customContainerConfigMaps); err != nil {
@@ -1403,14 +1576,14 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 				}
 				body = request
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RoaPost("FC", "2023-03-30", action, query, header, body, true)
 					if err != nil {
 						if IsExpectedErrors(err, []string{"500"}) || NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -1430,14 +1603,14 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 
 				body = request
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RoaPost("FC", "2023-03-30", action, query, header, body, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -1463,16 +1636,26 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 		gpuConfig := make(map[string]interface{})
 
 		if v := d.Get("gpu_config"); v != nil {
-			gpuMemorySize1, _ := jsonpath.Get("$[0].gpu_memory_size", v)
-			if gpuMemorySize1 != nil && gpuMemorySize1 != "" {
-				gpuConfig["gpuMemorySize"] = gpuMemorySize1
-			}
-			gpuType1, _ := jsonpath.Get("$[0].gpu_type", v)
-			if gpuType1 != nil && gpuType1 != "" {
-				gpuConfig["gpuType"] = gpuType1
-			}
+			// When the user removes gpu_config entirely the TypeList becomes
+			// an empty slice. Sending an empty object keeps the server-side
+			// gpuConfig alive (FC treats it as "no change"), so we must send
+			// an explicit nil to clear it. Otherwise subsequent cpu/memory
+			// changes get validated against the orphaned GPU constraints
+			// (e.g. "cpu should be an integer for gpu function").
+			if list, ok := v.([]interface{}); ok && len(list) == 0 {
+				request["gpuConfig"] = nil
+			} else {
+				gpuMemorySize1, _ := jsonpath.Get("$[0].gpu_memory_size", v)
+				if gpuMemorySize1 != nil && gpuMemorySize1 != "" {
+					gpuConfig["gpuMemorySize"] = gpuMemorySize1
+				}
+				gpuType1, _ := jsonpath.Get("$[0].gpu_type", v)
+				if gpuType1 != nil && gpuType1 != "" {
+					gpuConfig["gpuType"] = gpuType1
+				}
 
-			request["gpuConfig"] = gpuConfig
+				request["gpuConfig"] = gpuConfig
+			}
 		}
 	}
 
@@ -1663,7 +1846,51 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 			if acrInstanceId1 != nil && acrInstanceId1 != "" {
 				customContainerConfig["acrInstanceId"] = acrInstanceId1
 			}
-
+			registryConfig := make(map[string]interface{})
+			authConfig := make(map[string]interface{})
+			userName, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].user_name", d.Get("custom_container_config"))
+			if userName != nil && userName != "" {
+				authConfig["userName"] = userName
+			}
+			password, _ := jsonpath.Get("$[0].registry_config[0].auth_config[0].password", d.Get("custom_container_config"))
+			if password != nil && password != "" {
+				authConfig["password"] = password
+			}
+			if len(authConfig) > 0 {
+				registryConfig["authConfig"] = authConfig
+			}
+			certConfig := make(map[string]interface{})
+			insecure, _ := jsonpath.Get("$[0].registry_config[0].cert_config[0].insecure", d.Get("custom_container_config"))
+			if insecure != nil {
+				certConfig["insecure"] = insecure
+			}
+			rootCaCertBase64, _ := jsonpath.Get("$[0].registry_config[0].cert_config[0].root_ca_cert_base64", d.Get("custom_container_config"))
+			if rootCaCertBase64 != nil && rootCaCertBase64 != "" {
+				certConfig["rootCaCertBase64"] = rootCaCertBase64
+			}
+			if len(certConfig) > 0 {
+				registryConfig["certConfig"] = certConfig
+			}
+			networkConfig := make(map[string]interface{})
+			securityGroupId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].security_group_id", d.Get("custom_container_config"))
+			if securityGroupId != nil && securityGroupId != "" {
+				networkConfig["securityGroupId"] = securityGroupId
+			}
+			vSwitchId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].vswitch_id", d.Get("custom_container_config"))
+			if vSwitchId != nil && vSwitchId != "" {
+				networkConfig["vSwitchId"] = vSwitchId
+			}
+			vpcId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].vpc_id", d.Get("custom_container_config"))
+			if vpcId != nil && vpcId != "" {
+				networkConfig["vpcId"] = vpcId
+			}
+			if len(networkConfig) > 0 {
+				registryConfig["networkConfig"] = networkConfig
+			}
+			// Always send registryConfig (even when empty) so that removing
+			// registry_config from the config clears it on the API side; the FC
+			// UpdateFunction otherwise leaves an omitted registryConfig untouched.
+			customContainerConfig["registryConfig"] = registryConfig
 			request["customContainerConfig"] = customContainerConfig
 		}
 	}
@@ -1899,14 +2126,14 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("FC", "2023-03-30", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1931,14 +2158,14 @@ func resourceAliCloudFcv3FunctionUpdate(d *schema.ResourceData, meta interface{}
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("FC", "2023-03-30", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1970,14 +2197,14 @@ func resourceAliCloudFcv3FunctionDelete(d *schema.ResourceData, meta interface{}
 	request = make(map[string]interface{})
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RoaDelete("FC", "2023-03-30", action, query, nil, nil, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"429"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"429", "ProvisionConfigExist"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1988,6 +2215,79 @@ func resourceAliCloudFcv3FunctionDelete(d *schema.ResourceData, meta interface{}
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	}
+
+	// DeleteFunction returns success before the function is fully removed.
+	// Poll GetFunction until it returns ResourceNotFound so the function is
+	// actually gone and the FC service starts releasing the ENI created for
+	// the function when registry_config.network_config is set. Without this
+	// wait the dependent security group and vSwitch destroy immediately
+	// afterwards fails with DependencyViolation on the still-attached ENI.
+	fcv3ServiceV2 := Fcv3ServiceV2{client}
+	waitFunc := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
+		_, e := fcv3ServiceV2.DescribeFcv3Function(functionName)
+		if e == nil {
+			waitFunc()
+			return retry.RetryableError(fmt.Errorf("fcv3 function [%s] is still being deleted", functionName))
+		}
+		if NotFoundError(e) {
+			return nil
+		}
+		return retry.NonRetryableError(e)
+	})
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+	}
+
+	// When registry_config.network_config is configured, FC creates an ENI in
+	// the specified security group and vSwitch for the function. After the
+	// function is gone the ENI is released asynchronously; drain it so the
+	// dependent security group and vSwitch can be removed. If ENI release
+	// exceeds the wait window on the FC side, do not fail here: the function
+	// is already deleted and the vSwitch/SG destroy has its own retry loop
+	// that can still succeed once the ENI release completes.
+	securityGroupId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].security_group_id", d.Get("custom_container_config"))
+	vSwitchId, _ := jsonpath.Get("$[0].registry_config[0].network_config[0].vswitch_id", d.Get("custom_container_config"))
+	sgId, _ := securityGroupId.(string)
+	vswId, _ := vSwitchId.(string)
+	if sgId != "" || vswId != "" {
+		eniAction := "DescribeNetworkInterfaces"
+		eniWait := incrementalWait(5*time.Second, 10*time.Second)
+		eniErr := retry.Retry(10*time.Minute, func() *retry.RetryError {
+			eniReq := make(map[string]interface{})
+			eniReq["RegionId"] = client.RegionId
+			if sgId != "" {
+				eniReq["SecurityGroupId"] = sgId
+			}
+			if vswId != "" {
+				eniReq["VSwitchId"] = vswId
+			}
+			eniReq["PageSize"] = PageSizeLarge
+			eniReq["PageNumber"] = 1
+			eniResp, e := client.RpcPost("Ecs", "2014-05-26", eniAction, nil, eniReq, true)
+			if e != nil {
+				if NeedRetry(e) {
+					eniWait()
+					return retry.RetryableError(e)
+				}
+				return retry.NonRetryableError(e)
+			}
+			addDebug(eniAction, eniResp, eniReq)
+			eniSet, _ := jsonpath.Get("$.NetworkInterfaceSets.NetworkInterfaceSet", eniResp)
+			count := 0
+			if arr, ok := eniSet.([]interface{}); ok {
+				count = len(arr)
+			}
+			if count > 0 {
+				eniWait()
+				return retry.RetryableError(fmt.Errorf("fcv3 function [%s] still has %d ENI(s) being released", functionName, count))
+			}
+			return nil
+		})
+		if eniErr != nil {
+			addDebug(eniAction, fmt.Sprintf("wait for ENI release timed out for fcv3 function [%s]: %s", functionName, eniErr), nil)
+		}
 	}
 
 	return nil

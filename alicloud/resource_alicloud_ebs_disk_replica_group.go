@@ -7,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudEbsDiskReplicaGroup() *schema.Resource {
@@ -46,6 +46,11 @@ func resourceAliCloudEbsDiskReplicaGroup() *schema.Resource {
 				ConflictsWith: []string{"group_name"},
 				Computed:      true,
 			},
+			"enable_rtc": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
 			"one_shot": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -58,7 +63,7 @@ func resourceAliCloudEbsDiskReplicaGroup() *schema.Resource {
 			"rpo": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -118,6 +123,9 @@ func resourceAliCloudEbsDiskReplicaGroupCreate(d *schema.ResourceData, meta inte
 	if v, ok := d.GetOkExists("rpo"); ok {
 		request["RPO"] = v
 	}
+	if v, ok := d.GetOkExists("enable_rtc"); ok {
+		request["EnableRtc"] = v
+	}
 	request["RegionId"] = d.Get("source_region_id")
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
@@ -135,14 +143,14 @@ func resourceAliCloudEbsDiskReplicaGroupCreate(d *schema.ResourceData, meta inte
 		request["GroupName"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -181,6 +189,7 @@ func resourceAliCloudEbsDiskReplicaGroupRead(d *schema.ResourceData, meta interf
 	d.Set("destination_region_id", objectRaw["DestinationRegionId"])
 	d.Set("destination_zone_id", objectRaw["DestinationZoneId"])
 	d.Set("disk_replica_group_name", objectRaw["GroupName"])
+	d.Set("enable_rtc", objectRaw["EnableRtc"])
 	d.Set("rpo", objectRaw["RPO"])
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("source_region_id", objectRaw["SourceRegionId"])
@@ -234,14 +243,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 					request["OneShot"] = v
 				}
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -267,14 +276,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 					request["ReverseReplicate"] = v
 				}
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 					if err != nil {
 						if IsExpectedErrors(err, []string{"InternalError", "OperationDenied.InvalidStatus"}) || NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -297,14 +306,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 				request["RegionId"] = client.RegionId
 				request["ClientToken"] = buildClientToken(action)
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 					if err != nil {
 						if IsExpectedErrors(err, []string{"OperationDenied.InvalidStatus", "InternalError"}) || NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -344,16 +353,26 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 		request["Description"] = d.Get("description")
 	}
 
+	if !d.IsNewResource() && d.HasChange("enable_rtc") {
+		update = true
+		request["EnableRtc"] = d.Get("enable_rtc")
+	}
+
+	if !d.IsNewResource() && d.HasChange("rpo") {
+		update = true
+		request["RPO"] = d.Get("rpo")
+	}
+
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -376,14 +395,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 	request["ResourceType"] = "DiskReplicaGroup"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -424,14 +443,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 					request["ReplicaPairId"] = jsonPathResult
 				}
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 					if err != nil {
 						if IsExpectedErrors(err, []string{"OperationDenied.NoPairInGroup", "InternalError", "OperationDenied.PairStatusCannotRemoveFromGroup", "OperationDenied.GroupStatusCannotRemovePair"}) || NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -461,14 +480,14 @@ func resourceAliCloudEbsDiskReplicaGroupUpdate(d *schema.ResourceData, meta inte
 					request["ReplicaPairId"] = jsonPathResult
 				}
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 					if err != nil {
 						if IsExpectedErrors(err, []string{"OperationDenied.PairStatusCannotAddToGroup", "OperationDenied.GroupStatusCannotAddPair", "InternalError"}) || NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -504,16 +523,16 @@ func resourceAliCloudEbsDiskReplicaGroupDelete(d *schema.ResourceData, meta inte
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("ebs", "2021-07-30", action, query, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"InternalError", "OperationDenied.GroupHasPair", "OperationDenied.InvalidStatus"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

@@ -16,10 +16,11 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,14 +57,14 @@ func testSweepMseGateway(region string) error {
 	var response map[string]interface{}
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("mse", "2019-05-31", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -112,7 +113,7 @@ func testSweepMseGateway(region string) error {
 	return nil
 }
 
-func TestAccAlicloudMSEGateway_basic0(t *testing.T) {
+func TestAccAliCloudMSEGateway_basic0(t *testing.T) {
 	var v map[string]interface{}
 	checkoutSupportedRegions(t, true, connectivity.MSEGatewaySupportRegions)
 	resourceId := "alicloud_mse_gateway.default"
@@ -129,17 +130,22 @@ func TestAccAlicloudMSEGateway_basic0(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"spec":         "MSE_GTW_2_4_200_c",
-					"replica":      "2",
-					"vpc_id":       "${data.alicloud_vpcs.default.ids.0}",
-					"vswitch_id":   "${data.alicloud_vswitches.default.ids.0}",
-					"gateway_name": "${var.name}",
+					"spec":              "MSE_GTW_2_4_200_c",
+					"replica":           "2",
+					"vpc_id":            "${data.alicloud_vpcs.default.ids.0}",
+					"vswitch_id":        "${data.alicloud_vswitches.default.ids.0}",
+					"gateway_name":      "${var.name}",
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.groups.1.id}",
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -148,17 +154,42 @@ func TestAccAlicloudMSEGateway_basic0(t *testing.T) {
 						"vpc_id":       CHECKSET,
 						"vswitch_id":   CHECKSET,
 						"gateway_name": name,
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
 					}),
+					resource.TestCheckResourceAttrPair(resourceId, "resource_group_id", "data.alicloud_resource_manager_resource_groups.default", "groups.1.id"),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"gateway_name": "${var.name}_update",
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"gateway_name": name + "_update",
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
 					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.groups.0.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"gateway_name": name + "_update",
+						"tags.%":       "2",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+					}),
+					resource.TestCheckResourceAttrPair(resourceId, "resource_group_id", "data.alicloud_resource_manager_resource_groups.default", "groups.0.id"),
 				),
 			},
 			{
@@ -170,7 +201,7 @@ func TestAccAlicloudMSEGateway_basic0(t *testing.T) {
 		},
 	})
 }
-func TestAccAlicloudMSEGateway_basic1(t *testing.T) {
+func TestAccAliCloudMSEGateway_basic1(t *testing.T) {
 	checkoutSupportedRegions(t, true, connectivity.MSEGatewaySupportRegions)
 	var v map[string]interface{}
 	resourceId := "alicloud_mse_gateway.default"
@@ -187,9 +218,9 @@ func TestAccAlicloudMSEGateway_basic1(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -197,7 +228,7 @@ func TestAccAlicloudMSEGateway_basic1(t *testing.T) {
 					"replica":                   "2",
 					"vpc_id":                    "${data.alicloud_vpcs.default.ids.0}",
 					"vswitch_id":                "${data.alicloud_vswitches.default.ids.0}",
-					"backup_vswitch_id":         "${data.alicloud_vswitches.default.ids.1}",
+					"backup_vswitch_id":         "${data.alicloud_vswitches.backup.ids.0}",
 					"gateway_name":              "${var.name}",
 					"enterprise_security_group": "true",
 					"slb_spec":                  "slb.s2.small",
@@ -229,13 +260,16 @@ var AlicloudMSEGatewayMap0 = map[string]string{
 	"status": CHECKSET,
 }
 
+// TestAccAliCloudMSEGateway_basic1 references the second vSwitch of the default
+// VPC for backup_vswitch_id; in accounts with only one vSwitch it fails at plan
+// time (known environment limitation, not a provider defect).
 func AlicloudMSEGatewayBasicDependence0(name string) string {
-	return fmt.Sprintf(` 
+	return fmt.Sprintf(`
 variable "name" {
   default = "%s"
 }
 data "alicloud_zones" "default" {
-    available_resource_creation = "VSwitch"
+	available_resource_creation = "VSwitch"
 }
 data "alicloud_vpcs" "default" {
 	name_regex = "^default-NODELETING$"
@@ -244,13 +278,20 @@ data "alicloud_vswitches" "default" {
 	vpc_id  = data.alicloud_vpcs.default.ids.0
 	zone_id = data.alicloud_zones.default.zones.0.id
 }
+data "alicloud_vswitches" "backup" {
+	vpc_id  = data.alicloud_vpcs.default.ids.0
+	zone_id = data.alicloud_zones.default.zones.1.id
+}
+
+data "alicloud_resource_manager_resource_groups" "default" {
+}
 
 `, name)
 }
 
 // lintignore: R001
 func TestUnitAlicloudMSEGateway(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -265,6 +306,11 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		"slb_spec":                  "slb_spec",
 		"internet_slb_spec":         "internet_slb_spec",
 		"delete_slb":                true,
+		"resource_group_id":         "resource_group_id",
+		"tags": map[string]interface{}{
+			"Created": "TF",
+			"For":     "Test",
+		},
 	} {
 		err := dCreate.Set(key, value)
 		assert.Nil(t, err)
@@ -282,13 +328,15 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		"Success": "true",
 		"Code":    "200",
 		"Data": map[string]interface{}{
-			"Spec":     "spec",
-			"Replica":  2,
-			"Vpc":      "vpc_id",
-			"Vswitch":  "vswitch_id",
-			"Vswitch2": "backup_vswitch_id",
-			"Name":     "gateway_name",
-			"Status":   "2",
+			"Spec":            "spec",
+			"Replica":         2,
+			"Vpc":             "vpc_id",
+			"Vswitch":         "vswitch_id",
+			"Vswitch2":        "backup_vswitch_id",
+			"Name":            "gateway_name",
+			"Status":          "2",
+			"ResourceGroupId": "resource_group_id",
+			"MseTag":          `{"Created":"TF-read","For":"Test-read","acs:rm:rgId":"rg-acs-test"}`,
 		},
 	}
 
@@ -471,15 +519,15 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		for _, key := range []string{"gateway_name"} {
 			switch p["alicloud_mse_gateway"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, diff)
@@ -505,15 +553,15 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		for _, key := range []string{"gateway_name"} {
 			switch p["alicloud_mse_gateway"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, diff)
@@ -530,15 +578,15 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		for _, key := range []string{"gateway_name"} {
 			switch p["alicloud_mse_gateway"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(1200)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, diff)
@@ -551,6 +599,26 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		})
 		err := resourceAlicloudMseGatewayUpdate(resourceData1, rawClient)
 		patches.Reset()
+		patchSlbList.Reset()
+		assert.Nil(t, err)
+	})
+	t.Run("UpdateModifyResourceGroupNormal", func(t *testing.T) {
+		diff := terraform.NewInstanceDiff()
+		diff.Attributes["resource_group_id"] = &terraform.ResourceAttrDiff{Old: "resource_group_id_old", New: "resource_group_id"}
+		resourceData1, _ := schema.InternalMap(p["alicloud_mse_gateway"].Schema).Data(nil, diff)
+		resourceData1.SetId(d.Id())
+		patches := gomonkey.ApplyMethod(reflect.TypeOf(&client.Client{}), "DoRequest", func(_ *client.Client, _ *string, _ *string, _ *string, _ *string, _ *string, _ map[string]interface{}, _ map[string]interface{}, _ *util.RuntimeOptions) (map[string]interface{}, error) {
+			return responseMock["UpdateNormal"]("")
+		})
+		patchDescribe := gomonkey.ApplyMethod(reflect.TypeOf(&MseService{}), "DescribeMseGateway", func(*MseService, string) (map[string]interface{}, error) {
+			return responseMock["ReadNormal"]("")
+		})
+		patchSlbList := gomonkey.ApplyMethod(reflect.TypeOf(&MseService{}), "ListGatewaySlb", func(*MseService, string) (map[string]interface{}, error) {
+			return responseMock["SlbListNormal"]("")
+		})
+		err := resourceAlicloudMseGatewayUpdate(resourceData1, rawClient)
+		patches.Reset()
+		patchDescribe.Reset()
 		patchSlbList.Reset()
 		assert.Nil(t, err)
 	})
@@ -687,5 +755,8 @@ func TestUnitAlicloudMSEGateway(t *testing.T) {
 		patcheDorequest.Reset()
 		patchSlbList.Reset()
 		assert.Nil(t, err)
+		// GetGateway returns tags in the MseTag JSON string; user tags must be
+		// kept and acs: system tags filtered by the Read path.
+		assert.Equal(t, map[string]interface{}{"Created": "TF-read", "For": "Test-read"}, d.Get("tags"))
 	})
 }

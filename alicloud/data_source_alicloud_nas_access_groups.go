@@ -6,8 +6,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAlicloudNasAccessGroups() *schema.Resource {
@@ -45,7 +45,7 @@ func dataSourceAlicloudNasAccessGroups() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "standard",
-				ValidateFunc: validation.StringInSlice([]string{"extreme", "standard"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"extreme", "standard", "cpfs"}, false),
 			},
 			"useutc_date_time": {
 				Type:     schema.TypeBool,

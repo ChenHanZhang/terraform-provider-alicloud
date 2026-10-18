@@ -12,8 +12,8 @@ import (
 	r_kvstore "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/helper"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudKvstoreInstance() *schema.Resource {
@@ -187,18 +187,18 @@ func resourceAliCloudKvstoreInstance() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: StringInSlice([]string{"Immediately", "MaintainTime"}, false),
 			},
-			"modify_mode": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Removed:  "Field `modify_mode` has been removed from provider version 1.216.0.",
-			},
 			"node_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"MASTER_SLAVE", "STAND_ALONE", "double", "single"}, false),
-				Deprecated:   "Field 'node_type' has been deprecated from version 1.120.1",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return (old == "MASTER_SLAVE" && new == "double") ||
+						(old == "double" && new == "MASTER_SLAVE") ||
+						(old == "STAND_ALONE" && new == "single") ||
+						(old == "single" && new == "STAND_ALONE")
+				},
 			},
 			"order_type": {
 				Type:         schema.TypeString,
@@ -270,6 +270,18 @@ func resourceAliCloudKvstoreInstance() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"Disable", "Enable", "Update"}, false),
+			},
+			"ca_cert_download_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"ca_cert_common_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"ssl_expired_time": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"secondary_zone_id": {
 				Type:     schema.TypeString,
@@ -420,6 +432,16 @@ func resourceAliCloudKvstoreInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"replica_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"slave_replica_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
 			"is_auto_upgrade_open": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -568,6 +590,14 @@ func resourceAliCloudKvstoreInstanceCreate(d *schema.ResourceData, meta interfac
 		request["SlaveReadOnlyCount"] = v
 	}
 
+	if v, ok := d.GetOk("replica_count"); ok {
+		request["ReplicaCount"] = v
+	}
+
+	if v, ok := d.GetOk("slave_replica_count"); ok {
+		request["SlaveReplicaCount"] = v
+	}
+
 	vswitchId := Trim(d.Get("vswitch_id").(string))
 	if vswitchId != "" {
 		vpcService := VpcService{client}
@@ -579,20 +609,20 @@ func resourceAliCloudKvstoreInstanceCreate(d *schema.ResourceData, meta interfac
 		request["NetworkType"] = "VPC"
 		request["VpcId"] = vsw.VpcId
 		request["VSwitchId"] = vswitchId
-		if fmt.Sprint(request["ZoneId"]) == "" {
+		if zoneId, _ := request["ZoneId"].(string); zoneId == "" {
 			request["ZoneId"] = vsw.ZoneId
 		}
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, request, true)
 		if err != nil {
-			if NoCodeRegexRetry(err) {
+			if NoCodeRegexRetry(err) || IsExpectedErrors(err, []string{"CanNotAcquireLock"}) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -691,6 +721,8 @@ func resourceAliCloudKvstoreInstanceRead(d *schema.ResourceData, meta interface{
 	d.Set("shard_count", object["ShardCount"])
 	d.Set("read_only_count", object["ReadOnlyCount"])
 	d.Set("slave_read_only_count", object["SlaveReadOnlyCount"])
+	d.Set("replica_count", object["ReplicaCount"])
+	d.Set("slave_replica_count", object["SlaveReplicaCount"])
 	d.Set("status", object["InstanceStatus"])
 	if v, ok := object["Tags"].(map[string]interface{}); ok {
 		d.Set("tags", tagsToMap(v["Tag"]))
@@ -726,6 +758,9 @@ func resourceAliCloudKvstoreInstanceRead(d *schema.ResourceData, meta interface{
 		}
 	} else {
 		d.Set("ssl_enable", describeInstanceSSLObject.SSLEnabled)
+		d.Set("ca_cert_download_url", describeInstanceSSLObject.CertDownloadURL)
+		d.Set("ca_cert_common_name", describeInstanceSSLObject.CertCommonName)
+		d.Set("ssl_expired_time", describeInstanceSSLObject.SSLExpiredTime)
 	}
 
 	var securityIpGroupName string
@@ -800,7 +835,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if err := r_kvstoreService.SetResourceTags(d, "INSTANCE"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 
 	if d.HasChange("config") {
@@ -822,7 +856,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("config")
 	}
 
 	if d.HasChange("vpc_auth_mode") && d.Get("vswitch_id") != "" {
@@ -840,7 +873,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("vpc_auth_mode")
 	}
 	if d.HasChange("security_group_id") {
 		request := r_kvstore.CreateModifySecurityGroupConfigurationRequest()
@@ -857,7 +889,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("security_group_id")
 	}
 
 	update := false
@@ -897,14 +928,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "TransformInstanceChargeType"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, transformInstanceChargeTypeReq, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -924,8 +955,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("payment_type")
-		d.SetPartial("instance_charge_type")
 	}
 
 	update = false
@@ -948,8 +977,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("auto_renew")
-		d.SetPartial("auto_renew_period")
 	}
 	update = false
 	modifyInstanceMaintainTimeReq := r_kvstore.CreateModifyInstanceMaintainTimeRequest()
@@ -970,8 +997,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), modifyInstanceMaintainTimeReq.GetActionName(), AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("maintain_end_time")
-		d.SetPartial("maintain_start_time")
 	}
 	if d.HasChange("ssl_enable") {
 		request := r_kvstore.CreateModifyInstanceSSLRequest()
@@ -988,7 +1013,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("ssl_enable")
 	}
 	if !d.IsNewResource() && d.HasChange("resource_group_id") {
 		request := r_kvstore.CreateModifyResourceGroupRequest()
@@ -1008,7 +1032,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("resource_group_id")
 	}
 
 	update = false
@@ -1031,6 +1054,13 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		migrateToOtherZoneReq["VSwitchId"] = v
 	}
 
+	// Trigger MigrateToOtherZone whenever secondary_zone_id changes. Setting it to a
+	// non-empty value swaps the secondary zone; clearing it (REMOVEKEY) converts a
+	// dual-zone instance to single-zone via MigrateToOtherZone by omitting
+	// SecondaryZoneId and zeroing the secondary replica/read-only counts (the former
+	// secondary nodes are absorbed into the primary counts to keep
+	// ReplicaCount+SlaveReplicaCount and the read-only pair sum-invariant, as required
+	// by the API; see the absorb block below).
 	if !d.IsNewResource() && d.HasChange("secondary_zone_id") {
 		update = true
 	}
@@ -1046,6 +1076,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		migrateToOtherZoneReq["SlaveReadOnlyCount"] = v
 	}
 
+	if v, ok := d.GetOk("replica_count"); ok {
+		migrateToOtherZoneReq["ReplicaCount"] = v
+	}
+
+	if v, ok := d.GetOk("slave_replica_count"); ok {
+		migrateToOtherZoneReq["SlaveReplicaCount"] = v
+	}
+
 	if !d.IsNewResource() && d.HasChange("availability_zone") {
 		update = true
 
@@ -1058,17 +1096,93 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		migrateToOtherZoneReq["EffectiveTime"] = v
 	}
 
+	// Ensure ZoneId is present for MigrateToOtherZone even when only
+	// secondary_zone_id or replica counts changed and zone_id/availability_zone
+	// did not change. Fallback: state zone_id -> availability_zone -> live instance zone.
+	if update {
+		if _, ok := migrateToOtherZoneReq["ZoneId"]; !ok {
+			if v, ok := d.GetOk("zone_id"); ok {
+				migrateToOtherZoneReq["ZoneId"] = v
+			} else if v, ok := d.GetOk("availability_zone"); ok {
+				migrateToOtherZoneReq["ZoneId"] = v
+			} else {
+				instance, err := r_kvstoreService.DescribeKvstoreInstance(d.Id())
+				if err != nil {
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), "DescribeKvstoreInstance", AlibabaCloudSdkGoERROR)
+				}
+				if v, ok := instance["ZoneId"]; ok {
+					migrateToOtherZoneReq["ZoneId"] = v
+				}
+			}
+		}
+	}
+
+	// Determine whether this update clears secondary_zone_id (REMOVEKEY), which
+	// converts a dual-zone instance to single-zone. The flag drives both the
+	// SecondaryZoneId backfill (skipped on REMOVEKEY) and the replica absorb below.
+	isRemoveSecondaryZone := false
+	if update && d.HasChange("secondary_zone_id") {
+		if v, ok := d.GetOk("secondary_zone_id"); !ok || fmt.Sprint(v) == "" {
+			isRemoveSecondaryZone = true
+		}
+	}
+
+	// Backfill the current instance SecondaryZoneId only when this is NOT a REMOVEKEY.
+	// REMOVEKEY intentionally omits SecondaryZoneId to convert dual-zone to single-zone;
+	// the absorb block below zeros the secondary replica/read-only counts and preserves
+	// the sum. For routine migrations triggered by other fields (zone_id/vswitch_id/
+	// availability_zone/replica counts) where secondary_zone_id did not change, keep the
+	// current SecondaryZoneId intact so the migration does not accidentally drop it.
+	if update && !isRemoveSecondaryZone {
+		if _, ok := migrateToOtherZoneReq["SecondaryZoneId"]; !ok {
+			instance, err := r_kvstoreService.DescribeKvstoreInstance(d.Id())
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), "DescribeKvstoreInstance", AlibabaCloudSdkGoERROR)
+			}
+			if cur, ok := instance["SecondaryZoneId"]; ok && fmt.Sprint(cur) != "" {
+				migrateToOtherZoneReq["SecondaryZoneId"] = cur
+			}
+		}
+	}
+
+	// Dual-zone -> single-zone conversion (REMOVEKEY): zero the secondary replica and
+	// read-only counts and absorb the former secondary nodes into the primary counts so
+	// ReplicaCount+SlaveReplicaCount (and ReadOnlyCount+SlaveReadOnlyCount) stay the
+	// same as before migration, as required by MigrateToOtherZone. The instance's live
+	// distribution is read here so the totals reflect the actual server-side state; config
+	// values for replica_count/slave_replica_count are intentionally overridden because
+	// the conversion must preserve the total. Only the node type the instance actually
+	// uses is adjusted to avoid sending irrelevant counts to the API.
+	if update && isRemoveSecondaryZone {
+		instance, err := r_kvstoreService.DescribeKvstoreInstance(d.Id())
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), "DescribeKvstoreInstance", AlibabaCloudSdkGoERROR)
+		}
+		curReplica := formatInt(instance["ReplicaCount"])
+		curSlaveReplica := formatInt(instance["SlaveReplicaCount"])
+		curReadOnly := formatInt(instance["ReadOnlyCount"])
+		curSlaveReadOnly := formatInt(instance["SlaveReadOnlyCount"])
+		if curReplica > 0 || curSlaveReplica > 0 {
+			migrateToOtherZoneReq["SlaveReplicaCount"] = 0
+			migrateToOtherZoneReq["ReplicaCount"] = curReplica + curSlaveReplica
+		}
+		if curReadOnly > 0 || curSlaveReadOnly > 0 {
+			migrateToOtherZoneReq["SlaveReadOnlyCount"] = 0
+			migrateToOtherZoneReq["ReadOnlyCount"] = curReadOnly + curSlaveReadOnly
+		}
+	}
+
 	if update {
 		action := "MigrateToOtherZone"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, migrateToOtherZoneReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1083,10 +1197,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("vswitch_id")
-		d.SetPartial("zone_id")
-		d.SetPartial("availability_zone")
-		d.SetPartial("secondary_zone_id")
 	}
 
 	update = false
@@ -1115,8 +1225,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("backup_period")
-		d.SetPartial("backup_time")
 	}
 	update = false
 	modifyInstanceAttributeReq := r_kvstore.CreateModifyInstanceAttributeRequest()
@@ -1167,12 +1275,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("instance_name")
-		d.SetPartial("db_instance_name")
-		d.SetPartial("instance_release_protection")
-		d.SetPartial("kms_encrypted_password")
-		d.SetPartial("kms_encryption_context")
-		d.SetPartial("password")
 	}
 	update = false
 	modifyDBInstanceConnectionStringReq := r_kvstore.CreateModifyDBInstanceConnectionStringRequest()
@@ -1200,8 +1302,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("private_connection_prefix")
-		d.SetPartial("private_connection_port")
 	}
 	update = false
 	modifySecurityIpsReq := r_kvstore.CreateModifySecurityIpsRequest()
@@ -1242,9 +1342,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("security_ips")
-		d.SetPartial("security_ip_group_attribute")
-		d.SetPartial("security_ip_group_name")
 	}
 
 	update = false
@@ -1259,6 +1356,20 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	}
 	if v, ok := d.GetOk("instance_class"); ok {
 		modifyInstanceSpecReq["InstanceClass"] = v
+		// Local-disk (classic architecture) instances require MajorVersion to be
+		// carried alongside InstanceClass when changing the spec via
+		// ModifyInstanceSpec; cloud-disk architecture (.ce/.ee/tair.*) specs do
+		// not require it. MajorVersion must match the instance's engine_version;
+		// when the state value is empty it is read from DescribeKvstoreInstance.
+		if !isCloudDiskSpec(fmt.Sprint(v)) {
+			majorVersion, err := resolveMajorVersionForSpecChange(d.Get("engine_version").(string), r_kvstoreService.DescribeKvstoreInstance, d.Id())
+			if err != nil {
+				return WrapError(err)
+			}
+			if majorVersion != "" {
+				modifyInstanceSpecReq["MajorVersion"] = majorVersion
+			}
+		}
 	}
 
 	// read_only_count and slave_read_only_count may be changed after other attributes changed, like secondary_zone_id
@@ -1268,6 +1379,22 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 
 		if v, ok := d.GetOkExists("read_only_count"); ok {
 			modifyInstanceSpecReq["ReadOnlyCount"] = v
+		}
+	}
+
+	if !d.IsNewResource() && d.HasChange("replica_count") {
+		update = true
+
+		if v, ok := d.GetOk("replica_count"); ok {
+			modifyInstanceSpecReq["ReplicaCount"] = v
+		}
+	}
+
+	if !d.IsNewResource() && d.HasChange("slave_replica_count") {
+		update = true
+
+		if v, ok := d.GetOk("slave_replica_count"); ok {
+			modifyInstanceSpecReq["SlaveReplicaCount"] = v
 		}
 	}
 
@@ -1295,14 +1422,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		action := "ModifyInstanceSpec"
 		modifyInstanceSpecReq["ClientToken"] = buildClientToken(action)
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyInstanceSpecReq, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"MissingRedisUsedmemoryUnsupportPerfItem", "Task.Conflict"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1345,14 +1472,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		modifyInstanceSpecReq["ClientToken"] = buildClientToken(action)
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyInstanceSpecReq, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"MissingRedisUsedmemoryUnsupportPerfItem", "Task.Conflict"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1396,7 +1523,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("engine_version")
 	}
 	if d.HasChange("parameters") {
 		request := r_kvstore.CreateModifyInstanceConfigRequest()
@@ -1425,7 +1551,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			}
 		}
 
-		d.SetPartial("parameters")
 	}
 	if d.HasChange("enable_public") {
 		prefix := d.Get("connection_string_prefix").(string)
@@ -1467,7 +1592,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 				return WrapErrorf(err, IdMsg, d.Id())
 			}
 		}
-		d.SetPartial("enable_public")
 	}
 	update = false
 	modifyInstanceTDERequest := map[string]interface{}{
@@ -1500,14 +1624,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyInstanceTDE"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err := resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err := retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyInstanceTDERequest, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1519,10 +1643,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("tde_status")
-		d.SetPartial("encryption_name")
-		d.SetPartial("encryption_key")
-		d.SetPartial("role_arn")
 	}
 
 	if !d.IsNewResource() && d.HasChange("shard_count") {
@@ -1544,15 +1664,15 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			request["InstanceId"] = d.Id()
 			request["ShardCount"] = removed
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, request, false)
 
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				addDebug(action, response, request)
 				return nil
@@ -1571,7 +1691,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 				return WrapErrorf(err, IdMsg, d.Id())
 			}
 
-			d.SetPartial("shard_count")
 		}
 
 		if added > 0 {
@@ -1580,14 +1699,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			request["InstanceId"] = d.Id()
 			request["ShardCount"] = added
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -1607,7 +1726,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 				return WrapErrorf(err, IdMsg, d.Id())
 			}
 
-			d.SetPartial("shard_count")
 		}
 
 	}
@@ -1627,14 +1745,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyDBInstanceAutoUpgrade"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyDBInstanceAutoUpgradeReq, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1644,7 +1762,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("is_auto_upgrade_open")
 	}
 
 	update = false
@@ -1663,14 +1780,14 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyInstanceBandwidth"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyInstanceBandwidthReq, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1690,7 +1807,6 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("bandwidth")
 	}
 
 	d.Partial(false)
@@ -1711,8 +1827,7 @@ func resourceAliCloudKvstoreInstanceDelete(d *schema.ResourceData, meta interfac
 	}
 
 	if fmt.Sprint(instance["ChargeType"]) == string(PrePaid) {
-		log.Printf("[WARN] Cannot destroy Subscription resource: alicloud_kvstore_instance. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
+		return WrapError(Error("'PrePaid' instance cannot be destroyed: please convert it to 'PostPaid' (set payment_type = \"PostPaid\" and re-apply) or unsubscribe it in the console. To remove it from the state only, run 'terraform state rm'."))
 	}
 
 	var response map[string]interface{}
@@ -1725,14 +1840,14 @@ func resourceAliCloudKvstoreInstanceDelete(d *schema.ResourceData, meta interfac
 		request["GlobalInstanceId"] = v.(string)
 	}
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, request, true)
 		if err != nil {
 			if NoCodeRegexRetry(err) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1796,9 +1911,33 @@ func convertModifyInstanceTDERequest(source interface{}) interface{} {
 }
 
 func isCloudDiskSpec(instanceClass string) bool {
-	if strings.HasSuffix(instanceClass, ".ce") || strings.HasSuffix(instanceClass, ".ee") {
+	if strings.HasSuffix(instanceClass, ".ce") || strings.HasSuffix(instanceClass, ".ee") || strings.HasPrefix(instanceClass, "tair.") {
 		return true
 	}
 
 	return false
+}
+
+// resolveMajorVersionForSpecChange resolves the MajorVersion value to carry
+// alongside InstanceClass when changing the spec of a local-disk (classic
+// architecture) instance via ModifyInstanceSpec. The R-kvstore
+// ModifyInstanceSpec API requires MajorVersion (valid values: 2.8/4.0/5.0,
+// identical to the instance's engine_version) to be sent together with
+// InstanceClass for classic instances; cloud-disk architecture specs do not
+// require it. This helper prefers the engine_version stored in Terraform
+// state; when that value is empty it falls back to DescribeKvstoreInstance,
+// whose EngineVersion reflects the instance's current major version.
+func resolveMajorVersionForSpecChange(engineVersion string, describeFunc func(id string) (map[string]interface{}, error), instanceId string) (string, error) {
+	if engineVersion != "" {
+		return engineVersion, nil
+	}
+	object, err := describeFunc(instanceId)
+	if err != nil {
+		return "", err
+	}
+	version, ok := object["EngineVersion"]
+	if !ok || version == nil {
+		return "", nil
+	}
+	return fmt.Sprint(version), nil
 }

@@ -151,6 +151,8 @@ The following arguments supported:
 * `structure_initialization` - (Required, ForceNew) Whether to perform a database table structure to migrate.
 * `data_synchronization` - (Required, ForceNew) Whether to perform incremental data migration.
 * `db_list` - (Required, ForceNew) Migration object, in the format of JSON strings. For detailed definition instructions, please refer to [the description of migration, migration or subscription objects](https://help.aliyun.com/document_detail/209545.html).
+* `source_endpoint_ssl` - (Optional, Computed, Available since v1.287.0) The connection method of the source instance. Valid values: `0` (an unencrypted connection), `1` (an SSL-secured connection). Only supported when the source endpoint is accessed as a cloud instance or as a self-managed database hosted on ECS.
+* `destination_endpoint_ssl` - (Optional, Computed, Available since v1.287.0) The connection method of the destination instance. Valid values: `0` (an unencrypted connection), `1` (an SSL-secured connection), `3` (a connection using SCRAM-SHA-256, for a Kafka destination only). `1` is only supported when the destination endpoint is accessed as a cloud instance or as a self-managed database hosted on ECS.
 * `source_endpoint_instance_type` - (Required, ForceNew) The type of source instance. Valid values: `CEN`, `DG`, `DISTRIBUTED_DMSLOGICDB`, `ECS`, `EXPRESS`, `MONGODB`, `OTHER`, `PolarDB`, `POLARDBX20`, `RDS`.
 * `source_endpoint_engine_name` - (Required, ForceNew) The type of source database. Valid values: `AS400`, `DB2`, `DMSPOLARDB`, `HBASE`, `MONGODB`, `MSSQL`, `MySQL`, `ORACLE`, `PolarDB`, `POLARDBX20`, `POLARDB_O`, `POSTGRESQL`, `TERADATA`.
 * `source_endpoint_instance_id` - (Optional, ForceNew) The ID of source instance.
@@ -163,6 +165,8 @@ The following arguments supported:
 * `source_endpoint_password` - (Optional) The password of database account.
 * `source_endpoint_owner_id` - (Optional, ForceNew) The Alibaba Cloud account ID to which the source instance belongs.
 * `source_endpoint_role` - (Optional, ForceNew) The name of the role configured for the cloud account to which the source instance belongs.
+* `src_primary_vswitch_id` - (Optional, ForceNew, Available since v1.289.0) The ID of the primary vSwitch on the source side of a VPC NAT connection.
+* `src_secondary_vswitch_id` - (Optional, ForceNew, Available since v1.289.0) The ID of the secondary vSwitch on the source side of a VPC NAT connection.
 * `destination_endpoint_instance_type` - (Required, ForceNew) The type of destination instance. Valid values: `ADS`, `CEN`, `DATAHUB`, `DG`, `ECS`, `EXPRESS`, `GREENPLUM`, `MONGODB`, `OTHER`, `PolarDB`, `POLARDBX20`, `RDS`.
 * `destination_endpoint_engine_name` - (Required, ForceNew) The type of destination database. Valid values: `ADS`, `ADB30`, `AS400`, `DATAHUB`, `DB2`, `GREENPLUM`, `KAFKA`, `MONGODB`, `MSSQL`, `MySQL`, `ORACLE`, `PolarDB`, `POLARDBX20`, `POLARDB_O`, `PostgreSQL`.
 * `destination_endpoint_instance_id` - (Optional, ForceNew) The ID of destination instance.
@@ -173,7 +177,11 @@ The following arguments supported:
 * `destination_endpoint_user_name` - (Optional, ForceNew) The username of database account.
 * `destination_endpoint_password` - (Optional) The password of database account.
 * `destination_endpoint_oracle_sid` - (Optional, ForceNew) The SID of Oracle database.
+* `dest_primary_vswitch_id` - (Optional, ForceNew, Available since v1.289.0) The ID of the primary vSwitch on the destination side of a VPC NAT connection.
+* `dest_secondary_vswitch_id` - (Optional, ForceNew, Available since v1.289.0) The ID of the secondary vSwitch on the destination side of a VPC NAT connection.
 * `status` - (Optional) The status of the resource. Valid values: `Migrating`, `Suspending`. You can suspend the task by specifying `Suspending` and start the task by specifying `Migrating`.
+
+-> **NOTE:** `src_primary_vswitch_id`, `src_secondary_vswitch_id`, `dest_primary_vswitch_id` and `dest_secondary_vswitch_id` are only used when the job is created. They are not refreshed from the server, and are not populated by `terraform import`.
 
 ## Notice
 

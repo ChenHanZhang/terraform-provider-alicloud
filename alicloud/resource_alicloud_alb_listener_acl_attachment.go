@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudAlbListenerAclAttachment() *schema.Resource {
@@ -52,6 +52,7 @@ func resourceAliCloudAlbListenerAclAttachment() *schema.Resource {
 func resourceAliCloudAlbListenerAclAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.AliyunClient)
+	albService := AlbService{client}
 
 	action := "AssociateAclsWithListener"
 	var request map[string]interface{}
@@ -64,17 +65,24 @@ func resourceAliCloudAlbListenerAclAttachmentCreate(d *schema.ResourceData, meta
 	request["ClientToken"] = buildClientToken(action)
 
 	request["AclType"] = d.Get("acl_type")
+	// The acl can still be Creating or Configuring when this resource is created right after
+	// alicloud_alb_acl or alicloud_alb_acl_entry_attachment; AssociateAclsWithListener rejects
+	// such an acl with IncorrectStatus.Acl, so wait for it to become Available first.
+	stateConf := BuildStateConf([]string{"Creating", "Configuring"}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, albService.AlbAclStateRefreshFunc(fmt.Sprint(d.Get("acl_id")), []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, fmt.Sprint(d.Get("acl_id")))
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Alb", "2020-06-16", action, nil, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"ResourceInConfiguring.Listener", "IncorrectStatus.Listener", "Conflict.Acl"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"ResourceInConfiguring.Listener", "IncorrectStatus.Listener", "IncorrectStatus.Acl", "Conflict.Acl", "LockFailed"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -87,7 +95,7 @@ func resourceAliCloudAlbListenerAclAttachmentCreate(d *schema.ResourceData, meta
 	d.SetId(fmt.Sprintf("%v:%v", request["ListenerId"], request["AclIds.1"]))
 
 	albServiceV2 := AlbServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Associated"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, albServiceV2.AlbListenerAclAttachmentStateRefreshFunc(d.Id(), "$.AclConfig.AclRelations[0].Status", []string{}))
+	stateConf = BuildStateConf([]string{}, []string{"Associated"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, albServiceV2.AlbListenerAclAttachmentStateRefreshFunc(d.Id(), "$.AclConfig.AclRelations[0].Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -150,16 +158,16 @@ func resourceAliCloudAlbListenerAclAttachmentDelete(d *schema.ResourceData, meta
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Alb", "2020-06-16", action, nil, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"LockFailed", "ResourceInConfiguring.Listener", "IncorrectStatus.Listener", "IncorrectStatus.Acl"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil

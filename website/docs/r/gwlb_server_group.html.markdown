@@ -10,8 +10,6 @@ description: |-
 
 Provides a GWLB Server Group resource.
 
-
-
 For information about GWLB Server Group and how to use it, see [What is Server Group](https://www.alibabacloud.com/help/en/slb/gateway-based-load-balancing-gwlb/developer-reference/api-gwlb-2024-04-15-createservergroup).
 
 -> **NOTE:** Available since v1.234.0.
@@ -146,17 +144,21 @@ The following arguments are supported:
 
   - `Instance` (default): allows you to specify servers of the `Ecs`, `Eni`, or `Eci` type.
   - `Ip`: allows you to add servers of by specifying IP addresses.
-* `servers` - (Optional, Set) The backend servers that you want to remove.
+* `server_failover_mode` - (Optional, Computed) The failover policy for existing connections when a backend server becomes unhealthy. Valid values:
 
--> **NOTE:**  You can remove at most 200 backend servers in each call.
- See [`servers`](#servers) below.
+  - `NoRebalance` (default): existing connections on the unhealthy backend server are not redistributed to other healthy backend servers.
+  - `Rebalance`: existing connections on the unhealthy backend server are redistributed to other healthy backend servers.
+* `servers` - (Optional, Set) The backend servers that you want to remove. See [`servers`](#servers) below.
+
+  -> **NOTE:**  You can remove at most 200 backend servers in each call.
+
+  -> **NOTE:**  When connection draining is enabled, a removed backend server enters the `Draining` status before it is released. Servers in the `Draining` or `Removing` status are not kept in `servers`, because the removal has already happened and the drain process finishes it. They are exposed through the computed `draining_servers` attribute instead. If a removal request still contains such a server, the provider skips it. If such a server is added back to `servers`, Terraform re-adds it to the server group (rescuing it back to the `Available` status).
 * `tags` - (Optional, Map) The tag keys.
 
   You can specify at most 20 tags in each call.
 * `vpc_id` - (Required, ForceNew) The VPC ID.
 
--> **NOTE:**  If `ServerGroupType` is set to `Instance`, only servers in the specified VPC can be added to the server group.
-
+  -> **NOTE:**  If `server_group_type` is set to `Instance`, only servers in the specified VPC can be added to the server group.
 
 ### `connection_drain_config`
 
@@ -190,11 +192,11 @@ The health_check_config supports the following:
   Default value: `5`.
 * `health_check_domain` - (Optional, Computed, Available since v1.236.0) The domain name that you want to use for health checks. Valid values:
 
-  *   **$SERVER_IP** (default): the private IP address of a backend server.
+  - **$SERVER_IP** (default): the private IP address of a backend server.
 
-  *   `domain`: a domain name. The domain name must be 1 to 80 characters in length, and can contain letters, digits, hyphens (-), and periods (.).
+  - `domain`: a domain name. The domain name must be 1 to 80 characters in length, and can contain letters, digits, hyphens (-), and periods (.).
 
--> **NOTE:**  This parameter takes effect only if you set `HealthCheckProtocol` to `HTTP`.
+  -> **NOTE:**  This parameter takes effect only if you set `health_check_protocol` to `HTTP`.
 
 * `health_check_enabled` - (Optional, Computed, Available since v1.236.0) Specifies whether to enable the health check feature. Valid values:
 
@@ -214,7 +216,7 @@ The health_check_config supports the following:
 
   The URL must start with a forward slash (/).
 
--> **NOTE:**  This parameter takes effect only if you set `HealthCheckProtocol` to `HTTP`.
+  -> **NOTE:**  This parameter takes effect only if you set `health_check_protocol` to `HTTP`.
 
 * `health_check_protocol` - (Optional, Computed, Available since v1.236.0) The protocol that is used for health checks. Valid values:
 
@@ -245,23 +247,27 @@ The servers supports the following:
   - `Eni`: elastic network interface (ENI)
   - `Eci`: elastic container instance
   - `Ip`: IP address
+* `port` - (Optional, Computed, Int) The port that is used by the backend server.
+* `server_group_id` - (Computed) The server group ID.
+* `status` - (Computed) Indicates the status of the backend server. Valid values:
+
+  - `Adding`: The backend server is being added.
+  - `Available`: The backend server is available.
+  - `Draining`: The backend server is in connection draining.
+  - `Removing`: The backend server is being removed.
+  - `Replacing`: The backend server is being replaced.
 
 ## Attributes Reference
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.
 * `create_time` - The time when the resource was created. The time follows the ISO 8601 standard in the **yyyy-MM-ddTHH:mm:ssZ** format. The time is displayed in UTC.
-* `servers` - The backend servers that you want to remove.
-  * `port` - (Optional, Computed, Int) The port that is used by the backend server.
-  * `server_group_id` - The server group ID.
-  * `status` - Indicates the status of the backend server. Valid values:
-  - `Adding`: The backend server is being added.
-  - `Available`: The backend server is available.
-  - `Draining`: The backend server is in connection draining.
-  - `Removing`: The backend server is being removed.
-  - `Replacing`: The backend server is being replaced.
-* `status` - Indicates the status of the backend server. 
-
+* `draining_servers` - (Set, Available since v1.290.0) The backend servers that are being removed (in the `Draining` or `Removing` status).
+  * `server_id` - The backend server ID.
+  * `server_ip` - The IP address of the backend server.
+  * `server_type` - The type of the backend server. Valid values: `Ecs`, `Eni`, `Eci`, `Ip`.
+  * `status` - The status of the backend server. Valid values: `Draining`, `Removing`.
+* `status` - Indicates the status of the backend server.
 
 ## Timeouts
 

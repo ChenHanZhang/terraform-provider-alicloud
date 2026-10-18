@@ -2,7 +2,6 @@ package alicloud
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,8 +9,8 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/samber/lo"
 )
 
@@ -119,6 +118,26 @@ func resourceAliCloudMongoDBInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"security_ip_groups": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"security_ip_group_attribute": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"security_ip_group_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"security_ip_list": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"account_password": {
 				Type:      schema.TypeString,
@@ -538,14 +557,14 @@ func resourceAliCloudMongoDBInstanceCreate(d *schema.ResourceData, meta interfac
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPost("Dds", "2015-12-01", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -628,12 +647,44 @@ func resourceAliCloudMongoDBInstanceRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	securityIpList, err := ddsService.DescribeMongoDBSecurityIps(d.Id())
+	securityIpGroupsObject, err := ddsService.DescribeSecurityIps(d.Id())
 	if err != nil {
 		return WrapError(err)
 	}
-
+	securityIpList := make([]string, 0)
+	securityIpGroupMaps := make([]map[string]interface{}, 0)
+	if securityIpGroupsMap, ok := securityIpGroupsObject["SecurityIpGroups"].(map[string]interface{}); ok && securityIpGroupsMap != nil {
+		if securityIpGroup, ok := securityIpGroupsMap["SecurityIpGroup"]; ok && securityIpGroup != nil {
+			for _, item := range securityIpGroup.([]interface{}) {
+				v, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if v["SecurityIpGroupAttribute"] == "hidden" {
+					continue
+				}
+				groupName, _ := v["SecurityIpGroupName"].(string)
+				if groupName == "default" {
+					if ipList, ok := v["SecurityIpList"].(string); ok && ipList != "" {
+						for _, ip := range strings.Split(ipList, COMMA_SEPARATED) {
+							if ip != "" {
+								securityIpList = append(securityIpList, ip)
+							}
+						}
+					}
+					continue
+				}
+				groupMap := map[string]interface{}{
+					"security_ip_group_attribute": v["SecurityIpGroupAttribute"],
+					"security_ip_group_name":      groupName,
+					"security_ip_list":            v["SecurityIpList"],
+				}
+				securityIpGroupMaps = append(securityIpGroupMaps, groupMap)
+			}
+		}
+	}
 	d.Set("security_ip_list", securityIpList)
+	d.Set("security_ip_groups", securityIpGroupMaps)
 
 	backupPolicy, err := ddsService.DescribeMongoDBBackupPolicy(d.Id())
 	if err != nil {
@@ -831,14 +882,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "UpgradeDBInstanceEngineVersion"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, upgradeDBInstanceEngineVersionReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -853,7 +904,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("engine_version")
 	}
 
 	update = false
@@ -896,14 +946,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyDBInstanceSpec"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceSpecReq, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"Task.Conflict", "OperationDenied.DBInstanceStatus"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -923,10 +973,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("db_instance_class")
-		d.SetPartial("db_instance_storage")
-		d.SetPartial("replication_factor")
-		d.SetPartial("readonly_replicas")
 	}
 
 	update = false
@@ -952,14 +998,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyDBInstanceDiskType"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceDiskTypeReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -974,8 +1020,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("storage_type")
-		d.SetPartial("provisioned_iops")
 	}
 
 	update = false
@@ -1002,14 +1046,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "MigrateAvailableZone"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, migrateAvailableZoneReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1024,8 +1068,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("secondary_zone_id")
-		d.SetPartial("hidden_zone_id")
 	}
 
 	update = false
@@ -1043,14 +1085,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifySecurityGroupConfiguration"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifySecurityGroupConfigurationReq, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"InstanceStatusInvalid", "OperationDenied.DBInstanceStatus"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1060,7 +1102,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("security_group_id")
 	}
 
 	update = false
@@ -1078,14 +1119,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyDBInstanceDescription"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceDescriptionReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1095,7 +1136,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("name")
 	}
 
 	update = false
@@ -1119,14 +1159,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 
 		action := "ModifyResourceGroup"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyResourceGroupReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1136,7 +1176,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("resource_group_id")
 	}
 
 	update = false
@@ -1168,14 +1207,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		action := "ModifyInstanceAutoRenewalAttribute"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyInstanceAutoRenewalAttributeReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1190,8 +1229,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("auto_renew")
-		d.SetPartial("auto_renew_duration")
 	}
 
 	if !d.IsNewResource() && (d.HasChange("instance_charge_type") && d.Get("instance_charge_type").(string) == "PrePaid") {
@@ -1209,14 +1246,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, transformToPrePaidReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1232,8 +1269,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("instance_charge_type")
-		d.SetPartial("period")
 	}
 
 	if !d.IsNewResource() && d.HasChange("security_ip_list") {
@@ -1248,13 +1283,41 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("security_ip_list")
+	}
+
+	if d.HasChange("security_ip_groups") {
+		oraw, nraw := d.GetChange("security_ip_groups")
+		remove := oraw.(*schema.Set).Difference(nraw.(*schema.Set)).List()
+		create := nraw.(*schema.Set).Difference(oraw.(*schema.Set)).List()
+		if len(remove) > 0 {
+			for _, whiteList := range remove {
+				whiteListArg := whiteList.(map[string]interface{})
+				if err := ddsService.ModifyMongoDBSecurityIpsGroup(d,
+					whiteListArg["security_ip_group_name"].(string),
+					whiteListArg["security_ip_group_attribute"].(string),
+					whiteListArg["security_ip_list"].(string),
+					"Delete"); err != nil {
+					return WrapError(err)
+				}
+			}
+		}
+		if len(create) > 0 {
+			for _, whiteList := range create {
+				whiteListArg := whiteList.(map[string]interface{})
+				if err := ddsService.ModifyMongoDBSecurityIpsGroup(d,
+					whiteListArg["security_ip_group_name"].(string),
+					whiteListArg["security_ip_group_attribute"].(string),
+					whiteListArg["security_ip_list"].(string),
+					"Append"); err != nil {
+					return WrapError(err)
+				}
+			}
+		}
 	}
 
 	if !d.IsNewResource() && (d.HasChange("account_password") || d.HasChange("kms_encrypted_password")) {
 		var accountPassword string
 		if accountPassword = d.Get("account_password").(string); accountPassword != "" {
-			d.SetPartial("account_password")
 		} else if kmsPassword := d.Get("kms_encrypted_password").(string); kmsPassword != "" {
 			kmsService := KmsService{meta.(*connectivity.AliyunClient)}
 			decryptResp, err := kmsService.Decrypt(kmsPassword, d.Get("kms_encryption_context").(map[string]interface{}))
@@ -1264,8 +1327,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 
 			accountPassword = decryptResp
 
-			d.SetPartial("kms_encrypted_password")
-			d.SetPartial("kms_encryption_context")
 		}
 
 		err := ddsService.ResetAccountPassword(d, accountPassword, "instance")
@@ -1279,14 +1340,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("backup_time")
-		d.SetPartial("backup_period")
-		d.SetPartial("backup_retention_period")
-		d.SetPartial("backup_retention_policy_on_cluster_deletion")
-		d.SetPartial("enable_backup_log")
-		d.SetPartial("log_backup_retention_period")
-		d.SetPartial("snapshot_backup_type")
-		d.SetPartial("backup_interval")
 	}
 
 	update = false
@@ -1313,14 +1366,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		action := "ModifyDBInstanceSSL"
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceSSLReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1335,7 +1388,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("ssl_action")
 	}
 
 	if d.HasChange("maintain_start_time") || d.HasChange("maintain_end_time") {
@@ -1354,14 +1406,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceMaintainTimeReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1371,8 +1423,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("maintain_start_time")
-		d.SetPartial("maintain_end_time")
 	}
 
 	if d.HasChange("tde_status") || d.HasChange("encryptor_name") || d.HasChange("encryption_key") {
@@ -1411,14 +1461,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceTDEReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1433,9 +1483,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("tde_status")
-		d.SetPartial("encryptor_name")
-		d.SetPartial("encryption_key")
 	}
 
 	if d.HasChange("db_instance_release_protection") {
@@ -1450,14 +1497,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyDBInstanceAttributeReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1472,7 +1519,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapError(err)
 		}
 
-		d.SetPartial("db_instance_release_protection")
 	}
 
 	update = false
@@ -1498,14 +1544,14 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 
 		action := "ModifyGlobalSecurityIPGroupRelation"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, modifyGlobalSecurityIPGroupRelationReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1515,7 +1561,6 @@ func resourceAliCloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("global_security_group_list")
 	}
 
 	if err := ddsService.setInstanceTags(d); err != nil {
@@ -1547,8 +1592,7 @@ func resourceAliCloudMongoDBInstanceDelete(d *schema.ResourceData, meta interfac
 	}
 
 	if fmt.Sprint(object["ChargeType"]) == "PrePaid" {
-		log.Printf("[WARN] Cannot destroy resourceAliCloudMongoDBInstance prepay type. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
+		return WrapError(Error("'PrePaid' instance cannot be destroyed: please unsubscribe it in the console or wait for it to expire. To remove it from the state only, run 'terraform state rm'."))
 	}
 
 	request := map[string]interface{}{
@@ -1556,14 +1600,14 @@ func resourceAliCloudMongoDBInstanceDelete(d *schema.ResourceData, meta interfac
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("Dds", "2015-12-01", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) || IsExpectedErrors(err, []string{"OperationDenied.DBInstanceStatus"}) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

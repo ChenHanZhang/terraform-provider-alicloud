@@ -8,9 +8,9 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAliCloudRamRole() *schema.Resource {
@@ -181,14 +181,14 @@ func resourceAliCloudRamRoleCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -311,14 +311,14 @@ func resourceAliCloudRamRoleUpdate(d *schema.ResourceData, meta interface{}) err
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -354,14 +354,14 @@ func resourceAliCloudRamRoleDelete(d *schema.ResourceData, meta interface{}) err
 		}
 		listAction := "ListPoliciesForRole"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", listAction, nil, listRequest, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -371,12 +371,12 @@ func resourceAliCloudRamRoleDelete(d *schema.ResourceData, meta interface{}) err
 			if IsExpectedErrors(err, []string{"EntityNotExist.Role"}) || NotFoundError(err) {
 				return nil
 			}
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), listAction, AlibabaCloudSdkGoERROR)
 		}
 
 		policyResp, err := jsonpath.Get("$.Policies.Policy", response)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Policies.Policy", response)
+			return WrapErrorf(err, FailedGetAttributeMsg, listAction, "$.Policies.Policy", response)
 		}
 
 		// Loop and remove the Policies from the Role
@@ -389,24 +389,25 @@ func resourceAliCloudRamRoleDelete(d *schema.ResourceData, meta interface{}) err
 					"PolicyType": v.(map[string]interface{})["PolicyType"],
 				}
 
-				err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+				wait := incrementalWait(3*time.Second, 3*time.Second)
+				err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 					response, err = client.RpcPost("Ram", "2015-05-01", policyAction, nil, policyRequest, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
-				addDebug(action, response, policyRequest)
+				addDebug(policyAction, response, policyRequest)
 
 				if err != nil {
-					if IsExpectedErrors(err, []string{"EntityNotExist"}) || NotFoundError(err) {
-						return nil
+					if IsExpectedErrors(err, []string{"EntityNotExist", "EntityNotExist.Role", "EntityNotExist.Role.Policy", "EntityNotExist.Policy"}) || NotFoundError(err) {
+						continue
 					}
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), policyAction, AlibabaCloudSdkGoERROR)
 				}
 			}
 
@@ -414,15 +415,15 @@ func resourceAliCloudRamRoleDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"DeleteConflict.Role.Policy"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

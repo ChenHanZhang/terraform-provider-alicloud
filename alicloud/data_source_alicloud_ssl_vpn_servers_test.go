@@ -5,13 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccAlicloudSslVpnServersDataSourceBasic(t *testing.T) {
 	rand := acctest.RandIntRange(1000, 9999)
 	PreCheck := func() {
 		testAccPreCheck(t)
+		testAccPreCheckPrePaidResources(t)
 		testAccPreCheckWithTime(t, []int{1})
 	}
 	idsConf := dataSourceTestAccConfig{

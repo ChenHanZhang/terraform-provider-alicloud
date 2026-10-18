@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func httpHttpsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
@@ -84,6 +84,18 @@ func healthCheckTypeDiffSuppressFunc(k, old, new string, d *schema.ResourceData)
 		return false
 	}
 	return true
+}
+
+// ensLoadBalancerHttpListenerHealthCheckOffDiffSuppressFunc suppresses the
+// ENS HTTP listener health check parameter fields when health_check is "off".
+// The ENS Describe API omits HealthCheckDomain/URI/HealthyThreshold/
+// UnhealthyThreshold/HealthCheckTimeout/HealthCheckInterval/HealthCheckHttpCode/
+// HealthCheckMethod while health check is off (HealthCheckConnectPort is still
+// returned), so these parameters must neither be planned into the diff nor set
+// into state; otherwise they persist as empty/zero values and surface as
+// unexpected attributes after refresh.
+func ensLoadBalancerHttpListenerHealthCheckOffDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return d.Get("health_check").(string) == "off"
 }
 
 func establishedTimeoutDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
@@ -399,7 +411,7 @@ func polardbServrelessTypeDiffSuppressFunc(k, old, new string, d *schema.Resourc
 		if d.Get("serverless_type").(string) == "AgileServerless" || (d.Get("serverless_type").(string) == "SteadyServerless" && d.Get("serverless_steady_switch").(string) == "ON") {
 			return false
 		}
-	} else if (d.Get("db_type").(string) == "PostgreSQL" || d.Get("db_type").(string) == "Oracle") && d.Get("db_version").(string) == "14" {
+	} else if d.Get("db_type").(string) == "PostgreSQL" || d.Get("db_type").(string) == "Oracle" {
 		if d.Get("serverless_type").(string) == "AgileServerless" || (d.Get("serverless_type").(string) == "SteadyServerless" && d.Get("serverless_steady_switch").(string) == "ON") {
 			return false
 		}
@@ -539,6 +551,21 @@ func vpcTypeResourceDiffSuppressFunc(k, old, new string, d *schema.ResourceData)
 		return false
 	}
 	return true
+}
+
+// nasFileSystemVpcDiffSuppressFunc suppresses spurious diffs on vpc_id and vswitch_id
+// for standard and extreme NAS file systems. The NAS DescribeFileSystem API does not
+// return VpcId/QuorumVswId for these file system types, so the value read back into
+// state is empty while the user's config still holds the value supplied at create
+// time. Without suppression this produces a permanent non-empty diff that, combined
+// with ForceNew, forces a destructive replace on every plan. The fields are immutable
+// at the API level (ModifyFileSystem does not accept them), so suppressing the diff
+// for types that never surface the value is safe.
+func nasFileSystemVpcDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if fsType := d.Get("file_system_type").(string); fsType == "standard" || fsType == "extreme" {
+		return true
+	}
+	return false
 }
 
 func routerInterfaceAcceptsideDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {

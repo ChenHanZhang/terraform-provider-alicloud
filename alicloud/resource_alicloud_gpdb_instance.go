@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,8 +12,8 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudGpdbInstance() *schema.Resource {
@@ -29,11 +30,19 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 			Update: schema.DefaultTimeout(60 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
-		CustomizeDiff: func(diff *schema.ResourceDiff, v interface{}) error {
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 			backupId := diff.Get("backup_id").(string)
 			srcDbInstanceName := diff.Get("src_db_instance_name").(string)
 			if (backupId == "") != (srcDbInstanceName == "") {
 				return fmt.Errorf("`backup_id` and `src_db_instance_name` must be set together (both set or both empty); the GPDB CreateDBInstance API requires BackupId and SrcDbInstanceName to be null or not null at the same time")
+			}
+			if diff.Id() != "" && diff.HasChange("payment_type") {
+				_, newPaymentType := diff.GetChange("payment_type")
+				if fmt.Sprint(newPaymentType) == "Subscription" {
+					if diff.Get("period").(string) == "" || diff.Get("used_time").(string) == "" {
+						return fmt.Errorf("`period` and `used_time` must be set when `payment_type` is modified to `Subscription`; the GPDB ModifyDBInstancePayType API requires Period and UsedTime for converting an instance to the prepaid billing method")
+					}
+				}
 			}
 			return nil
 		},
@@ -48,16 +57,25 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"minor_version": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"effective_time": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Immediate", "MaintainTime"}, false),
+			},
 			"vswitch_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			"db_instance_mode": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: StringInSlice([]string{"StorageElastic", "Serverless", "Classic"}, false),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"db_instance_class": {
 				Type:     schema.TypeString,
@@ -71,9 +89,9 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 				ValidateFunc: StringInSlice([]string{"Basic", "HighAvailability"}, false),
 			},
 			"instance_spec": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: StringInSlice([]string{"2C16G", "4C32G", "16C128G", "2C8G", "4C16G", "8C32G", "8C64G", "16C64G", "32C256G", "64C512G", "96C768G", "128C1024G"}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"storage_size": {
 				Type:     schema.TypeInt,
@@ -113,7 +131,6 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 			"payment_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"PayAsYouGo", "Subscription"}, false),
 			},
@@ -162,6 +179,11 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: IntInSlice([]int{0, 1}),
 			},
+			"sql_collector_status": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"Enabled", "Disabled"}, false),
+			},
 			"encryption_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -195,6 +217,16 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 				ForceNew:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"Manual", "Auto"}, false),
+			},
+			"serverless_resource": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
+			"cache_storage_size": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
 			},
 			"prod_type": {
 				Type:     schema.TypeString,
@@ -230,10 +262,15 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 							Optional: true,
 							Computed: true,
 						},
+						// On SDK v1 an Optional+Computed nested name is filled from the old
+						// element at the same index, so a group that drops its name would
+						// inherit the previous group's name and the update would target the
+						// wrong array. A Default resolves the anonymous form position-
+						// independently at diff time.
 						"ip_group_name": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
+							Default:  "default",
 						},
 						"security_ip_list": {
 							Type:     schema.TypeString,
@@ -346,8 +383,23 @@ func resourceAliCloudGpdbInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"Running", "Stopped"}, false),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// The status returned by the API uses a different vocabulary than
+					// the configurable status: a paused instance is exposed as STOPPED
+					// (or STOPPING while being paused) and a running instance is
+					// exposed as Running (or STARTING while being resumed).
+					if new == "Stopped" && (old == "STOPPED" || old == "STOPPING") {
+						return true
+					}
+					if new == "Running" && (old == "Running" || old == "STARTING") {
+						return true
+					}
+					return false
+				},
 			},
 		},
 	}
@@ -461,6 +513,14 @@ func resourceAliCloudGpdbDbInstanceCreate(d *schema.ResourceData, meta interface
 		request["ServerlessMode"] = v
 	}
 
+	if v, ok := d.GetOk("serverless_resource"); ok {
+		request["ServerlessResource"] = v
+	}
+
+	if v, ok := d.GetOk("cache_storage_size"); ok {
+		request["CacheStorageSize"] = strconv.Itoa(v.(int))
+	}
+
 	if v, ok := d.GetOk("prod_type"); ok {
 		request["ProdType"] = v
 	}
@@ -503,14 +563,14 @@ func resourceAliCloudGpdbDbInstanceCreate(d *schema.ResourceData, meta interface
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -534,6 +594,14 @@ func resourceAliCloudGpdbDbInstanceCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	// A new instance is always created in the running state, so pause it
+	// afterwards when status is set to Stopped.
+	if v, ok := d.GetOk("status"); ok && fmt.Sprint(v) == "Stopped" {
+		if err := gpdbDbInstancePauseOrResume(client, &gpdbService, d.Id(), "Stopped", d.Timeout(schema.TimeoutCreate)); err != nil {
+			return err
+		}
+	}
+
 	return resourceAliCloudGpdbDbInstanceUpdate(d, meta)
 }
 
@@ -552,9 +620,16 @@ func resourceAliCloudGpdbDbInstanceRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("engine", object["Engine"])
 	d.Set("engine_version", object["EngineVersion"])
+	if v, ok := object["MinorVersion"]; ok && fmt.Sprint(v) != "" {
+		d.Set("minor_version", v)
+	}
 	d.Set("vswitch_id", object["VSwitchId"])
 	d.Set("db_instance_mode", object["DBInstanceMode"])
 	d.Set("db_instance_category", object["DBInstanceCategory"])
+	// instance_spec is Computed: for ServerlessPro the API returns a server-side
+	// placeholder (e.g. "1C8G") that is not user-configurable; sizing is driven
+	// by serverless_resource and cache_storage_size. Reading it back unconditionally
+	// keeps state in sync with the API without producing a spurious diff.
 	d.Set("instance_spec", object["InstanceSpec"])
 	d.Set("instance_network_type", object["InstanceNetworkType"])
 	d.Set("vpc_id", object["VpcId"])
@@ -573,6 +648,12 @@ func resourceAliCloudGpdbDbInstanceRead(d *schema.ResourceData, meta interface{}
 	d.Set("maintain_start_time", object["MaintainStartTime"])
 	d.Set("maintain_end_time", object["MaintainEndTime"])
 	d.Set("serverless_mode", object["ServerlessMode"])
+	if v, ok := object["ServerlessResource"]; ok && v != nil && fmt.Sprint(v) != "" && fmt.Sprint(v) != "0" {
+		d.Set("serverless_resource", formatInt(v))
+	}
+	if v, ok := object["CacheStorageSize"]; ok && v != nil && fmt.Sprint(v) != "" && fmt.Sprint(v) != "0" {
+		d.Set("cache_storage_size", formatInt(v))
+	}
 	d.Set("prod_type", object["ProdType"])
 	d.Set("description", object["DBInstanceDescription"])
 	d.Set("connection_string", object["ConnectionString"])
@@ -611,6 +692,13 @@ func resourceAliCloudGpdbDbInstanceRead(d *schema.ResourceData, meta interface{}
 					iPWhitelistMaps = append(iPWhitelistMaps, dBInstanceIPArrayListMap)
 				}
 			}
+			// The GPDB whitelist APIs address groups by name but do not list them
+			// in the configured order, so the raw API order would make a pure
+			// reorder produce a permanent plan diff. Normalize the remote groups
+			// to the order of the pending configuration (apply-time read) or the
+			// prior state (refresh-time read); the value is still the pre-Set
+			// ResourceData value here.
+			iPWhitelistMaps = normalizeIPWhitelistOrder(d.Get("ip_whitelist"), iPWhitelistMaps)
 			d.Set("ip_whitelist", iPWhitelistMaps)
 		}
 	}
@@ -689,11 +777,85 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	request := make(map[string]interface{})
 	d.Partial(true)
 
+	// When effective_time is MaintainTime, the upgrade task is scheduled into the
+	// maintenance window and the instance keeps reporting the previous values until
+	// the task runs, so the value-convergence waits in the upgrade blocks below
+	// would time out and must be skipped.
+	deferUpgrade := d.Get("effective_time").(string) == "MaintainTime"
+
 	if d.HasChange("tags") {
 		if err := gpdbService.SetResourceTags(d, "ALIYUN::GPDB::INSTANCE"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
+	}
+
+	if !d.IsNewResource() && d.HasChange("payment_type") {
+		_, newPaymentType := d.GetChange("payment_type")
+		request = map[string]interface{}{
+			"RegionId":     client.RegionId,
+			"DBInstanceId": d.Id(),
+			"PayType":      convertGpdbDbInstancePaymentTypeRequest(newPaymentType.(string)),
+		}
+		if newPaymentType.(string) == "Subscription" {
+			period := ""
+			if v, ok := d.GetOk("period"); ok {
+				period = v.(string)
+			}
+			usedTime := ""
+			if v, ok := d.GetOk("used_time"); ok {
+				usedTime = v.(string)
+			}
+			if period == "" {
+				return fmt.Errorf("`period` must be set when `payment_type` is modified to `Subscription`; the GPDB ModifyDBInstancePayType API requires Period (valid values: `Month`, `Year`) for converting an instance to the prepaid billing method")
+			}
+			if usedTime == "" {
+				return fmt.Errorf("`used_time` must be set when `payment_type` is modified to `Subscription`; the GPDB ModifyDBInstancePayType API requires UsedTime (1 to 9 when `period` is `Month`, 1 to 3 when `period` is `Year`) for converting an instance to the prepaid billing method")
+			}
+			usedTimeInt, err := strconv.Atoi(usedTime)
+			if err != nil {
+				return fmt.Errorf("`used_time` must be an integer string when `payment_type` is modified to `Subscription`, got %q", usedTime)
+			}
+			if (period == "Month" && (usedTimeInt < 1 || usedTimeInt > 9)) || (period == "Year" && (usedTimeInt < 1 || usedTimeInt > 3)) {
+				return fmt.Errorf("`used_time` %q is invalid: when `period` is `Month`, `used_time` must be between 1 and 9, and when `period` is `Year`, `used_time` must be between 1 and 3", usedTime)
+			}
+			// The ModifyDBInstancePayType API only requires Period and UsedTime when
+			// converting an instance to the prepaid billing method; they must not be
+			// sent when converting back to PayAsYouGo.
+			request["Period"] = period
+			request["UsedTime"] = usedTime
+		}
+		action := "ModifyDBInstancePayType"
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(d.Id(), "DBInstanceStatus", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
+		}
+
+		// The billing method conversion is order-driven: DescribeDBInstanceAttribute may keep
+		// reporting the previous PayType until the conversion order takes effect, so also wait
+		// until the new value is actually applied to avoid Read observing the stale value.
+		paymentTypeTarget := fmt.Sprint(convertGpdbDbInstancePaymentTypeRequest(newPaymentType.(string)))
+		paymentTypeStateConf := BuildStateConf([]string{}, []string{paymentTypeTarget}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "PayType", paymentTypeTarget, []string{"Running"}))
+		if _, err := paymentTypeStateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
+		}
+
 	}
 
 	update := false
@@ -709,14 +871,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if update {
 		action := "ModifyDBInstanceDescription"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -724,38 +886,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("description")
-	}
-
-	update = false
-	request = map[string]interface{}{
-		"DBInstanceId": d.Id(),
-	}
-	if !d.IsNewResource() && d.HasChange("resource_group_id") {
-		update = true
-	}
-	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["NewResourceGroupId"] = v
-	}
-	if update {
-		action := "ModifyDBInstanceResourceGroup"
-		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
-			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
-			if err != nil {
-				if NeedRetry(err) {
-					wait()
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		addDebug(action, response, request)
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		d.SetPartial("resource_group_id")
 	}
 
 	update = false
@@ -775,16 +905,20 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		request["StartTime"] = v
 	}
 	if update {
+		// The maintenance window is committed before any EffectiveTime-scheduled
+		// operation: an upgrade submitted with EffectiveTime = MaintainTime is
+		// scheduled into the window as configured at submission time, so a
+		// window-update failure must prevent the upgrade from being submitted.
 		action := "ModifyDBInstanceMaintainTime"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -792,8 +926,85 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("maintain_end_time")
-		d.SetPartial("maintain_start_time")
+	}
+
+	update = false
+	request = map[string]interface{}{
+		"RegionId":     client.RegionId,
+		"DBInstanceId": d.Id(),
+	}
+	if !d.IsNewResource() && d.HasChange("minor_version") {
+		if v, ok := d.GetOk("minor_version"); ok && v.(string) != "" {
+			update = true
+			request["MinorVersion"] = v
+		}
+	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
+	if update {
+		action := "UpgradeDBVersion"
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if IsExpectedErrors(err, []string{"Throttling.User"}) || NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+		// UpgradeDBVersion is asynchronous and returns a task id: the instance keeps
+		// reporting its previous status and minor version for a short window before the
+		// upgrade takes effect, so wait until the instance is back to a settled status
+		// (Running, or IDLE for serverless instances) and reports the target minor version.
+		// With EffectiveTime = MaintainTime the upgrade is scheduled into the maintenance
+		// window and the minor version stays unchanged until then, so skip the wait.
+		if !deferUpgrade {
+			minorVersionTarget := fmt.Sprint(request["MinorVersion"])
+			minorVersionStateConf := BuildStateConf([]string{}, []string{minorVersionTarget}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gpdbService.GpdbDbInstanceMinorVersionStateRefreshFunc(d.Id(), minorVersionTarget))
+			if _, err := minorVersionStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+		}
+
+	}
+
+	update = false
+	request = map[string]interface{}{
+		"DBInstanceId": d.Id(),
+	}
+	if !d.IsNewResource() && d.HasChange("resource_group_id") {
+		update = true
+	}
+	if v, ok := d.GetOk("resource_group_id"); ok {
+		request["NewResourceGroupId"] = v
+	}
+	if update {
+		action := "ModifyDBInstanceResourceGroup"
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
 	}
 
 	if d.HasChange("ip_whitelist") {
@@ -805,26 +1016,26 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		if n != nil {
 			for _, iPWhitelist := range n.([]interface{}) {
 				iPWhitelistArg := iPWhitelist.(map[string]interface{})
-				request["DBInstanceIPArrayAttribute"] = iPWhitelistArg["ip_group_attribute"]
-				request["DBInstanceIPArrayName"] = iPWhitelistArg["ip_group_name"]
-				request["SecurityIPList"] = iPWhitelistArg["security_ip_list"]
-				request["ModifyMode"] = 0
 				ipGroupName := "default"
 				if fmt.Sprint(iPWhitelistArg["ip_group_name"]) != "" {
 					ipGroupName = fmt.Sprint(iPWhitelistArg["ip_group_name"])
 				}
+				request["DBInstanceIPArrayAttribute"] = iPWhitelistArg["ip_group_attribute"]
+				request["DBInstanceIPArrayName"] = ipGroupName
+				request["SecurityIPList"] = iPWhitelistArg["security_ip_list"]
+				request["ModifyMode"] = 0
 				newGroupKeys[ipGroupName] = struct{}{}
 
 				action := "ModifySecurityIps"
 				wait := incrementalWait(3*time.Second, 3*time.Second)
-				err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+				err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 					response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -837,10 +1048,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		if o != nil {
 			for _, iPWhitelist := range o.([]interface{}) {
 				iPWhitelistArg := iPWhitelist.(map[string]interface{})
-				request["DBInstanceIPArrayAttribute"] = iPWhitelistArg["ip_group_attribute"]
-				request["DBInstanceIPArrayName"] = iPWhitelistArg["ip_group_name"]
-				request["SecurityIPList"] = iPWhitelistArg["security_ip_list"]
-				request["ModifyMode"] = 2
 				ipGroupName := "default"
 				if fmt.Sprint(iPWhitelistArg["ip_group_name"]) != "" {
 					ipGroupName = fmt.Sprint(iPWhitelistArg["ip_group_name"])
@@ -848,16 +1055,22 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 				if _, ok := newGroupKeys[ipGroupName]; ok {
 					continue
 				}
-				action := "ModifySecurityIps"
+				// Removed groups are deleted whole: emptying a group's last IP via
+				// ModifySecurityIps is rejected with "at least one security IP need".
+				action := "DeleteDBInstanceIPArray"
+				request = map[string]interface{}{
+					"DBInstanceId": d.Id(),
+					"IPArrayName":  ipGroupName,
+				}
 				wait := incrementalWait(3*time.Second, 3*time.Second)
-				err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+				err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 					response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -867,7 +1080,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 				}
 			}
 		}
-		d.SetPartial("ip_whitelist")
 	}
 
 	if !d.IsNewResource() && d.HasChange("security_ip_list") {
@@ -880,14 +1092,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			}
 			action := "ModifySecurityIps"
 			wait := incrementalWait(3*time.Second, 3*time.Second)
-			err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+			err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 				response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -896,7 +1108,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 			}
 
-			d.SetPartial("security_ip_list")
 		}
 	}
 
@@ -914,18 +1125,21 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			request["SegNodeNum"] = v
 		}
 	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
 
 	if update {
 		action := "UpgradeDBInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -935,6 +1149,13 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
+		if d.HasChange("seg_node_num") {
+			stateConf := BuildStateConf([]string{}, []string{fmt.Sprint(d.Get("seg_node_num"))}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(d.Id(), "SegNodeNum", []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+		}
+
 		stateConf := BuildStateConf([]string{}, []string{"Running"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(d.Id(), "DBInstanceStatus", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
@@ -942,14 +1163,16 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 
 		// UpgradeDBInstance scaling is asynchronous and the instance keeps reporting Running
 		// for a short window before the resize takes effect, so also wait until the new value
-		// is actually applied to avoid Read observing the stale value.
-		segNodeNumTarget := fmt.Sprint(d.Get("seg_node_num"))
-		segNodeNumStateConf := BuildStateConf([]string{}, []string{segNodeNumTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "SegNodeNum", segNodeNumTarget))
-		if _, err := segNodeNumStateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		// is actually applied to avoid Read observing the stale value. With EffectiveTime =
+		// MaintainTime the resize is scheduled into the maintenance window and the value stays
+		// unchanged until then, so skip the wait.
+		if !deferUpgrade {
+			segNodeNumTarget := fmt.Sprint(d.Get("seg_node_num"))
+			segNodeNumStateConf := BuildStateConf([]string{}, []string{segNodeNumTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "SegNodeNum", segNodeNumTarget, []string{"Running"}))
+			if _, err := segNodeNumStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
-
-		d.SetPartial("seg_node_num")
 	}
 
 	update = false
@@ -965,18 +1188,21 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			request["MasterNodeNum"] = v
 		}
 	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
 
 	if update {
 		action := "UpgradeDBInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -993,14 +1219,16 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 
 		// UpgradeDBInstance scaling is asynchronous and the instance keeps reporting Running
 		// for a short window before the resize takes effect, so also wait until the new value
-		// is actually applied to avoid Read observing the stale value.
-		masterNodeNumTarget := fmt.Sprint(d.Get("master_node_num"))
-		masterNodeNumStateConf := BuildStateConf([]string{}, []string{masterNodeNumTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "MasterNodeNum", masterNodeNumTarget))
-		if _, err := masterNodeNumStateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		// is actually applied to avoid Read observing the stale value. With EffectiveTime =
+		// MaintainTime the resize is scheduled into the maintenance window and the value stays
+		// unchanged until then, so skip the wait.
+		if !deferUpgrade {
+			masterNodeNumTarget := fmt.Sprint(d.Get("master_node_num"))
+			masterNodeNumStateConf := BuildStateConf([]string{}, []string{masterNodeNumTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "MasterNodeNum", masterNodeNumTarget, []string{"Running"}))
+			if _, err := masterNodeNumStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
-
-		d.SetPartial("master_node_num")
 	}
 
 	update = false
@@ -1015,17 +1243,20 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			request["InstanceSpec"] = v
 		}
 	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
 	if update {
 		action := "UpgradeDBInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1039,13 +1270,16 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 		}
 		// UpgradeDBInstance scaling is asynchronous and the instance keeps reporting Running
 		// for a short window before the resize takes effect, so also wait until the new value
-		// is actually applied to avoid Read observing the stale value.
-		instanceSpecTarget := fmt.Sprint(d.Get("instance_spec"))
-		instanceSpecStateConf := BuildStateConf([]string{}, []string{instanceSpecTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "InstanceSpec", instanceSpecTarget))
-		if _, err := instanceSpecStateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
+		// is actually applied to avoid Read observing the stale value. With EffectiveTime =
+		// MaintainTime the resize is scheduled into the maintenance window and the value stays
+		// unchanged until then, so skip the wait.
+		if !deferUpgrade {
+			instanceSpecTarget := fmt.Sprint(d.Get("instance_spec"))
+			instanceSpecStateConf := BuildStateConf([]string{}, []string{instanceSpecTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "InstanceSpec", instanceSpecTarget, []string{"Running"}))
+			if _, err := instanceSpecStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
 		}
-		d.SetPartial("instance_spec")
 	}
 
 	update = false
@@ -1060,18 +1294,21 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			request["StorageSize"] = v
 		}
 	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
 
 	if update {
 		action := "UpgradeDBInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing", "InternalError"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1087,14 +1324,87 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 
 		// UpgradeDBInstance scaling is asynchronous and the instance keeps reporting Running
 		// for a short window before the resize takes effect, so also wait until the new value
-		// is actually applied to avoid Read observing the stale value.
-		storageSizeTarget := fmt.Sprint(d.Get("storage_size"))
-		storageSizeStateConf := BuildStateConf([]string{}, []string{storageSizeTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "StorageSize", storageSizeTarget))
-		if _, err := storageSizeStateConf.WaitForState(); err != nil {
+		// is actually applied to avoid Read observing the stale value. With EffectiveTime =
+		// MaintainTime the resize is scheduled into the maintenance window and the value stays
+		// unchanged until then, so skip the wait.
+		if !deferUpgrade {
+			storageSizeTarget := fmt.Sprint(d.Get("storage_size"))
+			storageSizeStateConf := BuildStateConf([]string{}, []string{storageSizeTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "StorageSize", storageSizeTarget, []string{"Running"}))
+			if _, err := storageSizeStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+		}
+
+	}
+
+	update = false
+	request = map[string]interface{}{
+		"DBInstanceId": d.Id(),
+	}
+	request["RegionId"] = client.RegionId
+	if !d.IsNewResource() && (d.HasChange("serverless_resource") || d.HasChange("cache_storage_size")) {
+		update = true
+		request["UpgradeType"] = 1
+		// The API requires the current reserved computing resource to be sent along with
+		// any cache storage change, so always include serverless_resource when it is set.
+		if v, ok := d.GetOk("serverless_resource"); ok {
+			request["ServerlessResource"] = strconv.Itoa(v.(int))
+		}
+		if v, ok := d.GetOk("cache_storage_size"); ok {
+			request["CacheStorageSize"] = strconv.Itoa(v.(int))
+		}
+	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		request["EffectiveTime"] = v
+	}
+
+	if update {
+		action := "UpgradeDBInstance"
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+		stateConf := BuildStateConf([]string{}, []string{"Running", "IDLE"}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(d.Id(), "DBInstanceStatus", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("storage_size")
+		// UpgradeDBInstance scaling is asynchronous and the instance keeps reporting Running
+		// (or IDLE for ServerlessPro instances) for a short window before the resize takes
+		// effect, so also wait until the new values are actually applied to avoid Read
+		// observing the stale values. With EffectiveTime = MaintainTime the resize is
+		// scheduled into the maintenance window and the values stay unchanged until then,
+		// so skip the waits.
+		if !deferUpgrade {
+			if d.HasChange("serverless_resource") {
+				serverlessResourceTarget := fmt.Sprint(d.Get("serverless_resource"))
+				serverlessResourceStateConf := BuildStateConf([]string{}, []string{serverlessResourceTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "ServerlessResource", serverlessResourceTarget, []string{"Running", "IDLE"}))
+				if _, err := serverlessResourceStateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id())
+				}
+			}
+			if d.HasChange("cache_storage_size") {
+				cacheStorageSizeTarget := fmt.Sprint(d.Get("cache_storage_size"))
+				cacheStorageSizeStateConf := BuildStateConf([]string{}, []string{cacheStorageSizeTarget}, d.Timeout(schema.TimeoutUpdate), 60*time.Second, gpdbService.GpdbDbInstanceScaleStateRefreshFunc(d.Id(), "CacheStorageSize", cacheStorageSizeTarget, []string{"Running", "IDLE"}))
+				if _, err := cacheStorageSizeStateConf.WaitForState(); err != nil {
+					return WrapErrorf(err, IdMsg, d.Id())
+				}
+			}
+		}
+
 	}
 
 	update = false
@@ -1114,18 +1424,21 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("seg_disk_performance_level"); ok {
 		modifySegDiskPerformanceLevelReq["SegDiskPerformanceLevel"] = v
 	}
+	if v, ok := d.GetOk("effective_time"); ok && v.(string) != "" {
+		modifySegDiskPerformanceLevelReq["EffectiveTime"] = v
+	}
 
 	if update {
 		action := "UpgradeDBInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, modifySegDiskPerformanceLevelReq, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1140,7 +1453,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("seg_disk_performance_level")
 	}
 
 	update = false
@@ -1158,14 +1470,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if update {
 		action := "ModifyDBInstanceSSL"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1185,7 +1497,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("ssl_enabled")
 	}
 
 	update = false
@@ -1203,14 +1514,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if update {
 		action := "ModifyVectorConfiguration"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1225,7 +1536,50 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("vector_configuration_status")
+	}
+
+	update = false
+	request = map[string]interface{}{
+		"DBInstanceId": d.Id(),
+	}
+	if v, ok := d.GetOk("sql_collector_status"); ok {
+		if d.HasChange("sql_collector_status") {
+			update = true
+		}
+		// The ModifySQLCollectorPolicy API expects Enable/Disabled while the attribute
+		// follows the provider-wide Enabled/Disabled convention, as in the RDS provider.
+		if v.(string) == "Enabled" {
+			request["SQLCollectorStatus"] = "Enable"
+		} else {
+			request["SQLCollectorStatus"] = v
+		}
+	}
+	if update {
+		action := "ModifySQLCollectorPolicy"
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+
+		// Serverless instances settle in IDLE instead of Running; accept both stable
+		// statuses, as in GpdbDbInstanceMinorVersionStateRefreshFunc.
+		stateConf := BuildStateConf([]string{}, []string{"Running", "IDLE"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(d.Id(), "DBInstanceStatus", []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, IdMsg, d.Id())
+		}
 	}
 
 	if d.HasChange("parameters") {
@@ -1235,14 +1589,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapError(err)
 		}
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1257,7 +1611,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("parameters")
 	}
 
 	update = false
@@ -1275,14 +1628,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if update {
 		action := "ModifyMasterSpec"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, modifyMasterSpec, false)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"OperationDenied.OrderProcessing"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1297,7 +1650,6 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("master_cu")
 	}
 
 	update = false
@@ -1316,14 +1668,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1357,14 +1709,14 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 	if update {
 		action := "SetDataShareInstance"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, setDataShareInstanceReq, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -1384,12 +1736,81 @@ func resourceAliCloudGpdbDbInstanceUpdate(d *schema.ResourceData, meta interface
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("data_share_status")
+	}
+
+	if !d.IsNewResource() && d.HasChange("status") {
+		_, desiredStatusRaw := d.GetChange("status")
+		desiredStatus := desiredStatusRaw.(string)
+		if desiredStatus != "" {
+			if err := gpdbDbInstancePauseOrResume(client, &gpdbService, d.Id(), desiredStatus, d.Timeout(schema.TimeoutUpdate)); err != nil {
+				return err
+			}
+		}
 	}
 
 	d.Partial(false)
 
 	return resourceAliCloudGpdbDbInstanceRead(d, meta)
+}
+
+// gpdbDbInstancePauseOrResume pauses or resumes an instance according to the
+// desired status ("Stopped" or "Running") and waits until the instance status
+// converges. The API call is skipped when the instance is already in the
+// desired state or is transitioning to it, so the operation is idempotent.
+func gpdbDbInstancePauseOrResume(client *connectivity.AliyunClient, gpdbService *GpdbService, id, desiredStatus string, timeout time.Duration) error {
+	object, err := gpdbService.DescribeGpdbDbInstance(id)
+	if err != nil {
+		return WrapError(err)
+	}
+	currentStatus := fmt.Sprint(object["DBInstanceStatus"])
+	action := ""
+	targetStatus := ""
+	if desiredStatus == "Stopped" {
+		// PauseInstance only takes effect on a running instance, so skip the
+		// call when the instance is already paused or being paused.
+		if currentStatus != "STOPPED" && currentStatus != "STOPPING" {
+			action = "PauseInstance"
+		}
+		targetStatus = "STOPPED"
+	} else if desiredStatus == "Running" {
+		// ResumeInstance only takes effect on a paused instance, so skip the
+		// call when the instance is already running or being resumed.
+		if currentStatus != "Running" && currentStatus != "STARTING" {
+			action = "ResumeInstance"
+		}
+		targetStatus = "Running"
+	} else {
+		return nil
+	}
+	if action != "" {
+		request := map[string]interface{}{
+			"DBInstanceId": id,
+		}
+		var response map[string]interface{}
+		wait := incrementalWait(3*time.Second, 3*time.Second)
+		err = retry.Retry(client.GetRetryTimeout(timeout), func() *retry.RetryError {
+			response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+		}
+	}
+	// Pausing or resuming an instance is asynchronous, so wait until the
+	// instance status converges to the target one.
+	stateConf := BuildStateConf([]string{}, []string{targetStatus}, timeout, 30*time.Second, gpdbService.GpdbDbInstanceStateRefreshFunc(id, "DBInstanceStatus", []string{}))
+	if _, err := stateConf.WaitForState(); err != nil {
+		return WrapErrorf(err, IdMsg, id)
+	}
+	return nil
 }
 
 func resourceAliCloudGpdbDbInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -1401,19 +1822,18 @@ func resourceAliCloudGpdbDbInstanceDelete(d *schema.ResourceData, meta interface
 		"DBInstanceId": d.Id(),
 	}
 	if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
-		log.Printf("[WARN] Cannot destroy resourceGpdbDbInstance. Because payment_type = 'Subscription'. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
+		return WrapError(Error("'Subscription' instance cannot be destroyed: please convert it to 'PayAsYouGo' (set payment_type = \"PayAsYouGo\" and re-apply) or unsubscribe it in the console. To remove it from the state only, run 'terraform state rm'."))
 	}
 	request["ClientToken"] = buildClientToken("DeleteDBInstance")
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("gpdb", "2016-05-03", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1516,4 +1936,55 @@ func convertGpdbDbInstanceSegDiskPerformanceLevelResponse(source interface{}) in
 	}
 
 	return source
+}
+
+// normalizeIPWhitelistOrder reorders the whitelist groups returned by the API
+// to match the reference list, which is the pending configuration during
+// apply-time reads and the prior state during refresh-time reads. Reference
+// members keep their relative order, remote members without a reference
+// position are appended, and reference members no longer returned by the API
+// are dropped. An empty reference (create, import) keeps the API order.
+func normalizeIPWhitelistOrder(reference interface{}, remote []map[string]interface{}) []map[string]interface{} {
+	referenceList, ok := reference.([]interface{})
+	if !ok || len(referenceList) == 0 {
+		return remote
+	}
+	used := make([]bool, len(remote))
+	normalized := make([]map[string]interface{}, 0, len(remote))
+	for _, referenceItem := range referenceList {
+		referenceMember, ok := referenceItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for i, remoteMember := range remote {
+			if used[i] || !ipWhitelistMemberMatches(referenceMember, remoteMember) {
+				continue
+			}
+			used[i] = true
+			normalized = append(normalized, remoteMember)
+			break
+		}
+	}
+	for i, remoteMember := range remote {
+		if !used[i] {
+			normalized = append(normalized, remoteMember)
+		}
+	}
+	return normalized
+}
+
+// ipWhitelistMemberMatches reports whether a remote group corresponds to a
+// reference group. Named groups are matched by group name; anonymous groups
+// are matched by their IP list, mirroring the attribute's DiffSuppressFunc.
+func ipWhitelistMemberMatches(reference, remote map[string]interface{}) bool {
+	referenceName := strings.TrimSpace(fmt.Sprint(reference["ip_group_name"]))
+	remoteName := strings.TrimSpace(fmt.Sprint(remote["ip_group_name"]))
+	if referenceName != "" && remoteName != "" {
+		return referenceName == remoteName
+	}
+	referenceIPList := strings.Split(fmt.Sprint(reference["security_ip_list"]), ",")
+	sort.Strings(referenceIPList)
+	remoteIPList := strings.Split(fmt.Sprint(remote["security_ip_list"]), ",")
+	sort.Strings(remoteIPList)
+	return strings.Join(referenceIPList, ",") == strings.Join(remoteIPList, ",")
 }

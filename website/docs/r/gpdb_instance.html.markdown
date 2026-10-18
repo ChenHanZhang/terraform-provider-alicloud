@@ -10,9 +10,11 @@ description: |-
 # alicloud_gpdb_instance
 
 Provides a AnalyticDB for PostgreSQL instance resource supports replica set instances only. the AnalyticDB for PostgreSQL provides stable, reliable, and automatic scalable database services.
-You can see detail product introduction [here](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-createdbinstance)
+You can see the detail product introduction in the [CreateDBInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-createdbinstance) API reference.
 
 -> **NOTE:** Available since v1.47.0.
+
+-> **NOTE:** Destroying a `Subscription` instance fails with an error since v1.295.0. To destroy it, convert the instance to `PayAsYouGo` by setting `payment_type = "PayAsYouGo"` and re-applying, or unsubscribe it in the Alibaba Cloud console. To remove the instance from the state only, run `terraform state rm`.
 
 ## Example Usage
 
@@ -75,6 +77,16 @@ The following arguments are supported:
 
 * `engine` - (Required, ForceNew) The database engine used by the instance. Value options can refer to the latest docs [CreateDBInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-createdbinstance) `EngineVersion`.
 * `engine_version` - (Required, ForceNew) The version of the database engine used by the instance.
+* `minor_version` - (Optional, Computed, Available since v1.287.0) The minor version of the instance. When this attribute is changed, the provider calls the [UpgradeDBVersion](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-upgradedbversion) operation to upgrade the minor version of the instance and waits until the upgrade is complete. The value must be a valid minor version of the instance's engine version.
+
+  -> **NOTE:** The instance is created with the latest minor version, so this attribute does not take effect at creation time; it only triggers a minor version upgrade when it is changed after the instance is created. The current minor version of the instance is read back into state.
+
+* `effective_time` - (Optional, Available since v1.295.0) The effective time of an in-place upgrade task. It is sent with the [UpgradeDBVersion](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-upgradedbversion) and [UpgradeDBInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-upgradedbinstance) operations when one of the upgradable attributes (`minor_version`, `seg_node_num`, `master_node_num`, `instance_spec`, `storage_size`, `serverless_resource`, `cache_storage_size`, `seg_disk_performance_level`) is changed. Valid values:
+  - `Immediate`: The upgrade takes effect immediately. This is the API default when the attribute is not set.
+  - `MaintainTime`: The upgrade is scheduled into the maintenance window (configured via `maintain_start_time` and `maintain_end_time`) and takes effect within it.
+
+  -> **NOTE:** `effective_time` is a per-operation modifier and is not an instance attribute, so it is not read back from the API. When `MaintainTime` is used, the upgrade executes at the next maintenance window: until the upgrade task runs, the API keeps reporting the previous values of the upgraded attributes and the provider reports a plan diff for them. The provider does not wait for the value convergence in this case and returns after the upgrade request is accepted.
+
 * `vswitch_id` - (Required, ForceNew) The vswitch id.
 * `db_instance_class` - (Optional, ForceNew) The db instance class. see [Instance specifications](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/instance-types).
 
@@ -84,13 +96,17 @@ The following arguments are supported:
 
   -> **NOTE:** This parameter must be passed in to create a storage reservation mode instance.
 
-* `db_instance_mode` - (Required, ForceNew) The db instance mode. Valid values: `StorageElastic`, `Serverless`, `Classic`.
-* `instance_spec` - (Optional) The specification of segment nodes. Valid values: `2C16G`, `4C32G`, `16C128G`, `2C8G`, `4C16G`, `8C32G`, `8C64G`, `16C64G`, `32C256G`, `64C512G`, `96C768G`, `128C1024G`.
+* `db_instance_mode` - (Required, ForceNew) The db instance mode. Valid values: `StorageElastic`, `Serverless`, `Classic`, `ServerlessPro`.
+
+  -> **NOTE:** `ServerlessPro` is a dedicated Serverless Pro instance form. When `db_instance_mode` is set to `ServerlessPro`, instance sizing is controlled via `serverless_resource` and `cache_storage_size` instead of `instance_spec`.
+
+* `instance_spec` - (Optional, Computed) The specification of segment nodes. Valid values: `2C16G`, `4C32G`, `16C128G`, `2C8G`, `4C16G`, `8C32G`, `8C64G`, `16C64G`, `32C256G`, `64C512G`, `96C768G`, `128C1024G`.
   - If `db_instance_category` is set to `HighAvailability`, and `db_instance_mode` is set to `StorageElastic`. Valid values: `2C16G`, `4C32G`, `16C128G`.
   - If `db_instance_category` is set to `Basic`, and `db_instance_mode` is set to `StorageElastic`. Valid values: `2C8G`, `4C16G`, `8C32G`, `16C64G`.
   - If `db_instance_mode` is set to `Serverless`. Valid values: `4C16G`, `8C32G`.
 
   -> **NOTE:** This parameter must be passed to create a storage elastic mode instance and a serverless version instance.
+  -> **NOTE:** For `ServerlessPro` instances, `instance_spec` is a server-side placeholder (e.g. `1C8G`) returned by the API and is not user-configurable; sizing is controlled via `serverless_resource` and `cache_storage_size`. The placeholder is read into state but should not be set in the configuration.
  
 * `storage_size` - (Optional, Int) The storage capacity. Unit: GB. Valid values: `50` to `4000`.
 
@@ -100,8 +116,8 @@ The following arguments are supported:
 * `vpc_id` - (Optional, ForceNew) The vpc ID of the resource.
 * `zone_id` - (Optional, ForceNew) The zone ID of the instance.
 * `instance_group_count` - (Optional, ForceNew, Int) The number of nodes. Valid values: `2`, `4`, `8`, `12`, `16`, `24`, `32`, `64`, `96`, `128`.
-* `payment_type` - (Optional, ForceNew) The billing method of the instance. Valid values: `Subscription`, `PayAsYouGo`.
-* `period` - (Optional) The duration that you will buy the resource, in month. required when `payment_type` is `Subscription`. Valid values: `Year`, `Month`.
+* `payment_type` - (Optional) The billing method of the instance. Valid values: `Subscription`, `PayAsYouGo`. **NOTE:** From provider version 1.287.0, `payment_type` can be modified in both directions between `Subscription` and `PayAsYouGo`. When modifying the billing method of an instance to `Subscription`, `period` and `used_time` are required; when modifying the billing method of an instance to `PayAsYouGo`, `period` and `used_time` are not required. See [ModifyDBInstancePayType](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-modifydbinstancepaytype).
+* `period` - (Optional) The duration that you will buy the resource, in month. required when `payment_type` is `Subscription`, including when `payment_type` is modified to `Subscription`. Valid values: `Year`, `Month`.
 * `resource_group_id` - (Optional) The ID of the enterprise resource group to which the instance belongs.
 * `master_cu` - (Optional, Int, Available since v1.213.0) The amount of coordinator node resources. Valid values: `2`, `4`, `8`, `16`, `32`.
 * `seg_node_num` - (Optional, Int) Calculate the number of nodes. Valid values: `2` to `512`. The value range of the high-availability version of the storage elastic mode is `4` to `512`, and the value must be a multiple of `4`. The value range of the basic version of the storage elastic mode is `2` to `512`, and the value must be a multiple of `2`. The-Serverless version has a value range of `2` to `512`. The value must be a multiple of `2`.
@@ -112,6 +128,14 @@ The following arguments are supported:
 * `seg_disk_performance_level` - (Optional, Available since v1.233.1) The ESSD cloud disk performance level. Valid values: `pl0`, `pl1`, `pl2`.
 * `create_sample_data` - (Optional, Bool) Whether to load the sample dataset after the instance is created. Valid values: `true`, `false`.
 * `ssl_enabled` - (Optional, Int, Available since v1.188.0) Enable or disable SSL. Valid values: `0` and `1`.
+* `sql_collector_status` - (Optional, Available since v1.295.0) Specifies whether to enable or disable SQL explorer (SQL collector). The provider calls the [ModifySQLCollectorPolicy](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-modifysqlcollectorpolicy) operation when this attribute is set or changed. Valid values:
+  - `Enabled`: Enables SQL collector.
+  - `Disabled`: Disables SQL collector.
+
+  -> **NOTE:** The ModifySQLCollectorPolicy operation is supported only by storage-reserved instances and the Serverless auto-scheduling version. Check the product documentation for the support scope of your instance mode.
+
+  -> **NOTE:** The GPDB API does not provide an operation to query the SQL collector status, so this attribute is write-only: it is not read back into state during `terraform refresh` or import. Removing the attribute from the configuration does not disable SQL collector either: the provider does not call ModifySQLCollectorPolicy in that case, so the cloud-side status stays unchanged. Set `sql_collector_status = "Disabled"` explicitly to disable it.
+
 * `encryption_type` - (Optional, ForceNew, Available since v1.207.2) The encryption type. Valid values: `CloudDisk`.
 
   -> **NOTE:** Disk encryption cannot be disabled after it is enabled.
@@ -125,6 +149,8 @@ The following arguments are supported:
 * `maintain_end_time` - (Optional) The end time of the maintenance window for the instance. in the format of HH:mmZ (UTC time), for example 03:00Z. start time should be later than end time.
 * `resource_management_mode` - (Optional, Available since v1.225.0) Resource management mode. Valid values: `resourceGroup`, `resourceQueue`.
 * `serverless_mode` - (Optional, ForceNew, Available since v1.233.1) The mode of the Serverless instance. Valid values: `Manual`, `Auto`. **NOTE:** `serverless_mode` is valid only when `db_instance_mode` is set to `Serverless`.
+* `serverless_resource` - (Optional, Int, Available since v1.287.0) The computing resource threshold, in ACU. Valid values: `16` to `1024`. **NOTE:** `serverless_resource` is valid only when `db_instance_mode` is set to `ServerlessPro`. The value can be modified in place for `ServerlessPro` instances.
+* `cache_storage_size` - (Optional, Int, Available since v1.287.0) The cache storage size, in GB. Valid values: `800` to `102400`. **NOTE:** `cache_storage_size` is valid only when `db_instance_mode` is set to `ServerlessPro`. The value can be modified in place for `ServerlessPro` instances.
 * `prod_type` - (Optional, ForceNew, Available since v1.233.1) The type of the product. Default value: `standard`. Valid values: `standard`, `cost-effective`.
 * `data_share_status` - (Optional, Available since v1.233.1) Specifies whether to enable or disable data sharing. Default value: `closed`. Valid values:
   - `opened`: Enables data sharing.
@@ -132,7 +158,19 @@ The following arguments are supported:
 
   -> **NOTE:** `data_share_status` is valid only when `db_instance_mode` is set to `Serverless`.
 
-* `used_time` - (Optional) The used time. When the parameter `period` is `Year`, the `used_time` value is `1` to `3`. When the parameter `period` is `Month`, the `used_time` value is `1` to `9`.
+* `status` - (Optional, Available since v1.288.0) The expected status of the instance. Valid values:
+  - `Running`: The instance is expected to be running. If the instance is paused, the provider resumes it.
+  - `Stopped`: The instance is expected to be stopped. If the instance is running, the provider pauses it.
+
+  When `status` is not set, it keeps the read-only behavior and the provider does not manage the instance status.
+
+  -> **NOTE:** Setting `status` actually pauses or resumes the instance. Pausing or resuming an instance is supported only for Serverless instances with kernel version V1.0.2.1 or later, the instance must be charged with the PayAsYouGo billing method, and pausing takes effect only when the instance is in the running state. See [PauseInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-pauseinstance) and [ResumeInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-resumeinstance).
+
+  -> **NOTE:** Pausing or resuming an instance is asynchronous. While a pause or resume request is in progress, the status of the instance transitions through `STOPPING` or `STARTING` and then converges to `STOPPED` (paused) or `Running` (resumed).
+
+  -> **NOTE:** `status` does not take part in the instance creation. A new instance is always created in the running state and is paused afterwards when `status` is set to `Stopped`.
+
+* `used_time` - (Optional) The used time. When the parameter `period` is `Year`, the `used_time` value is `1` to `3`. When the parameter `period` is `Month`, the `used_time` value is `1` to `9`. **NOTE:** From provider version 1.287.0, `used_time` is required (together with `period`) when `payment_type` is modified to `Subscription`.
 * `description` - (Optional) The description of the instance.
 * `backup_id` - (Optional, ForceNew, Available since v1.287.0) The ID of the backup set. If specified, the instance is created from the existing backup set. See [CreateDBInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-createdbinstance).
 * `src_db_instance_name` - (Optional, ForceNew, Available since v1.287.0) The source instance ID for creating an instance from a backup set. Must be set together with `backup_id`; the GPDB CreateDBInstance API requires `SrcDbInstanceName` and `BackupId` to be null or not null at the same time. See [CreateDBInstance](https://www.alibabacloud.com/help/en/analyticdb-for-postgresql/latest/api-gpdb-2016-05-03-createdbinstance).
@@ -146,14 +184,13 @@ The following arguments are supported:
 * `master_node_num` - (Optional, Int, Deprecated since v1.213.0) The number of Master nodes. **NOTE:** Field `master_node_num` has been deprecated from provider version 1.213.0.
 * `private_ip_address` - (Optional, Deprecated since v1.213.0) The private ip address. **NOTE:** Field `private_ip_address` has been deprecated from provider version 1.213.0.
 
-
 ### `ip_whitelist`
 
 The ip_whitelist supports the following:
 
 * `ip_group_attribute` - (Optional) The value of this parameter is empty by default. The attribute of the whitelist group. 
   If the value contains `hidden`, this white list item will not output.
-* `ip_group_name` - (Optional) IP whitelist group name.
+* `ip_group_name` - (Optional) IP whitelist group name. Defaults to `default`, the built-in whitelist group; a group without a name is applied to the `default` group instead of creating a new one.
 * `security_ip_list` - (Optional) List of IP addresses allowed to access all databases of an instance. The list contains up to 1,000 IP addresses, separated by commas. Supported formats include 0.0.0.0/0, 10.23.12.24 (IP), and 10.23.12.24/24 (Classless Inter-Domain Routing (CIDR) mode. /24 represents the length of the prefix in an IP address. The range of the prefix length is [1,32]). System default to `["127.0.0.1"]`.
 
 ### `parameters`
@@ -162,21 +199,20 @@ The parameters supports the following:
 
 * `name` - (Required, Available since v1.231.0) The name of the parameter.
 * `value` - (Required, Available since v1.231.0) The value of the parameter.
+* `default_value` - (Available since v1.231.0) The default value of the parameter.
+* `is_changeable_config` - (Available since v1.231.0) Whether the parameter is changeable.
+* `force_restart_instance` - (Available since v1.231.0) Whether to force restart the instance to config the parameter.
+* `optional_range` - (Available since v1.231.0) The optional range of the parameter.
+* `parameter_description` - (Available since v1.231.0) The description of the parameter.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The resource ID in terraform of AnalyticDB for PostgreSQL.
-* `status` - The status of the instance.
+* `status` - The status of the instance. When the instance is paused, the value is `STOPPED`.
 * `connection_string` - (Available since v1.196.0) The connection string of the instance.
 * `port` - (Available since v1.196.0) The connection port of the instance.
-* `parameters` - (Available since v1.231.0) A list of parameters. Each element contains the following attributes:
-  * `default_value` - (Available since v1.231.0) The default value of the parameter.
-  * `force_restart_instance` - (Available since v1.231.0) Whether to force restart the instance to config the parameter.
-  * `parameter_description` - (Available since v1.231.0) The description of the parameter.
-  * `optional_range` - (Available since v1.231.0) The optional range of the parameter.
-  * `is_changeable_config` - (Available since v1.231.0) Whether the parameter is changeable.
 
 ## Timeouts
 

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // Test Cr StorageDomainRoutingRule. >>> Resource test cases, automatically generated.
@@ -30,7 +30,7 @@ func TestAccAliCloudCrStorageDomainRoutingRule_basic11834(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -121,7 +121,7 @@ func TestAccAliCloudCrStorageDomainRoutingRule_basic11834_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -149,6 +149,95 @@ func TestAccAliCloudCrStorageDomainRoutingRule_basic11834_twin(t *testing.T) {
 					testAccCheck(map[string]string{
 						"routes.#":    "3",
 						"instance_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+// The API returns storage_domain with an https:// prefix while the configuration
+// may omit it. The plan must stay empty in both directions.
+func TestAccAliCloudCrStorageDomainRoutingRule_noHttpsPrefix(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_cr_storage_domain_routing_rule.default"
+	ra := resourceAttrInit(resourceId, AliCloudCrStorageDomainRoutingRuleMap11834)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &CrServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeCrStorageDomainRoutingRule")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tfacccr%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudCrStorageDomainRoutingRuleBasicDependence11834)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"routes": []map[string]interface{}{
+						{
+							"instance_domain": "${alicloud_cr_ee_instance.default.instance_name}-registry-vpc.cn-hangzhou.cr.aliyuncs.com",
+							"storage_domain":  "${alicloud_cr_ee_instance.default.id}-registry.oss-cn-hangzhou-internal.aliyuncs.com",
+							"endpoint_type":   "Internet",
+						},
+					},
+					"instance_id": "${alicloud_cr_ee_instance.default.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"routes.#":    "1",
+						"instance_id": CHECKSET,
+					}),
+				),
+			},
+			{
+				// Same configuration without the prefix: the plan must be empty.
+				Config: testAccConfig(map[string]interface{}{
+					"routes": []map[string]interface{}{
+						{
+							"instance_domain": "${alicloud_cr_ee_instance.default.instance_name}-registry-vpc.cn-hangzhou.cr.aliyuncs.com",
+							"storage_domain":  "${alicloud_cr_ee_instance.default.id}-registry.oss-cn-hangzhou-internal.aliyuncs.com",
+							"endpoint_type":   "Internet",
+						},
+					},
+					"instance_id": "${alicloud_cr_ee_instance.default.id}",
+				}),
+				PlanOnly: true,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"routes.#": "1",
+					}),
+				),
+			},
+			{
+				// The prefixed form documented by the API must not produce a diff either.
+				Config: testAccConfig(map[string]interface{}{
+					"routes": []map[string]interface{}{
+						{
+							"instance_domain": "${alicloud_cr_ee_instance.default.instance_name}-registry-vpc.cn-hangzhou.cr.aliyuncs.com",
+							"storage_domain":  "https://${alicloud_cr_ee_instance.default.id}-registry.oss-cn-hangzhou-internal.aliyuncs.com",
+							"endpoint_type":   "Internet",
+						},
+					},
+					"instance_id": "${alicloud_cr_ee_instance.default.id}",
+				}),
+				PlanOnly: true,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"routes.#": "1",
 					}),
 				),
 			},

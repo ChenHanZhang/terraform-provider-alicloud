@@ -10,9 +10,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func init() {
@@ -151,7 +151,7 @@ func SkipTestAccAlicloudVPNGatewayBasic(t *testing.T) {
 
 		// module name
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -384,10 +384,11 @@ func TestAccAliCloudVPNGateway_basic2(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -518,7 +519,7 @@ func TestAccAliCloudVPNGateway_basic3(t *testing.T) {
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -616,7 +617,7 @@ func TestAccAliCloudVPNGateway_basic4(t *testing.T) {
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -739,9 +740,10 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic5658(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -915,10 +917,11 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic5485(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 			testAccPreCheckWithRegions(t, true, connectivity.VPNSupportRegions)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1073,10 +1076,11 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic5632(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 			testAccPreCheckWithRegions(t, true, connectivity.VPNSupportRegions)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1231,10 +1235,11 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic3671(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 			testAccPreCheckWithRegions(t, true, connectivity.VPNSupportRegions)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1535,10 +1540,11 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic5489(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 			// testAccPreCheckWithRegions(t, true, connectivity.VPNSupportRegions)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1696,9 +1702,10 @@ func TestAccAliCloudVPNGatewayVPNGateway_basic5488(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckPrePaidResources(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		// CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{

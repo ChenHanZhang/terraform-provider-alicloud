@@ -10,9 +10,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAliyunSecurityGroupRule() *schema.Resource {
@@ -80,6 +80,12 @@ func resourceAliyunSecurityGroupRule() *schema.Resource {
 				ConflictsWith: []string{"cidr_ip"},
 			},
 			"source_group_owner_account": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Use source_group_owner_id instead.",
+			},
+			"source_group_owner_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -182,6 +188,14 @@ func resourceAliyunSecurityGroupRuleCreate(d *schema.ResourceData, meta interfac
 		}
 	}
 
+	if v, ok := d.GetOk("source_group_owner_id"); ok {
+		if direction == string(DirectionIngress) {
+			permissionsMap["SourceGroupOwnerId"] = v
+		} else {
+			permissionsMap["DestGroupOwnerId"] = v
+		}
+	}
+
 	if v, ok := d.GetOk("prefix_list_id"); ok {
 		prefixListId = v.(string)
 		if direction == string(DirectionIngress) {
@@ -228,14 +242,14 @@ func resourceAliyunSecurityGroupRuleCreate(d *schema.ResourceData, meta interfac
 	if direction == string(DirectionIngress) {
 		action := "AuthorizeSecurityGroup"
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -248,14 +262,14 @@ func resourceAliyunSecurityGroupRuleCreate(d *schema.ResourceData, meta interfac
 		action := "AuthorizeSecurityGroupEgress"
 
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -276,9 +290,16 @@ func resourceAliyunSecurityGroupRuleCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
+	// A malformed ID (e.g. a wrong-format `terraform import` argument) must
+	// fail with a readable error instead of panicking on parts[1] below.
+	// Six-part IDs come from states written by legacy provider versions and
+	// are completed with policy and priority below.
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 8 && len(parts) != 6 {
+		return WrapError(fmt.Errorf("Invalid security group rule ID %s. Expected ID in format <security_group_id>:<type>:<ip_protocol>:<port_range>:<nic_type>:<cidr_ip>:<policy>:<priority>, e.g. sg-12345678:ingress:tcp:80/80:internet:10.0.0.0/8:accept:1. If the rule uses ipv6_cidr_ip, replace ':' with '_' in the IPv6 address", d.Id()))
+	}
 	client := meta.(*connectivity.AliyunClient)
 	ecsService := EcsService{client}
-	parts := strings.Split(d.Id(), ":")
 	policy := parseSecurityRuleId(d, meta, 6)
 	strPriority := parseSecurityRuleId(d, meta, 7)
 	var priority int
@@ -296,7 +317,23 @@ func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{
 	sgId := parts[0]
 	direction := parts[1]
 
-	object, err := ecsService.DescribeSecurityGroupRule(d.Id())
+	// Wait for the rule to be visible: the rule list API may lag behind the
+	// just-issued AuthorizeSecurityGroup call, especially in batch creation.
+	var object ecs.Permission
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err := retry.Retry(10*time.Minute, func() *retry.RetryError {
+		obj, err := ecsService.DescribeSecurityGroupRule(d.Id())
+		if err != nil {
+			// Only the not-found case is retried; other errors fail fast.
+			if d.IsNewResource() && NotFoundError(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		object = obj
+		return nil
+	})
 	if err != nil {
 		if NotFoundError(err) && !d.IsNewResource() {
 			log.Printf("[DEBUG] Resource alicloud_security_group_rule ecsService.DescribeSecurityGroupRule Failed!!! %s", err)
@@ -326,13 +363,13 @@ func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{
 		d.Set("cidr_ip", object.SourceCidrIp)
 		d.Set("ipv6_cidr_ip", object.Ipv6SourceCidrIp)
 		d.Set("source_security_group_id", object.SourceGroupId)
-		d.Set("source_group_owner_account", object.SourceGroupOwnerAccount)
+		d.Set("source_group_owner_id", object.SourceGroupOwnerAccount)
 		d.Set("prefix_list_id", object.SourcePrefixListId)
 	} else {
 		d.Set("cidr_ip", object.DestCidrIp)
 		d.Set("ipv6_cidr_ip", object.Ipv6DestCidrIp)
 		d.Set("source_security_group_id", object.DestGroupId)
-		d.Set("source_group_owner_account", object.DestGroupOwnerAccount)
+		d.Set("source_group_owner_id", object.DestGroupOwnerAccount)
 		d.Set("prefix_list_id", object.DestPrefixListId)
 	}
 
@@ -431,13 +468,13 @@ func resourceAliyunSecurityGroupRuleDelete(d *schema.ResourceData, meta interfac
 		priority = prior
 	}
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := retry.Retry(5*time.Minute, func() *retry.RetryError {
 		err := deleteSecurityGroupRule(d, meta)
 		if err != nil {
 			if NotFoundError(err) || IsExpectedErrors(err, []string{"InvalidSecurityGroupId.NotFound"}) {
 				return nil
 			}
-			return resource.RetryableError(err)
+			return retry.RetryableError(err)
 		}
 		return nil
 	})
@@ -521,6 +558,14 @@ func buildAliyunSGRuleRequest(d *schema.ResourceData, meta interface{}) (*reques
 		}
 	}
 
+	if v, ok := d.GetOk("source_group_owner_id"); ok {
+		if direction == string(DirectionIngress) {
+			request.QueryParams["SourceGroupOwnerId"] = v.(string)
+		} else {
+			request.QueryParams["DestGroupOwnerId"] = v.(string)
+		}
+	}
+
 	sgId := d.Get("security_group_id").(string)
 
 	group, err := ecsService.DescribeSecurityGroup(sgId)
@@ -545,5 +590,10 @@ func buildAliyunSGRuleRequest(d *schema.ResourceData, meta interface{}) (*reques
 
 func parseSecurityRuleId(d *schema.ResourceData, meta interface{}, index int) (result string) {
 	parts := strings.Split(d.Id(), ":")
+	if index >= len(parts) {
+		// Legacy IDs written by old provider versions have fewer parts; the
+		// caller falls back to the values stored in the state.
+		return ""
+	}
 	return parts[index]
 }

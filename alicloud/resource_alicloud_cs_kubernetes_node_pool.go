@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	roacs "github.com/alibabacloud-go/cs-20151215/v7/client"
+	roacs "github.com/alibabacloud-go/cs-20151215/v8/client"
 	"github.com/denverdino/aliyungo/cs"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/denverdino/aliyungo/common"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudAckNodepool() *schema.Resource {
@@ -473,6 +473,56 @@ func resourceAliCloudAckNodepool() *schema.Resource {
 					},
 				},
 			},
+			"containerd_config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"max_concurrent_downloads": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: IntBetween(1, 20),
+						},
+						"ignore_image_defined_volume": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: ValidateNullableBool,
+						},
+						"limit_core": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: ValidateNullableIntBetween(0, 9007199254740991),
+						},
+						"limit_no_file": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: ValidateNullableIntBetween(1024, 9007199254740991),
+						},
+						"limit_mem_lock": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: ValidateNullableIntBetween(65536, 9007199254740991),
+						},
+						"registry_mirrors": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: StringLenAtLeast(1),
+							},
+						},
+						"insecure_registries": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: StringLenAtLeast(1),
+							},
+						},
+					},
+				},
+			},
 			"labels": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -661,6 +711,31 @@ func resourceAliCloudAckNodepool() *schema.Resource {
 						"private_pool_options_id": {
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+					},
+				},
+			},
+			"resource_pool_options": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"private_pool_options"},
+				Description:   "The resource pool and resource pool strategy used when launching instances. It only takes effect when creating PostPaid (pay-as-you-go) instances, and cannot be set together with `private_pool_options`.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"strategy": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "None",
+							ValidateFunc: StringInSlice([]string{"PrivatePoolFirst", "PrivatePoolOnly", "None"}, false),
+							Description:  "The resource pool strategy used when launching instances. Default value: `None`. Valid values: `PrivatePoolFirst` (private pool first; the specified private pools are used first when `private_pool_ids` is set, and it falls back to an Open type private pool or the public pool when unavailable), `PrivatePoolOnly` (private pool only; `private_pool_ids` is required and instances fail to start if the specified private pool does not have enough capacity), `None` (do not use the resource pool strategy).",
+						},
+						"private_pool_ids": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    20,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The list of private pool IDs, that is, the IDs of elasticity assurance services or capacity reservation services. Only Target mode private pool IDs can be passed in. The value of N ranges from 1 to 20.",
 						},
 					},
 				},
@@ -1009,25 +1084,6 @@ func resourceAliCloudAckNodepool() *schema.Resource {
 				ConflictsWith: []string{"instances", "desired_size"},
 				Deprecated:    "Field 'node_count' has been deprecated from provider version 1.158.0. New field 'desired_size' instead.",
 			},
-			"rollout_policy": {
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"max_unavailable": {
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-					},
-				},
-				Removed: "Field 'rollout_policy' has been removed from provider version 1.184.0. Please use new field 'rolling_policy' instead it to ensure the config takes effect",
-			},
-			"vpc_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Removed:  "Field 'vpc_id' has been removed from provider version 1.218.0.",
-			},
 			"kms_encryption_context": {
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -1262,6 +1318,26 @@ func resourceAliCloudAckNodepoolCreate(d *schema.ResourceData, meta interface{})
 
 		if len(private_pool_options) > 0 {
 			scaling_group["private_pool_options"] = private_pool_options
+		}
+	}
+
+	if v := d.Get("resource_pool_options"); !IsNil(v) {
+		resource_pool_options := make(map[string]interface{})
+		resourcePoolOptionsStrategy, _ := jsonpath.Get("$[0].strategy", d.Get("resource_pool_options"))
+		if resourcePoolOptionsStrategy != nil && resourcePoolOptionsStrategy != "" {
+			resource_pool_options["strategy"] = resourcePoolOptionsStrategy
+		}
+		resourcePoolOptionsPrivatePoolIds, _ := jsonpath.Get("$[0].private_pool_ids", d.Get("resource_pool_options"))
+		if resourcePoolOptionsPrivatePoolIds != nil {
+			resource_pool_options["private_pool_ids"] = resourcePoolOptionsPrivatePoolIds
+		}
+		if resourcePoolOptionsStrategy == "PrivatePoolOnly" {
+			if ids, ok := resourcePoolOptionsPrivatePoolIds.([]interface{}); !ok || len(ids) == 0 {
+				return WrapError(Error("resource_pool_options.private_pool_ids is required when resource_pool_options.strategy is PrivatePoolOnly"))
+			}
+		}
+		if len(resource_pool_options) > 0 {
+			scaling_group["resource_pool_options"] = resource_pool_options
 		}
 	}
 
@@ -1815,14 +1891,14 @@ func resourceAliCloudAckNodepoolCreate(d *schema.ResourceData, meta interface{})
 
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RoaPost("CS", "2015-12-15", action, query, nil, body, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1838,6 +1914,44 @@ func resourceAliCloudAckNodepoolCreate(d *schema.ResourceData, meta interface{})
 	stateConf := BuildStateConf([]string{}, []string{"success"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ackServiceV2.DescribeAsyncAckNodepoolStateRefreshFunc(d, response, "$.state", []string{"fail", "failed"}))
 	if jobDetail, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
+	}
+
+	// CreateNodePool does not support containerd_config; it can only be set through the
+	// node_config API (ModifyNodePoolNodeConfig). Send it in a follow-up call after the
+	// node pool has been created successfully.
+	if v, ok := d.GetOk("containerd_config"); ok && len(v.([]interface{})) > 0 {
+		containerdConfig, err := expandContainerdConfig(d)
+		if err != nil {
+			return err
+		}
+		if len(containerdConfig) > 0 {
+			nodepoolId := fmt.Sprint(response["nodepool_id"])
+			nodeConfigAction := fmt.Sprintf("/clusters/%s/nodepools/%s/node_config", ClusterId, nodepoolId)
+			nodeConfigBody := map[string]interface{}{
+				"containerd_config": containerdConfig,
+			}
+			var nodeConfigResponse map[string]interface{}
+			nodeConfigWait := incrementalWait(3*time.Second, 5*time.Second)
+			err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
+				nodeConfigResponse, err = client.RoaPut("CS", "2015-12-15", nodeConfigAction, query, nil, nodeConfigBody, true)
+				if err != nil {
+					if NeedRetry(err) {
+						nodeConfigWait()
+						return retry.RetryableError(err)
+					}
+					return retry.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(nodeConfigAction, nodeConfigResponse, nodeConfigBody)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), nodeConfigAction, AlibabaCloudSdkGoERROR)
+			}
+			nodeConfigStateConf := BuildStateConf([]string{}, []string{"success"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ackServiceV2.DescribeAsyncAckNodepoolStateRefreshFunc(d, nodeConfigResponse, "$.state", []string{"fail", "failed"}))
+			if jobDetail, err := nodeConfigStateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id(), jobDetail)
+			}
+		}
 	}
 
 	if v, ok := d.GetOk("instances"); ok && v != nil {
@@ -2102,6 +2216,10 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 
 		if v, ok := kubelet_configurationRaw["readOnlyPort"].(json.Number); ok {
 			kubeletConfigurationMap["read_only_port"] = v.String()
+		} else if v, err := jsonpath.Get("$[0].read_only_port", d.Get("kubelet_configuration")); err == nil && v != nil && v != "" {
+			// the API omits readOnlyPort when it is 0; keep the configured
+			// value so the apply does not produce a perpetual diff
+			kubeletConfigurationMap["read_only_port"] = v
 		}
 
 		if v, ok := kubelet_configurationRaw["registryBurst"].(json.Number); ok {
@@ -2152,9 +2270,30 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 			tracingMaps = append(tracingMaps, tracingMap)
 		}
 		kubeletConfigurationMap["tracing"] = tracingMaps
+		// The API omits kubelet fields holding zero values (false booleans,
+		// "0" numbers, empty lists). Backfill them from the configured value
+		// so the post-apply plan stays empty under terraform-plugin-sdk v2.
+		if cfgList, ok := d.Get("kubelet_configuration").([]interface{}); ok && len(cfgList) > 0 {
+			if cfgMap, ok := cfgList[0].(map[string]interface{}); ok {
+				for k, cv := range cfgMap {
+					ev, exists := kubeletConfigurationMap[k]
+					if exists && !isKubeletValueEmpty(ev) {
+						continue
+					}
+					if !isKubeletValueEmpty(cv) {
+						kubeletConfigurationMap[k] = cv
+					}
+				}
+			}
+		}
 		kubeletConfigurationMaps = append(kubeletConfigurationMaps, kubeletConfigurationMap)
 	}
 	if err := d.Set("kubelet_configuration", kubeletConfigurationMaps); err != nil {
+		return err
+	}
+	containerd_configRawObj, _ := jsonpath.Get("$.node_config.containerd_config", objectRaw)
+	containerdConfigMaps := flattenContainerdConfig(containerd_configRawObj)
+	if err := d.Set("containerd_config", containerdConfigMaps); err != nil {
 		return err
 	}
 	labelsRaw, _ := jsonpath.Get("$.kubernetes_config.labels", objectRaw)
@@ -2204,6 +2343,10 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 			autoRepairPolicyMap["restart_node"] = auto_repair_policyRaw["restart_node"]
 
 			autoRepairPolicyMaps = append(autoRepairPolicyMaps, autoRepairPolicyMap)
+		} else if v, err := jsonpath.Get("$[0].auto_repair_policy[0].restart_node", d.Get("management")); err == nil && v != nil {
+			// the API omits the policy object when the feature is disabled;
+			// keep the configured value to avoid a perpetual diff
+			autoRepairPolicyMaps = append(autoRepairPolicyMaps, map[string]interface{}{"restart_node": v})
 		}
 		managementMap["auto_repair_policy"] = autoRepairPolicyMaps
 		autoUpgradePolicyMaps := make([]map[string]interface{}, 0)
@@ -2216,6 +2359,10 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 			autoUpgradePolicyMap["auto_upgrade_kubelet"] = auto_upgrade_policyRaw["auto_upgrade_kubelet"]
 
 			autoUpgradePolicyMaps = append(autoUpgradePolicyMaps, autoUpgradePolicyMap)
+		} else if v, err := jsonpath.Get("$[0].auto_upgrade_policy[0].auto_upgrade_kubelet", d.Get("management")); err == nil && v != nil {
+			// the API omits the policy object when the feature is disabled;
+			// keep the configured value to avoid a perpetual diff
+			autoUpgradePolicyMaps = append(autoUpgradePolicyMaps, map[string]interface{}{"auto_upgrade_kubelet": v})
 		}
 		managementMap["auto_upgrade_policy"] = autoUpgradePolicyMaps
 		autoVulFixPolicyMaps := make([]map[string]interface{}, 0)
@@ -2229,6 +2376,19 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 			autoVulFixPolicyMap["vul_level"] = auto_vul_fix_policyRaw["vul_level"]
 
 			autoVulFixPolicyMaps = append(autoVulFixPolicyMaps, autoVulFixPolicyMap)
+		} else {
+			// the API omits the policy object when the feature is disabled;
+			// keep the configured values to avoid a perpetual diff
+			fallbackVulFixMap := make(map[string]interface{})
+			if v, err := jsonpath.Get("$[0].auto_vul_fix_policy[0].restart_node", d.Get("management")); err == nil && v != nil {
+				fallbackVulFixMap["restart_node"] = v
+			}
+			if v, err := jsonpath.Get("$[0].auto_vul_fix_policy[0].vul_level", d.Get("management")); err == nil && v != nil && v != "" {
+				fallbackVulFixMap["vul_level"] = v
+			}
+			if len(fallbackVulFixMap) > 0 {
+				autoVulFixPolicyMaps = append(autoVulFixPolicyMaps, fallbackVulFixMap)
+			}
 		}
 		managementMap["auto_vul_fix_policy"] = autoVulFixPolicyMaps
 		managementMaps = append(managementMaps, managementMap)
@@ -2250,6 +2410,23 @@ func resourceAliCloudAckNodepoolRead(d *schema.ResourceData, meta interface{}) e
 		privatePoolOptionsMaps = append(privatePoolOptionsMaps, privatePoolOptionsMap)
 	}
 	if err := d.Set("private_pool_options", privatePoolOptionsMaps); err != nil {
+		return err
+	}
+	resourcePoolOptionsMaps := make([]map[string]interface{}, 0)
+	resourcePoolOptionsMap := make(map[string]interface{})
+	resource_pool_optionsRawObj, _ := jsonpath.Get("$.scaling_group.resource_pool_options", objectRaw)
+	resource_pool_optionsRaw := make(map[string]interface{})
+	if resource_pool_optionsRawObj != nil {
+		resource_pool_optionsRaw = resource_pool_optionsRawObj.(map[string]interface{})
+	}
+	if len(resource_pool_optionsRaw) > 0 {
+		resourcePoolOptionsMap["strategy"] = resource_pool_optionsRaw["strategy"]
+		if ids, ok := resource_pool_optionsRaw["private_pool_ids"]; ok && ids != nil {
+			resourcePoolOptionsMap["private_pool_ids"] = ids
+		}
+		resourcePoolOptionsMaps = append(resourcePoolOptionsMaps, resourcePoolOptionsMap)
+	}
+	if err := d.Set("resource_pool_options", resourcePoolOptionsMaps); err != nil {
 		return err
 	}
 	rds_instancesRaw, _ := jsonpath.Get("$.scaling_group.rds_instances", objectRaw)
@@ -2589,6 +2766,29 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 
 			if len(private_pool_options) > 0 {
 				scaling_group["private_pool_options"] = private_pool_options
+			}
+		}
+	}
+
+	if d.HasChange("resource_pool_options") {
+		update = true
+		if v := d.Get("resource_pool_options"); v != nil {
+			resource_pool_options := make(map[string]interface{})
+			resourcePoolOptionsStrategy, _ := jsonpath.Get("$[0].strategy", d.Get("resource_pool_options"))
+			if resourcePoolOptionsStrategy != nil && resourcePoolOptionsStrategy != "" {
+				resource_pool_options["strategy"] = resourcePoolOptionsStrategy
+			}
+			resourcePoolOptionsPrivatePoolIds, _ := jsonpath.Get("$[0].private_pool_ids", d.Get("resource_pool_options"))
+			if resourcePoolOptionsPrivatePoolIds != nil {
+				resource_pool_options["private_pool_ids"] = resourcePoolOptionsPrivatePoolIds
+			}
+			if resourcePoolOptionsStrategy == "PrivatePoolOnly" {
+				if ids, ok := resourcePoolOptionsPrivatePoolIds.([]interface{}); !ok || len(ids) == 0 {
+					return WrapError(Error("resource_pool_options.private_pool_ids is required when resource_pool_options.strategy is PrivatePoolOnly"))
+				}
+			}
+			if len(resource_pool_options) > 0 {
+				scaling_group["resource_pool_options"] = resource_pool_options
 			}
 		}
 	}
@@ -3015,6 +3215,7 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 			}
 			// The removal of a node is logically independent.
 			// The removal of a node should not involve parameter changes.
+			d.Partial(false)
 			return resourceAliCloudAckNodepoolRead(d, meta)
 		}
 		update = true
@@ -3023,14 +3224,14 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("CS", "2015-12-15", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -3225,6 +3426,15 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if d.HasChange("containerd_config") {
+		update = true
+		containerdConfig, err := expandContainerdConfig(d)
+		if err != nil {
+			return err
+		}
+		request["containerd_config"] = containerdConfig
+	}
+
 	rolling_policy := make(map[string]interface{})
 
 	if v := d.Get("rolling_policy"); v != nil {
@@ -3239,14 +3449,14 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("CS", "2015-12-15", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -3346,14 +3556,14 @@ func resourceAliCloudAckNodepoolUpdate(d *schema.ResourceData, meta interface{})
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPost("CS", "2015-12-15", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -3414,14 +3624,14 @@ func resourceAliCloudAckNodepoolDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RoaDelete("CS", "2015-12-15", action, query, nil, nil, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -3506,7 +3716,7 @@ func removeNodePoolNodes(d *schema.ResourceData, meta interface{}, parseId []str
 	if err := invoker.Run(func() error {
 		var err error
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.WithCsClient(func(csClient *cs.Client) (interface{}, error) {
 				resp, err := csClient.DeleteKubernetesClusterNodes(parseId[0], removeNodesArgs)
 				return resp, err
@@ -3514,9 +3724,9 @@ func removeNodePoolNodes(d *schema.ResourceData, meta interface{}, parseId []str
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -3530,8 +3740,6 @@ func removeNodePoolNodes(d *schema.ResourceData, meta interface{}, parseId []str
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
-
-	d.SetPartial("node_count")
 
 	return nil
 }
@@ -3559,7 +3767,7 @@ func ConvertCsTags(d *schema.ResourceData) ([]cs.Tag, error) {
 
 func flattenTagsConfig(config []cs.Tag) map[string]string {
 	m := make(map[string]string, len(config))
-	if len(config) < 0 {
+	if len(config) == 0 {
 		return m
 	}
 
@@ -3607,14 +3815,14 @@ func attachExistingInstance(d *schema.ResourceData, meta interface{}, attachInst
 
 	var resp *roacs.AttachInstancesToNodePoolResponse
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		resp, err = client.AttachInstancesToNodePool(tea.String(clusterId), tea.String(nodePoolId), args)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -3662,4 +3870,187 @@ func diffInstances(old []string, new []string) (attach []string, remove []string
 	}
 
 	return
+}
+
+// flattenContainerdConfig converts the ACK API response's containerd_config object into
+// the Terraform schema format (a list with at most one map element).
+//
+// This is the inverse of expandContainerdConfig: it reads camelCase API field names
+// and converts them to the snake_case schema keys. Only keys explicitly returned by
+// the API are written into the map: a present key means it was explicitly written to
+// the node containerd configuration, while a missing key means "not set" (d.Set fills
+// missing keys with the schema zero value, keeping the per-field nullable semantics).
+// Numeric fields arrive as json.Number from the API response (with a defensive float64
+// fallback) and are rendered as decimal strings for the nullable TypeString fields.
+// When the API returns no keys at all, an empty list is returned so that unconfigured
+// node pools show containerd_config.# = 0 without a diff.
+func flattenContainerdConfig(raw interface{}) []map[string]interface{} {
+	configMaps := make([]map[string]interface{}, 0)
+	if raw == nil {
+		return configMaps
+	}
+	configRaw, ok := raw.(map[string]interface{})
+	if !ok || len(configRaw) == 0 {
+		return configMaps
+	}
+
+	configMap := make(map[string]interface{})
+	if v, ok := configRaw["maxConcurrentDownloads"].(json.Number); ok {
+		if val, err := v.Int64(); err == nil {
+			configMap["max_concurrent_downloads"] = int(val)
+		}
+	} else if v, ok := configRaw["maxConcurrentDownloads"].(float64); ok {
+		configMap["max_concurrent_downloads"] = int(v)
+	}
+	if v, ok := configRaw["ignoreImageDefinedVolume"].(bool); ok {
+		configMap["ignore_image_defined_volume"] = strconv.FormatBool(v)
+	}
+	if v, ok := configRaw["limitCore"].(json.Number); ok {
+		configMap["limit_core"] = v.String()
+	} else if v, ok := configRaw["limitCore"].(float64); ok {
+		configMap["limit_core"] = strconv.FormatInt(int64(v), 10)
+	}
+	if v, ok := configRaw["limitNoFile"].(json.Number); ok {
+		configMap["limit_no_file"] = v.String()
+	} else if v, ok := configRaw["limitNoFile"].(float64); ok {
+		configMap["limit_no_file"] = strconv.FormatInt(int64(v), 10)
+	}
+	if v, ok := configRaw["limitMemLock"].(json.Number); ok {
+		configMap["limit_mem_lock"] = v.String()
+	} else if v, ok := configRaw["limitMemLock"].(float64); ok {
+		configMap["limit_mem_lock"] = strconv.FormatInt(int64(v), 10)
+	}
+	if registryMirrorsRaw, ok := configRaw["registryMirrors"]; ok && registryMirrorsRaw != nil {
+		registryMirrorsArray := convertToInterfaceArray(registryMirrorsRaw)
+		if len(registryMirrorsArray) > 0 {
+			configMap["registry_mirrors"] = registryMirrorsArray
+		}
+	}
+	if insecureRegistriesRaw, ok := configRaw["insecureRegistries"]; ok && insecureRegistriesRaw != nil {
+		insecureRegistriesArray := convertToInterfaceArray(insecureRegistriesRaw)
+		if len(insecureRegistriesArray) > 0 {
+			configMap["insecure_registries"] = insecureRegistriesArray
+		}
+	}
+
+	if len(configMap) > 0 {
+		configMaps = append(configMaps, configMap)
+	}
+	return configMaps
+}
+
+// expandContainerdConfig converts the Terraform containerd_config block into the ACK API request body.
+//
+// This function is only called when d.HasChange("containerd_config") is true (i.e. the block was
+// added, removed, or one of its scalar sub-fields changed). limit_core, limit_no_file,
+// limit_mem_lock and ignore_image_defined_volume are nullable strings (TypeString, no
+// Computed, no Default):
+// "" means "not set" and is skipped, so the corresponding key stays absent from the request
+// and is not written to the cloud-side containerd configuration; explicit values (including
+// "0" / "false") are parsed and sent, writing the key to the cloud-side configuration.
+//
+// When the whole containerd_config block is removed from the configuration, newMap is nil and
+// every field is skipped, so an empty map is sent. Under the API's full-replacement semantics
+// this clears all custom containerd configuration, which is exactly the intended meaning of
+// removing the block.
+func expandContainerdConfig(d *schema.ResourceData) (map[string]interface{}, error) {
+	_, newRaw := d.GetChange("containerd_config")
+	newMap := containerdConfigFirstMap(newRaw)
+
+	result := make(map[string]interface{})
+
+	// max_concurrent_downloads (TypeInt): 0 is invalid, only send when > 0.
+	if v := containerdConfigInt64Value(newMap["max_concurrent_downloads"]); v > 0 {
+		result["maxConcurrentDownloads"] = v
+	}
+
+	// Nullable string fields (limit_core, limit_no_file, limit_mem_lock,
+	// ignore_image_defined_volume): skip "" ("not set") so the key is not written
+	// to the cloud-side containerd configuration; parse and send explicit values,
+	// including "0" / "false".
+	if v, ok := newMap["limit_core"].(string); ok && v != "" {
+		limitCore, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, WrapError(fmt.Errorf("invalid containerd_config.limit_core value %q: %v", v, err))
+		}
+		result["limitCore"] = limitCore
+	}
+	if v, ok := newMap["limit_no_file"].(string); ok && v != "" {
+		limitNoFile, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, WrapError(fmt.Errorf("invalid containerd_config.limit_no_file value %q: %v", v, err))
+		}
+		result["limitNoFile"] = limitNoFile
+	}
+	if v, ok := newMap["limit_mem_lock"].(string); ok && v != "" {
+		limitMemLock, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, WrapError(fmt.Errorf("invalid containerd_config.limit_mem_lock value %q: %v", v, err))
+		}
+		result["limitMemLock"] = limitMemLock
+	}
+	if v, ok := newMap["ignore_image_defined_volume"].(string); ok && v != "" {
+		ignoreImageDefinedVolume, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, WrapError(fmt.Errorf("invalid containerd_config.ignore_image_defined_volume value %q: %v", v, err))
+		}
+		result["ignoreImageDefinedVolume"] = ignoreImageDefinedVolume
+	}
+
+	// registry_mirrors / insecure_registries: only send non-empty lists. Under the
+	// API's full-replacement semantics an empty list and an omitted key are
+	// equivalent (both clear the cloud-side value), and the SDK's TypeList cannot
+	// distinguish them anyway, so no distinction is needed.
+	if mirrors := convertToInterfaceArray(newMap["registry_mirrors"]); len(mirrors) > 0 {
+		result["registryMirrors"] = mirrors
+	}
+	if insecure := convertToInterfaceArray(newMap["insecure_registries"]); len(insecure) > 0 {
+		result["insecureRegistries"] = insecure
+	}
+
+	return result, nil
+}
+
+// containerdConfigFirstMap extracts the first element from a TypeList value.
+func containerdConfigFirstMap(v interface{}) map[string]interface{} {
+	list, ok := v.([]interface{})
+	if !ok || len(list) == 0 {
+		return nil
+	}
+	m, ok := list[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return m
+}
+
+// containerdConfigInt64Value safely converts an interface{} value to int64.
+func containerdConfigInt64Value(v interface{}) int64 {
+	if v == nil {
+		return 0
+	}
+	n, err := strconv.ParseInt(fmt.Sprint(v), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// isKubeletValueEmpty reports whether a kubelet_configuration value carries no
+// information (nil, empty string, empty list/map), so a configured value may
+// backfill it when the API omits zero values from its response.
+func isKubeletValueEmpty(v interface{}) bool {
+	switch t := v.(type) {
+	case nil:
+		return true
+	case string:
+		return t == ""
+	case []interface{}:
+		return len(t) == 0
+	case map[string]interface{}:
+		return len(t) == 0
+	case []map[string]interface{}:
+		return len(t) == 0
+	}
+	return false
 }

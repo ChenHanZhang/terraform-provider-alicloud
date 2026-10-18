@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
@@ -19,16 +19,16 @@ func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
 	rac := resourceAttrCheckInit(rc, ra)
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tf-testacc%spaiservice%d", defaultRegionToTest, rand)
+	name := fmt.Sprintf("tfacc7678%d", rand)
 	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPaiServiceBasicDependence7678_modified)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -36,7 +36,7 @@ func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
 					//	"\"0\"": "{\\\"LabelKey\\\":\\\"testkey\\\",\\\"LabelValue\\\":\\\"testvalue\\\"}",
 					//},
 					"develop":        "false",
-					"service_config": "{\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"tftestacc234\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.default.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.default.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
+					"service_config": "{\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"${var.name}\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.default.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.default.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
 					"workspace_id":   "${alicloud_pai_workspace_workspace.default.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -48,7 +48,7 @@ func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"service_config": "{\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"tftestacc234\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
+					"service_config": "{\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"${var.name}\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
 					"workspace_id":   "${alicloud_pai_workspace_workspace.update.id}",
 					//"labels": map[string]interface{}{
 					//	"\"0\"": "{\\\"LabelKey\\\":\\\"testkeyupdate\\\",\\\"LabelValue\\\":\\\"testvalueupdate\\\"}",
@@ -63,7 +63,7 @@ func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"service_config": "{\\\"labels\\\":{},\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"tftestacc234\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
+					"service_config": "{\\\"metadata\\\":{\\\"cpu\\\":1,\\\"gpu\\\":0,\\\"instance\\\":1,\\\"memory\\\":2000,\\\"name\\\":\\\"${var.name}\\\",\\\"rpc\\\":{\\\"keepalive\\\":70000},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\"},\\\"workspace_id\\\":\\\"${alicloud_pai_workspace_workspace.update.id}\\\",\\\"model_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_entry\\\":\\\"libecho.so\\\",\\\"processor_path\\\":\\\"http://eas-data.oss-cn-shanghai.aliyuncs.com/processors/echo_processor_release.tar.gz\\\",\\\"processor_type\\\":\\\"cpp\\\"}",
 					"tags": map[string]string{
 						"Created": "TF",
 						"For":     "Test",
@@ -117,20 +117,21 @@ func TestAccAliCloudPaiService_basic7678_modified(t *testing.T) {
 var AlicloudPaiServiceMap7678_modified = map[string]string{
 	"create_time": CHECKSET,
 	"region_id":   CHECKSET,
+	"service_uid": CHECKSET,
 }
 
 func AlicloudPaiServiceBasicDependence7678_modified(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
-    default = "%s"
+    default = "%[1]s"
 }
 
 variable "space_name" {
-  default = "terraform_example"
+  default = "%[1]s"
 }
 
 variable "space_name_update" {
-  default = "terraform_example_update"
+  default = "%[1]s_update"
 }
 
 provider "alicloud" {
@@ -174,9 +175,9 @@ func TestAccAliCloudPaiService_basic3213(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -223,6 +224,7 @@ func TestAccAliCloudPaiService_basic3213(t *testing.T) {
 var AlicloudPaiServiceMap3213 = map[string]string{
 	"create_time": CHECKSET,
 	"region_id":   CHECKSET,
+	"service_uid": CHECKSET,
 }
 
 func AlicloudPaiServiceBasicDependence3213(name string) string {

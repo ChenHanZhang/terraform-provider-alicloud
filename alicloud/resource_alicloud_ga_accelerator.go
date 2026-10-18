@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudGaAccelerator() *schema.Resource {
@@ -20,7 +20,7 @@ func resourceAliCloudGaAccelerator() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(1 * time.Minute),
+			Create: schema.DefaultTimeout(3 * time.Minute),
 			Update: schema.DefaultTimeout(6 * time.Minute),
 			Delete: schema.DefaultTimeout(3 * time.Minute),
 		},
@@ -36,6 +36,12 @@ func resourceAliCloudGaAccelerator() *schema.Resource {
 				ForceNew:     true,
 				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"BandwidthPackage", "CDT"}, false),
+			},
+			"bandwidth": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: IntBetween(200, 5000),
 			},
 			"payment_type": {
 				Type:         schema.TypeString,
@@ -99,6 +105,24 @@ func resourceAliCloudGaAccelerator() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"ip_set_config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"access_mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Computed:     true,
+							ForceNew:     true,
+							ValidateFunc: StringInSlice([]string{"Anycast"}, false),
+						},
+					},
+				},
+			},
 			"tags": tagsSchema(),
 			"status": {
 				Type:     schema.TypeString,
@@ -158,6 +182,32 @@ func resourceAliCloudGaAcceleratorCreate(d *schema.ResourceData, meta interface{
 		request["ResourceGroupId"] = v
 	}
 
+	if v, ok := d.GetOk("ip_set_config"); ok {
+		ipSetConfigList := v.([]interface{})
+		if len(ipSetConfigList) > 0 {
+			ipSetConfigMap := ipSetConfigList[0].(map[string]interface{})
+			if accessMode, ok := ipSetConfigMap["access_mode"]; ok && accessMode.(string) != "" {
+				request["IpSetConfig.AccessMode"] = accessMode
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("ip_set_config"); ok {
+		ipSetConfigList := v.([]interface{})
+		if len(ipSetConfigList) > 0 {
+			ipSetConfigMap := ipSetConfigList[0].(map[string]interface{})
+			if mode, ok := ipSetConfigMap["access_mode"]; ok && mode.(string) == "Anycast" {
+				if v, ok := d.GetOk("bandwidth"); ok {
+					request["Bandwidth"] = v
+				} else {
+					return WrapErrorf(nil, DefaultErrorMsg, "alicloud_ga_accelerator", "bandwidth is required when access_mode is set to Anycast", AlibabaCloudSdkGoERROR)
+				}
+			}
+		}
+	} else if _, ok := d.GetOk("bandwidth"); ok {
+		return WrapErrorf(nil, DefaultErrorMsg, "alicloud_ga_accelerator", "bandwidth is valid only when ip_set_config.access_mode is set to Anycast", AlibabaCloudSdkGoERROR)
+	}
+
 	response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_ga_accelerator", action, AlibabaCloudSdkGoERROR)
@@ -190,12 +240,26 @@ func resourceAliCloudGaAcceleratorRead(d *schema.ResourceData, meta interface{})
 
 	d.Set("spec", object["Spec"])
 	d.Set("bandwidth_billing_type", object["BandwidthBillingType"])
+	if v, ok := object["Bandwidth"]; ok {
+		d.Set("bandwidth", formatInt(v))
+	}
 	d.Set("payment_type", convertGaAcceleratorPaymentTypeResponse(object["InstanceChargeType"]))
 	d.Set("cross_border_status", object["CrossBorderStatus"])
 	d.Set("cross_border_mode", object["CrossBorderMode"])
 	d.Set("resource_group_id", object["ResourceGroupId"])
 	d.Set("accelerator_name", object["Name"])
 	d.Set("description", object["Description"])
+	if ipSetConfig, ok := object["IpSetConfig"]; ok {
+		ipSetConfigMaps := make([]map[string]interface{}, 0)
+		ipSetConfigMap := make(map[string]interface{})
+		if ipSetConfigMapData, ok := ipSetConfig.(map[string]interface{}); ok {
+			if accessMode, ok := ipSetConfigMapData["AccessMode"]; ok {
+				ipSetConfigMap["access_mode"] = accessMode
+			}
+		}
+		ipSetConfigMaps = append(ipSetConfigMaps, ipSetConfigMap)
+		d.Set("ip_set_config", ipSetConfigMaps)
+	}
 	d.Set("status", object["State"])
 
 	describeAcceleratorAutoRenewAttributeObject, err := gaService.DescribeAcceleratorAutoRenewAttribute(d.Id())
@@ -229,7 +293,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		if err := gaService.SetResourceTags(d, "accelerator"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 
 	update := false
@@ -258,14 +321,14 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -275,8 +338,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("renewal_status")
-		d.SetPartial("auto_renew_duration")
 	}
 
 	update = false
@@ -306,6 +367,25 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if d.HasChange("bandwidth") {
+		update = true
+		if v, ok := d.GetOk("bandwidth"); ok {
+			if accessMode, ok := d.GetOk("ip_set_config"); ok {
+				ipSetConfigList := accessMode.([]interface{})
+				if len(ipSetConfigList) > 0 {
+					ipSetConfigMap := ipSetConfigList[0].(map[string]interface{})
+					if mode, ok := ipSetConfigMap["access_mode"]; ok && mode.(string) == "Anycast" {
+						updateAcceleratorReq["Bandwidth"] = v
+					} else {
+						return WrapErrorf(nil, DefaultErrorMsg, "alicloud_ga_accelerator", "bandwidth is valid only when access_mode is set to Anycast", AlibabaCloudSdkGoERROR)
+					}
+				}
+			} else {
+				return WrapErrorf(nil, DefaultErrorMsg, "alicloud_ga_accelerator", "bandwidth is valid only when ip_set_config.access_mode is set to Anycast", AlibabaCloudSdkGoERROR)
+			}
+		}
+	}
+
 	if update {
 		if v, ok := d.GetOkExists("auto_use_coupon"); ok {
 			updateAcceleratorReq["AutoUseCoupon"] = v
@@ -326,9 +406,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("spec")
-		d.SetPartial("accelerator_name")
-		d.SetPartial("description")
 	}
 
 	update = false
@@ -350,14 +427,14 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, updateAcceleratorCrossBorderStatusReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -372,7 +449,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("cross_border_status")
 	}
 
 	update = false
@@ -394,14 +470,14 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, updateAcceleratorCrossBorderModeReq, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"StateError.Accelerator"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -416,7 +492,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("cross_border_mode")
 	}
 
 	update = false
@@ -439,14 +514,14 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, changeResourceGroupReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -456,7 +531,6 @@ func resourceAliCloudGaAcceleratorUpdate(d *schema.ResourceData, meta interface{
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("resource_group_id")
 	}
 
 	d.Partial(false)
@@ -492,14 +566,14 @@ func resourceAliCloudGaAcceleratorDelete(d *schema.ResourceData, meta interface{
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"StateError.Accelerator"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

@@ -9,8 +9,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudCloudMonitorServiceMetricAlarmRule() *schema.Resource {
@@ -288,6 +288,10 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRule() *schema.Resource {
 			"resources": {
 				Type:     schema.TypeString,
 				Required: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					equal, _ := compareArrayJsonTemplateAreEquivalent(old, new)
+					return equal
+				},
 			},
 			"rule_name": {
 				Type:     schema.TypeString,
@@ -312,6 +316,40 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRule() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
+			},
+			"targets": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// PutMetricRuleTargets requires both of these, but the repository
+						// forbids introducing Required attributes, so the API is left to
+						// reject a target that is missing either one.
+						"target_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"arn": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						// Matched case-insensitively so that configurations migrated from
+						// alicloud_cms_alarm, which documents Critical/Warn/Info, keep
+						// validating against the API's INFO/WARN/CRITICAL wording.
+						"level": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: StringInSlice([]string{"INFO", "WARN", "CRITICAL"}, true),
+						},
+						"json_params": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"webhook": {
 				Type:     schema.TypeString,
@@ -537,14 +575,14 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleCreate(d *schema.Resource
 		request["Period"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -741,6 +779,26 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleRead(d *schema.ResourceDa
 		return err
 	}
 
+	targetsRaw, err := cloudMonitorServiceServiceV2.DescribeCloudMonitorServiceMetricAlarmRuleTargets(d.Id())
+	if err != nil {
+		return WrapError(err)
+	}
+
+	targetsMaps := make([]map[string]interface{}, 0)
+	for _, targetsChildRaw := range targetsRaw {
+		targetsChild := targetsChildRaw.(map[string]interface{})
+		targetsMap := make(map[string]interface{})
+		targetsMap["target_id"] = targetsChild["Id"]
+		targetsMap["arn"] = targetsChild["Arn"]
+		targetsMap["level"] = targetsChild["Level"]
+		targetsMap["json_params"] = targetsChild["JsonParams"]
+
+		targetsMaps = append(targetsMaps, targetsMap)
+	}
+	if err := d.Set("targets", targetsMaps); err != nil {
+		return err
+	}
+
 	d.Set("metric_alarm_rule_id", d.Id())
 
 	return nil
@@ -776,14 +834,14 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleUpdate(d *schema.Resource
 				request["RuleId.1"] = d.Id()
 
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -800,14 +858,14 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleUpdate(d *schema.Resource
 				request["RuleId.1"] = d.Id()
 
 				wait := incrementalWait(3*time.Second, 5*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 					response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
@@ -1029,20 +1087,119 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleUpdate(d *schema.Resource
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	// Push channels live behind their own APIs rather than PutResourceMetricRule, so
+	// they are reconciled separately. Create delegates to Update, which is what lets a
+	// rule be born with its targets already attached.
+	if d.HasChange("targets") {
+		oldTargetsRaw, newTargetsRaw := d.GetChange("targets")
+		oldTargets := oldTargetsRaw.(*schema.Set)
+		newTargets := newTargetsRaw.(*schema.Set)
+
+		// PutMetricRuleTargets only creates or overwrites the ids it is handed, so a
+		// target dropped from the configuration survives until it is deleted by id.
+		removedTargetIds := make([]string, 0)
+		for _, oldTarget := range oldTargets.List() {
+			oldTargetArg := oldTarget.(map[string]interface{})
+			targetId := fmt.Sprint(oldTargetArg["target_id"])
+			removed := true
+			for _, newTarget := range newTargets.List() {
+				if fmt.Sprint(newTarget.(map[string]interface{})["target_id"]) == targetId {
+					removed = false
+					break
+				}
+			}
+			if removed {
+				removedTargetIds = append(removedTargetIds, targetId)
+			}
+		}
+
+		if len(removedTargetIds) > 0 {
+			action := "DeleteMetricRuleTargets"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RuleId"] = d.Id()
+			request["TargetIds"] = removedTargetIds
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
+				response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return retry.RetryableError(err)
+					}
+					return retry.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+		}
+
+		if newTargets.Len() > 0 {
+			action := "PutMetricRuleTargets"
+			request = make(map[string]interface{})
+			query = make(map[string]interface{})
+			request["RuleId"] = d.Id()
+
+			targetsMaps := make([]map[string]interface{}, 0)
+			for _, newTarget := range newTargets.List() {
+				newTargetArg := newTarget.(map[string]interface{})
+				targetsMap := map[string]interface{}{
+					"Id":  newTargetArg["target_id"],
+					"Arn": newTargetArg["arn"],
+				}
+				if v, ok := newTargetArg["level"].(string); ok && v != "" {
+					targetsMap["Level"] = v
+				}
+				if v, ok := newTargetArg["json_params"].(string); ok && v != "" {
+					targetsMap["JsonParams"] = v
+				}
+				targetsMaps = append(targetsMaps, targetsMap)
+			}
+			request["Targets"] = targetsMaps
+
+			wait := incrementalWait(3*time.Second, 5*time.Second)
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
+				response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
+				if err != nil {
+					if NeedRetry(err) {
+						wait()
+						return retry.RetryableError(err)
+					}
+					return retry.NonRetryableError(err)
+				}
+				return nil
+			})
+			addDebug(action, response, request)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			}
+
+			// The API answers HTTP 200 with Success=false when it rejects a target, so
+			// the body has to be inspected or a push channel is dropped silently.
+			if fmt.Sprint(response["Success"]) == "false" {
+				return WrapError(fmt.Errorf("%s failed, response: %v", action, response))
+			}
 		}
 	}
 
@@ -1061,14 +1218,14 @@ func resourceAliCloudCloudMonitorServiceMetricAlarmRuleDelete(d *schema.Resource
 	request["Id.1"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

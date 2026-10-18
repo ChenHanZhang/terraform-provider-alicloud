@@ -9,8 +9,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudRosStackGroup() *schema.Resource {
@@ -65,7 +65,7 @@ func resourceAliCloudRosStackGroup() *schema.Resource {
 				Computed: true,
 			},
 			"parameters": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -125,26 +125,6 @@ func resourceAliCloudRosStackGroup() *schema.Resource {
 			"template_version": {
 				Type:     schema.TypeString,
 				Optional: true,
-			},
-			"account_ids": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field `account_ids` has been removed from provider version 1.257.0.",
-			},
-			"operation_description": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field `operation_description` has been removed from provider version 1.257.0.",
-			},
-			"operation_preferences": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field `operation_preferences` has been removed from provider version 1.257.0.",
-			},
-			"region_ids": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field `region_ids` has been removed from provider version 1.257.0.",
 			},
 		},
 	}
@@ -207,7 +187,7 @@ func resourceAliCloudRosStackGroupCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("parameters"); ok {
 		parametersMapsArray := make([]interface{}, 0)
-		for _, dataLoop1 := range v.([]interface{}) {
+		for _, dataLoop1 := range convertToInterfaceArray(v) {
 			if dataLoop1 == nil {
 				continue
 			}
@@ -238,14 +218,14 @@ func resourceAliCloudRosStackGroupCreate(d *schema.ResourceData, meta interface{
 		request["AdministrationRoleName"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("ROS", "2019-09-10", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -394,7 +374,7 @@ func resourceAliCloudRosStackGroupUpdate(d *schema.ResourceData, meta interface{
 		update = true
 		if v, ok := d.GetOk("parameters"); ok || d.HasChange("parameters") {
 			parametersMapsArray := make([]interface{}, 0)
-			for _, dataLoop := range v.([]interface{}) {
+			for _, dataLoop := range convertToInterfaceArray(v) {
 				dataLoopTmp := dataLoop.(map[string]interface{})
 				dataLoopMap := make(map[string]interface{})
 				dataLoopMap["ParameterValue"] = dataLoopTmp["parameter_value"]
@@ -427,14 +407,14 @@ func resourceAliCloudRosStackGroupUpdate(d *schema.ResourceData, meta interface{
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("ROS", "2019-09-10", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -459,14 +439,14 @@ func resourceAliCloudRosStackGroupUpdate(d *schema.ResourceData, meta interface{
 	request["ResourceId"] = d.Get("stack_group_id")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("ROS", "2019-09-10", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -499,15 +479,15 @@ func resourceAliCloudRosStackGroupDelete(d *schema.ResourceData, meta interface{
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("ROS", "2019-09-10", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

@@ -121,6 +121,7 @@ resource "alicloud_kms_instance" "default" {
   payment_type = "Subscription"
 }
 ```
+
 Create a pay-as-you-go kms instance
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
@@ -264,12 +265,18 @@ The following arguments are supported:
 -> **NOTE:** This parameter only applies during resource update. If modified in isolation without other property changes, Terraform will not trigger any action.
 
 * `secret_num` - (Optional, Int) Maximum number of Secrets. The attribute is valid when the attribute `payment_type` is `Subscription`.
-* `spec` - (Optional, Int) The computation performance level of the KMS instance. The attribute is valid when the attribute `payment_type` is `Subscription`.
+* `spec` - (Optional, Int) The computation performance level of the KMS instance. Valid values: `0`, `200`, `1000`, `2000` and `4000`. The attribute is valid when the attribute `payment_type` is `Subscription`. Valid values `1000` and above require a KMS 3.0 instance (`product_version` = `3`): a legacy instance with `spec` = `200` cannot be directly upgraded to a higher spec, and the instance must be upgraded to KMS 3.0 first. For more information, see [How to enable, view, upgrade, and renew KMS instances](https://www.alibabacloud.com/help/en/kms/key-management-service/user-guide/manage-kms-instances).
 * `tags` - (Optional, Map, Available since v1.259.0) The tag of the resource
 * `vpc_id` - (Required, ForceNew) The ID of the virtual private cloud (VPC) that is associated with the KMS instance.
 * `vpc_num` - (Optional, Int) The number of managed accesses. The maximum number of VPCs that can access this KMS instance. The attribute is valid when the attribute `payment_type` is `Subscription`.
-* `vswitch_ids` - (Required, ForceNew, Set) Instance bind vswitches
-* `zone_ids` - (Required, ForceNew, Set) zone id
+* `vswitch_ids` - (Required, ForceNew, List) The IDs of the vSwitches that the KMS instance is bound to. Every vSwitch must reside in a zone declared in `zone_ids`, and that zone must be available for KMS.
+* `zone_ids` - (Required, ForceNew, List) The IDs of the zones in which the KMS instance is deployed. Each zone must be available for KMS.
+
+  -> **NOTE:** A KMS instance is always deployed across two zones, so `zone_ids` must list both of them. Two combinations are supported, written here as the number of `vswitch_ids` to the number of `zone_ids`: `1:2` and `2:2`. With `2:2` the two lists are paired by position - the first zone hosts the first vSwitch, the second zone hosts the second vSwitch - so order them consistently. With a single vSwitch the order carries no meaning, because the API derives that vSwitch's own zone.
+
+  ~> **NOTE:** Do not declare a single zone. The API accepts it and picks the second zone itself, so the created instance spans two zones while the configuration lists one. Since `zone_ids` is `ForceNew`, every subsequent plan then proposes to destroy and recreate the instance, and each new instance is completed the same way. A difference in the number of zones is a real difference, not an ordering one, so it is not suppressed.
+
+  ~> **NOTE:** Since v1.290.0 `vswitch_ids` and `zone_ids` are ordered lists instead of sets. Previously the provider reordered each list independently before submitting it, which could pair a vSwitch with a zone it does not belong to. The change applies to instances created from v1.290.0 on. Existing instances are not replaced by the upgrade and keep the pairing they were created with: the API does not report the order back, so a difference in order alone never produces a diff, and reordering either list in the configuration of an existing instance has no effect. Re-pairing an existing instance means recreating it, with `terraform apply -replace`.
 
 ### `bind_vpcs`
 

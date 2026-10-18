@@ -1,12 +1,13 @@
 package alicloud
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudThreatDetectionCheckConfig() *schema.Resource {
@@ -143,14 +144,14 @@ func resourceAliCloudThreatDetectionCheckConfigCreate(d *schema.ResourceData, me
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -172,14 +173,14 @@ func resourceAliCloudThreatDetectionCheckConfigCreate(d *schema.ResourceData, me
 		}
 		request["RemovedCheck"] = nil
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 			response, err = client.RpcPost("Sas", "2018-12-03", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -228,7 +229,7 @@ func resourceAliCloudThreatDetectionCheckConfigRead(d *schema.ResourceData, meta
 			selectedChecksListMaps = append(selectedChecksListMaps, selectedChecksListMap)
 		}
 	}
-	d.Set("selected_checks", selectedChecksListMaps)
+	d.Set("selected_checks", threatDetectionCheckConfigOrder(selectedChecksListMaps, convertToInterfaceArray(d.Get("selected_checks"))))
 
 	cycleDaysRaw := make([]interface{}, 0)
 	if objectRaw["CycleDays"] != nil {
@@ -247,4 +248,33 @@ func resourceAliCloudThreatDetectionCheckConfigUpdate(d *schema.ResourceData, me
 func resourceAliCloudThreatDetectionCheckConfigDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy resource AliCloud Resource Check Config. Terraform will remove this resource from the state file, however resources may remain.")
 	return nil
+}
+
+// Preserve known members in their existing order and append new API members.
+// Consuming each match once preserves duplicate counts and remote removals.
+func threatDetectionCheckConfigOrder(remote []map[string]interface{}, previous []interface{}) []map[string]interface{} {
+	ordered := make([]map[string]interface{}, 0, len(remote))
+	used := make([]bool, len(remote))
+	key := func(item map[string]interface{}) string {
+		return fmt.Sprintf("%v:%v", item["check_id"], item["section_id"])
+	}
+	for _, raw := range previous {
+		item, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for i, candidate := range remote {
+			if !used[i] && key(item) == key(candidate) {
+				ordered = append(ordered, candidate)
+				used[i] = true
+				break
+			}
+		}
+	}
+	for i, item := range remote {
+		if !used[i] {
+			ordered = append(ordered, item)
+		}
+	}
+	return ordered
 }

@@ -2,12 +2,13 @@ package alicloud
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAlicloudCrEndpointAclService() *schema.Resource {
@@ -21,7 +22,8 @@ func dataSourceAlicloudCrEndpointAclService() *schema.Resource {
 			"endpoint_type": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"internet"}, false),
+				StateFunc:    func(v interface{}) string { return strings.ToLower(v.(string)) },
+				ValidateFunc: validation.StringInSlice([]string{"internet", "Internet"}, false),
 			},
 			"instance_id": {
 				Type:     schema.TypeString,
@@ -46,7 +48,7 @@ func dataSourceAlicloudCrEndpointAclServiceRead(d *schema.ResourceData, meta int
 	action := "UpdateInstanceEndpointStatus"
 	request := make(map[string]interface{})
 	request["Enable"] = d.Get("enable")
-	request["EndpointType"] = d.Get("endpoint_type")
+	request["EndpointType"] = convertCrEndpointType(d.Get("endpoint_type").(string))
 	request["InstanceId"] = d.Get("instance_id")
 	if v, ok := d.GetOk("module_name"); ok {
 		request["ModuleName"] = v
@@ -55,14 +57,14 @@ func dataSourceAlicloudCrEndpointAclServiceRead(d *schema.ResourceData, meta int
 	var response map[string]interface{}
 	var err error
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("cr", "2018-12-01", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -71,8 +73,8 @@ func dataSourceAlicloudCrEndpointAclServiceRead(d *schema.ResourceData, meta int
 		return WrapErrorf(err, DataDefaultErrorMsg, "alicloud_cr_instance_endpoint_acl_service", action, AlibabaCloudSdkGoERROR)
 	}
 
-	d.SetId(fmt.Sprint(request["InstanceId"], ":", request["EndpointType"]))
-	d.Set("endpoint_type", request["EndpointType"])
+	d.SetId(fmt.Sprint(request["InstanceId"], ":", d.Get("endpoint_type").(string)))
+	d.Set("endpoint_type", d.Get("endpoint_type").(string))
 	d.Set("instance_id", request["InstanceId"])
 	d.Set("enable", request["Enable"])
 

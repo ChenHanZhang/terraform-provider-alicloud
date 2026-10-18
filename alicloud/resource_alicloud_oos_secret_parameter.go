@@ -7,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudOosSecretParameter() *schema.Resource {
@@ -123,14 +123,14 @@ func resourceAliCloudOosSecretParameterCreate(d *schema.ResourceData, meta inter
 		request["DKMSInstanceId"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -193,7 +193,13 @@ func resourceAliCloudOosSecretParameterRead(d *schema.ResourceData, meta interfa
 	}
 
 	tagsMaps, _ := jsonpath.Get("$.TagResources.TagResource", objectRaw)
-	d.Set("tags", tagsToMap(tagsMaps))
+	tagResources := make([]interface{}, 0)
+	for _, tagResource := range convertToInterfaceArray(tagsMaps) {
+		if tagResourceMap, ok := tagResource.(map[string]interface{}); ok && fmt.Sprint(tagResourceMap["ResourceId"]) == d.Id() {
+			tagResources = append(tagResources, tagResource)
+		}
+	}
+	d.Set("tags", tagsToMap(tagResources))
 
 	d.Set("secret_parameter_name", d.Id())
 
@@ -240,20 +246,31 @@ func resourceAliCloudOosSecretParameterUpdate(d *schema.ResourceData, meta inter
 	request["Value"] = d.Get("value")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+	}
+
+	if _, ok := request["Tags"]; ok {
+		oosServiceV2 := OosServiceV2{client}
+		expectedTags := make(map[string]interface{})
+		if v, ok := d.Get("tags").(map[string]interface{}); ok {
+			expectedTags = v
+		}
+		if err := oosServiceV2.WaitForOosSecretParameterTagsConverged(d.Id(), expectedTags, d.Timeout(schema.TimeoutUpdate)); err != nil {
+			return WrapError(err)
 		}
 	}
 
@@ -273,15 +290,15 @@ func resourceAliCloudOosSecretParameterDelete(d *schema.ResourceData, meta inter
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

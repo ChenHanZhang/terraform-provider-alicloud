@@ -2,12 +2,11 @@ package alicloud
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudGaBasicAccelerator() *schema.Resource {
@@ -146,14 +145,14 @@ func resourceAliCloudGaBasicAcceleratorCreate(d *schema.ResourceData, meta inter
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -221,7 +220,6 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 		if err := gaService.SetResourceTags(d, "basicaccelerator"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 
 	if d.HasChange("basic_accelerator_name") {
@@ -245,14 +243,14 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -267,8 +265,6 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("basic_accelerator_name")
-		d.SetPartial("description")
 	}
 
 	update = false
@@ -290,14 +286,14 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, updateAcceleratorCrossBorderStatusReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -312,7 +308,6 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
 
-		d.SetPartial("cross_border_status")
 	}
 
 	update = false
@@ -335,14 +330,14 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 		var err error
 
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, changeResourceGroupReq, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -352,7 +347,6 @@ func resourceAliCloudGaBasicAcceleratorUpdate(d *schema.ResourceData, meta inter
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 
-		d.SetPartial("resource_group_id")
 	}
 
 	d.Partial(false)
@@ -378,8 +372,7 @@ func resourceAliCloudGaBasicAcceleratorDelete(d *schema.ResourceData, meta inter
 	}
 
 	if fmt.Sprint(object["InstanceChargeType"]) == "PREPAY" {
-		log.Printf("[WARN] Cannot destroy resourceAliCloudGaBasicAccelerator prepay type. Terraform will remove this resource from the state file, however resources may remain.")
-		return nil
+		return WrapError(Error("'Subscription' instance cannot be destroyed: please unsubscribe it in the console or wait for it to expire. To remove it from the state only, run 'terraform state rm'."))
 	}
 
 	request := map[string]interface{}{
@@ -388,14 +381,14 @@ func resourceAliCloudGaBasicAcceleratorDelete(d *schema.ResourceData, meta inter
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

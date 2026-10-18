@@ -9,9 +9,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cloudapi"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func init() {
@@ -103,9 +103,9 @@ func TestAccAliCloudApigatewayApi_basic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -277,6 +277,97 @@ func TestAccAliCloudApigatewayApi_basic(t *testing.T) {
 	})
 }
 
+func TestAccAliCloudApigatewayApi_appCodeAuthType(t *testing.T) {
+	var api *cloudapi.DescribeApiResponse
+	resourceId := "alicloud_api_gateway_api.default"
+	ra := resourceAttrInit(resourceId, apiGatewayApiMap)
+	serviceFunc := func() interface{} {
+		return &CloudApiService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}
+	rc := resourceCheckInit(resourceId, &api, serviceFunc)
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1000000, 9999999)
+	name := fmt.Sprintf("tf_testAccApiGatewayApi_%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, resourceApigatewayApiConfigDependence)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"name":               "${alicloud_api_gateway_group.default.name}",
+					"group_id":           "${alicloud_api_gateway_group.default.id}",
+					"description":        "tf_testAcc_api description",
+					"auth_type":          "APP",
+					"app_code_auth_type": "HEADER",
+					"request_config": []map[string]string{{
+						"protocol": "HTTP",
+						"method":   "GET",
+						"path":     "/test/path",
+						"mode":     "MAPPING",
+					}},
+					"service_type": "HTTP",
+					"http_service_config": []map[string]string{{
+						"address":   "http://apigateway-backend.alicloudapi.com:8080",
+						"method":    "GET",
+						"path":      "/web/cloudapi",
+						"timeout":   "20",
+						"aone_name": "cloudapi-openapi",
+					}},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"app_code_auth_type": "HEADER",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"app_code_auth_type": "HEADER_QUERY",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"app_code_auth_type": "HEADER_QUERY",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"app_code_auth_type": "DISABLE",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"app_code_auth_type": "DISABLE",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"app_code_auth_type": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"app_code_auth_type": "DISABLE",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
 func TestAccAliCloudApigatewayApi_param(t *testing.T) {
 	var api *cloudapi.DescribeApiResponse
 	resourceId := "alicloud_api_gateway_api.default"
@@ -296,9 +387,9 @@ func TestAccAliCloudApigatewayApi_param(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -449,9 +540,9 @@ func TestAccAliCloudApigatewayApi_post(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -558,9 +649,9 @@ func TestAccAliCloudApigatewayApi_convertBackend(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -667,9 +758,9 @@ func TestAccAliCloudApigatewayApi_vpc(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -770,9 +861,9 @@ func TestAccAliCloudApigatewayApi_fc(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, false, connectivity.FcNoSupportedRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -884,9 +975,9 @@ func TestAccAliCloudApigatewayApi_fc2(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, false, connectivity.FcNoSupportedRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -943,7 +1034,7 @@ func TestAccAliCloudApigatewayApi_fc2(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"fc_service_config": []map[string]string{{
-						"function_version":      "2.0",
+						"function_version":      "3.0",
 						"function_type":         "HttpTrigger",
 						"function_base_url":     "http://apigateway-update.alicloudapi.com/fcapp.run/",
 						"path":                  "/test/path/fc/update",
@@ -959,7 +1050,7 @@ func TestAccAliCloudApigatewayApi_fc2(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"name":                                      name,
-						"fc_service_config.0.function_version":      "2.0",
+						"fc_service_config.0.function_version":      "3.0",
 						"fc_service_config.0.function_type":         "HttpTrigger",
 						"fc_service_config.0.function_base_url":     "http://apigateway-update.alicloudapi.com/fcapp.run/",
 						"fc_service_config.0.path":                  "/test/path/fc/update",
@@ -1002,9 +1093,9 @@ func TestAccAliCloudApigatewayApi_fc3(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, false, connectivity.FcNoSupportedRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1152,9 +1243,9 @@ func TestAccAliCloudApigatewayApi_convertFc(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, false, connectivity.FcNoSupportedRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 
 			{
@@ -1256,9 +1347,9 @@ func TestAccAliCloudApigatewayApi_multi(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1317,9 +1408,9 @@ func TestAccAliCloudApigatewayApi_mock(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, false, connectivity.FcNoSupportedRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

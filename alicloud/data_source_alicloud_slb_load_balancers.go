@@ -8,25 +8,15 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAlicloudSlbLoadBalancers() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceAlicloudSlbLoadBalancersRead,
 		Schema: map[string]*schema.Schema{
-			"master_availability_zone": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field 'master_availability_zone' has removed from v1.123.1 and replace by 'master_zone_id'.",
-			},
-			"slave_availability_zone": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field 'slave_availability_zone' has removed from v1.123.1 and replace by 'slave_zone_id'.",
-			},
 			"address": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -170,6 +160,10 @@ func dataSourceAlicloudSlbLoadBalancers() *schema.Resource {
 						},
 						"bandwidth": {
 							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"create_time": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"create_time_stamp": {
@@ -485,14 +479,14 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 	var err error
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Slb", "2014-05-15", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -530,7 +524,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 	}
 	ids := make([]string, 0)
 	names := make([]interface{}, 0)
-	s := make([]map[string]interface{}, 0)
+	balancers := make([]map[string]interface{}, 0)
 	slbs := make([]map[string]interface{}, 0)
 	for _, v := range objects {
 		object := v.(map[string]interface{})
@@ -538,6 +532,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 			"address":                        object["Address"],
 			"address_ip_version":             object["AddressIPVersion"],
 			"address_type":                   object["AddressType"],
+			"create_time":                    object["CreateTime"],
 			"create_time_stamp":              formatInt(object["CreateTimeStamp"]),
 			"id":                             fmt.Sprint(object["LoadBalancerId"]),
 			"load_balancer_id":               fmt.Sprint(object["LoadBalancerId"]),
@@ -580,7 +575,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 			"vswitch_id":               object["VSwitchId"],
 			"address":                  object["Address"],
 			"internet":                 fmt.Sprint(object["NetworkType"]) == strings.ToLower(string(Internet)),
-			"creation_time":            object["CreationTime"],
+			"creation_time":            object["CreateTime"],
 			"tags":                     tags,
 		}
 		slbs = append(slbs, slb)
@@ -588,7 +583,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 		if detailedEnabled := d.Get("enable_details"); !detailedEnabled.(bool) {
 			ids = append(ids, fmt.Sprint(object["LoadBalancerId"]))
 			names = append(names, object["LoadBalancerName"])
-			s = append(s, mapping)
+			balancers = append(balancers, mapping)
 			continue
 		}
 
@@ -657,7 +652,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 		mapping["renewal_status"] = getResp["RenewalStatus"]
 		ids = append(ids, fmt.Sprint(object["LoadBalancerId"]))
 		names = append(names, object["LoadBalancerName"])
-		s = append(s, mapping)
+		balancers = append(balancers, mapping)
 	}
 
 	d.SetId(dataResourceIdHash(ids))
@@ -669,7 +664,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 		return WrapError(err)
 	}
 
-	if err := d.Set("balancers", s); err != nil {
+	if err := d.Set("balancers", balancers); err != nil {
 		return WrapError(err)
 	}
 	if err := d.Set("slbs", slbs); err != nil {
@@ -679,7 +674,7 @@ func dataSourceAlicloudSlbLoadBalancersRead(d *schema.ResourceData, meta interfa
 		return WrapError(err)
 	}
 	if output, ok := d.GetOk("output_file"); ok && output.(string) != "" {
-		writeToFile(output.(string), s)
+		writeToFile(output.(string), balancers)
 	}
 
 	return nil

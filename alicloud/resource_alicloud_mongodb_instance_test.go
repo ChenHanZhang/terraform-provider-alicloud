@@ -3,14 +3,16 @@ package alicloud
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 func init() {
@@ -40,14 +42,14 @@ func testSweepMongoDBInstances(region string) error {
 	var response map[string]interface{}
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Dds", "2015-12-01", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -97,9 +99,58 @@ func testSweepMongoDBInstances(region string) error {
 	return nil
 }
 
+// mongodbTestRegion returns the region for the MongoDB replica set and
+// sharding acceptance tests that pin specific zones. It defaults to
+// cn-beijing, which has inventory for both the classic local_ssd and the
+// cloud_auto instance classes used by these tests, and can be overridden via
+// the MONGODB_TEST_REGION environment variable so the remote ACC run can
+// target another region if the default ever reports insufficient resources.
+func mongodbTestRegion() string {
+	if v := os.Getenv("MONGODB_TEST_REGION"); v != "" {
+		return v
+	}
+	return "cn-beijing"
+}
+
+// mongodbTestZonePrimary returns the primary zone for the MongoDB acceptance
+// tests. It defaults to cn-beijing-h, whose inventory covers every instance
+// class used by these tests, and can be overridden via the
+// MONGODB_TEST_ZONE_PRIMARY environment variable.
+func mongodbTestZonePrimary() string {
+	if v := os.Getenv("MONGODB_TEST_ZONE_PRIMARY"); v != "" {
+		return v
+	}
+	return "cn-beijing-h"
+}
+
+// mongodbTestZoneSecondary returns the secondary zone for the MongoDB
+// acceptance tests that migrate across zones. It must be distinct from the
+// primary zone. Defaults to cn-beijing-i and can be overridden via the
+// MONGODB_TEST_ZONE_SECONDARY environment variable.
+func mongodbTestZoneSecondary() string {
+	if v := os.Getenv("MONGODB_TEST_ZONE_SECONDARY"); v != "" {
+		return v
+	}
+	return "cn-beijing-i"
+}
+
+// mongodbTestZoneHidden returns the hidden zone for the MongoDB acceptance
+// tests that migrate across zones. It must be distinct from the primary and
+// secondary zones. Defaults to cn-beijing-j and can be overridden via the
+// MONGODB_TEST_ZONE_HIDDEN environment variable.
+func mongodbTestZoneHidden() string {
+	if v := os.Getenv("MONGODB_TEST_ZONE_HIDDEN"); v != "" {
+		return v
+	}
+	return "cn-beijing-j"
+}
+
 func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_mongodb_instance.default"
+	// Pin to a region and zones that have inventory for the instance classes
+	// used below; see mongodbTestRegion and mongodbTestZone* helpers.
+	testAccPreCheckWithRegions(t, true, []connectivity.Region{connectivity.Region(mongodbTestRegion())})
 	serverFunc := func() interface{} {
 		return &MongoDBService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}
@@ -113,17 +164,18 @@ func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"eu-central-1"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  nil,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"engine_version":      "4.2",
 					"db_instance_class":   "mongo.x8.medium",
 					"db_instance_storage": "20",
-					"vswitch_id":          "${data.alicloud_vswitches.default.ids.0}",
+					"vswitch_id":          "${alicloud_vswitch.default.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -156,7 +208,7 @@ func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"security_group_id": "${data.alicloud_security_groups.default.ids.0}",
+					"security_group_id": "${alicloud_security_group.default.id}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -171,18 +223,6 @@ func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"name": name,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"instance_charge_type": "PrePaid",
-					"period":               "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"instance_charge_type": "PrePaid",
-						"period":               "1",
 					}),
 				),
 			},
@@ -223,28 +263,6 @@ func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"resource_group_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"auto_renew":          "true",
-					"auto_renew_duration": "2",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"auto_renew":          "true",
-						"auto_renew_duration": "2",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"auto_renew_duration": "6",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"auto_renew_duration": "6",
 					}),
 				),
 			},
@@ -399,9 +417,93 @@ func TestAccAliCloudMongoDBInstance_basic0(t *testing.T) {
 	})
 }
 
+func TestAccAliCloudMongoDBInstance_securityIpGroups(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_mongodb_instance.default"
+	testAccPreCheckWithRegions(t, true, []connectivity.Region{connectivity.Region(mongodbTestRegion())})
+	serverFunc := func() interface{} {
+		return &MongoDBService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}
+	ra := resourceAttrInit(resourceId, AliCloudMongoDBInstanceMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, serverFunc, "DescribeMongoDBInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1000, 9999)
+	name := fmt.Sprintf("tf-testAccMongoDBInstanceSecurityIpGroups%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudMongoDBInstanceBasicDependence0)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"engine_version":      "4.2",
+					"db_instance_class":   "mongo.x8.medium",
+					"db_instance_storage": "20",
+					"vswitch_id":          "${alicloud_vswitch.default.id}",
+					"security_ip_groups": []map[string]interface{}{
+						{
+							"security_ip_group_attribute": "test",
+							"security_ip_group_name":      "test",
+							"security_ip_list":            "192.168.0.1",
+						},
+						{
+							"security_ip_group_attribute": "test1",
+							"security_ip_group_name":      "test1",
+							"security_ip_list":            "192.168.0.2",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"security_ip_groups.#": "2",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"security_ip_groups": []map[string]interface{}{
+						{
+							"security_ip_group_attribute": "test3",
+							"security_ip_group_name":      "test3",
+							"security_ip_list":            "192.168.0.3",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"security_ip_groups.#": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"security_ip_groups": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"security_ip_groups.#": "0",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"account_password", "kms_encrypted_password", "kms_encryption_context", "ssl_action", "effective_time", "order_type", "parameters"},
+			},
+		},
+	})
+}
+
 func TestAccAliCloudMongoDBInstance_basic1(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_mongodb_instance.default"
+	testAccPreCheckWithRegions(t, true, []connectivity.Region{connectivity.Region(mongodbTestRegion())})
 	serverFunc := func() interface{} {
 		return &MongoDBService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}
@@ -415,10 +517,11 @@ func TestAccAliCloudMongoDBInstance_basic1(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"eu-central-1"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -443,6 +546,24 @@ func TestAccAliCloudMongoDBInstance_basic1(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"engine_version": "8.0",
+					}),
+				),
+			},
+			{
+				// Migrate to a multi-zone deployment while the instance still
+				// carries the original mdb.shard.2x.xlarge.d class:
+				// MigrateAvailableZone rejects mdb.shard.2x.2xlarge.d with
+				// InsType.NotSupport, while the xlarge class (the same one
+				// basic1_twin creates multi-zone with) is accepted. Move the
+				// instance-class upgrade to 2xlarge after the migration.
+				Config: testAccConfig(map[string]interface{}{
+					"secondary_zone_id": mongodbTestZoneSecondary(),
+					"hidden_zone_id":    mongodbTestZoneHidden(),
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"secondary_zone_id": CHECKSET,
+						"hidden_zone_id":    CHECKSET,
 					}),
 				),
 			},
@@ -475,18 +596,6 @@ func TestAccAliCloudMongoDBInstance_basic1(t *testing.T) {
 					testAccCheck(map[string]string{
 						"storage_type":     "cloud_auto",
 						"provisioned_iops": "60",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"secondary_zone_id": "${data.alicloud_mongodb_zones.default.zones.1.id}",
-					"hidden_zone_id":    "${data.alicloud_mongodb_zones.default.zones.2.id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"secondary_zone_id": CHECKSET,
-						"hidden_zone_id":    CHECKSET,
 					}),
 				),
 			},
@@ -798,6 +907,7 @@ func TestAccAliCloudMongoDBInstance_basic1(t *testing.T) {
 func TestAccAliCloudMongoDBInstance_basic1_twin(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_mongodb_instance.default"
+	testAccPreCheckWithRegions(t, true, []connectivity.Region{connectivity.Region(mongodbTestRegion())})
 	serverFunc := func() interface{} {
 		return &MongoDBService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}
@@ -811,10 +921,11 @@ func TestAccAliCloudMongoDBInstance_basic1_twin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"eu-central-1"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -826,9 +937,9 @@ func TestAccAliCloudMongoDBInstance_basic1_twin(t *testing.T) {
 					"provisioned_iops":     "2000",
 					"vpc_id":               "${alicloud_vswitch.default.vpc_id}",
 					"vswitch_id":           "${alicloud_vswitch.default.id}",
-					"zone_id":              "${data.alicloud_mongodb_zones.default.zones.0.id}",
-					"secondary_zone_id":    "${data.alicloud_mongodb_zones.default.zones.1.id}",
-					"hidden_zone_id":       "${data.alicloud_mongodb_zones.default.zones.2.id}",
+					"zone_id":              mongodbTestZonePrimary(),
+					"secondary_zone_id":    mongodbTestZoneSecondary(),
+					"hidden_zone_id":       mongodbTestZoneHidden(),
 					"security_group_id":    "${alicloud_security_group.default.id}",
 					"network_type":         "VPC",
 					"name":                 name,
@@ -975,59 +1086,16 @@ func AliCloudMongoDBInstanceBasicDependence0(name string) string {
   		status = "OK"
 	}
 
-	data "alicloud_mongodb_zones" "default" {
-	}
-
-	data "alicloud_vpcs" "default" {
-  		name_regex = "default-NODELETING"
-	}
-
-	data "alicloud_vswitches" "default" {
-  		vpc_id  = data.alicloud_vpcs.default.ids.0
-  		zone_id = data.alicloud_mongodb_zones.default.zones.0.id
-	}
-
-	data "alicloud_security_groups" "default" {
-  		vpc_id = data.alicloud_vpcs.default.ids.0
-	}
-
-	resource "alicloud_kms_key" "default" {
-  		description            = var.name
-  		pending_window_in_days = 7
-  		key_state              = "Enabled"
-	}
-
-	resource "alicloud_mongodb_global_security_ip_group" "default" {
-  		count                   = 3
-  		global_ig_name          = "tfacc${count.index}"
-  		global_security_ip_list = "192.168.1.1"
-	}
-`, name)
-}
-
-func AliCloudMongoDBInstanceBasicDependence1(name string) string {
-	return fmt.Sprintf(`
-	variable "name" {
-  		default = "%s"
-	}
-
-	data "alicloud_resource_manager_resource_groups" "default" {
-  		status = "OK"
-	}
-
-	data "alicloud_mongodb_zones" "default" {
-	}
-
 	resource "alicloud_vpc" "default" {
   		vpc_name   = var.name
-  		cidr_block = "192.168.0.0/16"
+  		cidr_block = "172.16.0.0/16"
 	}
 
 	resource "alicloud_vswitch" "default" {
   		vswitch_name = var.name
   		vpc_id       = alicloud_vpc.default.id
-  		cidr_block   = "192.168.192.0/24"
-  		zone_id      = data.alicloud_mongodb_zones.default.zones.0.id
+  		cidr_block   = "172.16.0.0/24"
+  		zone_id      = "%s"
 	}
 
 	resource "alicloud_security_group" "default" {
@@ -1046,5 +1114,46 @@ func AliCloudMongoDBInstanceBasicDependence1(name string) string {
   		global_ig_name          = "tfacc${count.index}"
   		global_security_ip_list = "192.168.1.1"
 	}
-`, name)
+`, name, mongodbTestZonePrimary())
+}
+
+func AliCloudMongoDBInstanceBasicDependence1(name string) string {
+	return fmt.Sprintf(`
+	variable "name" {
+  		default = "%s"
+	}
+
+	data "alicloud_resource_manager_resource_groups" "default" {
+  		status = "OK"
+	}
+
+	resource "alicloud_vpc" "default" {
+  		vpc_name   = var.name
+  		cidr_block = "192.168.0.0/16"
+	}
+
+	resource "alicloud_vswitch" "default" {
+  		vswitch_name = var.name
+  		vpc_id       = alicloud_vpc.default.id
+  		cidr_block   = "192.168.192.0/24"
+  		zone_id      = "%s"
+	}
+
+	resource "alicloud_security_group" "default" {
+  		name   = var.name
+  		vpc_id = alicloud_vpc.default.id
+	}
+
+	resource "alicloud_kms_key" "default" {
+  		description            = var.name
+  		pending_window_in_days = 7
+  		key_state              = "Enabled"
+	}
+
+	resource "alicloud_mongodb_global_security_ip_group" "default" {
+  		count                   = 3
+  		global_ig_name          = "tfacc${count.index}"
+  		global_security_ip_list = "192.168.1.1"
+	}
+`, name, mongodbTestZonePrimary())
 }

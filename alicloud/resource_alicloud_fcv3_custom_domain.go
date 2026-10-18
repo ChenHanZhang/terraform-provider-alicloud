@@ -7,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudFcv3CustomDomain() *schema.Resource {
@@ -78,6 +78,12 @@ func resourceAliCloudFcv3CustomDomain() *schema.Resource {
 						},
 					},
 				},
+			},
+			"certificate_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"cert_config.0.certificate", "cert_config.0.private_key"},
 			},
 			"cors_config": {
 				Type:     schema.TypeList,
@@ -384,7 +390,27 @@ func resourceAliCloudFcv3CustomDomainCreate(d *schema.ResourceData, meta interfa
 	}
 	certConfig := make(map[string]interface{})
 
-	if v := d.Get("cert_config"); !IsNil(v) {
+	if certId, ok := d.GetOk("certificate_id"); ok {
+		// Resolve the certificate and private key from the SSL Certificates
+		// Service (CAS) certificate referenced by certificate_id and assemble
+		// the FC certConfig. The resolved private key is never persisted to
+		// state (see resourceAliCloudFcv3CustomDomainRead).
+		sslCertService := SslCertificatesServiceServiceV2{client}
+		certDetail, err := sslCertService.DescribeSslCertificatesServiceCertificate(certId.(string))
+		if err != nil {
+			return WrapError(err)
+		}
+		if v := certDetail["Cert"]; v != nil && v != "" {
+			certConfig["certificate"] = v
+		}
+		if v := certDetail["Key"]; v != nil && v != "" {
+			certConfig["privateKey"] = v
+		}
+		if v := certDetail["Name"]; v != nil && v != "" {
+			certConfig["certName"] = v
+		}
+		request["certConfig"] = certConfig
+	} else if v := d.Get("cert_config"); !IsNil(v) {
 		certName1, _ := jsonpath.Get("$[0].cert_name", v)
 		if certName1 != nil && certName1 != "" {
 			certConfig["certName"] = certName1
@@ -475,14 +501,14 @@ func resourceAliCloudFcv3CustomDomainCreate(d *schema.ResourceData, meta interfa
 
 	body = request
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RoaPost("FC", "2023-03-30", action, query, nil, body, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -863,11 +889,27 @@ func resourceAliCloudFcv3CustomDomainUpdate(d *schema.ResourceData, meta interfa
 		request["protocol"] = d.Get("protocol")
 	}
 
-	if d.HasChange("cert_config") {
+	if d.HasChange("cert_config") || d.HasChange("certificate_id") {
 		update = true
 		certConfig := make(map[string]interface{})
 
-		if v := d.Get("cert_config"); v != nil {
+		if certId, ok := d.GetOk("certificate_id"); ok {
+			sslCertService := SslCertificatesServiceServiceV2{client}
+			certDetail, err := sslCertService.DescribeSslCertificatesServiceCertificate(certId.(string))
+			if err != nil {
+				return WrapError(err)
+			}
+			if v := certDetail["Cert"]; v != nil && v != "" {
+				certConfig["certificate"] = v
+			}
+			if v := certDetail["Key"]; v != nil && v != "" {
+				certConfig["privateKey"] = v
+			}
+			if v := certDetail["Name"]; v != nil && v != "" {
+				certConfig["certName"] = v
+			}
+			request["certConfig"] = certConfig
+		} else if v := d.Get("cert_config"); v != nil {
 			certName1, _ := jsonpath.Get("$[0].cert_name", v)
 			if certName1 != nil && certName1 != "" {
 				certConfig["certName"] = certName1
@@ -942,14 +984,14 @@ func resourceAliCloudFcv3CustomDomainUpdate(d *schema.ResourceData, meta interfa
 	body = request
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RoaPut("FC", "2023-03-30", action, query, header, body, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -974,14 +1016,14 @@ func resourceAliCloudFcv3CustomDomainDelete(d *schema.ResourceData, meta interfa
 	request = make(map[string]interface{})
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RoaDelete("FC", "2023-03-30", action, query, nil, nil, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"429"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

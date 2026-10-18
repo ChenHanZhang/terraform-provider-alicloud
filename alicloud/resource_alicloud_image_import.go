@@ -1,13 +1,14 @@
 package alicloud
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudImageImport() *schema.Resource {
@@ -104,6 +105,22 @@ func resourceAliCloudImageImport() *schema.Resource {
 					},
 				},
 			},
+			"features": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"nvme_support": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: StringInSlice([]string{"supported", "unsupported"}, false),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -142,6 +159,17 @@ func resourceAliCloudImageImportCreate(d *schema.ResourceData, meta interface{})
 		request.Description = v.(string)
 	}
 
+	// Handle features including NVMe support
+	if v, ok := d.GetOk("features"); ok {
+		featuresList := v.([]interface{})
+		if len(featuresList) > 0 {
+			featuresMap := featuresList[0].(map[string]interface{})
+			if nvmeSupport, ok := featuresMap["nvme_support"]; ok && nvmeSupport.(string) != "" {
+				request.QueryParams["Features.NvmeSupport"] = nvmeSupport.(string)
+			}
+		}
+	}
+
 	diskDeviceMappings := d.Get("disk_device_mapping")
 	diskDeviceMappingsMaps := make([]ecs.ImportImageDiskDeviceMapping, 0)
 	for _, diskDeviceMappingsList := range diskDeviceMappings.([]interface{}) {
@@ -177,16 +205,16 @@ func resourceAliCloudImageImportCreate(d *schema.ResourceData, meta interface{})
 	var raw interface{}
 	var err error
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		raw, err = client.WithEcsClient(func(ecsClient *ecs.Client) (interface{}, error) {
 			return ecsClient.ImportImage(request)
 		})
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -234,6 +262,15 @@ func resourceAliCloudImageImportRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("disk_device_mapping", diskDeviceMappings)
 
+	// Set features
+	featuresMaps := make([]map[string]interface{}, 0)
+	featuresMap := make(map[string]interface{})
+	if object.Features.NvmeSupport != "" {
+		featuresMap["nvme_support"] = object.Features.NvmeSupport
+		featuresMaps = append(featuresMaps, featuresMap)
+		d.Set("features", featuresMaps)
+	}
+
 	return nil
 }
 
@@ -245,7 +282,38 @@ func resourceAliCloudImageImportUpdate(d *schema.ResourceData, meta interface{})
 		return WrapError(err)
 	}
 
-	return resourceAliCloudImageRead(d, meta)
+	// ModifyImageAttribute is eventually consistent: the updated attributes
+	// may not be immediately visible to DescribeImages. Poll until the
+	// updated image_name, description and features.nvme_support are visible,
+	// otherwise a stale value read back into state fails the update
+	// verification.
+	if d.HasChange("image_name") || d.HasChange("description") || d.HasChange("features") {
+		wait := incrementalWait(1*time.Second, 2*time.Second)
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
+			object, err := ecsService.DescribeImageById(d.Id())
+			if err != nil {
+				return retry.NonRetryableError(WrapError(err))
+			}
+			if v, ok := d.GetOk("image_name"); ok && object.ImageName != v.(string) {
+				wait()
+				return retry.RetryableError(fmt.Errorf("expected image name %q is not visible yet, got %q", v.(string), object.ImageName))
+			}
+			if v, ok := d.GetOk("description"); ok && object.Description != v.(string) {
+				wait()
+				return retry.RetryableError(fmt.Errorf("expected image description %q is not visible yet, got %q", v.(string), object.Description))
+			}
+			if v, ok := d.GetOk("features.0.nvme_support"); ok && object.Features.NvmeSupport != v.(string) {
+				wait()
+				return retry.RetryableError(fmt.Errorf("expected nvme_support %q is not visible yet, got %q", v.(string), object.Features.NvmeSupport))
+			}
+			return nil
+		})
+		if err != nil {
+			return WrapError(err)
+		}
+	}
+
+	return resourceAliCloudImageImportRead(d, meta)
 }
 
 func resourceAliCloudImageImportDelete(d *schema.ResourceData, meta interface{}) error {

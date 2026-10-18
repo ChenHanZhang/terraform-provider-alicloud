@@ -1,4 +1,3 @@
-// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -8,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudEcsDisk() *schema.Resource {
@@ -23,7 +22,7 @@ func resourceAliCloudEcsDisk() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(15 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
@@ -70,9 +69,10 @@ func resourceAliCloudEcsDisk() *schema.Resource {
 				Optional: true,
 			},
 			"enable_auto_snapshot": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "This field is deprecated. The automatic snapshot policy feature is enabled by default for a cloud disk after it is created. To use the automatic snapshot policy, apply one to the cloud disk.",
 			},
 			"encrypt_algorithm": {
 				Type:     schema.TypeString,
@@ -182,11 +182,6 @@ func resourceAliCloudEcsDisk() *schema.Resource {
 				Deprecated:    "Field `name` has been deprecated from provider version 1.122.0. New field `disk_name` instead.",
 				ConflictsWith: []string{"disk_name"},
 			},
-			"dedicated_block_storage_cluster_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Field `dedicated_block_storage_cluster_id` is unavailable and it has been removed since 1.208.0.",
-			},
 		},
 	}
 }
@@ -268,18 +263,15 @@ func resourceAliCloudEcsDiskCreate(d *schema.ResourceData, meta interface{}) err
 		request["AdvancedFeatures"] = v
 	}
 
-	if v, ok := d.GetOk("dedicated_block_storage_cluster_id"); ok {
-		request["DedicatedBlockStorageClusterId"] = v
-	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ServiceUnavailable", "UnknownError", "LastTokenProcessing"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -402,6 +394,11 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+	// needBurstingPost defers the BurstingEnabled API call to after ModifyDiskSpec +
+	// WaitForState when category is being changed to cloud_auto in the same apply.
+	// BurstingEnabled is only valid on cloud_auto disks (OpenAPI returns an error if
+	// specified on a disk that does not support performance burst).
+	needBurstingPost := false
 	d.Partial(true)
 
 	action := "ModifyDiskAttribute"
@@ -446,20 +443,30 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if !d.IsNewResource() && d.HasChange("bursting_enabled") {
-		update = true
-		request["BurstingEnabled"] = d.Get("bursting_enabled")
+		// When category is being changed to cloud_auto in the same apply, the disk is
+		// still on its previous category (e.g. cloud_essd) at this point, so setting
+		// BurstingEnabled here would fail. Defer it to after ModifyDiskSpec +
+		// WaitForState so the disk is already cloud_auto. When category is unchanged
+		// or transitions away from cloud_auto, setting it here is safe because the
+		// disk is still cloud_auto at this point when disabling the burst feature.
+		if d.HasChange("category") && d.Get("category").(string) == "cloud_auto" {
+			needBurstingPost = true
+		} else {
+			update = true
+			request["BurstingEnabled"] = d.Get("bursting_enabled")
+		}
 	}
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -485,14 +492,14 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"LastTokenProcessing", "InternalError"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -517,14 +524,14 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	request["ResourceType"] = "disk"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if IsExpectedErrors(err, []string{"InternalError"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -550,8 +557,18 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if !d.IsNewResource() && d.HasChange("provisioned_iops") {
-		update = true
-		request["ProvisionedIops"] = d.Get("provisioned_iops")
+		// ProvisionedIops is only valid on cloud_auto disks. When category is
+		// transitioning to a non-cloud_auto value, ModifyDiskSpec rejects
+		// ProvisionedIops (any value, including 0) with
+		// ProvisionedIopsForDiskCategoryUnsupported; the disk's ProvisionedIops
+		// is implicitly cleared by the category change, so skip the explicit
+		// set in that case. When category is unchanged or transitions to
+		// cloud_auto, the target category supports ProvisionedIops and the
+		// direct set is safe.
+		if !d.HasChange("category") || d.Get("category").(string) == "cloud_auto" {
+			update = true
+			request["ProvisionedIops"] = d.Get("provisioned_iops")
+		}
 	}
 
 	if update {
@@ -559,14 +576,14 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 			request["DryRun"] = d.Get("dry_run")
 		}
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"ServiceUnavailable", "Throttling.ConcurrentLimitExceeded"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"ServiceUnavailable", "Throttling.ConcurrentLimitExceeded", "DiskInCoolingPeriod"}) || NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -578,6 +595,33 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 		stateConf := BuildStateConf([]string{}, []string{"Available", "In_use"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, ecsServiceV2.EcsDiskStateRefreshFunc(d.Id(), "Status", []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
+		}
+	}
+	// Deferred BurstingEnabled set: category has just been changed to cloud_auto and
+	// WaitForState confirmed the disk is now cloud_auto, so BurstingEnabled is valid.
+	if needBurstingPost {
+		update = true
+		action = "ModifyDiskAttribute"
+		request = make(map[string]interface{})
+		query = make(map[string]interface{})
+		request["DiskId"] = d.Id()
+		request["RegionId"] = client.RegionId
+		request["BurstingEnabled"] = d.Get("bursting_enabled")
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
+			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
 	}
 	update = false
@@ -595,14 +639,14 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -621,7 +665,6 @@ func resourceAliCloudEcsDiskUpdate(d *schema.ResourceData, meta interface{}) err
 		if err := ecsServiceV2.SetResourceTags(d, "disk"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 	d.Partial(false)
 	return resourceAliCloudEcsDiskRead(d, meta)
@@ -653,15 +696,15 @@ func resourceAliCloudEcsDiskDelete(d *schema.ResourceData, meta interface{}) err
 	request["DiskId"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"IncorrectDiskStatus.Initializing"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

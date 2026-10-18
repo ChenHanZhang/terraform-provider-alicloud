@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type KmsServiceV2 struct {
@@ -30,15 +30,15 @@ func (s *KmsServiceV2) DescribeKmsInstance(id string) (object map[string]interfa
 	action := "GetKmsInstance"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -87,13 +87,13 @@ func (s *KmsServiceV2) DescribeInstanceQueryAvailableInstances(d *schema.Resourc
 	action := "QueryAvailableInstances"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				request["ProductCode"] = "kms"
@@ -103,9 +103,9 @@ func (s *KmsServiceV2) DescribeInstanceQueryAvailableInstances(d *schema.Resourc
 					request["ProductType"] = "kms_ppi_public_intl"
 				}
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -138,15 +138,15 @@ func (s *KmsServiceV2) DescribeInstanceListTagResources(id string) (object map[s
 	action := "ListTagResources"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -161,11 +161,11 @@ func (s *KmsServiceV2) DescribeInstanceListTagResources(id string) (object map[s
 	return response, nil
 }
 
-func (s *KmsServiceV2) KmsInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsInstanceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.KmsInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeKmsInstance)
 }
 
-func (s *KmsServiceV2) KmsInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -210,15 +210,15 @@ func (s *KmsServiceV2) DescribeKmsNetworkRule(id string) (object map[string]inte
 	query["Name"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, false)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -234,7 +234,7 @@ func (s *KmsServiceV2) DescribeKmsNetworkRule(id string) (object map[string]inte
 	return response, nil
 }
 
-func (s *KmsServiceV2) KmsNetworkRuleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsNetworkRuleStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeKmsNetworkRule(id)
 		if err != nil {
@@ -270,15 +270,15 @@ func (s *KmsServiceV2) DescribeKmsPolicy(id string) (object map[string]interface
 	query["Name"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, false)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -294,7 +294,7 @@ func (s *KmsServiceV2) DescribeKmsPolicy(id string) (object map[string]interface
 	return response, nil
 }
 
-func (s *KmsServiceV2) KmsPolicyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsPolicyStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeKmsPolicy(id)
 		if err != nil {
@@ -330,15 +330,15 @@ func (s *KmsServiceV2) DescribeKmsClientKey(id string) (object map[string]interf
 	query["ClientKeyId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcGet("Kms", "2016-01-20", action, query, request)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -354,7 +354,7 @@ func (s *KmsServiceV2) DescribeKmsClientKey(id string) (object map[string]interf
 	return response, nil
 }
 
-func (s *KmsServiceV2) KmsClientKeyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsClientKeyStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeKmsClientKey(id)
 		if err != nil {
@@ -390,15 +390,15 @@ func (s *KmsServiceV2) DescribeKmsApplicationAccessPoint(id string) (object map[
 	query["Name"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, false)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -414,7 +414,7 @@ func (s *KmsServiceV2) DescribeKmsApplicationAccessPoint(id string) (object map[
 	return response, nil
 }
 
-func (s *KmsServiceV2) KmsApplicationAccessPointStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsApplicationAccessPointStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeKmsApplicationAccessPoint(id)
 		if err != nil {
@@ -448,15 +448,15 @@ func (s *KmsServiceV2) DescribeKmsKey(id string) (object map[string]interface{},
 	query = make(map[string]interface{})
 	request["KeyId"] = id
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -483,7 +483,7 @@ func (s *KmsServiceV2) DescribeKmsKey(id string) (object map[string]interface{},
 	return object, nil
 }
 
-func (s *KmsServiceV2) KmsKeyStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsKeyStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeKmsKey(id)
 		if err != nil {
@@ -522,14 +522,14 @@ func (s *KmsServiceV2) DescribeKmsKeyPolicy(id string) (object map[string]interf
 		"KeyId": id,
 	}
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Kms", "2016-01-20", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -581,19 +581,19 @@ func (s *KmsServiceV2) ListTagResources(id string, resourceType string) (object 
 
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Kms", "2016-01-20", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			v, err := jsonpath.Get("$.TagResources.TagResource", response)
 			if err != nil {
-				return resource.NonRetryableError(WrapErrorf(err, FailedGetAttributeMsg, id, "$.TagResources.TagResource", response))
+				return retry.NonRetryableError(WrapErrorf(err, FailedGetAttributeMsg, id, "$.TagResources.TagResource", response))
 			}
 
 			if v != nil {
@@ -656,14 +656,14 @@ func (s *KmsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			}
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -698,14 +698,14 @@ func (s *KmsServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			}
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Kms", "2016-01-20", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -734,20 +734,20 @@ func (s *KmsServiceV2) DescribeKmsValueAddedService(id string) (object map[strin
 	action := "QueryAvailableInstances"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, request, true, endpoint)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				request["ProductType"] = "kms_ddi_public_intl"
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -768,11 +768,91 @@ func (s *KmsServiceV2) DescribeKmsValueAddedService(id string) (object map[strin
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
-func (s *KmsServiceV2) KmsValueAddedServiceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+// ListKmsValueAddedServiceInstancesByPrefix returns the KMS instances in the client's region whose id
+// carries the given prefix. Each value added service mints its instance ids with a prefix of its own,
+// so for a service whose prefix is not shared with another KMS product the prefix is the only way to
+// tell from a read which service an instance belongs to: QueryAvailableInstances reports no service
+// field, and QueryInstanceBill names it only as locale-dependent display text that lags hours behind
+// the purchase.
+//
+// The instances are returned whole rather than as ids because a prefix match alone says nothing about
+// whether the service is in effect. The list also carries instances that hold nothing - a refunded
+// order lingers in Creating for minutes, and an expired one is still listed - so callers that mean
+// "does the account hold this" have to filter on status themselves.
+//
+// Region is deliberately not sent - BssOpenApi resolves it against the account's station and silently
+// returns an empty list when it disagrees, so the region is applied to the response instead. PageSize
+// is capped server-side regardless of what is asked for, hence the paging.
+func (s *KmsServiceV2) ListKmsValueAddedServiceInstancesByPrefix(prefix string) (instances []map[string]interface{}, err error) {
+	client := s.client
+	var response map[string]interface{}
+	var endpoint string
+	action := "QueryAvailableInstances"
+
+	request := map[string]interface{}{
+		"ProductCode": "kms",
+		"PageNum":     1,
+		"PageSize":    PageSizeLarge,
+	}
+
+	for {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+			response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, request, true, endpoint)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
+					endpoint = connectivity.BssOpenAPIEndpointInternational
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			return nil, WrapErrorf(err, DefaultErrorMsg, "alicloud_kms_value_added_service", action, AlibabaCloudSdkGoERROR)
+		}
+
+		// BssOpenApi reports business failures in the response body with a 200 status code.
+		if fmt.Sprint(response["Success"]) != "true" {
+			return nil, WrapError(Error("%s failed, response: %v", action, response))
+		}
+
+		v, err := jsonpath.Get("$.Data.InstanceList", response)
+		if err != nil {
+			return nil, WrapErrorf(err, FailedGetAttributeMsg, action, "$.Data.InstanceList", response)
+		}
+		result, _ := v.([]interface{})
+		for _, item := range result {
+			instance, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if fmt.Sprint(instance["Region"]) != client.RegionId {
+				continue
+			}
+			if strings.HasPrefix(fmt.Sprint(instance["InstanceID"]), prefix) {
+				instances = append(instances, instance)
+			}
+		}
+		if len(result) < request["PageSize"].(int) {
+			break
+		}
+		request["PageNum"] = request["PageNum"].(int) + 1
+	}
+
+	return instances, nil
+}
+
+func (s *KmsServiceV2) KmsValueAddedServiceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.KmsValueAddedServiceStateRefreshFuncWithApi(id, field, failStates, s.DescribeKmsValueAddedService)
 }
 
-func (s *KmsServiceV2) KmsValueAddedServiceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *KmsServiceV2) KmsValueAddedServiceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {

@@ -71,7 +71,7 @@ resource "alicloud_realtime_compute_vvp_instance" "default" {
 
 resource "alicloud_realtime_compute_deployment" "create_Deployment9" {
   deployment_name = "tf-example-deployment-sql-56"
-  engine_version  = "vvr-8.0.10-flink-1.17"
+  engine_version  = "vvr-8.0.11-flink-1.17"
   resource_id     = alicloud_realtime_compute_vvp_instance.default.resource_id
   execution_mode  = "STREAMING"
   deployment_target {
@@ -250,7 +250,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Realtime Compute Deployment can be imported using the id, e.g.
+Realtime Compute Deployment can be imported using the id, which consists of resource_id, namespace and deployment_id, e.g.
 
 ```shell
 $ terraform import alicloud_realtime_compute_deployment.example <resource_id>:<namespace>:<deployment_id>

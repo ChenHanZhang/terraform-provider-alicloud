@@ -1,13 +1,15 @@
 package alicloud
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cr_ee"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAlicloudCrEEInstances() *schema.Resource {
@@ -28,6 +30,7 @@ func dataSourceAlicloudCrEEInstances() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"tags": tagsSchema(),
 
 			// Computed values
 			"ids": {
@@ -96,6 +99,11 @@ func dataSourceAlicloudCrEEInstances() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"tags": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -106,6 +114,7 @@ func dataSourceAlicloudCrEEInstances() *schema.Resource {
 func dataSourceAlicloudCrEEInstancesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	crService := &CrService{client}
+	crServiceV2 := CrServiceV2{client}
 	pageNo := 1
 	pageSize := 50
 
@@ -163,31 +172,61 @@ func dataSourceAlicloudCrEEInstancesRead(d *schema.ResourceData, meta interface{
 		instanceMaps []map[string]interface{}
 	)
 
+	tagsFilter, tagsFilterSet := d.GetOk("tags")
+
 	for _, instance := range instances {
+		instanceTags, err := crServiceV2.ListCrInstanceTags(instance.InstanceId)
+		if err != nil {
+			return WrapError(err)
+		}
+
+		if tagsFilterSet {
+			matched := true
+			for key, value := range tagsFilter.(map[string]interface{}) {
+				if v, ok := instanceTags[key]; !ok || fmt.Sprint(v) != fmt.Sprint(value) {
+					matched = false
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+
 		usageResp, err := crService.GetCrEEInstanceUsage(instance.InstanceId)
 		if err != nil {
 			return WrapError(err)
 		}
 		endpointResp, err := crService.ListCrEEInstanceEndpoint(instance.InstanceId)
 		if err != nil {
-			return WrapError(err)
+			// INSTANCE_STATUS_NOT_SUPPORT (the instance does not support managed public/VPC
+			// endpoints, e.g. retired instances) and INSTANCE_NOT_EXIST are per-instance
+			// conditions: the instance was enumerated by ListInstance, so it exists; the
+			// managed-endpoint feature is simply unavailable for it. Keep the instance in
+			// state with empty endpoint fields instead of dropping it or failing the read.
+			if !(IsExpectedErrors(err, []string{"INSTANCE_NOT_EXIST"}) || strings.Contains(err.Error(), "INSTANCE_STATUS_NOT_SUPPORT")) {
+				return WrapError(err)
+			}
+			endpointResp = nil
 		}
 
 		var (
 			publicDomains []string
 			vpcDomains    []string
 		)
-		for _, endpoint := range endpointResp.Endpoints {
-			if !endpoint.Enable {
-				continue
-			}
-			if endpoint.EndpointType == "internet" {
-				for _, d := range endpoint.Domains {
-					publicDomains = append(publicDomains, d.Domain)
+		if endpointResp != nil {
+			for _, endpoint := range endpointResp.Endpoints {
+				if !endpoint.Enable {
+					continue
 				}
-			} else if endpoint.EndpointType == "vpc" {
-				for _, d := range endpoint.Domains {
-					vpcDomains = append(vpcDomains, d.Domain)
+				if endpoint.EndpointType == "internet" {
+					for _, d := range endpoint.Domains {
+						publicDomains = append(publicDomains, d.Domain)
+					}
+				} else if endpoint.EndpointType == "vpc" {
+					for _, d := range endpoint.Domains {
+						vpcDomains = append(vpcDomains, d.Domain)
+					}
 				}
 			}
 		}
@@ -203,6 +242,7 @@ func dataSourceAlicloudCrEEInstancesRead(d *schema.ResourceData, meta interface{
 		mapping["repo_usage"] = usageResp.RepoUsage
 		mapping["vpc_endpoints"] = vpcDomains
 		mapping["public_endpoints"] = publicDomains
+		mapping["tags"] = instanceTags
 
 		ids = append(ids, instance.InstanceId)
 		names = append(names, instance.InstanceName)

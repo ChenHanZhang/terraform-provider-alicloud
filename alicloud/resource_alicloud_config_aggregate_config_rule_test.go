@@ -15,9 +15,10 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,14 +50,14 @@ func testSweepConfigAggregateConfigRule(region string) error {
 	var response map[string]interface{}
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcGet("Config", "2020-09-07", action, request, nil)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -104,14 +105,14 @@ func testSweepConfigAggregateConfigRule(region string) error {
 		}
 		for {
 			wait := incrementalWait(3*time.Second, 3*time.Second)
-			err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 				response, err = client.RpcGet("Config", "2020-09-07", action, request, nil)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -149,14 +150,14 @@ func testSweepConfigAggregateConfigRule(region string) error {
 				"ConfigRuleIds": strings.Join(configRuleIds, ","),
 			}
 			wait := incrementalWait(3*time.Second, 3*time.Second)
-			err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 				response, err = client.RpcPost("Config", "2020-09-07", action, nil, deleteRequest, false)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -187,9 +188,9 @@ func TestAccAliCloudConfigAggregateConfigRule_basic(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.TestSalveRegions)
 		},
 
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -197,36 +198,40 @@ func TestAccAliCloudConfigAggregateConfigRule_basic(t *testing.T) {
 					"aggregator_id":              "${alicloud_config_aggregator.default.id}",
 					"config_rule_trigger_types":  "ConfigurationItemChangeNotification",
 					"source_owner":               "ALIYUN",
-					"source_identifier":          "ecs-cpu-min-count-limit",
+					"source_identifier":          "required-tags",
 					"risk_level":                 `1`,
-					"resource_types_scope":       []string{"ACS::ECS::Instance"},
+					"resource_types_scope":       []string{"ACS::ECS::Instance", "ACS::ECS::Disk"},
 					"input_parameters": map[string]string{
-						"cpuCount": "4",
+						"tag1Key":   "terraform",
+						"tag1Value": "terraform",
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"aggregate_config_rule_name": name,
 						"risk_level":                 "1",
-						"resource_types_scope.#":     "1",
+						"resource_types_scope.#":     "2",
 						"config_rule_trigger_types":  "ConfigurationItemChangeNotification",
 						"source_owner":               "ALIYUN",
-						"source_identifier":          "ecs-cpu-min-count-limit",
-						"input_parameters.%":         "1",
-						"input_parameters.cpuCount":  "4",
+						"source_identifier":          "required-tags",
+						"input_parameters.%":         "2",
+						"input_parameters.tag1Key":   "terraform",
+						"input_parameters.tag1Value": "terraform",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"input_parameters": map[string]string{
-						"cpuCount": "3",
+						"tag1Key":   "terraform",
+						"tag1Value": "update",
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"input_parameters.%":        "1",
-						"input_parameters.cpuCount": "3",
+						"input_parameters.%":         "2",
+						"input_parameters.tag1Key":   "terraform",
+						"input_parameters.tag1Value": "update",
 					}),
 				),
 			},
@@ -303,7 +308,8 @@ func TestAccAliCloudConfigAggregateConfigRule_basic(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"input_parameters": map[string]string{
-						"cpuCount": "4",
+						"tag1Key":   "terraform",
+						"tag1Value": "terraform",
 					},
 					"description":                name,
 					"risk_level":                 `1`,
@@ -312,28 +318,41 @@ func TestAccAliCloudConfigAggregateConfigRule_basic(t *testing.T) {
 					"resource_group_ids_scope":   "${data.alicloud_resource_manager_resource_groups.default.ids.1}",
 					"tag_key_scope":              "tftest",
 					"tag_value_scope":            "tfTest 123",
+					"resource_types_scope":       []string{"ACS::ECS::Instance", "ACS::ECS::Disk"},
+					"exclude_tags_scope": []map[string]interface{}{
+						{"tag_key": "tftest", "tag_value": "tfTest 123"},
+					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"input_parameters.%":         "1",
-						"input_parameters.cpuCount":  "4",
-						"description":                name,
-						"risk_level":                 "1",
-						"exclude_resource_ids_scope": CHECKSET,
-						"region_ids_scope":           "cn-shanghai",
-						"resource_group_ids_scope":   CHECKSET,
-						"tag_key_scope":              "tftest",
-						"tag_value_scope":            "tfTest 123",
+						"input_parameters.%":             "2",
+						"input_parameters.tag1Key":       "terraform",
+						"input_parameters.tag1Value":     "terraform",
+						"description":                    name,
+						"risk_level":                     "1",
+						"exclude_resource_ids_scope":     CHECKSET,
+						"region_ids_scope":               "cn-shanghai",
+						"resource_group_ids_scope":       CHECKSET,
+						"tag_key_scope":                  "tftest",
+						"tag_value_scope":                "tfTest 123",
+						"resource_types_scope.#":         "2",
+						"exclude_tags_scope.#":           "1",
+						"exclude_tags_scope.0.tag_key":   "tftest",
+						"exclude_tags_scope.0.tag_value": "tfTest 123",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"config_rule_trigger_types": "ConfigurationItemChangeNotification,ScheduledNotification",
+					"config_rule_trigger_types":   "ConfigurationItemChangeNotification,ScheduledNotification",
+					"maximum_execution_frequency": "Twelve_Hours",
+					"resource_types_scope":        []string{"ACS::ECS::Instance"},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"config_rule_trigger_types": "ConfigurationItemChangeNotification,ScheduledNotification",
+						"config_rule_trigger_types":   "ConfigurationItemChangeNotification,ScheduledNotification",
+						"maximum_execution_frequency": "Twelve_Hours",
+						"resource_types_scope.#":      "1",
 					}),
 				),
 			},
@@ -363,9 +382,9 @@ func TestAccAliCloudConfigAggregateConfigRule_status(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, connectivity.TestSalveRegions)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -527,9 +546,9 @@ func SkipTestAccAliCloudConfigAggregateConfigRule_basic1(t *testing.T) {
 			testAccPreCheckEnterpriseAccountEnabled(t)
 		},
 
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -737,7 +756,7 @@ resource "alicloud_config_aggregator" "default" {
 
 // lintignore: R001
 func TestUnitAliCloudConfigAggregateConfigRule(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_config_aggregate_config_rule"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_config_aggregate_config_rule"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()

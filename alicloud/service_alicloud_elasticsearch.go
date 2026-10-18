@@ -3,7 +3,6 @@ package alicloud
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type ElasticsearchService struct {
@@ -24,14 +23,14 @@ func (s *ElasticsearchService) DescribeElasticsearchInstance(id string) (object 
 	var response map[string]interface{}
 	client := s.client
 	action := "DescribeInstance"
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGetWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", id), nil, nil, nil)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"QPS Limit Exceeded"}) || NeedRetry(err) {
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			addDebug(action, response, nil)
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, nil)
 		return nil
@@ -57,7 +56,7 @@ func (s *ElasticsearchService) DescribeElasticsearchInstance(id string) (object 
 	return object, WrapError(err)
 }
 
-func (s *ElasticsearchService) ElasticsearchStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+func (s *ElasticsearchService) ElasticsearchStateRefreshFunc(id string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeElasticsearchInstance(id)
 		if err != nil {
@@ -82,15 +81,15 @@ func (s *ElasticsearchService) ElasticsearchRetryFunc(wait func(), errorCodeList
 	var raw interface{}
 	var err error
 
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		raw, err = s.client.WithElasticsearchClient(do)
 
 		if err != nil {
 			if IsExpectedErrors(err, errorCodeList) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 
 		return nil
@@ -110,14 +109,14 @@ func (s *ElasticsearchService) TriggerNetwork(d *schema.ResourceData, content ma
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/actions/network-trigger", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InternalServerError"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -167,9 +166,15 @@ func (s *ElasticsearchService) getKibanaPvlNetworkInfo(id string) (interface{}, 
 		return nil
 	})
 
-	instanceMap := jsonToMap(listKibanaPvlNetworkResp.GetHttpContentString())
-	resultMap := instanceMap["Result"]
-	return resultMap, err
+	if err != nil {
+		return nil, err
+	}
+
+	instanceMap, err := jsonToMap(listKibanaPvlNetworkResp.GetHttpContentString())
+	if err != nil {
+		return nil, WrapError(err)
+	}
+	return instanceMap["Result"], nil
 }
 
 func (s *ElasticsearchService) updateKibanaPrivatePvlNetwork(d *schema.ResourceData, content map[string]interface{}, meta interface{}) error {
@@ -190,14 +195,10 @@ func (s *ElasticsearchService) updateKibanaPrivatePvlNetwork(d *schema.ResourceD
 		return WrapErrorf(err, "get kibana pvl info error %s", d.Id())
 	}
 
-	pvlInfoArr := pvlInfoInterface.([]interface{})
-
-	if len(pvlInfoArr) == 0 {
-		return WrapErrorf(err, "get kibana pvl info empty %s", d.Id())
+	pvlId, err := parseKibanaPvlId(pvlInfoInterface)
+	if err != nil {
+		return WrapErrorf(err, "get kibana pvl info error %s", d.Id())
 	}
-
-	pvlInfo := pvlInfoArr[0]
-	pvlId := pvlInfo.(map[string]interface{})["pvlId"].(string)
 	updateKibanaPvlNetworkReq.QueryParams["pvlId"] = pvlId
 
 	// retry
@@ -311,14 +312,14 @@ func (s *ElasticsearchService) ModifyWhiteIps(d *schema.ResourceData, content ma
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/actions/modify-white-ips", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InternalServerError"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, nil)
 		return nil
@@ -407,14 +408,14 @@ func updateDescription(d *schema.ResourceData, meta interface{}) error {
 		"clientToken": StringPointer(buildClientToken(action)),
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/description", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"GetCustomerLabelFail"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, nil)
 		return nil
@@ -592,19 +593,19 @@ func setRenewalInstance(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 		renewalResponse, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, nil, setRenewalReq, false, endpoint)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				setRenewalReq["ProductType"] = "elasticsearchpre_intl"
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -630,14 +631,14 @@ func updateDataNodeAmount(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPutWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -681,14 +682,14 @@ func updateDataNodeSpec(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPutWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -741,14 +742,14 @@ func updateMasterNode(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPutWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -782,7 +783,6 @@ func updatePassword(d *schema.ResourceData, meta interface{}) error {
 		return WrapError(Error("One of the 'password' and 'kms_encrypted_password' should be set."))
 	}
 	if password != "" {
-		d.SetPartial("password")
 		content["esAdminPassword"] = password
 	} else {
 		kmsService := KmsService{meta.(*connectivity.AliyunClient)}
@@ -791,8 +791,6 @@ func updatePassword(d *schema.ResourceData, meta interface{}) error {
 			return WrapError(err)
 		}
 		content["esAdminPassword"] = decryptResp
-		d.SetPartial("kms_encrypted_password")
-		d.SetPartial("kms_encryption_context")
 	}
 	requestQuery := map[string]*string{
 		"clientToken": StringPointer(buildClientToken(action)),
@@ -800,14 +798,14 @@ func updatePassword(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/admin-pwd", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -871,14 +869,14 @@ func updateClientNode(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPutWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -969,14 +967,14 @@ func updateKibanaNode(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPutWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s", d.Id()), requestQuery, nil, content, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, content)
 		return nil
@@ -1010,14 +1008,14 @@ func openHttps(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/actions/open-https", d.Id()), requestQuery, nil, nil, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, nil)
 		return nil
@@ -1050,14 +1048,14 @@ func closeHttps(d *schema.ResourceData, meta interface{}) error {
 
 	// retry
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err := client.RoaPostWithApiName("elasticsearch", "2017-06-13", action, fmt.Sprintf("/openapi/instances/%s/actions/close-https", d.Id()), requestQuery, nil, nil, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, nil)
 		return nil
@@ -1077,13 +1075,61 @@ func closeHttps(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func jsonToMap(content string) map[string]interface{} {
+func jsonToMap(content string) (map[string]interface{}, error) {
 	var dataMap map[string]interface{}
 
-	err := json.Unmarshal([]byte(content), &dataMap)
-	if err != nil {
-		log.Fatalf("parse json to map error: %v", err)
+	if err := json.Unmarshal([]byte(content), &dataMap); err != nil {
+		return nil, WrapError(err)
 	}
 
-	return dataMap
+	return dataMap, nil
+}
+
+// parseKibanaPvlId safely extracts the pvlId from the ListKibanaPvlNetwork response
+// Result. It returns an error instead of panicking when the response shape is
+// unexpected (nil/non-array Result, empty array, non-object item, or missing/non-string pvlId).
+func parseKibanaPvlId(result interface{}) (string, error) {
+	pvlInfoArr, ok := result.([]interface{})
+	if !ok {
+		return "", WrapError(fmt.Errorf("unexpected kibana pvl network response: Result is not a list, got %T", result))
+	}
+
+	if len(pvlInfoArr) == 0 {
+		return "", WrapError(fmt.Errorf("kibana pvl network info is empty"))
+	}
+
+	pvlInfoMap, ok := pvlInfoArr[0].(map[string]interface{})
+	if !ok {
+		return "", WrapError(fmt.Errorf("unexpected kibana pvl network response: item is not an object, got %T", pvlInfoArr[0]))
+	}
+
+	pvlId, ok := pvlInfoMap["pvlId"].(string)
+	if !ok {
+		return "", WrapError(fmt.Errorf("unexpected kibana pvl network response: pvlId is missing or not a string"))
+	}
+
+	return pvlId, nil
+}
+
+// parseKibanaPvlResult safely extracts the first item of the ListKibanaPvlNetwork
+// response Result. It returns an error instead of panicking on an unchecked type
+// assertion when the response shape is unexpected (nil/non-array Result or
+// non-object first item); an empty Result returns (nil, nil) so the caller keeps
+// its NotFound semantics.
+func parseKibanaPvlResult(result interface{}) (map[string]interface{}, error) {
+	pvlInfoArr, ok := result.([]interface{})
+	if !ok {
+		return nil, WrapError(fmt.Errorf("unexpected kibana pvl network response: Result is not a list, got %T", result))
+	}
+
+	if len(pvlInfoArr) == 0 {
+		return nil, nil
+	}
+
+	pvlInfoMap, ok := pvlInfoArr[0].(map[string]interface{})
+	if !ok {
+		return nil, WrapError(fmt.Errorf("unexpected kibana pvl network response: item is not an object, got %T", pvlInfoArr[0]))
+	}
+
+	return pvlInfoMap, nil
 }

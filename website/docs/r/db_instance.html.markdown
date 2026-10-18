@@ -17,6 +17,8 @@ For information about RDS and how to use it, see [What is ApsaraDB for RDS](http
 
 -> **NOTE:** Available since v1.155.0.
 
+-> **NOTE:** Destroying a `PrePaid` instance fails with an error since v2.1.0. To destroy it, set `force_delete` to `true` to convert the instance to `PostPaid` before deletion, or convert it by setting `instance_charge_type` to `PostPaid` and re-applying. To remove the instance from the state only, run `terraform state rm`.
+
 ## Example Usage
 
 ### Create RDS MySQL instance
@@ -141,6 +143,7 @@ resource "alicloud_db_instance" "example" {
   }
 }
 ```
+
 ### Create a High Availability RDS MySQL Instance
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
@@ -267,6 +270,7 @@ resource "alicloud_db_instance" "example" {
 ```
 
 ### Create an Enterprise Edition RDS MySQL Instance
+
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
   <a href="https://api.aliyun.com/terraform?resource=alicloud_db_instance&exampleId=d6a43bad-8e5c-dc3e-ce0e-598136e9cdbb2315fbe8&activeTab=example&spm=docs.r.db_instance.4.d6a43bad8e&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
@@ -525,9 +529,9 @@ resource "alicloud_db_instance" "example" {
 
 ### Deleting `alicloud_db_instance` or removing it from your configuration
 
-The `alicloud_db_instance` resource allows you to manage `instance_charge_type = "Prepaid"` db instance, but Terraform cannot destroy it.
-Deleting the subscription resource or removing it from your configuration will remove it from your state file and management, but will not destroy the DB Instance.
-You can resume managing the subscription db instance via the AlibabaCloud Console.
+By default, the `alicloud_db_instance` resource cannot destroy a `Prepaid` (Subscription) DB instance. Deleting the resource or removing it from your configuration will remove it from the state file and management, but will not destroy the DB Instance. You can resume managing the subscription db instance via the AlibabaCloud Console.
+
+To destroy a Subscription DB instance, set `force_delete = true` on the resource. Terraform will first convert the instance from `PrePaid` to `PostPaid` (settling the remaining subscription period) and then delete it. This conversion has billing consequences, so it must be enabled explicitly.
 
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_db_instance&spm=docs.r.db_instance.example&intl_lang=EN_US)
 
@@ -539,8 +543,8 @@ The following arguments are supported:
 
 -> **NOTE:** When the 'engine_version' changes, it can be used as the target database version for the large version upgrade of RDS for MySQL instance.
 * `engine_version` - (Required) Database version. Value options can refer to the latest docs [CreateDBInstance](https://www.alibabacloud.com/help/doc-detail/26228.htm) `EngineVersion`.
-  - MySQL: [ 5.5、5.6、5.7、8.0 ]
-  - SQLServer: [ 2008r2、08r2_ent_ha、2012、2012_ent_ha、2012_std_ha、2012_web、2014_std_ha、2016_ent_ha、2016_std_ha、2016_web、2017_std_ha、2017_ent、2019_std_ha、2019_ent ]
+  - MySQL: [ 5.5、5.6、5.7、8.0、8.4 ]
+  - SQLServer: [ 2008r2、08r2_ent_ha、2012、2012_ent_ha、2012_std_ha、2012_web、2014_std_ha、2016_ent_ha、2016_std_ha、2016_web、2017_std_ha、2017_ent、2019_std_ha、2019_ent、2022_web、2022_std_ha、2022_ent、2025_std、2025_ent ]
   - PostgreSQL: [ 10.0、11.0、12.0、13.0、14.0、15.0 ]
   - MariaDB: [ 10.3 ]
   **Serverless**
@@ -599,6 +603,7 @@ The following arguments are supported:
 * `resource_group_id` (Optional, Computed, Available since v1.86.0, Modifiable in 1.115.0) The ID of resource group which the DB instance belongs.
 * `period` - (Optional) The duration that you will buy DB instance (in month). It is valid when instance_charge_type is `PrePaid`. Valid values: [1~9], 12, 24, 36.
   -> **NOTE:** The attribute `period` is only used to create Subscription instance or modify the PayAsYouGo instance to Subscription. Once effect, it will not be modified that means running `terraform apply` will not effect the resource.
+* `force_delete` - (Optional) Used to forcibly delete a `PrePaid` (Subscription) RDS instance. When set to `true`, the instance is converted to `PostPaid` before deletion, which settles the remaining subscription period. Default to `false`. It only takes effect when `instance_charge_type` is `Prepaid`.
 * `monitoring_period` - (Optional) The monitoring frequency in seconds. Valid values are 5, 10, 60, 300. Defaults to 300.
 * `auto_renew` - (Optional, Available since v1.34.0) Whether to renewal a DB instance automatically or not. It is valid when instance_charge_type is `PrePaid`. Default to `false`.
 * `auto_renew_period` - (Optional, Available since v1.34.0) Auto-renewal period of an instance, in the unit of the month. It is valid when instance_charge_type is `PrePaid`. Valid value:[1~12], Default to 1.
@@ -694,10 +699,10 @@ The following arguments are supported:
 
 -> **NOTE:** When creating an instance and enabling disk encryption, the value of encryption_key can only be a Key ID; it cannot be a ServiceKey. After the instance is created, you can manage the disk encryption using: ServiceKey, Key ID, or disabled.
 * `encryption_key` - (Optional, Available since v1.109.0) The key id of the KMS. Used for encrypting a disk if not null. Only for PostgreSQL, MySQL and SQLServer.
-   When the instance is PostgreSQL, this parameter can be used to enable, modify, and disable cloud disk encryption.Value range:
-   - ServiceKey: Enable disk encryption using the service-managed key (Default Service CMK) automatically generated by Alibaba Cloud RDS.
-   - <Key ID>: Use a custom key to enable cloud disk encryption or change the current key. For example: 494c98ce-f2b5-48ab-96ab-36c986b6****.
-   - disabled: Turn off cloud disk encryption.
+  When the instance is PostgreSQL, this parameter can be used to enable, modify, and disable cloud disk encryption.Value range:
+  - ServiceKey: Enable disk encryption using the service-managed key (Default Service CMK) automatically generated by Alibaba Cloud RDS.
+  - <Key ID>: Use a custom key to enable cloud disk encryption or change the current key. For example: 494c98ce-f2b5-48ab-96ab-36c986b6****.
+  - disabled: Turn off cloud disk encryption.
 -> **NOTE:** This parameter is available when the instance runs MySQL.
 * `tde_encryption_key` - (Optional, Available since v1.240.0) The ID of the custom key.
 * `ca_type` - (Optional, Available since v1.124.1) The type of the server certificate. This parameter is supported only when the instance runs PostgreSQL or MySQL with standard or enhanced SSDs. If you set the SSLEnabled parameter to 1, the default value of this parameter is aliyun. **NOTE:** From version 1.231.0, `ca_type` start  support `MySQL` engine. Value range:
@@ -927,6 +932,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 * `delete` - (Defaults to 30 mins) Used when terminating the db instance.
 
 -> **NOTE:** If the current instance is an instance of SqlServer _std_ha Standard Edition, you are advised to set the Timeouts time to 100 minutes when releasing the instance.
+
 ## Import
 
 RDS instance can be imported using the id, e.g.

@@ -7,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudRamSecurityPreference() *schema.Resource {
@@ -159,14 +159,14 @@ func resourceAliCloudRamSecurityPreferenceCreate(d *schema.ResourceData, meta in
 		request["MaxIdleDaysForUsers"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ims", "2019-08-15", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -263,8 +263,8 @@ func resourceAliCloudRamSecurityPreferenceUpdate(d *schema.ResourceData, meta in
 
 	if d.HasChange("login_session_duration") {
 		update = true
-		request["LoginSessionDuration"] = d.Get("login_session_duration")
 	}
+	request["LoginSessionDuration"] = d.Get("login_session_duration")
 
 	if d.HasChange("max_idle_days_for_access_keys") {
 		update = true
@@ -306,8 +306,8 @@ func resourceAliCloudRamSecurityPreferenceUpdate(d *schema.ResourceData, meta in
 
 	if d.HasChange("login_network_masks") {
 		update = true
-		request["LoginNetworkMasks"] = d.Get("login_network_masks")
 	}
+	request["LoginNetworkMasks"] = d.Get("login_network_masks")
 
 	if d.HasChange("allow_user_to_login_with_passkey") {
 		update = true
@@ -331,14 +331,14 @@ func resourceAliCloudRamSecurityPreferenceUpdate(d *schema.ResourceData, meta in
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ims", "2019-08-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})

@@ -7,9 +7,9 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAlicloudExpressConnectVirtualBorderRouters() *schema.Resource {
@@ -59,6 +59,11 @@ func dataSourceAlicloudExpressConnectVirtualBorderRouters() *schema.Resource {
 			"output_file": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"tags": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"routers": {
 				Type:     schema.TypeList,
@@ -193,6 +198,11 @@ func dataSourceAlicloudExpressConnectVirtualBorderRouters() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"tags": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -213,6 +223,16 @@ func dataSourceAlicloudExpressConnectVirtualBorderRoutersRead(d *schema.Resource
 				request[fmt.Sprintf("Filter.%d.Value.%d", filterPtr+1, valuePtr+1)] = value
 			}
 		}
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		tags := make([]map[string]interface{}, 0)
+		for key, value := range v.(map[string]interface{}) {
+			tags = append(tags, map[string]interface{}{
+				"Key":   key,
+				"Value": value.(string),
+			})
+		}
+		request = expandTagsToMapWithTags(request, tags)
 	}
 	request["RegionId"] = client.RegionId
 	request["PageSize"] = PageSizeLarge
@@ -241,14 +261,14 @@ func dataSourceAlicloudExpressConnectVirtualBorderRoutersRead(d *schema.Resource
 	var err error
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -319,6 +339,8 @@ func dataSourceAlicloudExpressConnectVirtualBorderRoutersRead(d *schema.Resource
 			"vlan_id":                             formatInt(object["VlanId"]),
 			"vlan_interface_id":                   object["VlanInterfaceId"],
 		}
+		tagsMaps, _ := jsonpath.Get("$.Tags.Tags", object)
+		mapping["tags"] = tagsToMap(tagsMaps)
 		ids = append(ids, fmt.Sprint(mapping["id"]))
 		names = append(names, object["Name"])
 		s = append(s, mapping)

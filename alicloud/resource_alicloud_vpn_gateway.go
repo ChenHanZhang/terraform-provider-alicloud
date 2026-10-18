@@ -10,9 +10,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/blues/jsonata-go"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAliCloudVPNGatewayVPNGateway() *schema.Resource {
@@ -224,16 +224,15 @@ func resourceAliCloudVPNGatewayVPNGatewayCreate(d *schema.ResourceData, meta int
 		request["Period"] = requests.NewInteger(v.(int))
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"OperationFailed.SslNotSupport"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -338,16 +337,15 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
-			request["ClientToken"] = buildClientToken(action)
 
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -360,9 +358,6 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
-		d.SetPartial("description")
-		d.SetPartial("auto_propagate")
-		d.SetPartial("vpn_gateway_name")
 	}
 	update = false
 	action = "MoveVpnResourceGroup"
@@ -378,15 +373,15 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 	request["ResourceType"] = "VpnGateWay"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -394,7 +389,6 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		d.SetPartial("resource_group_id")
 	}
 
 	if d.HasChange("tags") {
@@ -402,7 +396,6 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 		if err := vPNGatewayServiceV2.SetResourceTags(d, "VpnGateWay"); err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("tags")
 	}
 	d.Partial(false)
 	return resourceAliCloudVPNGatewayVPNGatewayRead(d, meta)
@@ -411,8 +404,7 @@ func resourceAliCloudVPNGatewayVPNGatewayUpdate(d *schema.ResourceData, meta int
 func resourceAliCloudVPNGatewayVPNGatewayDelete(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("payment_type"); ok {
 		if v == "Subscription" {
-			log.Printf("[WARN] Cannot destroy resource alicloud_vpn_gateway which payment_type valued Subscription. Terraform will remove this resource from the state file, however resources may remain.")
-			return nil
+			return WrapError(Error("'Subscription' instance cannot be destroyed: please unsubscribe it in the console or wait for it to expire. To remove it from the state only, run 'terraform state rm'."))
 		}
 	}
 	client := meta.(*connectivity.AliyunClient)
@@ -428,16 +420,15 @@ func resourceAliCloudVPNGatewayVPNGatewayDelete(d *schema.ResourceData, meta int
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
-		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"VpnGateway.Configuring"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil

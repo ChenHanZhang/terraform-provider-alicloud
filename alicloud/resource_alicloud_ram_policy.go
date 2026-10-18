@@ -8,9 +8,9 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAliCloudRamPolicy() *schema.Resource {
@@ -188,14 +188,14 @@ func resourceAliCloudRamPolicyCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -305,14 +305,14 @@ func resourceAliCloudRamPolicyUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -334,14 +334,14 @@ func resourceAliCloudRamPolicyUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -381,26 +381,30 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		listAction := "ListEntitiesForPolicy"
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", listAction, nil, listRequest, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
 		addDebug(listAction, response, listRequest)
 
 		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			if IsExpectedErrors(err, []string{"EntityNotExist.Policy"}) || NotFoundError(err) {
+				return nil
+			}
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), listAction, AlibabaCloudSdkGoERROR)
 		}
 
-		userResp, err := jsonpath.Get("$.Users.User", response)
+		listResponse := response
+		userResp, err := jsonpath.Get("$.Users.User", listResponse)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Users.User", response)
+			return WrapErrorf(err, FailedGetAttributeMsg, listAction, "$.Users.User", listResponse)
 		}
 		if userResp != nil && len(userResp.([]interface{})) > 0 {
 			for _, v := range userResp.([]interface{}) {
@@ -411,31 +415,31 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 					"PolicyType": "Custom",
 				}
 				wait := incrementalWait(3*time.Second, 3*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 					response, err = client.RpcPost("Ram", "2015-05-01", userAction, nil, userRequest, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
-				addDebug(action, response, userRequest)
+				addDebug(userAction, response, userRequest)
 
 				if err != nil {
-					if IsExpectedErrors(err, []string{"EntityNotExist"}) || NotFoundError(err) {
-						return nil
+					if IsExpectedErrors(err, []string{"EntityNotExist", "EntityNotExist.User", "EntityNotExist.User.Policy", "EntityNotExist.Policy"}) || NotFoundError(err) {
+						continue
 					}
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), userAction, AlibabaCloudSdkGoERROR)
 				}
 			}
 		}
 
-		groupResp, err := jsonpath.Get("$.Groups.Group", response)
+		groupResp, err := jsonpath.Get("$.Groups.Group", listResponse)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Groups.Group", response)
+			return WrapErrorf(err, FailedGetAttributeMsg, listAction, "$.Groups.Group", listResponse)
 		}
 		if groupResp != nil && len(groupResp.([]interface{})) > 0 {
 			for _, v := range groupResp.([]interface{}) {
@@ -446,31 +450,31 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 					"PolicyType": "Custom",
 				}
 				wait := incrementalWait(3*time.Second, 3*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 					response, err = client.RpcPost("Ram", "2015-05-01", groupAction, nil, groupRequest, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
-				addDebug(action, response, groupRequest)
+				addDebug(groupAction, response, groupRequest)
 
 				if err != nil {
-					if IsExpectedErrors(err, []string{"EntityNotExist"}) || NotFoundError(err) {
-						return nil
+					if IsExpectedErrors(err, []string{"EntityNotExist", "EntityNotExist.Group", "EntityNotExist.Group.Policy", "EntityNotExist.Policy"}) || NotFoundError(err) {
+						continue
 					}
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), groupAction, AlibabaCloudSdkGoERROR)
 				}
 			}
 		}
 
-		roleResp, err := jsonpath.Get("$.Roles.Role", response)
+		roleResp, err := jsonpath.Get("$.Roles.Role", listResponse)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Roles.Role", response)
+			return WrapErrorf(err, FailedGetAttributeMsg, listAction, "$.Roles.Role", listResponse)
 		}
 		if roleResp != nil && len(roleResp.([]interface{})) > 0 {
 			for _, v := range roleResp.([]interface{}) {
@@ -481,24 +485,24 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 					"PolicyType": "Custom",
 				}
 				wait := incrementalWait(3*time.Second, 3*time.Second)
-				err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+				err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 					response, err = client.RpcPost("Ram", "2015-05-01", roleAction, nil, roleRequest, true)
 					if err != nil {
 						if NeedRetry(err) {
 							wait()
-							return resource.RetryableError(err)
+							return retry.RetryableError(err)
 						}
-						return resource.NonRetryableError(err)
+						return retry.NonRetryableError(err)
 					}
 					return nil
 				})
-				addDebug(action, response, roleRequest)
+				addDebug(roleAction, response, roleRequest)
 
 				if err != nil {
-					if IsExpectedErrors(err, []string{"EntityNotExist"}) || NotFoundError(err) {
-						return nil
+					if IsExpectedErrors(err, []string{"EntityNotExist", "EntityNotExist.Role", "EntityNotExist.Role.Policy", "EntityNotExist.Policy"}) || NotFoundError(err) {
+						continue
 					}
-					return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, d.Id(), roleAction, AlibabaCloudSdkGoERROR)
 				}
 			}
 		}
@@ -509,34 +513,35 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		listVersionsAction := "ListPolicyVersions"
 		wait = incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 			response, err = client.RpcPost("Ram", "2015-05-01", listVersionsAction, nil, listVersionsRequest, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
-		addDebug(action, response, listVersionsRequest)
+		addDebug(listVersionsAction, response, listVersionsRequest)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"EntityNotExist.Policy"}) || NotFoundError(err) {
 				return nil
 			}
-			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), listVersionsAction, AlibabaCloudSdkGoERROR)
 		}
 
 		versionsResp, er := jsonpath.Get("$.PolicyVersions.PolicyVersion", response)
 		if er != nil {
-			return WrapErrorf(er, FailedGetAttributeMsg, action, "$.PolicyVersions.PolicyVersion", response)
+			return WrapErrorf(er, FailedGetAttributeMsg, listVersionsAction, "$.PolicyVersions.PolicyVersion", response)
 		}
 		// More than one means there are other versions besides the default version
 		if versionsResp != nil && len(versionsResp.([]interface{})) > 1 {
 			for _, v := range versionsResp.([]interface{}) {
-				if !v.(map[string]interface{})["IsDefaultVersion"].(bool) {
+				isDefaultVersion, _ := v.(map[string]interface{})["IsDefaultVersion"].(bool)
+				if !isDefaultVersion {
 					versionAction := "DeletePolicyVersion"
 					versionRequest := map[string]interface{}{
 						"PolicyName": d.Id(),
@@ -544,33 +549,40 @@ func resourceAliCloudRamPolicyDelete(d *schema.ResourceData, meta interface{}) e
 					}
 
 					wait := incrementalWait(3*time.Second, 3*time.Second)
-					err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+					err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 						response, err = client.RpcPost("Ram", "2015-05-01", versionAction, nil, versionRequest, false)
 						if err != nil {
 							if NeedRetry(err) {
 								wait()
-								return resource.RetryableError(err)
+								return retry.RetryableError(err)
 							}
-							return resource.NonRetryableError(err)
+							return retry.NonRetryableError(err)
 						}
 						return nil
 					})
 					addDebug(versionAction, response, versionRequest)
+
+					if err != nil {
+						if IsExpectedErrors(err, []string{"EntityNotExist.Policy", "EntityNotExist.Policy.Version"}) || NotFoundError(err) {
+							continue
+						}
+						return WrapErrorf(err, DefaultErrorMsg, d.Id(), versionAction, AlibabaCloudSdkGoERROR)
+					}
 				}
 			}
 		}
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ram", "2015-05-01", action, query, request, true)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"DeleteConflict.Policy.Group", "DeleteConflict.Policy.User", "DeleteConflict.Policy.Version", "DeleteConflict.Role.Policy"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

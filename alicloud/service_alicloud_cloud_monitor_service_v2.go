@@ -7,7 +7,7 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 type CloudMonitorServiceServiceV2 struct {
@@ -31,14 +31,14 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceHybridDoubleWr
 
 	idExist := false
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2018-03-08", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -81,14 +81,14 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceEventRuleTarge
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -124,14 +124,14 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceMonitoringAgen
 
 	idExist := false
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -183,14 +183,14 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceGroupMonitorin
 	idExist := false
 	for {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Cms", "2019-01-01", action, nil, request, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -246,19 +246,19 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceBasicPublic(id
 	request["SubscriptionType"] = "PayAsYouGo"
 	request["ProductCode"] = "cms"
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -295,7 +295,7 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceBasicPublic(id
 	return object, WrapErrorf(NotFoundErr("BasicPublic", id), NotFoundMsg, response)
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceBasicPublicStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceBasicPublicStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeCloudMonitorServiceBasicPublic(id)
 		if err != nil {
@@ -339,20 +339,20 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceEnterprisePubl
 		request["ProductType"] = "cms_enterprise_public_intl"
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				request["ProductType"] = "cms_enterprise_public_intl"
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -389,7 +389,7 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceEnterprisePubl
 	return object, WrapErrorf(NotFoundErr("EnterprisePublic", id), NotFoundMsg, response)
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceEnterprisePublicStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceEnterprisePublicStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeCloudMonitorServiceEnterprisePublic(id)
 		if err != nil {
@@ -433,20 +433,20 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceNaamPublic(id 
 		request["ProductType"] = "cms_naam_public_intl"
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("BssOpenApi", "2017-12-14", action, query, request, true, endpoint)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if !client.IsInternationalAccount() && IsExpectedErrors(err, []string{"NotApplicable"}) {
 				request["ProductType"] = "cms_naam_public_intl"
 				endpoint = connectivity.BssOpenAPIEndpointInternational
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -499,15 +499,15 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceSiteMonitor(id
 	action := "DescribeSiteMonitorAttribute"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -527,11 +527,11 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceSiteMonitor(id
 	return v.(map[string]interface{}), nil
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceSiteMonitorStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceSiteMonitorStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.CloudMonitorServiceSiteMonitorStateRefreshFuncWithApi(id, field, failStates, s.DescribeCloudMonitorServiceSiteMonitor)
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceSiteMonitorStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceSiteMonitorStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -574,15 +574,15 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceAgentConfig(id
 	action := "DescribeMonitoringConfig"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -595,11 +595,11 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceAgentConfig(id
 	return response, nil
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceAgentConfigStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceAgentConfigStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.CloudMonitorServiceAgentConfigStateRefreshFuncWithApi(id, field, failStates, s.DescribeCloudMonitorServiceAgentConfig)
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceAgentConfigStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceAgentConfigStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -643,15 +643,15 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceMetricAlarmRul
 	action := "DescribeMetricRuleList"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -671,11 +671,49 @@ func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceMetricAlarmRul
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceMetricAlarmRuleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+
+func (s *CloudMonitorServiceServiceV2) DescribeCloudMonitorServiceMetricAlarmRuleTargets(id string) (objects []interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]interface{}
+	request = make(map[string]interface{})
+	query = make(map[string]interface{})
+	request["RuleId"] = id
+
+	action := "DescribeMetricRuleTargets"
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+		response, err = client.RpcPost("Cms", "2019-01-01", action, query, request, true)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return objects, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	// An alarm rule with no push channel returns an empty Targets list. That is a valid
+	// state of an existing rule, not a missing resource, so return an empty slice here
+	// and leave NotFound detection to DescribeCloudMonitorServiceMetricAlarmRule.
+	v, _ := jsonpath.Get("$.Targets.Target[*]", response)
+
+	return convertToInterfaceArray(v), nil
+}
+
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceMetricAlarmRuleStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.CloudMonitorServiceMetricAlarmRuleStateRefreshFuncWithApi(id, field, failStates, s.DescribeCloudMonitorServiceMetricAlarmRule)
 }
 
-func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceMetricAlarmRuleStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *CloudMonitorServiceServiceV2) CloudMonitorServiceMetricAlarmRuleStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {

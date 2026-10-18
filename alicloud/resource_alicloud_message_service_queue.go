@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudMessageServiceQueue() *schema.Resource {
@@ -59,6 +59,20 @@ func resourceAliCloudMessageServiceQueue() *schema.Resource {
 					},
 				},
 			},
+			"enable_sse": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"encryption_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"kms_key_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"logging_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -93,7 +107,19 @@ func resourceAliCloudMessageServiceQueue() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"normal", "fifo"}, false),
 			},
-			"tags": tagsSchema(),
+			"sse_algorithm": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"AES-256-GCM"}, false),
+			},
+			"sse_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"SMQ", "KMS"}, false),
+			},
+			"tags": tagsSchemaWithElements(),
 			"visibility_timeout": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -134,6 +160,21 @@ func resourceAliCloudMessageServiceQueueCreate(d *schema.ResourceData, meta inte
 	if v, ok := d.GetOkExists("logging_enabled"); ok {
 		request["EnableLogging"] = v
 	}
+	// A new queue has SSE off by default, so EnableSSE is only sent when
+	// true. d.Get is used instead of GetOkExists, which may treat an
+	// existing value as non-existent.
+	if v := d.Get("enable_sse"); v.(bool) {
+		request["EnableSSE"] = v
+	}
+	if v, ok := d.GetOk("sse_type"); ok {
+		request["SseType"] = v
+	}
+	if v, ok := d.GetOk("sse_algorithm"); ok {
+		request["SseAlgorithm"] = v
+	}
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		request["KmsKeyId"] = v
+	}
 	if v, ok := d.GetOk("queue_type"); ok {
 		request["QueueType"] = v
 	}
@@ -167,14 +208,14 @@ func resourceAliCloudMessageServiceQueueCreate(d *schema.ResourceData, meta inte
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Mns-open", "2022-01-19", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -205,11 +246,16 @@ func resourceAliCloudMessageServiceQueueRead(d *schema.ResourceData, meta interf
 
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("delay_seconds", objectRaw["DelaySeconds"])
+	d.Set("enable_sse", objectRaw["EnableSSE"])
+	d.Set("encryption_enabled", objectRaw["EncryptionEnabled"])
+	d.Set("kms_key_id", objectRaw["KmsKeyId"])
 	d.Set("logging_enabled", objectRaw["LoggingEnabled"])
 	d.Set("maximum_message_size", objectRaw["MaximumMessageSize"])
 	d.Set("message_retention_period", objectRaw["MessageRetentionPeriod"])
 	d.Set("polling_wait_seconds", objectRaw["PollingWaitSeconds"])
 	d.Set("queue_type", objectRaw["QueueType"])
+	d.Set("sse_algorithm", objectRaw["SseAlgorithm"])
+	d.Set("sse_type", objectRaw["SseType"])
 	d.Set("visibility_timeout", objectRaw["VisibilityTimeout"])
 	d.Set("queue_name", objectRaw["QueueName"])
 
@@ -295,6 +341,25 @@ func resourceAliCloudMessageServiceQueueUpdate(d *schema.ResourceData, meta inte
 		request["EnableLogging"] = v
 	}
 
+	if !d.IsNewResource() && (d.HasChange("enable_sse") || d.HasChange("sse_type") || d.HasChange("sse_algorithm") || d.HasChange("kms_key_id")) {
+		update = true
+
+		// The whole SSE family is sent together on any SSE change. EnableSSE
+		// is set unconditionally via d.Get (not GetOkExists, which may treat
+		// an existing value as non-existent), so the current switch value is
+		// always sent, including the explicit false that disables SSE.
+		request["EnableSSE"] = d.Get("enable_sse")
+		if v, ok := d.GetOk("sse_type"); ok {
+			request["SseType"] = v
+		}
+		if v, ok := d.GetOk("sse_algorithm"); ok {
+			request["SseAlgorithm"] = v
+		}
+		if v, ok := d.GetOk("kms_key_id"); ok {
+			request["KmsKeyId"] = v
+		}
+	}
+
 	if !d.IsNewResource() && d.HasChange("dlq_policy") {
 		update = true
 		objectDataLocalMap := make(map[string]interface{})
@@ -326,14 +391,14 @@ func resourceAliCloudMessageServiceQueueUpdate(d *schema.ResourceData, meta inte
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Mns-open", "2022-01-19", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -365,15 +430,15 @@ func resourceAliCloudMessageServiceQueueDelete(d *schema.ResourceData, meta inte
 	request["QueueName"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Mns-open", "2022-01-19", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

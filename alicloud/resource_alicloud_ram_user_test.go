@@ -9,9 +9,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ram"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func init() {
@@ -183,7 +183,7 @@ func TestAccAliCloudRAMUser(t *testing.T) {
 
 		// module name
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  testAccCheckRamUserDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -405,4 +405,118 @@ func testAccRamUserConfig(rand int) string {
   		comments     = "yoyoyo_all"
 	}
 `, defaultRegionToTest, rand)
+}
+
+// TestAccAliCloudRAMUser_tags covers the tags attribute, whose CRUD is
+// managed via the IMS (2019-08-15) tagging API with ResourceType=user,
+// because the legacy RAM (2015-05-01) TagResources API does not enumerate
+// "user" as a taggable resource type.
+func TestAccAliCloudRAMUser_tags(t *testing.T) {
+	var v *ram.User
+	randInt := acctest.RandIntRange(1000000, 99999999)
+
+	resourceId := "alicloud_ram_user.default"
+	name := fmt.Sprintf("tf-testAcc%sRamUserTags-%d", defaultRegionToTest, randInt)
+	ra := resourceAttrInit(resourceId, nil)
+	rc := resourceCheckInit(resourceId, &v, func() interface{} {
+		return &RamService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	})
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, func(string) string { return "" })
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRamUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"name":  name,
+					"force": true,
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"name":         name,
+						"force":        "true",
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF-update",
+						"For":     "Test-update",
+						"New":     "Tag",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "3",
+						"tags.Created": "TF-update",
+						"tags.For":     "Test-update",
+						"tags.New":     "Tag",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "1",
+						"tags.Created": "TF",
+						"tags.For":     REMOVEKEY,
+						"tags.New":     REMOVEKEY,
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF",
+						"For":     "Test",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "Test",
+					}),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force"},
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"tags": REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "0",
+						"tags.Created": REMOVEKEY,
+						"tags.For":     REMOVEKEY,
+					}),
+				),
+			},
+		},
+	})
 }

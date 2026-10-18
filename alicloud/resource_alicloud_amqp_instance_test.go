@@ -6,22 +6,26 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
+// collection-order: bypass vswitch_ids -- pre-existing list unchanged by this PR; only invalid unit-test fixture fields are removed
+
 // lintignore: R001
 func TestUnitAliCloudAmqpInstance(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -37,7 +41,6 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		"period":           1,
 		"queue_capacity":   "50",
 		"support_eip":      false,
-		"logistics":        "logistics",
 		"max_eip_tps":      "128",
 		"renewal_duration": 1,
 		"renewal_status":   "ManualRenewal",
@@ -56,7 +59,6 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		"period":           1,
 		"queue_capacity":   "50",
 		"support_eip":      true,
-		"logistics":        "logistics",
 		"renewal_duration": 1,
 		"renewal_status":   "ManualRenewal",
 		"storage_size":     "800",
@@ -74,7 +76,6 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		"period":         1,
 		"queue_capacity": "50",
 		"support_eip":    false,
-		"logistics":      "logistics",
 		"renewal_status": "AutoRenewal",
 		"storage_size":   "800",
 	} {
@@ -94,11 +95,13 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		"Data": map[string]interface{}{
 			"Instances": []interface{}{
 				map[string]interface{}{
-					"InstanceId":   "MockInstanceId",
-					"Status":       "SERVING",
-					"InstanceName": "instance_name",
-					"InstanceType": "PROFESSIONAL",
-					"SupportEIP":   false,
+					"InstanceId":        "MockInstanceId",
+					"Status":            "SERVING",
+					"InstanceName":      "instance_name",
+					"InstanceType":      "PROFESSIONAL",
+					"SupportEIP":        false,
+					"EncryptedInstance": true,
+					"KmsKeyId":          "MockKmsKeyId",
 				},
 			},
 			"InstanceList": []interface{}{
@@ -309,15 +312,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"instance_name"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -344,15 +347,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"instance_name"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -379,15 +382,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"instance_name"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -414,15 +417,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"renewal_status", "renewal_duration", "payment_type", "renewal_duration_unit"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -449,15 +452,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"renewal_status", "renewal_duration", "payment_type", "renewal_duration_unit"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -484,15 +487,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"renewal_status", "renewal_duration", "payment_type", "renewal_duration_unit"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 
 		}
@@ -520,15 +523,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"renewal_status", "renewal_duration", "payment_type", "renewal_duration_unit"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 
 		}
@@ -556,15 +559,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"max_tps", "payment_type", "queue_capacity", "support_eip", "max_eip_tps", "support_eip", "storage_size", "modify_type"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -594,15 +597,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"max_tps", "payment_type", "queue_capacity", "support_eip", "max_eip_tps", "support_eip", "storage_size", "modify_type"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -629,15 +632,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"max_tps", "payment_type", "queue_capacity", "support_eip", "max_eip_tps", "support_eip", "storage_size", "modify_type"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -667,15 +670,15 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 		for _, key := range []string{"max_tps", "payment_type", "queue_capacity", "support_eip", "max_eip_tps", "support_eip", "storage_size", "modify_type"} {
 			switch p["alicloud_amqp_instance"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
@@ -702,7 +705,7 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 
 	t.Run("UpdateAttributesSupportEip", func(t *testing.T) {
 		diff := terraform.NewInstanceDiff()
-		diff.SetAttribute("support_eip", &terraform.ResourceAttrDiff{Old: "false", New: "true"})
+		diff.Attributes["support_eip"] = &terraform.ResourceAttrDiff{Old: "false", New: "true"}
 		resourceData1, _ := schema.InternalMap(p["alicloud_amqp_instance"].Schema).Data(nil, diff)
 		resourceData1.SetId(d.Id())
 		retryFlag := true
@@ -762,6 +765,149 @@ func TestUnitAliCloudAmqpInstance(t *testing.T) {
 	})
 }
 
+func TestUnitAliCloudAmqpInstanceEncryption(t *testing.T) {
+	resourceSchema := resourceAliCloudAmqpInstance()
+	assert.True(t, resourceSchema.Schema["encrypted_instance"].Optional)
+	assert.True(t, resourceSchema.Schema["encrypted_instance"].Computed)
+	assert.True(t, resourceSchema.Schema["encrypted_instance"].ForceNew)
+	assert.True(t, resourceSchema.Schema["kms_key_id"].Optional)
+	assert.False(t, resourceSchema.Schema["kms_key_id"].Computed)
+	assert.True(t, resourceSchema.Schema["kms_key_id"].ForceNew)
+	assert.False(t, resourceSchema.Schema["edition"].ForceNew)
+	serverlessChargeTypeValidate := resourceSchema.Schema["serverless_charge_type"].ValidateFunc
+	assert.NotNil(t, serverlessChargeTypeValidate)
+	_, validationErrors := serverlessChargeTypeValidate("onDemand", "serverless_charge_type")
+	assert.Empty(t, validationErrors)
+	_, validationErrors = serverlessChargeTypeValidate("provisioned", "serverless_charge_type")
+	assert.Empty(t, validationErrors)
+	_, validationErrors = serverlessChargeTypeValidate("invalid", "serverless_charge_type")
+	assert.NotEmpty(t, validationErrors)
+
+	newData := func(values map[string]interface{}) *schema.ResourceData {
+		return schema.TestResourceDataRaw(t, resourceSchema.Schema, values)
+	}
+
+	for name, values := range map[string]map[string]interface{}{
+		"vip": {
+			"payment_type":       "Subscription",
+			"instance_type":      "vip",
+			"encrypted_instance": true,
+			"kms_key_id":         "MockKmsKeyId",
+		},
+		"serverless provisioned dedicated": {
+			"payment_type":           "PayAsYouGo",
+			"serverless_charge_type": "provisioned",
+			"edition":                "dedicated",
+			"encrypted_instance":     true,
+			"kms_key_id":             "MockKmsKeyId",
+		},
+	} {
+		t.Run("valid "+name, func(t *testing.T) {
+			request := make(map[string]interface{})
+			assert.NoError(t, addAmqpInstanceEncryptionCreateRequest(newData(values), request))
+			assert.Equal(t, true, request["EncryptedInstance"])
+			assert.Equal(t, "MockKmsKeyId", request["KmsKeyId"])
+		})
+	}
+
+	t.Run("encryption arguments omitted", func(t *testing.T) {
+		request := make(map[string]interface{})
+		assert.NoError(t, addAmqpInstanceEncryptionCreateRequest(newData(map[string]interface{}{
+			"payment_type":  "PayAsYouGo",
+			"instance_type": "enterprise",
+			"edition":       "shared",
+		}), request))
+		assert.NotContains(t, request, "EncryptedInstance")
+		assert.NotContains(t, request, "KmsKeyId")
+	})
+
+	t.Run("encryption explicitly disabled", func(t *testing.T) {
+		request := make(map[string]interface{})
+		assert.NoError(t, addAmqpInstanceEncryptionCreateRequest(newData(map[string]interface{}{
+			"payment_type":       "PayAsYouGo",
+			"instance_type":      "enterprise",
+			"edition":            "shared",
+			"encrypted_instance": false,
+		}), request))
+		assert.Equal(t, false, request["EncryptedInstance"])
+		assert.NotContains(t, request, "KmsKeyId")
+	})
+
+	for name, testCase := range map[string]struct {
+		values map[string]interface{}
+		err    string
+	}{
+		"missing key": {
+			values: map[string]interface{}{
+				"payment_type":       "Subscription",
+				"instance_type":      "vip",
+				"encrypted_instance": true,
+			},
+			err: "kms_key_id must be configured when encrypted_instance is true",
+		},
+		"blank key": {
+			values: map[string]interface{}{
+				"payment_type":       "Subscription",
+				"instance_type":      "vip",
+				"encrypted_instance": true,
+				"kms_key_id":         "  ",
+			},
+			err: "kms_key_id must be configured when encrypted_instance is true",
+		},
+		"key without encryption": {
+			values: map[string]interface{}{
+				"payment_type":       "Subscription",
+				"instance_type":      "vip",
+				"encrypted_instance": false,
+				"kms_key_id":         "MockKmsKeyId",
+			},
+			err: "encrypted_instance must be true when kms_key_id is configured",
+		},
+	} {
+		t.Run("invalid "+name, func(t *testing.T) {
+			assert.EqualError(t, addAmqpInstanceEncryptionCreateRequest(newData(testCase.values), make(map[string]interface{})), testCase.err)
+		})
+	}
+
+	for name, values := range map[string]map[string]interface{}{
+		"subscription enterprise dedicated": {
+			"payment_type":       "Subscription",
+			"instance_type":      "enterprise",
+			"edition":            "dedicated",
+			"encrypted_instance": true,
+			"kms_key_id":         "MockKmsKeyId",
+		},
+		"pay as you go on demand dedicated": {
+			"payment_type":           "PayAsYouGo",
+			"serverless_charge_type": "onDemand",
+			"edition":                "dedicated",
+			"encrypted_instance":     true,
+			"kms_key_id":             "MockKmsKeyId",
+		},
+		"pay as you go provisioned shared": {
+			"payment_type":           "PayAsYouGo",
+			"serverless_charge_type": "provisioned",
+			"edition":                "shared",
+			"encrypted_instance":     true,
+			"kms_key_id":             "MockKmsKeyId",
+		},
+		"subscription provisioned dedicated": {
+			"payment_type":           "Subscription",
+			"serverless_charge_type": "provisioned",
+			"edition":                "dedicated",
+			"encrypted_instance":     true,
+			"kms_key_id":             "MockKmsKeyId",
+		},
+	} {
+		t.Run("passes through "+name, func(t *testing.T) {
+			request := make(map[string]interface{})
+			assert.NoError(t, addAmqpInstanceEncryptionCreateRequest(newData(values), request))
+			assert.Equal(t, true, request["EncryptedInstance"])
+			assert.Equal(t, "MockKmsKeyId", request["KmsKeyId"])
+		})
+	}
+}
+
 // Case 创建serverless实例 6128
 func TestAccAliCloudAmqpInstanceResource_basic6128(t *testing.T) {
 	var v map[string]interface{}
@@ -780,9 +926,9 @@ func TestAccAliCloudAmqpInstanceResource_basic6128(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  nil,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -937,9 +1083,9 @@ func TestAccAliCloudAmqpInstanceResource_basic6128_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  nil,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -982,6 +1128,107 @@ func TestAccAliCloudAmqpInstanceResource_basic6128_twin(t *testing.T) {
 	})
 }
 
+func TestAccAliCloudAmqpInstanceResource_encryptedServerlessDedicatedCreate(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_amqp_instance.default"
+	ra := resourceAttrInit(resourceId, AliCloudAmqpInstanceMap6128)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &AmqpServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeAmqpInstance")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%samqpencrypted%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudAmqpInstanceEncryptedDependence6128)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+			testAccEnsureAmqpEncryptionServiceLinkedRole(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"payment_type":           "PayAsYouGo",
+					"vpc_id":                 "${data.alicloud_vswitches.default.vpc_id}",
+					"vswitch_ids":            []string{"${data.alicloud_vswitches.default.ids.0}", "${data.alicloud_vswitches.default.ids.1}"},
+					"security_group_id":      "${data.alicloud_security_groups.default.ids.0}",
+					"serverless_charge_type": "provisioned",
+					"provisioned_capacity":   "20000",
+					"edition":                "dedicated",
+					"instance_name":          name,
+					"encrypted_instance":     true,
+					"kms_key_id":             "${alicloud_kms_key.default.id}",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"payment_type":           "PayAsYouGo",
+						"vpc_id":                 CHECKSET,
+						"vswitch_ids.#":          "2",
+						"security_group_id":      CHECKSET,
+						"serverless_charge_type": "provisioned",
+						"provisioned_capacity":   "20000",
+						"edition":                "dedicated",
+						"instance_name":          name,
+						"encrypted_instance":     "true",
+						"kms_key_id":             CHECKSET,
+					}),
+					resource.TestCheckResourceAttrPair(resourceId, "kms_key_id", "alicloud_kms_key.default", "id"),
+				),
+			},
+			{
+				ResourceName:            resourceId,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_model", "auto_renew", "modify_type", "period", "period_cycle", "serverless_charge_type", "renewal_duration", "renewal_duration_unit", "renewal_status"},
+			},
+		},
+	})
+}
+
+func testAccEnsureAmqpEncryptionServiceLinkedRole(t *testing.T) {
+	t.Helper()
+
+	const (
+		serviceName = "encrypt.amqp.aliyuncs.com"
+		roleID      = serviceName + ":AliyunServiceRoleForAmqpEncrypt"
+	)
+
+	rawClient, err := sharedClientForRegion(defaultRegionToTest)
+	if err != nil {
+		t.Fatalf("failed to get Alibaba Cloud client: %s", err)
+	}
+	aliyunClient := rawClient.(*connectivity.AliyunClient)
+	ramService := RamService{aliyunClient}
+	if _, err = ramService.DescribeRamServiceLinkedRole(roleID); err == nil {
+		return
+	} else if !NotFoundError(err) && !IsExpectedErrors(err, []string{"EntityNotExist.Role"}) {
+		t.Fatalf("failed to describe AMQP encryption service-linked role: %s", err)
+	}
+
+	request := map[string]interface{}{"ServiceName": serviceName}
+	if _, err = aliyunClient.RpcPost("ResourceManager", "2020-03-31", "CreateServiceLinkedRole", nil, request, true); err != nil &&
+		!IsExpectedErrors(err, []string{"AlreadyExists", "EntityAlreadyExists"}) {
+		t.Fatalf("failed to create AMQP encryption service-linked role: %s", err)
+	}
+
+	err = retry.Retry(2*time.Minute, func() *retry.RetryError {
+		if _, describeErr := ramService.DescribeRamServiceLinkedRole(roleID); describeErr != nil {
+			if NotFoundError(describeErr) || IsExpectedErrors(describeErr, []string{"EntityNotExist.Role"}) {
+				return retry.RetryableError(describeErr)
+			}
+			return retry.NonRetryableError(describeErr)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("AMQP encryption service-linked role did not become available: %s", err)
+	}
+}
+
 var AliCloudAmqpInstanceMap6128 = map[string]string{
 	"status":        CHECKSET,
 	"create_time":   CHECKSET,
@@ -995,19 +1242,28 @@ func AliCloudAmqpInstanceBasicDependence6128(name string) string {
 	}
 
 	data "alicloud_vpcs" "default" {
-  		name_regex = "default-NODELETING"
+  		name_regex = "^default-NODELETING$"
 	}
 
 	data "alicloud_vswitches" "default" {
   		vpc_id     = data.alicloud_vpcs.default.ids.0
-  		name_regex = "^default-NODELETING-ACK-switch"
+  		name_regex = "^default-NODELETING-vsw"
 	}
 
 	data "alicloud_security_groups" "default" {
   		vpc_id     = data.alicloud_vpcs.default.ids.0
-  		name_regex = "^sae"
+  		name_regex = "default-NODELETING"
 	}
 `, name)
+}
+
+func AliCloudAmqpInstanceEncryptedDependence6128(name string) string {
+	return AliCloudAmqpInstanceBasicDependence6128(name) + `
+	resource "alicloud_kms_key" "default" {
+		description            = "terraform-provider-alicloud AMQP acceptance test"
+		pending_window_in_days = 7
+	}
+`
 }
 
 // Test Amqp Instance. >>> Resource test cases, automatically generated.
@@ -1029,9 +1285,9 @@ func TestAccAliCloudAmqpInstanceResource_basic11166(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1204,9 +1460,9 @@ func TestAccAliCloudAmqpInstanceResource_basic11166_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1282,17 +1538,17 @@ func AliCloudAmqpInstanceBasicDependence11166(name string) string {
 	}
 
 	data "alicloud_vpcs" "default" {
-  		name_regex = "default-NODELETING"
+  		name_regex = "^default-NODELETING$"
 	}
 
 	data "alicloud_vswitches" "default" {
   		vpc_id     = data.alicloud_vpcs.default.ids.0
-  		name_regex = "^default-NODELETING-ACK-switch"
+  		name_regex = "^default-NODELETING-vsw"
 	}
 
 	data "alicloud_security_groups" "default" {
   		vpc_id     = data.alicloud_vpcs.default.ids.0
-  		name_regex = "^sae"
+  		name_regex = "default-NODELETING"
 	}
 `, name)
 }

@@ -1,4 +1,3 @@
-// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -12,8 +11,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudEcsImage() *schema.Resource {
@@ -175,6 +174,10 @@ func resourceAliCloudEcsImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"usable": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"tags": tagsSchema(),
 			// Not the public attribute and it used to automatically delete dependence snapshots while deleting the image.
 			// Available in 1.136.0
@@ -262,14 +265,14 @@ func resourceAliCloudEcsImageCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"IncorrectInstanceStatus"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -282,7 +285,24 @@ func resourceAliCloudEcsImageCreate(d *schema.ResourceData, meta interface{}) er
 	d.SetId(fmt.Sprint(response["ImageId"]))
 
 	ecsServiceV2 := EcsServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"Available"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, ecsServiceV2.EcsImageStateRefreshFunc(d.Id(), "Status", []string{"CreateFailed"}))
+	// Wait for Usable=true (image immediately launchable) rather than Status=Available
+	// (which can flip before the image is usable); fast-fail on Status=CreateFailed.
+	stateConf := BuildStateConf([]string{}, []string{"true"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, func() (interface{}, string, error) {
+		object, err := ecsServiceV2.describeEcsImage(d.Id(), "ALL")
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		statusRaw, _ := jsonpath.Get("Status", object)
+		currentStatus := fmt.Sprint(statusRaw)
+		if currentStatus == "CreateFailed" {
+			return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+		}
+		usableRaw, _ := jsonpath.Get("Usable", object)
+		return object, fmt.Sprint(usableRaw), nil
+	})
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
@@ -334,6 +354,9 @@ func resourceAliCloudEcsImageRead(d *schema.ResourceData, meta interface{}) erro
 	if objectRaw["Status"] != nil {
 		d.Set("status", objectRaw["Status"])
 	}
+	if objectRaw["Usable"] != nil {
+		d.Set("usable", objectRaw["Usable"])
+	}
 
 	diskDeviceMapping1Raw, _ := jsonpath.Get("$.DiskDeviceMappings.DiskDeviceMapping", objectRaw)
 	diskDeviceMappingMaps := make([]map[string]interface{}, 0)
@@ -348,7 +371,7 @@ func resourceAliCloudEcsImageRead(d *schema.ResourceData, meta interface{}) erro
 			diskDeviceMappingMap["import_oss_bucket"] = diskDeviceMappingChild1Raw["ImportOSSBucket"]
 			diskDeviceMappingMap["progress"] = diskDeviceMappingChild1Raw["Progress"]
 			diskDeviceMappingMap["remain_time"] = diskDeviceMappingChild1Raw["RemainTime"]
-			diskDeviceMappingMap["size"] = diskDeviceMappingChild1Raw["Size"]
+			diskDeviceMappingMap["size"] = formatInt(diskDeviceMappingChild1Raw["Size"])
 			diskDeviceMappingMap["snapshot_id"] = diskDeviceMappingChild1Raw["SnapshotId"]
 
 			diskDeviceMappingMaps = append(diskDeviceMappingMaps, diskDeviceMappingMap)
@@ -425,14 +448,14 @@ func resourceAliCloudEcsImageUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -455,14 +478,14 @@ func resourceAliCloudEcsImageUpdate(d *schema.ResourceData, meta interface{}) er
 	request["ResourceType"] = "image"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -511,15 +534,15 @@ func resourceAliCloudEcsImageDelete(d *schema.ResourceData, meta interface{}) er
 		request["Force"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil

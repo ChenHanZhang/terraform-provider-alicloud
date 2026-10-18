@@ -15,9 +15,10 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,14 +48,14 @@ func testSweepMessageServiceQueue(region string) error {
 	MessageServiceQueueIds := make([]string, 0)
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Mns-open", "2022-01-19", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -101,14 +102,14 @@ func testSweepMessageServiceQueue(region string) error {
 			"QueueName": id,
 		}
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(3*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(3*time.Minute, func() *retry.RetryError {
 			_, err = client.RpcPost("Mns-open", "2022-01-19", deleteAction, nil, request, false)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -136,9 +137,9 @@ func TestAccAliCloudMessageServiceQueue_basic0(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -324,9 +325,9 @@ func TestAccAliCloudMessageServiceQueue_basic0_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -625,6 +626,101 @@ func TestAccAliCloudMessageServiceQueue_basic1_twin(t *testing.T) {
 	})
 }
 
+func TestAccAliCloudMessageServiceQueue_sse(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_message_service_queue.default"
+	ra := resourceAttrInit(resourceId, AliCloudMessageServiceQueueMap0)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &MessageServiceServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeMessageServiceQueue")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testAccMessageServiceQueue-name%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudMessageServiceQueueSSEDependence)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			// SSE runs in cn-shanghai: it is the only probed region where the
+			// SSE create/read round trip works without an account whitelist.
+			// Other regions either hide the SSE fields in the response
+			// (cn-hangzhou, cn-beijing, cn-shenzhen, cn-hongkong,
+			// cn-zhangjiakou) or reject SSE with FeatureNotEnabled behind an
+			// account whitelist (cn-qingdao).
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-shanghai"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"queue_name":    name,
+					"enable_sse":    "true",
+					"sse_type":      "SMQ",
+					"sse_algorithm": "AES-256-GCM",
+					"tags": map[string]string{
+						"Created": "TF",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"queue_name":         name,
+						"enable_sse":         "true",
+						"sse_type":           "SMQ",
+						"sse_algorithm":      "AES-256-GCM",
+						"encryption_enabled": "true",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"enable_sse":    "false",
+					"sse_type":      REMOVEKEY,
+					"sse_algorithm": REMOVEKEY,
+					"tags":          REMOVEKEY,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						// EncryptionEnabled stays true after SSE is disabled: it
+						// reports the residual encryption state, not the switch. The
+						// check map accumulates across steps, so sse_type and
+						// sse_algorithm are REMOVEKEYed here: the response no longer
+						// reports them once SSE is off.
+						"enable_sse":         "false",
+						"encryption_enabled": "true",
+						"sse_type":           REMOVEKEY,
+						"sse_algorithm":      REMOVEKEY,
+					}),
+				),
+			},
+			{
+				// SSE-SMQ does not use a KMS key: kms_key_id is explicitly set to
+				// empty here, which also keeps the attribute covered in tests.
+				Config: testAccConfig(map[string]interface{}{
+					"enable_sse":    "true",
+					"sse_type":      "SMQ",
+					"sse_algorithm": "AES-256-GCM",
+					"kms_key_id":    "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"enable_sse":         "true",
+						"sse_type":           "SMQ",
+						"sse_algorithm":      "AES-256-GCM",
+						"encryption_enabled": "true",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 var AliCloudMessageServiceQueueMap0 = map[string]string{
 	"create_time":              CHECKSET,
 	"delay_seconds":            CHECKSET,
@@ -660,9 +756,17 @@ resource "alicloud_message_service_queue" "fifo" {
 `, name)
 }
 
+func AliCloudMessageServiceQueueSSEDependence(name string) string {
+	return fmt.Sprintf(`
+	variable "name" {
+		default = "%s"
+	}
+`, name)
+}
+
 // lintignore: R001
 func TestUnitAliCloudMessageServiceQueue(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_message_service_queue"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_message_service_queue"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()

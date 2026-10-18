@@ -103,7 +103,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.The value is formulated as `<instance_id>:<virtual_host_name>:<exchange_name>`.
-* `create_time` - CreateTime
+* `create_time` - The time when the exchange was created. Unix timestamp, to millisecond level.
 
 ## Timeouts
 
@@ -113,7 +113,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-RabbitMQ (AMQP) Exchange can be imported using the id, e.g.
+RabbitMQ (AMQP) Exchange can be imported using the id, which consists of instance_id, virtual_host_name and exchange_name, e.g.
 
 ```shell
 $ terraform import alicloud_amqp_exchange.example <instance_id>:<virtual_host_name>:<exchange_name>

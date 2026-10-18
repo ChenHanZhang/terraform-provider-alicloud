@@ -7,9 +7,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/drds"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudDRDSInstance() *schema.Resource {
@@ -128,7 +128,7 @@ func resourceAliCloudDRDSInstanceCreate(d *schema.ResourceData, meta interface{}
 
 	var response *drds.CreateDrdsInstanceResponse
 	wait := incrementalWait(3*time.Second, 2*time.Second)
-	err := resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err := retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		// currently, the ClientToken does not work and it need to update when retry
 		request.ClientToken = buildClientToken(request.GetActionName())
 		raw, err := client.WithDrdsClient(func(drdsClient *drds.Client) (interface{}, error) {
@@ -137,9 +137,9 @@ func resourceAliCloudDRDSInstanceCreate(d *schema.ResourceData, meta interface{}
 		if err != nil {
 			if IsExpectedErrors(err, []string{"InternalError"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 		response, _ = raw.(*drds.CreateDrdsInstanceResponse)
@@ -215,19 +215,30 @@ func resourceAliCloudDRDSInstanceRead(d *schema.ResourceData, meta interface{}) 
 	//other attribute not set,because these attribute from `data` can't  get
 	d.Set("zone_id", data.ZoneId)
 	d.Set("description", data.Description)
-	d.Set("vpc_id", data.Vips.Vip[0].VpcId)
-	var connectionString, port string
-	for _, vip := range data.Vips.Vip {
+	vpcId, connectionString, port := flattenDrdsInstanceVips(data.Vips.Vip)
+	d.Set("vpc_id", vpcId)
+	d.Set("connection_string", connectionString)
+	d.Set("port", port)
+	d.Set("mysql_version", data.MysqlVersion)
+	return nil
+}
+
+// flattenDrdsInstanceVips extracts the vpc_id, connection_string and port from the
+// DescribeDrdsInstance VIP list. A valid instance can transiently report an empty
+// VIP list, so the first-element access is length-guarded to avoid an out-of-range
+// panic; an empty list yields zero values.
+func flattenDrdsInstanceVips(vips []drds.Vip) (vpcId, connectionString, port string) {
+	if len(vips) > 0 {
+		vpcId = vips[0].VpcId
+	}
+	for _, vip := range vips {
 		if vip.Type == "intranet" {
 			connectionString = vip.Dns
 			port = vip.Port
 			break
 		}
 	}
-	d.Set("connection_string", connectionString)
-	d.Set("port", port)
-	d.Set("mysql_version", data.MysqlVersion)
-	return nil
+	return vpcId, connectionString, port
 }
 
 func resourceAliCloudDRDSInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -238,16 +249,16 @@ func resourceAliCloudDRDSInstanceDelete(d *schema.ResourceData, meta interface{}
 	request.DrdsInstanceId = d.Id()
 	var response *drds.RemoveDrdsInstanceResponse
 	wait := incrementalWait(3*time.Second, 2*time.Second)
-	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err := retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		raw, err := client.WithDrdsClient(func(drdsClient *drds.Client) (interface{}, error) {
 			return drdsClient.RemoveDrdsInstance(request)
 		})
 		if err != nil {
 			if IsExpectedErrors(err, []string{"InternalError"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 		response, _ = raw.(*drds.RemoveDrdsInstanceResponse)

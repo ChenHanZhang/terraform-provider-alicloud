@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudVpnGatewayVcoRoute() *schema.Resource {
@@ -74,14 +74,14 @@ func resourceAlicloudVpnGatewayVcoRouteCreate(d *schema.ResourceData, meta inter
 	}
 	request["ClientToken"] = buildClientToken("CreateVcoRouteEntry")
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"VpnGateway.Configuring", "TaskConflict", "Appliance.Configuring", "VpnTask.CONFLICT", "VpnConnection.Configuring"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -115,6 +115,7 @@ func resourceAlicloudVpnGatewayVcoRouteRead(d *schema.ResourceData, meta interfa
 }
 func resourceAlicloudVpnGatewayVcoRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
+	vpcService := VpcService{client}
 	var err error
 	parts, err := ParseResourceId(d.Id(), 4)
 	if err != nil {
@@ -132,14 +133,14 @@ func resourceAlicloudVpnGatewayVcoRouteDelete(d *schema.ResourceData, meta inter
 
 	request["ClientToken"] = buildClientToken("DeleteVcoRouteEntry")
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"VpnGateway.Configuring", "TaskConflict", "Appliance.Configuring", "VpnTask.CONFLICT", "VpnConnection.Configuring"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -147,5 +148,23 @@ func resourceAlicloudVpnGatewayVcoRouteDelete(d *schema.ResourceData, meta inter
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
+	if err := waitForVpnGatewayVcoRouteDeleted(d.Timeout(schema.TimeoutDelete), 3*time.Second, vpcService.VpnGatewayVcoRouteStateRefreshFunc(d.Id(), []string{})); err != nil {
+		return WrapErrorf(err, IdMsg, d.Id())
+	}
 	return nil
+}
+
+func waitForVpnGatewayVcoRouteDeleted(timeout, pollInterval time.Duration, refresh retry.StateRefreshFunc) error {
+	stableRefresh := func() (interface{}, string, error) {
+		object, _, err := refresh()
+		if err != nil || object == nil {
+			return object, "", err
+		}
+		return object, "present", nil
+	}
+	stateConf := BuildStateConf([]string{"present"}, []string{}, timeout, 0, stableRefresh)
+	stateConf.PollInterval = pollInterval
+	stateConf.ContinuousTargetOccurence = 3
+	_, err := stateConf.WaitForState()
+	return err
 }

@@ -11,13 +11,13 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccAlicloudOssBucketObject_basic(t *testing.T) {
+func TestAccAliCloudOssBucketObject_basic(t *testing.T) {
 	tmpFile, err := ioutil.TempFile("", "tf-oss-object-test-acc-source")
 	if err != nil {
 		t.Fatal(err)
@@ -42,37 +42,58 @@ func TestAccAlicloudOssBucketObject_basic(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckAlicloudOssBucketObjectDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckAlicloudOssBucketObjectDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"bucket":       "${alicloud_oss_bucket_public_access_block.default.bucket}",
-					"key":          "test-object-source-key",
-					"source":       tmpFile.Name(),
-					"content_type": "binary/octet-stream",
+					"bucket":              "${alicloud_oss_bucket_public_access_block.default.bucket}",
+					"key":                 "test-object-source-key",
+					"source":              tmpFile.Name(),
+					"content_type":        "binary/octet-stream",
+					"cache_control":       "max-age=3600",
+					"content_disposition": "attachment",
+					"content_encoding":    "identity",
+					"content_md5":         "ewBv9NcPaMxlBhrPL4Aubw==",
+					"expires":             "Mon, 01 Jan 2035 00:00:00 GMT",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAlicloudOssBucketObjectExists(
 						"alicloud_oss_bucket_object.default", name, v),
 					testAccCheck(map[string]string{
-						"bucket": name,
-						"source": tmpFile.Name(),
+						"bucket":              name,
+						"source":              tmpFile.Name(),
+						"content_type":        "binary/octet-stream",
+						"cache_control":       "max-age=3600",
+						"content_disposition": "attachment",
+						"content_encoding":    "identity",
+						"expires":             "Mon, 01 Jan 2035 00:00:00 GMT",
 					}),
 				),
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"source":  REMOVEKEY,
-					"content": "some words for test oss object content",
+					"source":              REMOVEKEY,
+					"content":             "some words for test oss object content",
+					"content_type":        "text/plain",
+					"cache_control":       "no-cache",
+					"content_disposition": "inline",
+					"content_encoding":    "gzip",
+					"content_md5":         "DLbtZmJKNYFp4DtLY9hZDw==",
+					"expires":             "Tue, 02 Jan 2035 00:00:00 GMT",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAlicloudOssBucketObjectExists(
 						"alicloud_oss_bucket_object.default", name, v),
 					testAccCheck(map[string]string{
-						"source":  REMOVEKEY,
-						"content": "some words for test oss object content",
+						"source":              REMOVEKEY,
+						"content":             "some words for test oss object content",
+						"content_type":        "text/plain",
+						"cache_control":       "no-cache",
+						"content_disposition": "inline",
+						"content_encoding":    "gzip",
+						"expires":             "Tue, 02 Jan 2035 00:00:00 GMT",
 					}),
 				),
 			},
@@ -103,6 +124,7 @@ func TestAccAlicloudOssBucketObject_basic(t *testing.T) {
 					"key":                    "test-object-source-key",
 					"content":                REMOVEKEY,
 					"source":                 tmpFile.Name(),
+					"content_md5":            "ewBv9NcPaMxlBhrPL4Aubw==",
 					"content_type":           "binary/octet-stream",
 					"acl":                    REMOVEKEY,
 				}),
@@ -123,7 +145,7 @@ func TestAccAlicloudOssBucketObject_basic(t *testing.T) {
 	})
 }
 
-func TestAccAlicloudOssBucketObject_worm(t *testing.T) {
+func TestAccAliCloudOssBucketObject_worm(t *testing.T) {
 	tmpFile, err := ioutil.TempFile("", "tf-oss-object-worm-source")
 	if err != nil {
 		t.Fatal(err)
@@ -220,6 +242,175 @@ func TestAccAlicloudOssBucketObject_worm(t *testing.T) {
 			},
 		},
 	})
+}
+
+// TestAccAliCloudOssBucketObject_outOfBandDeleteRebuild verifies that when an
+// OSS object is deleted out-of-band (e.g. through the OSS console or CLI,
+// bypassing Terraform), the provider Read drops the resource from state so a
+// subsequent plan reports "1 to add" and apply recreates the object, instead
+// of erroring out and blocking automation.
+func TestAccAliCloudOssBucketObject_outOfBandDeleteRebuild(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "tf-oss-object-oob-delete")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if err := ioutil.WriteFile(tmpFile.Name(), []byte("out-of-band delete rebuild coverage"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var v http.Header
+	resourceId := "alicloud_oss_bucket_object.default"
+	rand := acctest.RandIntRange(1000000, 9999999)
+	name := fmt.Sprintf("tf-testacc-object-oob-%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, resourceOssBucketObjectConfigDependence)
+	cfg := testAccConfig(map[string]interface{}{
+		"bucket":       "${alicloud_oss_bucket_public_access_block.default.bucket}",
+		"key":          "test-object-oob-delete-key",
+		"source":       tmpFile.Name(),
+		"content_type": "binary/octet-stream",
+	})
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAlicloudOssBucketObjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:             cfg,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAlicloudOssBucketObjectExists(resourceId, name, v),
+					// Delete the object directly through the OSS API. This step
+					// explicitly expects its mandatory post-Check refresh to plan a
+					// recreate. Before the fix, Read returned an error instead.
+					testAccCheckAlicloudOssBucketObjectDeleteOutOfBand(resourceId, name),
+				),
+			},
+			{
+				// Re-apply the same config: the object is recreated, proving the
+				// out-of-band delete is self-healing.
+				Config: cfg,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAlicloudOssBucketObjectExists(resourceId, name, v),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAliCloudOssBucketObject_contentMD5Hex verifies that content_md5
+// accepts a hex-encoded MD5 digest (the format produced by Terraform's md5()
+// and filemd5() functions) and converts it to the base64 form required by the
+// OSS PutObject Content-MD5 header (RFC 1864). Before the fix, forwarding a
+// hex digest verbatim made PutObject fail with a digest mismatch.
+func TestAccAliCloudOssBucketObject_contentMD5Hex(t *testing.T) {
+	var v http.Header
+	resourceId := "alicloud_oss_bucket_object.default"
+	rand := acctest.RandIntRange(1000000, 9999999)
+	name := fmt.Sprintf("tf-testacc-object-md5-hex-%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, resourceOssBucketObjectConfigDependence)
+	// "content" and its md5 hex digest. The provider must convert the hex digest
+	// to base64 before sending the Content-MD5 header; otherwise OSS rejects
+	// the request with a digest mismatch.
+	cfg := testAccConfig(map[string]interface{}{
+		"bucket":       "${alicloud_oss_bucket.default.bucket}",
+		"key":          "test-object-md5-hex-key",
+		"content":      "hex content md5 acceptance test for oss bucket object",
+		"content_md5":  "45d8d11bed20b619add195b98d4b1775",
+		"content_type": "text/plain",
+	})
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAlicloudOssBucketObjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAlicloudOssBucketObjectExists(resourceId, name, v),
+					resource.TestCheckResourceAttr(resourceId, "content_type", "text/plain"),
+				),
+			},
+		},
+	})
+}
+
+// TestUnitNormalizeContentMD5 locks the normalization and validation of the
+// OSS PutObject Content-MD5 header. It is a pure-function unit test (no ACC
+// env required).
+func TestUnitNormalizeContentMD5(t *testing.T) {
+	cases := []struct {
+		input   string
+		want    string
+		wantErr bool
+	}{
+		// A 32-character hex MD5 digest (as produced by Terraform's md5() and
+		// filemd5() functions) is converted to base64.
+		{"45d8d11bed20b619add195b98d4b1775", "RdjRG+0gthmt0ZW5jUsXdQ==", false},
+		// An already base64-encoded MD5 digest is passed through unchanged.
+		{"RdjRG+0gthmt0ZW5jUsXdQ==", "RdjRG+0gthmt0ZW5jUsXdQ==", false},
+		{"ewBv9NcPaMxlBhrPL4Aubw==", "ewBv9NcPaMxlBhrPL4Aubw==", false},
+		// A short hex string is valid base64 but decodes to fewer than 16 bytes,
+		// so it is not a valid MD5 digest; the provider rejects it instead of
+		// forwarding it to OSS, which would otherwise surface an opaque error.
+		{"deadbeef", "", true},
+		// Input that is neither a valid 32-character hex MD5 digest nor valid
+		// base64 is rejected by the provider instead of being forwarded.
+		{"not-hex-at-all==", "", true},
+		{"plain garbage value", "", true},
+	}
+	for _, c := range cases {
+		got, err := normalizeContentMD5(c.input)
+		if c.wantErr {
+			if err == nil {
+				t.Errorf("normalizeContentMD5(%q) expected an error, got %q with nil err", c.input, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("normalizeContentMD5(%q) unexpected error: %v", c.input, err)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("normalizeContentMD5(%q) = %q, want %q", c.input, got, c.want)
+		}
+	}
+}
+
+// testAccCheckAlicloudOssBucketObjectDeleteOutOfBand removes the OSS object
+// backing the resource via the OSS SDK directly, simulating a delete issued
+// from the console or CLI that Terraform did not observe.
+func testAccCheckAlicloudOssBucketObjectDeleteOutOfBand(n, bucket string) resource.TestCheckFunc {
+	providers := []*schema.Provider{testAccProvider}
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+		for _, provider := range providers {
+			if provider.Meta() == nil {
+				continue
+			}
+			client := provider.Meta().(*connectivity.AliyunClient)
+			raw, err := client.WithOssClient(func(ossClient *oss.Client) (interface{}, error) {
+				return ossClient.Bucket(bucket)
+			})
+			if err != nil {
+				return fmt.Errorf("Error getting bucket: %#v", err)
+			}
+			buck, _ := raw.(*oss.Bucket)
+			if err := buck.DeleteObject(rs.Primary.ID); err != nil {
+				return fmt.Errorf("Out-of-band DeleteObject failed: %#v", err)
+			}
+			log.Printf("[INFO] out-of-band deleted oss object %q to simulate console/CLI deletion", rs.Primary.ID)
+			return nil
+		}
+		return fmt.Errorf("No provider with Meta available")
+	}
 }
 
 func resourceOssBucketObjectConfigDependence(name string) string {

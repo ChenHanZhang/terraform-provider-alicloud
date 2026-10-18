@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudConfigAggregateConfigRule() *schema.Resource {
@@ -49,6 +49,22 @@ func resourceAliCloudConfigAggregateConfigRule() *schema.Resource {
 			"exclude_resource_ids_scope": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"exclude_tags_scope": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tag_key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tag_value": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			// lintignore: S006
 			"input_parameters": {
@@ -130,6 +146,13 @@ func resourceAliCloudConfigAggregateConfigRuleCreate(d *schema.ResourceData, met
 	if v, ok := d.GetOk("exclude_resource_ids_scope"); ok {
 		request["ExcludeResourceIdsScope"] = v
 	}
+	if v, ok := d.GetOk("exclude_tags_scope"); ok {
+		for i, dataLoop := range v.([]interface{}) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			request[fmt.Sprintf("ExcludeTagsScope.%d.TagKey", i+1)] = dataLoopTmp["tag_key"]
+			request[fmt.Sprintf("ExcludeTagsScope.%d.TagValue", i+1)] = dataLoopTmp["tag_value"]
+		}
+	}
 	if v, ok := d.GetOk("input_parameters"); ok {
 		if v, err := convertMaptoJsonString(v.(map[string]interface{})); err == nil {
 			request["InputParameters"] = v
@@ -158,14 +181,14 @@ func resourceAliCloudConfigAggregateConfigRuleCreate(d *schema.ResourceData, met
 	}
 	request["ClientToken"] = buildClientToken("CreateAggregateConfigRule")
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Config", "2020-09-07", action, nil, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -201,6 +224,19 @@ func resourceAliCloudConfigAggregateConfigRuleRead(d *schema.ResourceData, meta 
 	d.Set("config_rule_trigger_types", object["ConfigRuleTriggerTypes"])
 	d.Set("description", object["Description"])
 	d.Set("exclude_resource_ids_scope", object["ExcludeResourceIdsScope"])
+	if v, ok := object["ExcludeTagsScope"].([]interface{}); ok {
+		excludeTagsScopeList := make([]map[string]interface{}, 0)
+		for _, val := range v {
+			item := val.(map[string]interface{})
+			excludeTagsScopeList = append(excludeTagsScopeList, map[string]interface{}{
+				"tag_key":   item["TagKey"],
+				"tag_value": item["TagValue"],
+			})
+		}
+		if err := d.Set("exclude_tags_scope", excludeTagsScopeList); err != nil {
+			return WrapError(err)
+		}
+	}
 	d.Set("input_parameters", object["InputParameters"])
 	d.Set("maximum_execution_frequency", object["MaximumExecutionFrequency"])
 	d.Set("region_ids_scope", object["RegionIdsScope"])
@@ -250,6 +286,14 @@ func resourceAliCloudConfigAggregateConfigRuleUpdate(d *schema.ResourceData, met
 		update = true
 		request["ExcludeResourceIdsScope"] = d.Get("exclude_resource_ids_scope")
 	}
+	if !d.IsNewResource() && d.HasChange("exclude_tags_scope") {
+		update = true
+		for i, dataLoop := range d.Get("exclude_tags_scope").([]interface{}) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			request[fmt.Sprintf("ExcludeTagsScope.%d.TagKey", i+1)] = dataLoopTmp["tag_key"]
+			request[fmt.Sprintf("ExcludeTagsScope.%d.TagValue", i+1)] = dataLoopTmp["tag_value"]
+		}
+	}
 	if !d.IsNewResource() && d.HasChange("input_parameters") {
 		update = true
 		if v, err := convertMaptoJsonString(d.Get("input_parameters").(map[string]interface{})); err == nil {
@@ -283,14 +327,14 @@ func resourceAliCloudConfigAggregateConfigRuleUpdate(d *schema.ResourceData, met
 		action := "UpdateAggregateConfigRule"
 		request["ClientToken"] = buildClientToken("UpdateAggregateConfigRule")
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Config", "2020-09-07", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -324,7 +368,6 @@ func resourceAliCloudConfigAggregateConfigRuleUpdate(d *schema.ResourceData, met
 				}
 			}
 		}
-		d.SetPartial("status")
 	}
 	d.Partial(false)
 	stateConf := BuildStateConf([]string{}, []string{"ACTIVE", "INACTIVE"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, configService.ConfigAggregateConfigRuleStateRefreshFunc(d.Id(), []string{}))
@@ -350,14 +393,14 @@ func resourceAliCloudConfigAggregateConfigRuleDelete(d *schema.ResourceData, met
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Config", "2020-09-07", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

@@ -15,10 +15,10 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,9 +121,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_base(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.PrivateLinkRegions)
 		},
 
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -220,6 +220,47 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_base(t *testing.T) {
 	})
 }
 
+// Reverse endpoints are backed by services that only Alibaba Cloud and ecosystem
+// partners provide (e.g. PolarDB reverse endpoint services) and cannot be
+// self-created in a test account, so a full lifecycle ACC is not feasible here.
+// This case verifies the plan-time validation only: before the fix the
+// StringInSlice ValidateFunc rejected endpoint_type="Reverse"; after the fix
+// `terraform plan` accepts it. No resource is applied (PlanOnly).
+func TestAccAliCloudPrivatelinkVpcEndpoint_reverseEndpointType(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_privatelink_vpc_endpoint.default"
+	ra := resourceAttrInit(resourceId, AlicloudPrivatelinkVpcEndpointMap)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PrivatelinkService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePrivatelinkVpcEndpoint")
+	rac := resourceAttrCheckInit(rc, ra)
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testAcc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPrivatelinkVpcEndpointBasicDependence)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, connectivity.PrivateLinkRegions)
+		},
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"service_id":         "${alicloud_privatelink_vpc_endpoint_service.default.id}",
+					"vpc_id":             "${data.alicloud_vpcs.default.ids.0}",
+					"security_group_ids": []string{"${alicloud_security_group.default.id}"},
+					"vpc_endpoint_name":  name,
+					"endpoint_type":      "Reverse",
+					"depends_on":         []string{"alicloud_privatelink_vpc_endpoint_service.default"},
+				}),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAliCloudPrivatelinkVpcEndpoint_crossRegion(t *testing.T) {
 	resourceId := "alicloud_privatelink_vpc_endpoint.default"
 	ra := resourceAttrInit(resourceId, AlicloudPrivatelinkVpcEndpointMap)
@@ -231,7 +272,7 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_crossRegion(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheckPrivateLinkCrossRegion(t)
 		},
-		ProviderFactories: testAccPrivateLinkProviderFactories(),
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:      testAccCheckPrivateLinkVpcEndpointDestroyInRegion(testAccPrivateLinkCrossRegionEndpointRegion),
 		Steps: []resource.TestStep{
 			{
@@ -474,7 +515,7 @@ resource "alicloud_privatelink_vpc_endpoint_service" "service" {
 
 // lintignore: R001
 func TestUnitAlicloudPrivatelinkVpcEndpoint(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()
@@ -860,9 +901,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_case4793Main(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1182,9 +1223,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_case4793Twin(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1249,9 +1290,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_case6705Main(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"ap-southeast-5"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1462,9 +1503,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_case6705Twin(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"ap-southeast-5"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1534,9 +1575,9 @@ func TestAccAliCloudPrivatelinkVpcEndpoint_case6705Raw(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"ap-southeast-5"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

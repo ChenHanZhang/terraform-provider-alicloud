@@ -7,9 +7,9 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAliCloudGaEndpointGroups() *schema.Resource {
@@ -162,6 +162,23 @@ func dataSourceAliCloudGaEndpointGroups() *schema.Resource {
 										Type:     schema.TypeBool,
 										Computed: true,
 									},
+									"enable_proxy_protocol": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"sub_address": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"vpc_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"vswitch_ids": {
+										Type:     schema.TypeList,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
 								},
 							},
 						},
@@ -216,14 +233,14 @@ func dataSourceAliCloudGaEndpointGroupsRead(d *schema.ResourceData, meta interfa
 	var err error
 	for {
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 			response, err = client.RpcPost("Ga", "2019-11-20", action, nil, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -308,11 +325,21 @@ func dataSourceAliCloudGaEndpointGroupsRead(d *schema.ResourceData, meta interfa
 				if m1, ok := v.(map[string]interface{}); ok {
 					temp1 := map[string]interface{}{
 						"enable_clientip_preservation": m1["EnableClientIPPreservation"],
+						"enable_proxy_protocol":        m1["EnableProxyProtocol"],
 						"endpoint":                     m1["Endpoint"],
 						"probe_port":                   m1["ProbePort"],
 						"probe_protocol":               m1["ProbeProtocol"],
+						"sub_address":                  m1["SubAddress"],
 						"type":                         m1["Type"],
+						"vpc_id":                       m1["VpcId"],
 						"weight":                       m1["Weight"],
+					}
+					if vSwitchIds, ok := m1["VSwitchIds"]; ok && vSwitchIds != nil {
+						if ids, ok := vSwitchIds.([]interface{}); ok {
+							temp1["vswitch_ids"] = ids
+						} else if ids, ok := vSwitchIds.([]string); ok {
+							temp1["vswitch_ids"] = convertListStringToListInterface(ids)
+						}
 					}
 					endpointConfigurations = append(endpointConfigurations, temp1)
 				}

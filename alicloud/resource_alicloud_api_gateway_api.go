@@ -11,9 +11,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cloudapi"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAliyunApigatewayApi() *schema.Resource {
@@ -46,6 +46,13 @@ func resourceAliyunApigatewayApi() *schema.Resource {
 			"auth_type": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"app_code_auth_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice([]string{"DISABLE", "HEADER", "HEADER_QUERY"}, false),
 			},
 
 			"request_config": {
@@ -431,6 +438,7 @@ func resourceAliyunApigatewayApiRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", objectRaw["ApiName"])
 	d.Set("description", objectRaw["Description"])
 	d.Set("auth_type", objectRaw["AuthType"])
+	d.Set("app_code_auth_type", objectRaw["AppCodeAuthType"])
 	d.Set("force_nonce_check", objectRaw["ForceNonceCheck"])
 
 	v := convertApiGatewayApiRequestConfigResponse(objectRaw["RequestConfig"])
@@ -499,12 +507,17 @@ func resourceAliyunApigatewayApiUpdate(d *schema.ResourceData, meta interface{})
 
 	d.Partial(true)
 
-	if d.HasChanges("name", "description", "auth_type") {
+	if d.HasChanges("name", "description", "auth_type", "app_code_auth_type") {
 		update = true
 	}
 	request.ApiName = d.Get("name").(string)
 	request.Description = d.Get("description").(string)
 	request.AuthType = d.Get("auth_type").(string)
+	if d.HasChange("app_code_auth_type") || d.Get("auth_type").(string) == "APP" {
+		if v, exist := d.GetOk("app_code_auth_type"); exist {
+			request.AppCodeAuthType = v.(string)
+		}
+	}
 
 	if d.HasChange("force_nonce_check") {
 		update = true
@@ -567,18 +580,6 @@ func resourceAliyunApigatewayApiUpdate(d *schema.ResourceData, meta interface{})
 		}
 		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 
-		d.SetPartial("name")
-		d.SetPartial("description")
-		d.SetPartial("auth_type")
-		d.SetPartial("service_type")
-		d.SetPartial("http_service_config")
-		d.SetPartial("http_vpc_service_config")
-		d.SetPartial("fc_service_config")
-		d.SetPartial("mock_service_config")
-		d.SetPartial("request_parameters")
-		d.SetPartial("constant_parameters")
-		d.SetPartial("system_parameters")
-
 	}
 
 	if update || d.HasChange("stage_names") {
@@ -587,7 +588,6 @@ func resourceAliyunApigatewayApiUpdate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return WrapError(err)
 		}
-		d.SetPartial("stage_names")
 	}
 
 	d.Partial(false)
@@ -609,14 +609,14 @@ func resourceAliyunApigatewayApiDelete(d *schema.ResourceData, meta interface{})
 	if v, ok := d.GetOk("stage_names"); ok {
 		for _, sn := range v.(*schema.Set).List() {
 			stageName := sn.(string)
-			err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 				err := cloudApiService.AbolishApi(d.Id(), stageName)
 				if err != nil {
 					if IsExpectedErrors(err, []string{"ConcurrencyLockTimeout"}) {
 						time.Sleep(3 * time.Second)
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -653,6 +653,9 @@ func buildAliyunApiArgs(d *schema.ResourceData, meta interface{}) (*cloudapi.Cre
 	request.Description = d.Get("description").(string)
 	request.ApiName = d.Get("name").(string)
 	request.AuthType = d.Get("auth_type").(string)
+	if v, exist := d.GetOk("app_code_auth_type"); exist {
+		request.AppCodeAuthType = v.(string)
+	}
 	if v, exist := d.GetOk("force_nonce_check"); exist {
 		request.ForceNonceCheck = requests.Boolean(strconv.FormatBool(v.(bool)))
 	}

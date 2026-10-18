@@ -70,7 +70,7 @@ The following attributes are exported:
 * `user_name` - The static username.
 * `password` - The static password.
 * `master_uid` - The ID of the user's primary account.
-* `create_time` - The timestamp that indicates when the pair of static username and password was created.
+* `create_time` - The time when the pair of static username and password was created. Unix timestamp, to millisecond level.
 
 ## Timeouts
 
@@ -81,7 +81,7 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Amqp Static Account can be imported using the id, e.g.
+Amqp Static Account can be imported using the id, which consists of instance_id and access_key, e.g.
 
 ```shell
 $terraform import alicloud_amqp_static_account.example <instance_id>:<access_key>

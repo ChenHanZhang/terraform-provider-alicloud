@@ -7,7 +7,7 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 type PaiWorkspaceServiceV2 struct {
@@ -28,15 +28,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceWorkspace(id string) (object
 	request["WorkspaceId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -51,11 +51,11 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceWorkspace(id string) (object
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.PaiWorkspaceWorkspaceStateRefreshFuncWithApi(id, field, failStates, s.DescribePaiWorkspaceWorkspace)
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -84,6 +84,47 @@ func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceStateRefreshFuncWithApi(id 
 }
 
 // DescribePaiWorkspaceWorkspace >>> Encapsulated.
+
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceWorkspaceIdByName(name string) (string, error) {
+	client := s.client
+	action := "/api/v1/workspaces"
+	request := map[string]interface{}{"WorkspaceName": name}
+	query := map[string]*string{
+		"WorkspaceName": StringPointer(name),
+	}
+	var response map[string]interface{}
+	var err error
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		return "", WrapErrorf(err, DefaultErrorMsg, name, action, AlibabaCloudSdkGoERROR)
+	}
+
+	workspaces, _ := response["Workspaces"].([]interface{})
+	for _, raw := range workspaces {
+		workspace, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if fmt.Sprint(workspace["WorkspaceName"]) == name {
+			return fmt.Sprint(workspace["WorkspaceId"]), nil
+		}
+	}
+	return "", nil
+}
+
 // DescribePaiWorkspaceDataset <<< Encapsulated get interface for PaiWorkspace Dataset.
 
 func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceDataset(id string) (object map[string]interface{}, err error) {
@@ -98,21 +139,21 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceDataset(id string) (object m
 	request["DatasetId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"201300003"}) {
+		if IsExpectedErrors(err, []string{"201300003", "201300002"}) {
 			return object, WrapErrorf(NotFoundErr("Dataset", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
@@ -120,7 +161,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceDataset(id string) (object m
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceDatasetStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceDatasetStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceDataset(id)
 		if err != nil {
@@ -164,15 +205,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceExperiment(id string) (objec
 	request["ExperimentId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"NotFoundErrorProblem"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -186,7 +227,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceExperiment(id string) (objec
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceExperimentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceExperimentStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceExperiment(id)
 		if err != nil {
@@ -234,21 +275,21 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceDatasetversion(id string) (o
 	query = make(map[string]*string)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
 	addDebug(action, response, request)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"201300003"}) {
+		if IsExpectedErrors(err, []string{"201300002", "201300003"}) {
 			return object, WrapErrorf(NotFoundErr("Datasetversion", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
@@ -256,7 +297,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceDatasetversion(id string) (o
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceDatasetversionStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceDatasetversionStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceDatasetversion(id)
 		if err != nil {
@@ -300,20 +341,25 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceRun(id string) (object map[s
 	request["RunId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
 	addDebug(action, response, request)
 	if err != nil {
+		// GetRun on a deleted run is observed to fail with a 500 InternalServerErrorProblem
+		// wrapping a 400 InvalidAction.Mismatch instead of a regular NotFound code.
+		if IsExpectedErrors(err, []string{"InvalidAction.Mismatch"}) {
+			return object, WrapErrorf(NotFoundErr("Run", id), NotFoundMsg, response)
+		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 	currentStatus := response["Name"]
@@ -324,7 +370,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceRun(id string) (object map[s
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceRunStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceRunStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceRun(id)
 		if err != nil {
@@ -369,15 +415,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceCodeSource(id string) (objec
 	request["CodeSourceId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"201400004"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -391,7 +437,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceCodeSource(id string) (objec
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceCodeSourceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceCodeSourceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceCodeSource(id)
 		if err != nil {
@@ -441,15 +487,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceMember(id string) (object ma
 	action := fmt.Sprintf("/api/v1/workspaces/%s/member", WorkspaceId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -464,7 +510,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceMember(id string) (object ma
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceMemberStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceMemberStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceMember(id)
 		if err != nil {
@@ -510,15 +556,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceModel(id string) (object map
 	action := fmt.Sprintf("/api/v1/models/%s", ModelId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -533,7 +579,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceModel(id string) (object map
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceModelStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceModelStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceModel(id)
 		if err != nil {
@@ -583,15 +629,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceModelVersion(id string) (obj
 	action := fmt.Sprintf("/api/v1/models/%s/versions/%s", ModelId, VersionName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -606,7 +652,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceModelVersion(id string) (obj
 	return response, nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceModelVersionStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceModelVersionStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceModelVersion(id)
 		if err != nil {
@@ -656,15 +702,15 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceUserConfig(id string) (objec
 	action := fmt.Sprintf("/api/v1/userconfigs")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("AIWorkSpace", "2021-02-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -685,7 +731,7 @@ func (s *PaiWorkspaceServiceV2) DescribePaiWorkspaceUserConfig(id string) (objec
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
-func (s *PaiWorkspaceServiceV2) PaiWorkspaceUserConfigStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PaiWorkspaceServiceV2) PaiWorkspaceUserConfigStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePaiWorkspaceUserConfig(id)
 		if err != nil {

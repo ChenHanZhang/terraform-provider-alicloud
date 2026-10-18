@@ -13,8 +13,9 @@ import (
 	"strings"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud"
+	"github.com/aliyun/terraform-provider-alicloud/scripts/internal/splitlayout"
 	mapset "github.com/deckarep/golang-set"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	log "github.com/sirupsen/logrus"
 	"github.com/waigani/diffparser"
 )
@@ -35,8 +36,8 @@ var (
 	fileNames    = flag.String("fileNames", "", "the files to check diff")
 	resourceName = flag.String("resource", "", "directly specify a resource name to check (e.g., alicloud_realtime_compute_deployment)")
 
-	resourceFileRegex     = regexp.MustCompile("alicloud/(resource)[0-9a-zA-Z_]*")
-	resourceFileTestRegex = regexp.MustCompile("alicloud/(resource)[0-9a-zA-Z_]*_test.go")
+	resourceFileRegex     = regexp.MustCompile("alicloud/(resource|data_source)[0-9a-zA-Z_]*")
+	resourceFileTestRegex = regexp.MustCompile("alicloud/(resource|data_source)[0-9a-zA-Z_]*_test.go")
 )
 
 func main() {
@@ -61,6 +62,21 @@ func main() {
 	byt, _ := os.ReadFile(*fileNames)
 	diff, _ := diffparser.Parse(string(byt))
 	resourceNameMap := make(map[string]struct{})
+	// checkCandidate deduplicates and checks one resource touched by the diff.
+	// An empty testPath or implPath keeps the flat-layout default paths inside
+	// checkResourceByName; split-layout callers pass the paths resolved from
+	// the product's register.go.
+	checkCandidate := func(resName string, isResource bool, fileType, testPath, implPath string) {
+		if _, ok := resourceNameMap[resName]; ok {
+			return
+		}
+		resourceNameMap[resName] = struct{}{}
+		if !checkResourceByName(resName, isResource, fileType, testPath, implPath) {
+			exitCode = 1
+		}
+	}
+	// One split stem resolves once: the implementation and its test share it.
+	splitSeen := make(map[string]bool)
 	for _, file := range diff.Files {
 		isNameCorrect = true
 		resName := ""
@@ -70,6 +86,44 @@ func main() {
 			resName = strings.TrimSuffix(strings.Split(file.NewName, "/")[1], "_test.go")
 		} else if resourceFileRegex.MatchString(file.NewName) {
 			resName = strings.TrimSuffix(strings.Split(file.NewName, "/")[1], ".go")
+		} else if product, stem, _, ok := splitlayout.IsSplitSource(file.NewName); ok {
+			// The implementation and its test share the stem; the first of
+			// the pair to appear in the diff carries both paths.
+			if splitSeen[product+"/"+stem] {
+				continue
+			}
+			splitSeen[product+"/"+stem] = true
+			resolved, err := splitlayout.Resolve(product, stem)
+			if err != nil {
+				log.Warnf("fail to resolve split-layout file %s. Error: %s", file.NewName, err)
+				continue
+			}
+			// One file can register more than one resource, so check every
+			// matched registration.
+			for _, r := range resolved {
+				rFileType := "data source"
+				if r.IsResource() {
+					rFileType = "resource"
+				}
+				checkCandidate(strings.TrimPrefix(r.TypeName, "alicloud_"), r.IsResource(), rFileType, r.TestPath, r.ImplPath)
+			}
+			// Framework-native registrations — managed resources, data
+			// sources, ephemerals, list resources and actions — live outside
+			// the provider's SDKv2 maps, so their attribute coverage cannot
+			// be measured; said so per registration instead of passing
+			// silently.
+			fwResolved, err := splitlayout.FrameworkResolve(product, stem)
+			if err != nil {
+				log.Warnf("fail to resolve framework registrations of %s. Error: %s", file.NewName, err)
+				continue
+			}
+			for _, r := range fwResolved {
+				log.Infof("==> %s is registered framework-native (%s): the SDKv2 attribute coverage check does not apply", r.TypeName, r.Kind)
+			}
+			if len(resolved) == 0 && len(fwResolved) == 0 {
+				log.Warnf("==> %s registers no resource, data source, ephemeral, action or list resource", file.NewName)
+			}
+			continue
 		} else {
 			continue
 		}
@@ -85,15 +139,7 @@ func main() {
 		// Remove alicloud_ prefix to get the clean resource name
 		resName = strings.TrimPrefix(resName, "alicloud_")
 
-		if _, ok := resourceNameMap[resName]; ok {
-			continue
-		} else {
-			resourceNameMap[resName] = struct{}{}
-		}
-
-		if !checkResourceByName(resName, isResource, fileType) {
-			exitCode = 1
-		}
+		checkCandidate(resName, isResource, fileType, "", "")
 	}
 
 	os.Exit(exitCode)
@@ -104,6 +150,7 @@ func checkSingleResource(fullName string) bool {
 	isResource := true
 	fileType := "resource"
 	resName := fullName
+	testPath, implPath := "", ""
 
 	// Determine if it's a data source or resource
 	if strings.HasPrefix(fullName, "data.") {
@@ -115,24 +162,47 @@ func checkSingleResource(fullName string) bool {
 	// Remove alicloud_ prefix if present
 	resName = strings.TrimPrefix(resName, "alicloud_")
 
-	return checkResourceByName(resName, isResource, fileType)
+	// Migrated resources keep their tests next to the implementation under
+	// alicloud/service/<product>/; fall back to the registration when the
+	// flat-layout test file is gone.
+	flatTest := "alicloud/resource_alicloud_" + resName + "_test.go"
+	if !isResource {
+		flatTest = "alicloud/data_source_alicloud_" + resName + "_test.go"
+	}
+	if _, err := os.Stat(flatTest); os.IsNotExist(err) {
+		if r := splitlayout.FindByTypeName("alicloud_" + resName); r != nil {
+			isResource = r.IsResource()
+			fileType = "resource"
+			if !r.IsResource() {
+				fileType = "data source"
+			}
+			testPath, implPath = r.TestPath, r.ImplPath
+		} else if splitlayout.FrameworkRegistered("alicloud_" + resName) {
+			log.Infof("==> %s %s is registered framework-native; the SDKv2 attribute coverage check does not apply", fileType, resName)
+			return true
+		}
+	}
+
+	return checkResourceByName(resName, isResource, fileType, testPath, implPath)
 }
 
-// checkResourceByName checks a resource by name and type
-func checkResourceByName(resName string, isResource bool, fileType string) bool {
+// checkResourceByName checks a resource by name and type. An empty testPath
+// or implPath keeps the flat-layout default; split-layout callers pass the
+// paths resolved from the product's register.go.
+func checkResourceByName(resName string, isResource bool, fileType, testPath, implPath string) bool {
 	isNameCorrect = true
 
 	log.Infof("==> Getting %s %s attributes...", fileType, resName)
 	var resource = &schema.Resource{}
 	var ok bool
 	if isResource {
-		resource, ok = alicloud.Provider().(*schema.Provider).ResourcesMap["alicloud_"+resName]
+		resource, ok = alicloud.Provider().ResourcesMap["alicloud_"+resName]
 		if !ok || resource == nil {
 			log.Errorf("resource %s is not found in the provider ResourceMap\n\n", resName)
 			return false
 		}
 	} else {
-		resource, ok = alicloud.Provider().(*schema.Provider).DataSourcesMap["alicloud_"+resName]
+		resource, ok = alicloud.Provider().DataSourcesMap["alicloud_"+resName]
 		if !ok || resource == nil {
 			log.Errorf("data source %s is not found in the provider DataSourcesMap\n\n", resName)
 			return false
@@ -146,22 +216,44 @@ func checkResourceByName(resName string, isResource bool, fileType string) bool 
 	log.Infof("==> Getting %s %s attributes in test cases...", fileType, resName)
 	testMustSet, testModifySet, testIgnoreSet :=
 		mapset.NewSet(), mapset.NewSet(), mapset.NewSet()
-	filePath := "alicloud/"
-	if isResource {
-		filePath += "resource_alicloud_" + resName + "_test.go"
-	} else {
-		filePath += "data_source_alicloud_" + resName + "_test.go"
+	if testPath == "" {
+		testPath = "alicloud/"
+		if isResource {
+			testPath += "resource_alicloud_" + resName + "_test.go"
+		} else {
+			testPath += "data_source_alicloud_" + resName + "_test.go"
+		}
 	}
-	check := getTestCaseAttr(filePath, resName, &testMustSet, &testModifySet, &testIgnoreSet)
+	check := getTestCaseAttr(testPath, resName, &testMustSet, &testModifySet, &testIgnoreSet)
 
 	// "check" denotes the test code is using a standard template
 	if check {
 		log.Infof("==> checking %s %s attributes' coverage rate", fileType, resName)
 		if checkAttributeSet(resName, fileType, schemaMustSet, testMustSet,
-			schemaModifySet, testModifySet, schemaForceNewSet, schemaAllSet, testIgnoreSet, schemaDeprecatedSet) && isNameCorrect {
+			schemaModifySet, testModifySet, schemaForceNewSet, schemaAllSet, testIgnoreSet, schemaDeprecatedSet, implPath) && isNameCorrect {
 			log.Infof("--- PASS!\n\n")
 			return true
 		}
+	}
+	// Split-layout tests speak the plugin-testing dialect; the standard
+	// template (resourceTestAccConfigFunc and the testAccCheck maps) lives
+	// in the flat monolith package and is not importable from
+	// alicloud/service/<product>. A split test the parser cannot read is a
+	// recognized skip rather than a failure; flat-layout behavior is
+	// unchanged.
+	if _, _, _, isSplit := splitlayout.IsSplitSource(testPath); isSplit &&
+		(!check || (testMustSet.Cardinality() == 0 && testModifySet.Cardinality() == 0)) {
+		log.Infof("==> %s %s's split-layout test %s is not written in the standard template; attribute coverage is unmeasurable and skipped", fileType, resName, testPath)
+		return true
+	}
+	// Flat data-source tests speak the existConfig/fakeConfig dialect of
+	// dataSourceTestAccConfigFunc; the standard template's Config/Check
+	// steps do not exist there, so a parser that extracted nothing
+	// measures nothing. Skip with a named notice instead of failing; a
+	// data source whose test does carry readable steps is still measured.
+	if !isResource && testMustSet.Cardinality() == 0 && testModifySet.Cardinality() == 0 {
+		log.Infof("==> %s %s's flat-layout test %s uses the existConfig/fakeConfig template; attribute coverage is unmeasurable and skipped", fileType, resName, testPath)
+		return true
 	}
 
 	log.Errorf("--- Failed!\n\n")
@@ -206,10 +298,6 @@ func getSchemaAttr(isResource bool, schema map[string]*schema.Schema,
 func getSchemaAttributes(rootName string, schemaAttributes map[string]SchemaAttribute,
 	resourceSchema map[string]*schema.Schema) {
 	for key, value := range resourceSchema {
-		if len(value.Removed) != 0 {
-			continue
-		}
-
 		if rootName != "" {
 			key = rootName + "." + key
 		}
@@ -791,9 +879,43 @@ func formatAttributesAsTree(attributes []interface{}) string {
 	return buffer.String()
 }
 
+// neverReadBackAttributes returns the attributes in testIgnoreSet that the
+// resource/data source implementation never writes back with d.Set (e.g.
+// create-only inputs that the Get/List API does not return). Such attributes
+// have no source during import, so keeping them in ImportStateVerifyIgnore is
+// legitimate even when they are ForceNew. The exemption set stays empty when
+// the implementation file cannot be read, so the check fails closed.
+// An empty implPath keeps the flat-layout default.
+func neverReadBackAttributes(resourceName string, fileType string, testIgnoreSet mapset.Set, implPath string) mapset.Set {
+	exemptions := mapset.NewSet()
+	if implPath == "" {
+		implPath = "alicloud/resource_alicloud_" + resourceName + ".go"
+		if fileType == "data source" {
+			implPath = "alicloud/data_source_alicloud_" + resourceName + ".go"
+		}
+	}
+	content, err := os.ReadFile(implPath)
+	if err != nil {
+		return exemptions
+	}
+	src := string(content)
+	for _, attr := range testIgnoreSet.ToSlice() {
+		attrStr, ok := attr.(string)
+		if !ok {
+			continue
+		}
+		// Nested ignore entries (parent.child) are covered by the parent d.Set.
+		root := strings.SplitN(attrStr, ".", 2)[0]
+		if !strings.Contains(src, fmt.Sprintf("d.Set(%q", root)) {
+			exemptions.Add(attrStr)
+		}
+	}
+	return exemptions
+}
+
 func checkAttributeSet(resourceName string, fileType string, schemaMustSet, testMustSet,
 	schemaModifySet, testModifySet, schemaForceNewSet, schemaAllSet, testIgnoreSet,
-	schemaDeprecatedSet mapset.Set) bool {
+	schemaDeprecatedSet mapset.Set, implPath string) bool {
 
 	isFullCover, isIgnoreLegal, isAllModified := true, true, true
 
@@ -812,12 +934,22 @@ func checkAttributeSet(resourceName string, fileType string, schemaMustSet, test
 		log.Infof("resource %s attributes has 100%% testing coverage rate ", resourceName)
 	}
 
-	forceNewButIgnore := schemaForceNewSet.Intersect(testIgnoreSet).ToSlice()
+	// ForceNew attributes in ImportStateVerifyIgnore usually mean the resource
+	// should be fixed to read them back. Create-only input attributes that the
+	// Get/List API never returns are the exception: Read never writes them back
+	// with d.Set, so the imported state can never contain them and listing them
+	// in ImportStateVerifyIgnore is the only workable pattern. Exempt exactly
+	// those attributes.
+	unreadAttrs := neverReadBackAttributes(resourceName, fileType, testIgnoreSet, implPath)
+	forceNewButIgnore := schemaForceNewSet.Intersect(testIgnoreSet).Difference(unreadAttrs).ToSlice()
 	if len(forceNewButIgnore) != 0 {
 		isIgnoreLegal = false
 		forceNewButIgnoreStr, _ := json.Marshal(forceNewButIgnore)
-		// TODO: 从READ方法区分是否是私有属性，从而区分应该修改ignore数组还是应该修改资源属性
 		log.Errorf("resource %s [ForceNew] attributes %v are in ImportStateVerifyIgnore array ", resourceName, string(forceNewButIgnoreStr))
+	}
+	if exempted := schemaForceNewSet.Intersect(testIgnoreSet).Intersect(unreadAttrs); exempted.Cardinality() > 0 {
+		exemptedStr, _ := json.Marshal(exempted.ToSlice())
+		log.Infof("resource %s [ForceNew] attributes %v stay in ImportStateVerifyIgnore because the resource Read never writes them back", resourceName, string(exemptedStr))
 	}
 	// Attributes in ImportStateVerifyIgnore that are neither part of the
 	// active schema nor deprecated are genuinely redundant. Deprecated fields

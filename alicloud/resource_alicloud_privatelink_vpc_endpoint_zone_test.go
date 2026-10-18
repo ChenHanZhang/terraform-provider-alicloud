@@ -12,9 +12,9 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +38,7 @@ func TestAccAliCloudPrivatelinkVpcEndpointZone_basic(t *testing.T) {
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -86,9 +86,13 @@ func AlicloudPrivatelinkVpcEndpointZoneBasicDependence(name string) string {
 	  load_balancer_spec  = "slb.s2.small"
       address_type = "intranet"
       instance_charge_type = "PayBySpec"
+      delete_protection = "off"
       vswitch_id = alicloud_vswitch.default.id
       master_zone_id = data.alicloud_slb_zones.default.zones.0.id
       slave_zone_id = data.alicloud_slb_zones.default.zones.1.id
+      lifecycle {
+        ignore_changes = [delete_protection]
+      }
 	}
 
 	data "alicloud_vswitches" "default" {
@@ -121,7 +125,7 @@ func AlicloudPrivatelinkVpcEndpointZoneBasicDependence(name string) string {
 
 // lintignore: R001
 func TestUnitAlicloudPrivatelinkVpcEndpointZone(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint_zone"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint_zone"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()
@@ -340,7 +344,7 @@ func TestAccAliCloudPrivateLinkVpcEndpointZone_basic_without_zoneid(t *testing.T
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -385,7 +389,7 @@ func TestAccAliCloudPrivateLinkVpcEndpointZone_basic4898(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -454,6 +458,13 @@ resource "alicloud_privatelink_vpc_endpoint" "defaulti9F95i" {
   vpc_id     = alicloud_vpc.defaultbFzA4a.id
   service_id = alicloud_privatelink_vpc_endpoint_service.defaultr0WBYX.id
   security_group_ids = [alicloud_security_group.default1FTFrP.id]
+  # The NLB-backed endpoint service only reports a zone as supported after the
+  # service_resource (the NLB registration) is created. Without this dependency
+  # the endpoint and service_resource race in parallel, and AddZoneToVpcEndpoint
+  # can run before the zone is propagated, failing with
+  # EndpointServiceNotSupportedZone. The service_resource Create waits on its own
+  # state refresh, so depending on it here lets endpoint_zone inherit the ordering.
+  depends_on = [alicloud_privatelink_vpc_endpoint_service_resource.defaultdTPOne]
 }
 
 resource "alicloud_vpc" "defaultVpcService" {

@@ -14,9 +14,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 /**
@@ -99,7 +100,7 @@ func resourceCheckInitWithDescribeMethod(resourceId string, resourceObject inter
 
 // caching the additional attribute type used to convert the addition attribute value type before calling Get method
 func (rc *resourceCheck) setAdditionalAttrsType() {
-	provider := Provider().(*schema.Provider)
+	provider := Provider()
 	resourceType, ok := provider.ResourcesMap[strings.Split(rc.resourceId, ".")[0]]
 	if !ok {
 		log.Panicf("invalid resource type: %s", strings.Split(rc.resourceId, ".")[0])
@@ -446,7 +447,11 @@ func (b *resourceConfig) configUpdate(changeMap map[string]interface{}) {
 	if changeMap != nil && len(changeMap) > 0 {
 		for rk, rv := range changeMap {
 			_, ok := b.attributeMap[rk]
-			if strValue, isCost := rv.(string); ok && isCost && (strValue == REMOVEKEY || strValue == CLEARMAP || strValue == CLEARLIST) {
+			// Sentinels (REMOVEKEY/CLEARMAP/CLEARLIST) must be handled regardless of
+			// whether the key already exists in attributeMap. Previously the `ok &&`
+			// guard skipped the sentinel branch for absent keys, leaking the literal
+			// sentinel string into TypeInt fields and producing invalid configs.
+			if strValue, isCost := rv.(string); isCost && (strValue == REMOVEKEY || strValue == CLEARMAP || strValue == CLEARLIST) {
 				delete(b.attributeMap, rk)
 				if strValue == CLEARMAP {
 					b.attributeMap[rk] = make(map[string]interface{})
@@ -613,8 +618,8 @@ func (dsa *dataSourceAttr) dataSourceTestCheck(t *testing.T, rand int, configs .
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers: testAccProviders,
-		Steps:     steps,
+		ProviderFactories: testAccProviderFactory,
+		Steps:             steps,
 	})
 }
 
@@ -626,9 +631,9 @@ func (dsa *dataSourceAttr) dataSourceTestCheckWithPreCheck(t *testing.T, rand in
 		steps = append(steps, conf.buildDataSourceSteps(t, dsa, rand)...)
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:  preCheck,
-		Providers: testAccProviders,
-		Steps:     steps,
+		PreCheck:          preCheck,
+		ProviderFactories: testAccProviderFactory,
+		Steps:             steps,
 	})
 }
 
@@ -729,14 +734,14 @@ func (s *VpcService) sweepVSwitch(id string) error {
 	}
 	request["RegionId"] = s.client.RegionId
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(10*time.Second, func() *resource.RetryError {
+	err = retry.Retry(10*time.Second, func() *retry.RetryError {
 		_, err = client.RpcPost("Vpc", "2016-04-28", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -794,14 +799,14 @@ func (s *SlbService) sweepSlb(id string) error {
 	client := s.client
 	var err error
 	wait := incrementalWait(3*time.Second, 10*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		_, err = client.RpcPost("Slb", "2014-05-15", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -814,14 +819,14 @@ func (s *SlbService) sweepSlb(id string) error {
 		"LoadBalancerId": id,
 	}
 	action = "DeleteLoadBalancer"
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		_, err = client.RpcPost("Slb", "2014-05-15", action, nil, delRequest, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -1003,26 +1008,28 @@ data "alicloud_elasticsearch_zones" "default" {}
 
 data "alicloud_resource_manager_resource_groups" "default" {}
 
-data "alicloud_vpcs" "default" {
-    name_regex = "^default-NODELETING$"
+resource "alicloud_vpc" "default" {
+	vpc_name   = "${var.name}"
+	cidr_block = "172.16.0.0/12"
+}
+
+resource "alicloud_vswitch" "default" {
+	vswitch_name = "${var.name}"
+	vpc_id       = "${alicloud_vpc.default.id}"
+	cidr_block   = "172.16.0.0/21"
+	zone_id      = "${data.alicloud_elasticsearch_zones.default.zones[0].id}"
 }
 
 resource "alicloud_security_group" "default" {
-    name = "${var.name}"
-    vpc_id = data.alicloud_vpcs.default.ids.0
-}
-
-data "alicloud_vswitches" "default" {
-  	vpc_id = data.alicloud_vpcs.default.ids.0
-  	zone_id = data.alicloud_elasticsearch_zones.default.zones[0].id
+	name   = "${var.name}"
+	vpc_id = "${alicloud_vpc.default.id}"
 }
 
 locals {
-  	vswitch_id = data.alicloud_vswitches.default.ids[0]
+	vswitch_id        = alicloud_vswitch.default.id
 	resource_group_id = data.alicloud_resource_manager_resource_groups.default.ids.0
-	security_group  = alicloud_security_group.default.id
+	security_group    = alicloud_security_group.default.id
 }
-
 `
 
 const SlbVpcCommonTestCase = `
@@ -1047,12 +1054,12 @@ const EmrCommonTestCase = `
 data "alicloud_resource_manager_resource_groups" "default" {}
 
 data "alicloud_emr_main_versions" "default" {
-	cluster_type = ["HADOOP"]
+	cluster_type = ["DRUID"]
 }
 
 data "alicloud_emr_instance_types" "default" {
     destination_resource = "InstanceType"
-    cluster_type = "HADOOP"
+    cluster_type = "DRUID"
     support_local_storage = false
     instance_charge_type = "PostPaid"
     support_node_type = ["MASTER", "CORE"]
@@ -1060,7 +1067,7 @@ data "alicloud_emr_instance_types" "default" {
 
 data "alicloud_emr_disk_types" "data_disk" {
 	destination_resource = "DataDisk"
-	cluster_type = "HADOOP"
+	cluster_type = "DRUID"
 	instance_charge_type = "PostPaid"
 	instance_type = data.alicloud_emr_instance_types.default.types.0.id
 	zone_id = data.alicloud_emr_instance_types.default.types.0.zone_id
@@ -1068,7 +1075,7 @@ data "alicloud_emr_disk_types" "data_disk" {
 
 data "alicloud_emr_disk_types" "system_disk" {
 	destination_resource = "SystemDisk"
-	cluster_type = "HADOOP"
+	cluster_type = "DRUID"
 	instance_charge_type = "PostPaid"
 	instance_type = data.alicloud_emr_instance_types.default.types.0.id
 	zone_id = data.alicloud_emr_instance_types.default.types.0.zone_id
@@ -1305,8 +1312,7 @@ resource "alicloud_cs_managed_kubernetes" "k8s" {
 
 const EmrHadoopClusterTestCase = `
 data "alicloud_emr_main_versions" "default" {
-	cluster_type = ["HADOOP"]
-	emr_version = "EMR-3.24.0"
+	cluster_type = ["DRUID"]
 }
 
 data "alicloud_db_zones" "default" {
@@ -1319,7 +1325,7 @@ data "alicloud_db_zones" "default" {
 
 data "alicloud_emr_instance_types" "default" {
 	destination_resource = "InstanceType"
-	cluster_type = "HADOOP"
+	cluster_type = "DRUID"
 	zone_id = data.alicloud_db_zones.default.ids[length(data.alicloud_db_zones.default.ids)-1]
 	support_local_storage = false
 	instance_charge_type = "PostPaid"
@@ -1328,7 +1334,7 @@ data "alicloud_emr_instance_types" "default" {
 
 data "alicloud_emr_disk_types" "data_disk" {
 	destination_resource = "DataDisk"
-	cluster_type = "HADOOP"
+	cluster_type = "DRUID"
 	instance_charge_type = "PostPaid"
 	instance_type = data.alicloud_emr_instance_types.default.types.0.id
 	zone_id = data.alicloud_db_zones.default.ids[length(data.alicloud_db_zones.default.ids)-1]
@@ -1336,7 +1342,7 @@ data "alicloud_emr_disk_types" "data_disk" {
 
 data "alicloud_emr_disk_types" "system_disk" {
 	destination_resource = "SystemDisk"
-	cluster_type = "HADOOP"
+	cluster_type = "DRUID"
 	instance_charge_type = "PostPaid"
 	instance_type = data.alicloud_emr_instance_types.default.types.0.id
 	zone_id = data.alicloud_db_zones.default.ids[length(data.alicloud_db_zones.default.ids)-1]
@@ -1372,7 +1378,7 @@ resource "alicloud_db_instance" "default" {
 	engine = "MySQL"
 	engine_version = "8.0"
 	instance_type = data.alicloud_db_instance_classes.default.instance_classes.0.instance_class
-	instance_storage = data.alicloud_db_instance_classes.default.instance_classes.0.storage_range.min
+	instance_storage = data.alicloud_db_instance_classes.default.instance_classes.0.storage_range.0.min
 	zone_id = data.alicloud_db_zones.default.ids[length(data.alicloud_db_zones.default.ids)-1]
 	instance_charge_type = "Postpaid"
 	db_instance_storage_type = "cloud_essd"
@@ -1415,7 +1421,7 @@ resource "alicloud_ram_role" "default" {
 
 const EmrGatewayTestCase = `
 data "alicloud_emr_main_versions" "default" {
-	cluster_type = ["HADOOP"]
+	cluster_type = ["DRUID"]
 }
 
 data "alicloud_emr_instance_types" "default" {
@@ -1551,7 +1557,7 @@ resource "alicloud_emr_cluster" "default" {
 `
 const EmrLocalStorageTestCase = `
 data "alicloud_emr_main_versions" "default" {
-	cluster_type = ["HADOOP"]
+	cluster_type = ["DRUID"]
 }
 
 data "alicloud_emr_instance_types" "local_disk" {

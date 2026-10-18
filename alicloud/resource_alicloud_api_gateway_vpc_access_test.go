@@ -10,8 +10,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cloudapi"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func init() {
@@ -98,23 +98,25 @@ func TestAccAliCloudApiGatewayVpcAccess_basic0(t *testing.T) {
 			testAccPreCheck(t)
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"name":        name,
-					"vpc_id":      "${alicloud_vpc.default.id}",
-					"instance_id": "${alicloud_instance.default.id}",
-					"port":        "8080",
+					"name":                 name,
+					"vpc_id":               "${alicloud_vpc.default.id}",
+					"instance_id":          "${alicloud_instance.default.id}",
+					"port":                 "8080",
+					"vpc_target_host_name": "www.example.com",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"name":        name,
-						"vpc_id":      CHECKSET,
-						"instance_id": CHECKSET,
-						"port":        "8080",
+						"name":                 name,
+						"vpc_id":               CHECKSET,
+						"instance_id":          CHECKSET,
+						"port":                 "8080",
+						"vpc_target_host_name": "www.example.com",
 					}),
 				),
 			},

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/agiledragon/gomonkey/v2"
@@ -12,9 +13,9 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +36,7 @@ func TestAccAliCloudNlbListener_basic0(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -59,6 +60,36 @@ func TestAccAliCloudNlbListener_basic0(t *testing.T) {
 						"load_balancer_id":       CHECKSET,
 						"server_group_id":        CHECKSET,
 						"idle_timeout":           "900",
+						"proxy_protocol_enabled": "true",
+						"sec_sensor_enabled":     "true",
+						"cps":                    "10000",
+						"mss":                    "0",
+					}),
+				),
+			},
+			{
+				Config: AlicloudNlbListenerBasicDependence0NoPreserve(name) + `
+resource "alicloud_nlb_listener" "default" {
+  listener_protocol      = "TCP"
+  listener_port          = "80"
+  listener_description   = var.name
+  load_balancer_id       = alicloud_nlb_load_balancer.default.id
+  server_group_id        = alicloud_nlb_server_group.default.id
+  idle_timeout           = "3600"
+  proxy_protocol_enabled = true
+  sec_sensor_enabled     = true
+  cps                    = "10000"
+  mss                    = "0"
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"listener_protocol":      "TCP",
+						"listener_port":          "80",
+						"listener_description":   name,
+						"load_balancer_id":       CHECKSET,
+						"server_group_id":        CHECKSET,
+						"idle_timeout":           "3600",
 						"proxy_protocol_enabled": "true",
 						"sec_sensor_enabled":     "true",
 						"cps":                    "10000",
@@ -94,7 +125,7 @@ func TestAccAliCloudNlbListener_TCPSSL(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.NLBSupportRegions)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -214,6 +245,83 @@ resource "alicloud_nlb_server_group" "default" {
   connection_drain           = true
   connection_drain_timeout   = 60
   preserve_client_ip_enabled = true
+  tags = {
+    Created = "TF"
+  }
+  address_ip_version = "Ipv4"
+}
+`, name)
+}
+
+func AlicloudNlbListenerBasicDependence0NoPreserve(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+  default = "%s"
+}
+
+data "alicloud_nlb_zones" "default" {}
+data "alicloud_vpcs" "default" {
+    name_regex = "^default-NODELETING$"
+}
+data "alicloud_resource_manager_resource_groups" "default" {}
+data "alicloud_vswitches" "default_1" {
+  vpc_id  = data.alicloud_vpcs.default.ids.0
+  zone_id = data.alicloud_nlb_zones.default.zones.0.id
+}
+data "alicloud_vswitches" "default_2" {
+  vpc_id  = data.alicloud_vpcs.default.ids.0
+  zone_id = data.alicloud_nlb_zones.default.zones.1.id
+}
+locals {
+  zone_id_1    = data.alicloud_nlb_zones.default.zones.0.id
+  vswitch_id_1 = data.alicloud_vswitches.default_1.ids[0]
+  zone_id_2    = data.alicloud_nlb_zones.default.zones.1.id
+  vswitch_id_2 = data.alicloud_vswitches.default_2.ids[0]
+}
+resource "alicloud_nlb_load_balancer" "default" {
+  load_balancer_name = var.name
+  resource_group_id  = data.alicloud_resource_manager_resource_groups.default.ids.0
+  load_balancer_type = "Network"
+  address_type       = "Internet"
+  address_ip_version = "Ipv4"
+  tags               = {
+    Created = "tfTestAcc0"
+    For     = "Tftestacc 0"
+  }
+  vpc_id = data.alicloud_vpcs.default.ids.0
+  zone_mappings {
+    vswitch_id = local.vswitch_id_1
+    zone_id    = local.zone_id_1
+  }
+  zone_mappings {
+    vswitch_id = local.vswitch_id_2
+    zone_id    = local.zone_id_2
+  }
+}
+
+resource "alicloud_nlb_server_group" "default" {
+  resource_group_id = data.alicloud_resource_manager_resource_groups.default.ids.0
+  server_group_name = var.name
+  server_group_type = "Instance"
+  vpc_id            = data.alicloud_vpcs.default.ids.0
+  scheduler         = "Wrr"
+  protocol          = "TCP"
+  health_check {
+	health_check_url =           "/test/index.html"
+	health_check_domain =       "tf-testAcc.com"
+    health_check_enabled         = true
+    health_check_type            = "TCP"
+    health_check_connect_port    = 0
+    healthy_threshold            = 2
+    unhealthy_threshold          = 2
+    health_check_connect_timeout = 5
+    health_check_interval        = 10
+    http_check_method            = "GET"
+    health_check_http_code       = ["http_2xx", "http_3xx", "http_4xx"]
+  }
+  connection_drain           = true
+  connection_drain_timeout   = 60
+  preserve_client_ip_enabled = false
   tags = {
     Created = "TF"
   }
@@ -373,7 +481,7 @@ func TestAccAliCloudNlbListener_basic1(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -600,7 +708,7 @@ resource "alicloud_nlb_server_group" "default" {
 
 // lintignore: R001
 func TestUnitAlicloudNlbListener(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_nlb_listener"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_nlb_listener"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()
@@ -1010,7 +1118,7 @@ func TestAccAliCloudNlbListener_basic4673(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1274,7 +1382,7 @@ func TestAccAliCloudNlbListener_basic4675(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -1679,7 +1787,7 @@ func TestAccAliCloudNlbListener_basic4683(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -2240,7 +2348,7 @@ func TestAccAliCloudNlbListener_basic4673_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -2304,7 +2412,7 @@ func TestAccAliCloudNlbListener_basic4675_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -2376,7 +2484,7 @@ func TestAccAliCloudNlbListener_basic4683_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -2432,6 +2540,36 @@ func TestAccAliCloudNlbListener_basic4683_twin(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{},
+			},
+		},
+	})
+}
+
+// An empty string inside certificate list parameters is decoded as a nil
+// element by the SDK, which crashes the request serializer. It must be
+// rejected at validation time instead of reaching the SDK.
+func TestAccAliCloudNlbListener_emptyStringInList(t *testing.T) {
+	resourceId := "alicloud_nlb_listener.default"
+	rand := acctest.RandIntRange(1000, 9999)
+	name := fmt.Sprintf("tf-testacc%snlblistener%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudNlbListenerBasicDependence0)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, connectivity.NLBSupportRegions)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"listener_protocol":  "TCP",
+					"listener_port":      "80",
+					"load_balancer_id":   "${alicloud_nlb_load_balancer.default.id}",
+					"server_group_id":    "${alicloud_nlb_server_group.default.id}",
+					"ca_certificate_ids": []string{"", "cert-not-exist"},
+				}),
+				ExpectError: regexp.MustCompile(`ca_certificate_ids\.0.*to not be an empty string`),
 			},
 		},
 	})

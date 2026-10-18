@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,12 +16,13 @@ import (
 
 	ossclient "github.com/alibabacloud-go/alibabacloud-gateway-oss/client"
 	gatewayclient "github.com/alibabacloud-go/alibabacloud-gateway-sls/client"
-	roaCS "github.com/alibabacloud-go/cs-20151215/v7/client"
+	roaCS "github.com/alibabacloud-go/cs-20151215/v8/client"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	roa "github.com/alibabacloud-go/tea-roa/client"
 	rpc "github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	utilV2 "github.com/alibabacloud-go/tea-utils/v2/service"
+	"github.com/alibabacloud-go/tea/dara"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
@@ -72,9 +74,13 @@ import (
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	otsTunnel "github.com/aliyun/aliyun-tablestore-go-sdk/tunnel"
 	"github.com/aliyun/fc-go-sdk"
+	"github.com/aliyun/terraform-provider-alicloud/alicloud/features"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscredentials "github.com/aws/aws-sdk-go-v2/credentials"
+	awsdynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/denverdino/aliyungo/cdn"
 	"github.com/denverdino/aliyungo/cs"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 type AliyunClient struct {
@@ -154,6 +160,8 @@ type AliyunClient struct {
 	cmsConn                      *cms.Client
 	r_kvstoreConn                *r_kvstore.Client
 	maxcomputeConn               *maxcompute.Client
+
+	Features features.Features
 }
 
 type ApiVersion string
@@ -185,7 +193,7 @@ var loadSdkfromRemoteMutex = sync.Mutex{}
 var loadSdkEndpointMutex = sync.Mutex{}
 
 // The main version number that is being run at the moment.
-var providerVersion = "1.286.0"
+var providerVersion = "2.0.0"
 
 // Temporarily maintain map for old ecs client methods and store special endpoint information
 var EndpointMap = map[string]string{
@@ -262,6 +270,7 @@ func (c *Config) Client() (*AliyunClient, error) {
 		otsTunnelConnByInstanceName:  make(map[string]otsTunnel.TunnelClient),
 		csprojectconnByKey:           make(map[string]*cs.ProjectClient),
 		skipRegionValidation:         c.SkipRegionValidation,
+		Features:                     c.Features,
 	}
 	if c.AccountType == "" {
 		c.AccountType = client.getAccountType()
@@ -396,6 +405,60 @@ func (client *AliyunClient) WithPolarDBClient(do func(*polardb.Client) (interfac
 	polarDBconn.SecureTransport = client.config.SecureTransport
 	client.polarDBconn = polarDBconn
 	return do(client.polarDBconn)
+}
+
+// NewPolarDBDynamoClient creates an AWS DynamoDB client (aws-sdk-go-v2) configured
+// for PolarDB's DynamoDB-compatible endpoint. The endpoint is derived from the PolarDB
+// cluster's DynamoDB endpoint address. If accessKey/secretKey are empty, the provider's
+// credentials are used instead.
+func (client *AliyunClient) NewPolarDBDynamoClient(endpoint, accessKey, secretKey string) (*awsdynamodb.Client, error) {
+	if endpoint == "" {
+		return nil, fmt.Errorf("endpoint is required for PolarDB DynamoDB operations")
+	}
+
+	// Ensure endpoint uses HTTP protocol (PolarDB DynamoDB compatible endpoint does not support HTTPS)
+	if strings.HasPrefix(endpoint, "https://") {
+		log.Printf("[WARN] NewPolarDBDynamoClient: the PolarDB DynamoDB-compatible endpoint does not support HTTPS; downgrading %s to http://. Requests and payloads are sent in plaintext.", endpoint)
+		endpoint = "http://" + strings.TrimPrefix(endpoint, "https://")
+	} else if !strings.HasPrefix(endpoint, "http://") {
+		endpoint = "http://" + endpoint
+	}
+
+	// Use resource-level AK/SK if provided, otherwise fall back to the provider
+	// credentials, refreshed and including the STS security token when present.
+	ak := accessKey
+	sk := secretKey
+	stsToken := ""
+	if ak == "" || sk == "" {
+		ak, sk, stsToken = client.config.AccessKey, client.config.SecretKey, client.config.SecurityToken
+		credential, err := client.config.Credential.GetCredential()
+		if err != nil || credential == nil {
+			log.Printf("[WARN] get credential failed. Error: %#v", err)
+		} else {
+			ak, sk, stsToken = *credential.AccessKeyId, *credential.AccessKeySecret, *credential.SecurityToken
+		}
+	}
+	cfg := aws.Config{
+		Region:      "public",
+		Credentials: awscredentials.NewStaticCredentialsProvider(ak, sk, stsToken),
+		// Keep SDK-level retries and per-request timeouts small so that a single API
+		// call fails fast (e.g. when the public endpoint is unreachable), letting the
+		// outer retry.Retry loop drive retries and surface the real error instead
+		// of one call blocking for the whole retry window.
+		RetryMaxAttempts: 3,
+		HTTPClient: &http.Client{
+			Timeout: 15 * time.Second,
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout: 10 * time.Second,
+				}).DialContext,
+			},
+		},
+	}
+
+	return awsdynamodb.NewFromConfig(cfg, func(o *awsdynamodb.Options) {
+		o.BaseEndpoint = aws.String(endpoint)
+	}), nil
 }
 
 func (client *AliyunClient) WithSlbClient(do func(*slb.Client) (interface{}, error)) (interface{}, error) {
@@ -1529,11 +1592,18 @@ func (client *AliyunClient) WithTableStoreClient(instanceName string, do func(*t
 	if client.config.SourceIp != "" {
 		externalHeaders["x-ots-sourceip"] = client.config.SourceIp
 	}
+	tableStoreConfig := getTableStoreConfig()
 	accessKey, secretKey, token := client.config.GetRefreshCredential()
-	tableStoreClient = tablestore.NewClientWithExternalHeader(endpoint, instanceName, accessKey, secretKey, token, tablestore.NewDefaultTableStoreConfig(), externalHeaders)
+	tableStoreClient = tablestore.NewClientWithExternalHeader(endpoint, instanceName, accessKey, secretKey, token, tableStoreConfig, externalHeaders)
 	client.tablestoreconnByInstanceName[instanceName] = tableStoreClient
 
 	return do(tableStoreClient)
+}
+
+func getTableStoreConfig() *tablestore.TableStoreConfig {
+	config := tablestore.NewDefaultTableStoreConfig()
+	config.ProxyFromEnvironment = true
+	return config
 }
 
 func (client *AliyunClient) WithTableStoreTunnelClient(instanceName string, do func(otsTunnel.TunnelClient) (interface{}, error)) (interface{}, error) {
@@ -1671,13 +1741,13 @@ func (client *AliyunClient) getAccountType() string {
 		accountType = "International"
 	}
 	wait := incrementalWait(1*time.Second, 0*time.Second)
-	resource.Retry(30*time.Second, func() *resource.RetryError {
+	retry.Retry(30*time.Second, func() *retry.RetryError {
 		_, err := client.RpcPost("BssOpenApi", "2017-12-14", "QueryAvailableInstances", nil, request, true)
 		log.Printf("[WARN] checking caller identity's account type by invoking BssOpenApi QueryAvailableInstances failed. Error: %v", err)
 		if err != nil {
 			if needRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
 			if isExpectedErrors(err, []string{"NotApplicable", "not found article by given param"}) {
 				if request["ProductType"] == "vipcloudfw" {
@@ -1711,6 +1781,7 @@ func (client *AliyunClient) getSdkConfig(timeout time.Duration) *sdk.Config {
 	}
 	// WithUserAgent will add a prefix Extra/ for user agent value
 	return sdk.NewConfig().
+		WithAutoRetry(true).
 		WithMaxRetryTime(DefaultClientRetryCountSmall).
 		WithTimeout(timeout).
 		WithEnableAsync(false).
@@ -1731,8 +1802,13 @@ func (client *AliyunClient) getTransport() *http.Transport {
 	if err != nil {
 		handshakeTimeout = 120
 	}
+	idleConnTimeout, err := strconv.Atoi(os.Getenv("IdleConnTimeout"))
+	if err != nil || idleConnTimeout <= 0 || idleConnTimeout > 86400 {
+		idleConnTimeout = 5
+	}
 	transport := &http.Transport{}
 	transport.TLSHandshakeTimeout = time.Duration(handshakeTimeout) * time.Second
+	transport.IdleConnTimeout = time.Duration(idleConnTimeout) * time.Second
 
 	return transport
 }
@@ -2679,6 +2755,17 @@ func (client *AliyunClient) roaRequest(method string, apiProductCode string, api
 	return response, formatError(response, err)
 }
 
+func normalizeOssOpenAPIResponse(response map[string]interface{}) (map[string]interface{}, error) {
+	if response == nil {
+		return nil, nil
+	}
+	normalized := make(map[string]interface{})
+	if err := dara.Convert(response, &normalized); err != nil {
+		return nil, err
+	}
+	return normalized, nil
+}
+
 // Do invoking API request with SDK v2
 // parameters:
 //
@@ -2745,6 +2832,16 @@ func (client *AliyunClient) Do(apiProductCode string, apiParams *openapi.Params,
 		response, err = openapiClient.CallApi(apiParams, &openapi.OpenApiRequest{Query: query, Body: body, Headers: headers, HostMap: hostMap}, runtime)
 	} else {
 		response, err = openapiClient.Execute(apiParams, &openapi.OpenApiRequest{Query: query, Body: body, Headers: headers, HostMap: hostMap}, runtime)
+	}
+	if apiProductCode == "oss" && response != nil {
+		// Normalizing only reshapes the response map, so it must not assign to err:
+		// doing so overwrites an API error reported by the call above with its own nil
+		// and silently turns a failed request into a successful one with empty data.
+		normalized, normalizeErr := normalizeOssOpenAPIResponse(response)
+		if normalizeErr != nil {
+			return nil, normalizeErr
+		}
+		response = normalized
 	}
 	if respBody, isExist := response["body"]; isExist && respBody != nil {
 		if v, ok := respBody.(map[string]interface{}); ok {

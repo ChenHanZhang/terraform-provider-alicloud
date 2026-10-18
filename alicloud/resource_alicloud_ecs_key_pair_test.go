@@ -2,26 +2,111 @@ package alicloud
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	resource.AddTestSweepers("alicloud_ecs_key_pair", &resource.Sweeper{
+		Name: "alicloud_ecs_key_pair",
+		F:    testSweepEcsKeyPairs,
+	})
+}
+
+// testSweepEcsKeyPairs sweeps orphaned ECS key pairs created by acceptance
+// tests. NODELETING name guard + prefix filter in non-SWEEP_ALL mode. Deletes
+// via DeleteKeyPairs (KeyPairNames JSON array).
+func testSweepEcsKeyPairs(region string) error {
+	rawClient, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting AliCloud client: %s", err)
+	}
+	client := rawClient.(*connectivity.AliyunClient)
+	prefixes := []string{
+		"tf-testAcc",
+		"tf_testAcc",
+		"tf-example",
+		"tf-test",
+	}
+	request := map[string]interface{}{
+		"PageSize":   PageSizeLarge,
+		"PageNumber": 1,
+		"RegionId":   client.RegionId,
+	}
+	action := "DescribeKeyPairs"
+	var response map[string]interface{}
+	for {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
+		if err != nil {
+			log.Printf("[ERROR] %s got an error: %s", action, err)
+			return nil
+		}
+		addDebug(action, response, request)
+		resp, err := jsonpath.Get("$.KeyPairs.KeyPair", response)
+		if err != nil {
+			log.Printf("[ERROR] jsonpath Get EcsKeyPairs failed: %#v", err)
+			return nil
+		}
+		result, _ := resp.([]interface{})
+		for _, v := range result {
+			item := v.(map[string]interface{})
+			name := fmt.Sprint(item["KeyPairName"])
+			if protectedSweepVpcName(name) {
+				log.Printf("[INFO] Skipping EcsKeyPair (NODELETING): %s", name)
+				continue
+			}
+			skip := true
+			if !sweepAll() {
+				for _, prefix := range prefixes {
+					if strings.HasPrefix(strings.ToLower(name), strings.ToLower(prefix)) {
+						skip = false
+						break
+					}
+				}
+				if skip {
+					log.Printf("[INFO] Skipping EcsKeyPair: %s", name)
+					continue
+				}
+			}
+			log.Printf("[INFO] Deleting EcsKeyPair: %s", name)
+			delReq := map[string]interface{}{
+				"KeyPairNames": convertListToJsonString(convertListStringToListInterface([]string{name})),
+				"RegionId":     client.RegionId,
+			}
+			_, err = client.RpcPost("Ecs", "2014-05-26", "DeleteKeyPairs", nil, delReq, true)
+			if err != nil {
+				log.Printf("[ERROR] Failed to delete EcsKeyPair (%s): %s", name, err)
+				continue
+			}
+			log.Printf("[INFO] Delete EcsKeyPair success: %s", name)
+		}
+		if len(result) < PageSizeLarge {
+			break
+		}
+		request["PageNumber"] = request["PageNumber"].(int) + 1
+	}
+	return nil
+}
+
 // lintignore: R001
 func TestUnitAliCloudECSKeyPair(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_ecs_key_pair"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_ecs_key_pair"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -279,13 +364,13 @@ func TestUnitAliCloudECSKeyPair(t *testing.T) {
 		for _, key := range []string{"resource_group_id"} {
 			switch p["alicloud_ecs_key_pair"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_ecs_key_pair"].Schema).Data(nil, diff)
@@ -312,13 +397,13 @@ func TestUnitAliCloudECSKeyPair(t *testing.T) {
 		for _, key := range []string{"resource_group_id", "tags"} {
 			switch p["alicloud_ecs_key_pair"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_ecs_key_pair"].Schema).Data(nil, diff)
@@ -465,7 +550,7 @@ func TestAccAliCloudECSKeyPair_basic9172(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -548,7 +633,7 @@ func TestAccAliCloudECSKeyPair_basic9172_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -617,7 +702,7 @@ func TestAccAliCloudECSKeyPair_basic9171(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -700,7 +785,7 @@ func TestAccAliCloudECSKeyPair_basic9171_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -751,7 +836,7 @@ func TestAccAliCloudECSKeyPair_basic8369(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -834,7 +919,7 @@ func TestAccAliCloudECSKeyPair_basic8639_twin(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{

@@ -3,6 +3,8 @@ package alicloud
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +14,8 @@ import (
 	ossv2 "github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -285,8 +287,15 @@ func resourceAlicloudOssBucketObjectRead(d *schema.ResourceData, meta interface{
 	object, err := bucket.GetObjectDetailedMeta(d.Get("key").(string), options...)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"404 Not Found", "NoSuchKey"}) {
+			// The object was removed out-of-band (e.g. via the OSS console or
+			// CLI) and no longer exists. SetId("") asks Terraform to drop it
+			// from state; return nil so the SDK commits that update during
+			// refresh. A subsequent plan then reports "1 to add" and apply
+			// recreates the object. Returning an error here would discard the
+			// SetId("") change and abort the refresh/plan, leaving the
+			// resource stuck in state and blocking further automation.
 			d.SetId("")
-			return WrapError(Error("To get the Object: %#v but it is not exist in the specified bucket %s.", d.Get("key").(string), d.Get("bucket").(string)))
+			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), "GetObjectDetailedMeta", AliyunOssGoSdk)
 	}
@@ -355,6 +364,30 @@ func hasObjectContentChanges(d *schema.ResourceData) bool {
 	return false
 }
 
+// normalizeContentMD5 normalizes a content_md5 value into the base64 form
+// required by the OSS PutObject Content-MD5 header (RFC 1864). It accepts two
+// encodings: a 32-character hex MD5 digest (as produced by Terraform's md5()
+// and filemd5() functions), which is converted to base64; and an already
+// base64-encoded value, which is passed through unchanged only when it
+// decodes to the 16 bytes of an MD5 digest. Input that is neither a valid
+// 32-character hex MD5 digest nor a 16-byte base64-encoded digest is
+// reported as an error at the provider side instead of being forwarded for
+// OSS to reject. The hex branch is checked first because a 32-character hex
+// string is also well-formed base64 and must be converted, not passed
+// through.
+func normalizeContentMD5(md5Str string) (string, error) {
+	if decoded, err := hex.DecodeString(md5Str); err == nil && len(decoded) == 16 {
+		return base64.StdEncoding.EncodeToString(decoded), nil
+	}
+	if decoded, err := base64.StdEncoding.DecodeString(md5Str); err == nil {
+		if len(decoded) != 16 {
+			return "", fmt.Errorf("content_md5 base64-decodes to %d bytes, expected 16 for an MD5 digest, got %q", len(decoded), md5Str)
+		}
+		return md5Str, nil
+	}
+	return "", fmt.Errorf("content_md5 must be a 32-character hex MD5 digest or its base64 encoding, got %q", md5Str)
+}
+
 func buildObjectHeaderOptions(d *schema.ResourceData) (options []oss.Option, err error) {
 
 	if v, ok := d.GetOk("acl"); ok {
@@ -378,7 +411,11 @@ func buildObjectHeaderOptions(d *schema.ResourceData) (options []oss.Option, err
 	}
 
 	if v, ok := d.GetOk("content_md5"); ok {
-		options = append(options, oss.ContentMD5(v.(string)))
+		normalized, err := normalizeContentMD5(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, oss.ContentMD5(normalized))
 	}
 
 	if v, ok := d.GetOk("expires"); ok {

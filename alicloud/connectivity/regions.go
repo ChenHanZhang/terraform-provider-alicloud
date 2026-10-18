@@ -37,6 +37,8 @@ const (
 	USEast1      = Region("us-east-1")
 	USSouthEast1 = Region("us-southeast-1")
 
+	NASouth1 = Region("na-south-1")
+
 	MEEast1    = Region("me-east-1")
 	MECentral1 = Region("me-central-1")
 
@@ -64,6 +66,7 @@ const (
 var ValidRegions = []Region{
 	Hangzhou, Qingdao, Beijing, Shenzhen, Hongkong, Shanghai, Zhangjiakou, Huhehaote, ChengDu, HeYuan, WuLanChaBu, GuangZhou, NanJing, FuZhou, ZhongWei,
 	USWest1, USEast1, USSouthEast1,
+	NASouth1,
 	APNorthEast1, APNorthEast2, APSouthEast1, APSouthEast2, APSouthEast3, APSouthEast5, APSouthEast6, APSouthEast7, APSouthEast8,
 	APSouth1,
 	MEEast1, MECentral1,
@@ -77,7 +80,7 @@ var ValidRegions = []Region{
 
 var EcsClassicSupportedRegions = []Region{Shenzhen, Shanghai, Beijing, Qingdao, Hangzhou, Hongkong, USWest1, APSouthEast1}
 var EcsSpotNoSupportedRegions = []Region{APSouth1}
-var EcsSccSupportedRegions = []Region{Shanghai, Beijing, Zhangjiakou}
+var EcsSccSupportedRegions = []Region{Hangzhou, Shanghai, Beijing, Zhangjiakou}
 var SlbGuaranteedSupportedRegions = []Region{Qingdao, Beijing, Hangzhou, Shanghai, Shenzhen, Zhangjiakou, Huhehaote, APSouthEast1, USEast1}
 var DrdsSupportedRegions = []Region{Beijing, Shenzhen, Hangzhou, Qingdao, Hongkong, Shanghai, Huhehaote, Zhangjiakou, APSouthEast1}
 var DrdsClassicNoSupportedRegions = []Region{Hongkong}
@@ -235,7 +238,7 @@ var CloudFirewallSupportRegions = []Region{APSouthEast1, Hangzhou}
 var SMSSupportRegions = []Region{Hangzhou, APSouthEast1, APSouthEast5}
 var CloudMonitorServiceSupportRegions = []Region{ChengDu, GuangZhou, APSouthEast3, Beijing, WuLanChaBu, ShanghaiFinance, USWest1, APSouthEast5, Hongkong, Zhangjiakou, APNorthEast1, APSouthEast2, MEEast1, Huhehaote, USEast1, APSouth1, CnNorth2Gov1, Shanghai, EUWest1, APSouthEast1, Hangzhou, Qingdao, HeYuan, EUCentral1, Shenzhen}
 var DdosBgpSupportRegions = []Region{Shenzhen, GuangZhou, Hongkong, APSouthEast1, APSouthEast2, APSouthEast5, WuLanChaBu, MEEast1, EUCentral1, USEast1, HeYuan, APSouthEast3, APSouth1, EUWest1, APNorthEast1, ChengDu, Qingdao, Shanghai, Hangzhou, Beijing, Huhehaote, Zhangjiakou, USWest1}
-var VpnGatewayVpnAttachmentSupportRegions = []Region{APSouthEast2, EUCentral1}
+var VpnGatewayVpnAttachmentSupportRegions = []Region{EUCentral1}
 var EBSSupportRegions = []Region{USEast1, USWest1, ChengDu, Beijing, Shanghai, Hongkong, APSouthEast1, Shenzhen, HeYuan, APSouthEast5, Hangzhou}
 var VODSupportRegions = []Region{Beijing, APNorthEast1, CnNorth2Gov1, Shanghai, EUCentral1, Zhangjiakou, Shenzhen, Hongkong, APSouthEast1, Hangzhou, EUWest1, APSouthEast5, APSouth1, USWest1}
 var GPDBServerlessSupportRegions = []Region{Beijing, APSouth1, ChengDu, Shanghai, APSouthEast3, Huhehaote, USWest1, ShanghaiFinance, Hongkong, APSouthEast1, APSouthEast2, USEast1, Zhangjiakou, Shenzhen, EUWest1, APNorthEast1, APSouthEast5}

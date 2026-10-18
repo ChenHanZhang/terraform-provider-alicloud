@@ -6,8 +6,8 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/polardb"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 var privateConnectionStringRegexp = "^[a-z-A-Z-0-9]+.rwlb.([a-z-A-Z-0-9]+.){0,1}rds.aliyuncs.com"
@@ -36,8 +36,8 @@ func TestAccAliCloudPolarDBEndpointConfigUpdate(t *testing.T) {
 		// module name
 		IDRefreshName: resourceId,
 
-		Providers:    testAccProviders,
-		CheckDestroy: rac.checkResourceDestroy(),
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -172,8 +172,8 @@ func TestAccAliCloudPolarDBEndpointConfigUpdate_SslConnectionStringAndConnection
 		// module name
 		IDRefreshName: resourceId,
 
-		Providers:    testAccProviders,
-		CheckDestroy: rac.checkResourceDestroy(),
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -286,6 +286,9 @@ func resourcePolarDBEndpointConfigDependence(name string) string {
                 db_node_class = "polar.mysql.x4.medium"
                 vswitch_id = alicloud_vswitch.default.id
                 description = "${var.name}"
+                lifecycle {
+                        ignore_changes = [encrypt_new_tables]
+                }
         }
 
 		data "alicloud_polardb_clusters" "default" {
@@ -370,6 +373,9 @@ resource "alicloud_polardb_cluster" "default" {
   pay_type        = "PostPaid"
   vswitch_id      = alicloud_vswitch.default.id
   enable_dynamodb = true
+  lifecycle {
+    ignore_changes = [encrypt_new_tables]
+  }
 }
 `, name)
 }

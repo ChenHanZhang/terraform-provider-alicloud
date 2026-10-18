@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudEcsAutoSnapshotPolicy() *schema.Resource {
@@ -27,6 +27,12 @@ func resourceAliCloudEcsAutoSnapshotPolicy() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"association_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"auto_snapshot_policy_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -92,6 +98,22 @@ func resourceAliCloudEcsAutoSnapshotPolicy() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"target_tags": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tag_key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tag_value": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 			"time_points": {
 				Type:     schema.TypeList,
 				Required: true,
@@ -119,6 +141,9 @@ func resourceAliCloudEcsAutoSnapshotPolicyCreate(d *schema.ResourceData, meta in
 	request = make(map[string]interface{})
 	request["regionId"] = client.RegionId
 
+	if v, ok := d.GetOk("association_type"); ok {
+		request["AssociationType"] = v
+	}
 	if v, ok := d.GetOk("name"); ok || d.HasChange("name") {
 		request["autoSnapshotPolicyName"] = v
 	}
@@ -169,15 +194,26 @@ func resourceAliCloudEcsAutoSnapshotPolicyCreate(d *schema.ResourceData, meta in
 			request["TargetCopyRegions"] = convertListToJsonString(jsonPathResult9.(*schema.Set).List())
 		}
 	}
+	if v, ok := d.GetOk("target_tags"); ok {
+		targetTagsMapsArray := make([]interface{}, 0)
+		for _, dataLoop1 := range convertToInterfaceArray(v) {
+			dataLoop1Tmp := dataLoop1.(map[string]interface{})
+			dataLoop1Map := make(map[string]interface{})
+			dataLoop1Map["Key"] = dataLoop1Tmp["tag_key"]
+			dataLoop1Map["Value"] = dataLoop1Tmp["tag_value"]
+			targetTagsMapsArray = append(targetTagsMapsArray, dataLoop1Map)
+		}
+		request["TargetTags"] = targetTagsMapsArray
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -218,6 +254,9 @@ func resourceAliCloudEcsAutoSnapshotPolicyRead(d *schema.ResourceData, meta inte
 	if objectRaw["EnableCrossRegionCopy"] != nil {
 		d.Set("enable_cross_region_copy", objectRaw["EnableCrossRegionCopy"])
 	}
+	if objectRaw["AssociationType"] != nil {
+		d.Set("association_type", objectRaw["AssociationType"])
+	}
 	if objectRaw["RegionId"] != nil {
 		d.Set("region_id", objectRaw["RegionId"])
 	}
@@ -257,6 +296,20 @@ func resourceAliCloudEcsAutoSnapshotPolicyRead(d *schema.ResourceData, meta inte
 
 	tagsMaps, _ := jsonpath.Get("$.Tags.Tag", objectRaw)
 	d.Set("tags", tagsToMap(tagsMaps))
+	targetTagRaw, _ := jsonpath.Get("$.TargetTags.TargetTag", objectRaw)
+	targetTagsMaps := make([]map[string]interface{}, 0)
+	if targetTagRaw != nil {
+		for _, targetTagChildRaw := range convertToInterfaceArray(targetTagRaw) {
+			targetTagsMap := make(map[string]interface{})
+			targetTagChildRaw := targetTagChildRaw.(map[string]interface{})
+			targetTagsMap["tag_key"] = targetTagChildRaw["TagKey"]
+			targetTagsMap["tag_value"] = targetTagChildRaw["TagValue"]
+			targetTagsMaps = append(targetTagsMaps, targetTagsMap)
+		}
+	}
+	if err := d.Set("target_tags", targetTagsMaps); err != nil {
+		return err
+	}
 
 	if objectRaw["RepeatWeekdays"] != nil {
 		if repeatWeekdays, err := convertJsonStringToList(objectRaw["RepeatWeekdays"].(string)); err != nil {
@@ -342,6 +395,20 @@ func resourceAliCloudEcsAutoSnapshotPolicyUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
+	if d.HasChange("target_tags") {
+		update = true
+		v := d.Get("target_tags")
+		targetTagsMapsArray := make([]interface{}, 0)
+		for _, dataLoop := range convertToInterfaceArray(v) {
+			dataLoopTmp := dataLoop.(map[string]interface{})
+			dataLoopMap := make(map[string]interface{})
+			dataLoopMap["Key"] = dataLoopTmp["tag_key"]
+			dataLoopMap["Value"] = dataLoopTmp["tag_value"]
+			targetTagsMapsArray = append(targetTagsMapsArray, dataLoopMap)
+		}
+		request["TargetTags"] = targetTagsMapsArray
+	}
+
 	if d.HasChange("name") {
 		update = true
 		request["autoSnapshotPolicyName"] = d.Get("name")
@@ -374,14 +441,14 @@ func resourceAliCloudEcsAutoSnapshotPolicyUpdate(d *schema.ResourceData, meta in
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -404,14 +471,14 @@ func resourceAliCloudEcsAutoSnapshotPolicyUpdate(d *schema.ResourceData, meta in
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -444,15 +511,15 @@ func resourceAliCloudEcsAutoSnapshotPolicyDelete(d *schema.ResourceData, meta in
 	request["regionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

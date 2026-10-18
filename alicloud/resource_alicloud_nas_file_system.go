@@ -9,8 +9,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudNasFileSystem() *schema.Resource {
@@ -215,18 +215,22 @@ func resourceAliCloudNasFileSystem() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: StringInSlice([]string{"Performance", "Capacity", "standard", "advance", "advance_100", "advance_200", "Premium"}, false),
+				ValidateFunc: StringInSlice([]string{"Performance", "Capacity", "standard", "advance", "advance_100", "advance_200", "Premium", "Agentic"}, false),
 			},
 			"tags": tagsSchema(),
 			"vswitch_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: nasFileSystemVpcDiffSuppressFunc,
 			},
 			"vpc_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: nasFileSystemVpcDiffSuppressFunc,
 			},
 			"zone_id": {
 				Type:     schema.TypeString,
@@ -299,14 +303,14 @@ func resourceAliCloudNasFileSystemCreate(d *schema.ResourceData, meta interface{
 		request["KmsKeyId"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) || IsExpectedErrors(err, []string{"User.InDebt"}) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -374,9 +378,24 @@ func resourceAliCloudNasFileSystemRead(d *schema.ResourceData, meta interface{})
 	redundancyVSwitchIdRaw, _ := jsonpath.Get("$.RedundancyVSwitchIds.RedundancyVSwitchId", objectRaw)
 	d.Set("redundancy_vswitch_ids", redundancyVSwitchIdRaw)
 
+	// Agentic file systems are standard-type file systems without the general-purpose
+	// NAS recycle bin and ACL features: skip those cross-contract reads and keep the
+	// corresponding attributes empty in state instead of recording ineffective values.
+	isAgenticStorage := d.Get("storage_type") == "Agentic"
+	if isAgenticStorage {
+		if err := d.Set("smb_acl", []interface{}{}); err != nil {
+			return WrapError(err)
+		}
+		if err := d.Set("recycle_bin", []interface{}{}); err != nil {
+			return WrapError(err)
+		}
+		if err := d.Set("nfs_acl", []interface{}{}); err != nil {
+			return WrapError(err)
+		}
+	}
 	checkValue00 := d.Get("file_system_type")
 	checkValue01 := d.Get("protocol_type")
-	if (checkValue00 == "standard") && (checkValue01 == "SMB") {
+	if !isAgenticStorage && (checkValue00 == "standard") && (checkValue01 == "SMB") {
 		objectRaw, err = nasServiceV2.DescribeFileSystemDescribeSmbAcl(d.Id())
 		if err != nil && !NotFoundError(err) {
 			return WrapError(err)
@@ -399,7 +418,7 @@ func resourceAliCloudNasFileSystemRead(d *schema.ResourceData, meta interface{})
 
 	}
 	checkValue00 = d.Get("file_system_type")
-	if checkValue00 == "standard" {
+	if checkValue00 == "standard" && !isAgenticStorage {
 		objectRaw, err = nasServiceV2.DescribeFileSystemGetRecycleBinAttribute(d.Id())
 		if err != nil && !NotFoundError(err) {
 			return WrapError(err)
@@ -430,7 +449,7 @@ func resourceAliCloudNasFileSystemRead(d *schema.ResourceData, meta interface{})
 
 	checkValue00 = d.Get("file_system_type")
 	checkValue01 = d.Get("protocol_type")
-	if (checkValue00 == "standard") && (checkValue01 == "NFS") {
+	if !isAgenticStorage && (checkValue00 == "standard") && (checkValue01 == "NFS") {
 		objectRaw, err = nasServiceV2.DescribeFileSystemDescribeNfsAcl(d.Id())
 		if err != nil && !NotFoundError(err) {
 			return WrapError(err)
@@ -462,6 +481,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 	nasServiceV2 := NasServiceV2{client}
 	objectRaw, _ := nasServiceV2.DescribeNasFileSystem(d.Id())
 
+	// Agentic file systems are standard-type file systems, but the recycle bin and ACL
+	// features below are general-purpose NAS features and their APIs do not apply to
+	// them; reject the change up front instead of silently skipping it.
+	isAgenticStorage := d.Get("storage_type") == "Agentic"
+
+	if d.HasChange("recycle_bin.0.status") && isAgenticStorage {
+		return WrapError(fmt.Errorf("recycle_bin is not supported for Agentic file systems and cannot be modified on %s", d.Id()))
+	}
 	if d.HasChange("recycle_bin.0.status") {
 		objectRaw1, _ := nasServiceV2.DescribeFileSystemGetRecycleBinAttribute(d.Id())
 		var err error
@@ -485,14 +512,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 				}
 			}
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -515,14 +542,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 			query["FileSystemId"] = d.Id()
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcGet("NAS", "2017-06-26", action, query, request)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -534,6 +561,9 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if d.HasChange("nfs_acl.0.enabled") && isAgenticStorage {
+		return WrapError(fmt.Errorf("nfs_acl is not supported for Agentic file systems and cannot be modified on %s", d.Id()))
+	}
 	if d.HasChange("nfs_acl.0.enabled") {
 		objectRaw2, _ := nasServiceV2.DescribeFileSystemDescribeNfsAcl(d.Id())
 		var err error
@@ -552,14 +582,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 			request["FileSystemId"] = d.Id()
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -583,14 +613,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 			request["FileSystemId"] = d.Id()
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -602,6 +632,9 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if d.HasChange("smb_acl.0.enabled") && isAgenticStorage {
+		return WrapError(fmt.Errorf("smb_acl is not supported for Agentic file systems and cannot be modified on %s", d.Id()))
+	}
 	if d.HasChange("smb_acl.0.enabled") {
 		var err error
 		objectRaw3, err := nasServiceV2.DescribeFileSystemDescribeSmbAcl(d.Id())
@@ -622,14 +655,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 			request["KeytabMd5"] = d.Get("keytab_md5")
 			request["Keytab"] = d.Get("keytab")
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -653,14 +686,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 			request["FileSystemId"] = d.Id()
 
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -703,14 +736,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -739,14 +772,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 	request["DryRun"] = "false"
 	if update && enableUpgradeFileSystem1 {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -773,14 +806,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 	request["ResourceType"] = "filesystem"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -811,14 +844,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 
 	if update && enableUpdateRecycleBinAttribute1 {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcGet("NAS", "2017-06-26", action, query, request)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -829,7 +862,10 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 	}
 	update = false
 	objectRaw, _ = nasServiceV2.DescribeNasFileSystem(d.Id())
-	objectRaw3, err := nasServiceV2.DescribeFileSystemDescribeSmbAcl(d.Id())
+	var objectRaw3 map[string]interface{}
+	if !isAgenticStorage {
+		objectRaw3, _ = nasServiceV2.DescribeFileSystemDescribeSmbAcl(d.Id())
+	}
 	enableModifySmbAcl1 := false
 	checkValue00 = objectRaw["FileSystemType"]
 	checkValue01 = objectRaw["ProtocolType"]
@@ -890,14 +926,14 @@ func resourceAliCloudNasFileSystemUpdate(d *schema.ResourceData, meta interface{
 	}
 	if update && enableModifySmbAcl1 {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -929,14 +965,14 @@ func resourceAliCloudNasFileSystemDelete(d *schema.ResourceData, meta interface{
 	request["FileSystemId"] = d.Id()
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("NAS", "2017-06-26", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

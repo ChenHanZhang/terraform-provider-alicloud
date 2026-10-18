@@ -7,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type PrivateLinkServiceV2 struct {
@@ -29,15 +29,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointService(id string) 
 	action := "GetVpcEndpointServiceAttribute"
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -51,6 +51,66 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointService(id string) 
 
 	return response, nil
 }
+
+// ListPrivateLinkVpcEndpointServiceResources lists all service resources attached to a VpcEndpointService, following pagination.
+func (s *PrivateLinkServiceV2) ListPrivateLinkVpcEndpointServiceResources(serviceId string) (resources []interface{}, err error) {
+	client := s.client
+	action := "ListVpcEndpointServiceResources"
+	resources = make([]interface{}, 0)
+	nextToken := ""
+	for {
+		request := map[string]interface{}{
+			"ServiceId":  serviceId,
+			"RegionId":   client.RegionId,
+			"MaxResults": PageSizeLarge,
+		}
+		if nextToken != "" {
+			request["NextToken"] = nextToken
+		}
+		var response map[string]interface{}
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+			response, err = client.RpcPost("Privatelink", "2020-04-15", action, nil, request, true)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action, response, request)
+		if err != nil {
+			if IsExpectedErrors(err, []string{"EndpointServiceNotFound"}) {
+				return resources, WrapErrorf(NotFoundErr("VpcEndpointService", serviceId), NotFoundMsg, response)
+			}
+			return resources, WrapErrorf(err, DefaultErrorMsg, serviceId, action, AlibabaCloudSdkGoERROR)
+		}
+
+		// Surface a genuine jsonpath/SDK failure instead of silently returning an
+		// empty list (which would make Terraform think attached resources were
+		// removed and trigger detach/attach churn). A missing or null Resources
+		// key means the service has no attachments and is not an error.
+		if raw, ok := response["Resources"]; ok && raw != nil {
+			v, err := jsonpath.Get("$.Resources[*]", response)
+			if err != nil {
+				return resources, WrapErrorf(err, FailedGetAttributeMsg, serviceId, "$.Resources[*]", response)
+			}
+			if v != nil {
+				resources = append(resources, v.([]interface{})...)
+			}
+		}
+
+		if response["NextToken"] == nil || fmt.Sprint(response["NextToken"]) == "" {
+			break
+		}
+		nextToken = fmt.Sprint(response["NextToken"])
+	}
+
+	return resources, nil
+}
+
 func (s *PrivateLinkServiceV2) DescribeVpcEndpointServiceListTagResources(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
@@ -65,16 +125,16 @@ func (s *PrivateLinkServiceV2) DescribeVpcEndpointServiceListTagResources(id str
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -86,7 +146,7 @@ func (s *PrivateLinkServiceV2) DescribeVpcEndpointServiceListTagResources(id str
 	return response, nil
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpointService(id)
 		if err != nil {
@@ -150,14 +210,14 @@ func (s *PrivateLinkServiceV2) SetResourceTags(d *schema.ResourceData, resourceT
 			}
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -187,14 +247,14 @@ func (s *PrivateLinkServiceV2) SetResourceTags(d *schema.ResourceData, resourceT
 			}
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -230,15 +290,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointServiceUser(id stri
 	query["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -267,7 +327,7 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointServiceUser(id stri
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceUserStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceUserStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpointServiceUser(id)
 		if err != nil {
@@ -309,15 +369,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointServiceResource(id 
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -352,7 +412,7 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointServiceResource(id 
 	return object, WrapErrorf(NotFoundErr("VpcEndpointServiceResource", id), NotFoundMsg, response)
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceResourceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointServiceResourceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpointServiceResource(id)
 		if err != nil {
@@ -401,15 +461,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointZone(id string) (ob
 	query["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -441,7 +501,7 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointZone(id string) (ob
 	return object, WrapErrorf(NotFoundErr("VpcEndpointZone", id), NotFoundMsg, response)
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointZoneStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointZoneStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpointZone(id)
 		if err != nil {
@@ -484,15 +544,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointConnection(id strin
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -518,7 +578,7 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpointConnection(id strin
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointConnectionStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointConnectionStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpointConnection(id)
 		if err != nil {
@@ -563,15 +623,15 @@ func (s *PrivateLinkServiceV2) DescribePrivateLinkVpcEndpoint(id string) (object
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -598,16 +658,16 @@ func (s *PrivateLinkServiceV2) DescribeVpcEndpointListTagResources(id string) (o
 	request["ClientToken"] = buildClientToken(action)
 	request["ResourceType"] = "VpcEndpoint"
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -630,15 +690,15 @@ func (s *PrivateLinkServiceV2) DescribeVpcEndpointListVpcEndpointSecurityGroups(
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -658,7 +718,7 @@ func (s *PrivateLinkServiceV2) DescribeVpcEndpointListVpcEndpointSecurityGroups(
 	return v.(map[string]interface{}), nil
 }
 
-func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *PrivateLinkServiceV2) PrivateLinkVpcEndpointStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribePrivateLinkVpcEndpoint(id)
 		if err != nil {

@@ -11,8 +11,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ess"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type EssService struct {
@@ -40,8 +40,21 @@ func (s *EssService) DescribeEssAlarm(id string) (alarm ess.Alarm, err error) {
 	request.RegionId = s.client.RegionId
 	request.AlarmTaskId = id
 	request.MetricType = "system"
-	Alarms, err := s.client.WithEssClient(func(essClient *ess.Client) (interface{}, error) {
-		return essClient.DescribeAlarms(request)
+
+	var Alarms interface{}
+	wait := incrementalWait(3*time.Second, 3*time.Second)
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
+		Alarms, err = s.client.WithEssClient(func(essClient *ess.Client) (interface{}, error) {
+			return essClient.DescribeAlarms(request)
+		})
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
 	})
 	if err != nil {
 		return alarm, WrapErrorf(err, DefaultErrorMsg, id, request.GetActionName(), AlibabaCloudSdkGoERROR)
@@ -58,8 +71,21 @@ func (s *EssService) DescribeEssAlarm(id string) (alarm ess.Alarm, err error) {
 	AlarmsRequest.RegionId = s.client.RegionId
 	AlarmsRequest.AlarmTaskId = id
 	AlarmsRequest.MetricType = "custom"
-	raw, err := s.client.WithEssClient(func(essClient *ess.Client) (interface{}, error) {
-		return essClient.DescribeAlarms(AlarmsRequest)
+
+	var raw interface{}
+	wait = incrementalWait(3*time.Second, 3*time.Second)
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
+		raw, err = s.client.WithEssClient(func(essClient *ess.Client) (interface{}, error) {
+			return essClient.DescribeAlarms(AlarmsRequest)
+		})
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
 	})
 	if err != nil {
 		return alarm, WrapErrorf(err, DefaultErrorMsg, id, AlarmsRequest.GetActionName(), AlibabaCloudSdkGoERROR)
@@ -186,7 +212,7 @@ func (s *EssService) WaitForEssNotification(id string, status Status, timeout in
 	}
 }
 
-func (s *EssService) ActivityStateRefreshFunc(activityId string, failStates []string) resource.StateRefreshFunc {
+func (s *EssService) ActivityStateRefreshFunc(activityId string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 
 		request := ess.CreateDescribeScalingActivitiesRequest()
@@ -789,7 +815,7 @@ func (srv *EssService) EssRemoveInstances(client *connectivity.AliyunClient, d *
 	}
 
 	removed := instanceIds
-	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	if err := retry.Retry(5*time.Minute, func() *retry.RetryError {
 		request := ess.CreateRemoveInstancesRequest()
 		request.ScalingGroupId = id
 		request.RegionId = srv.client.RegionId
@@ -809,23 +835,23 @@ func (srv *EssService) EssRemoveInstances(client *connectivity.AliyunClient, d *
 				instances, err := srv.DescribeEssAttachment(id, instanceIds)
 				if len(instances) > 0 {
 					if group.MinSize == 0 {
-						return resource.RetryableError(WrapError(err))
+						return retry.RetryableError(WrapError(err))
 					}
-					return resource.NonRetryableError(WrapError(err))
+					return retry.NonRetryableError(WrapError(err))
 				}
 			}
 			if IsExpectedErrors(err, []string{"ScalingActivityInProgress", "IncorrectScalingGroupStatus"}) {
 				time.Sleep(5)
-				return resource.RetryableError(WrapErrorf(err, DefaultErrorMsg, id, request.GetActionName(), AlibabaCloudSdkGoERROR))
+				return retry.RetryableError(WrapErrorf(err, DefaultErrorMsg, id, request.GetActionName(), AlibabaCloudSdkGoERROR))
 			}
-			return resource.NonRetryableError(WrapErrorf(err, DefaultErrorMsg, id, request.GetActionName(), AlibabaCloudSdkGoERROR))
+			return retry.NonRetryableError(WrapErrorf(err, DefaultErrorMsg, id, request.GetActionName(), AlibabaCloudSdkGoERROR))
 		}
 
 		response, _ := raw.(*ess.RemoveInstancesResponse)
 		essService := EssService{client}
 		stateConf := BuildStateConf([]string{}, []string{"Successful"}, d.Timeout(schema.TimeoutCreate), 1*time.Minute, essService.ActivityStateRefreshFunc(response.ScalingActivityId, []string{"Failed", "Rejected"}))
 		if _, err := stateConf.WaitForState(); err != nil {
-			return resource.NonRetryableError(WrapError(err))
+			return retry.NonRetryableError(WrapError(err))
 		}
 
 		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
@@ -835,14 +861,14 @@ func (srv *EssService) EssRemoveInstances(client *connectivity.AliyunClient, d *
 			if NotFoundError(err) {
 				return nil
 			}
-			return resource.NonRetryableError(WrapError(err))
+			return retry.NonRetryableError(WrapError(err))
 		}
 		if len(instances) > 0 {
 			removed = make([]string, 0)
 			for _, inst := range instances {
 				removed = append(removed, inst.InstanceId)
 			}
-			return resource.RetryableError(WrapError(Error("There are still ECS instances in the scaling group.")))
+			return retry.RetryableError(WrapError(Error("There are still ECS instances in the scaling group.")))
 		}
 
 		return nil

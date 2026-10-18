@@ -2,20 +2,105 @@ package alicloud
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	resource.AddTestSweepers("alicloud_ecs_command", &resource.Sweeper{
+		Name: "alicloud_ecs_command",
+		F:    testSweepEcsCommands,
+	})
+}
+
+// testSweepEcsCommands sweeps orphaned ECS cloud-assistant commands created by
+// acceptance tests. NODELETING name guard + prefix filter in non-SWEEP_ALL mode.
+func testSweepEcsCommands(region string) error {
+	rawClient, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting AliCloud client: %s", err)
+	}
+	client := rawClient.(*connectivity.AliyunClient)
+	prefixes := []string{
+		"tf-testAcc",
+		"tf_testAcc",
+		"tf-example",
+		"tf-test",
+	}
+	request := map[string]interface{}{
+		"PageSize":   PageSizeLarge,
+		"PageNumber": 1,
+		"RegionId":   client.RegionId,
+	}
+	action := "DescribeCommands"
+	var response map[string]interface{}
+	for {
+		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
+		if err != nil {
+			log.Printf("[ERROR] %s got an error: %s", action, err)
+			return nil
+		}
+		addDebug(action, response, request)
+		resp, err := jsonpath.Get("$.Commands.Command", response)
+		if err != nil {
+			log.Printf("[ERROR] jsonpath Get EcsCommands failed: %#v", err)
+			return nil
+		}
+		result, _ := resp.([]interface{})
+		for _, v := range result {
+			item := v.(map[string]interface{})
+			name := fmt.Sprint(item["Name"])
+			if protectedSweepVpcName(name) {
+				log.Printf("[INFO] Skipping EcsCommand (NODELETING): %s", name)
+				continue
+			}
+			skip := true
+			if !sweepAll() {
+				for _, prefix := range prefixes {
+					if strings.HasPrefix(strings.ToLower(name), strings.ToLower(prefix)) {
+						skip = false
+						break
+					}
+				}
+				if skip {
+					log.Printf("[INFO] Skipping EcsCommand: %s", name)
+					continue
+				}
+			}
+			cmdId := fmt.Sprint(item["CommandId"])
+			log.Printf("[INFO] Deleting EcsCommand: %s (%s)", name, cmdId)
+			delReq := map[string]interface{}{
+				"CommandId": cmdId,
+				"RegionId":  client.RegionId,
+			}
+			_, err = client.RpcPost("Ecs", "2014-05-26", "DeleteCommand", nil, delReq, false)
+			if err != nil {
+				log.Printf("[ERROR] Failed to delete EcsCommand (%s): %s", cmdId, err)
+				continue
+			}
+			log.Printf("[INFO] Delete EcsCommand success: %s (%s)", name, cmdId)
+		}
+		if len(result) < PageSizeLarge {
+			break
+		}
+		request["PageNumber"] = request["PageNumber"].(int) + 1
+	}
+	return nil
+}
 
 func TestAccAlicloudECSCommand_basic(t *testing.T) {
 	var v map[string]interface{}
@@ -35,7 +120,7 @@ func TestAccAlicloudECSCommand_basic(t *testing.T) {
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -83,7 +168,7 @@ func TestAccAlicloudECSCommand_basic1(t *testing.T) {
 		},
 
 		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:  rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -125,7 +210,7 @@ func AlicloudEcsCommandBasicDependence(name string) string {
 
 // lintignore: R001
 func TestUnitAlicloudECSCommand(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_ecs_command"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_ecs_command"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()

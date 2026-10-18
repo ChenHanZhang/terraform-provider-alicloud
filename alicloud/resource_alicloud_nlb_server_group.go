@@ -3,12 +3,14 @@ package alicloud
 import (
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudNlbServerGroup() *schema.Resource {
@@ -32,6 +34,12 @@ func resourceAliCloudNlbServerGroup() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"DualStack", "Ipv4"}, false),
+			},
+			"ip_version_affinity_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"NonAffinity", "Affinity"}, false),
 			},
 			"any_port_enabled": {
 				Type:     schema.TypeBool,
@@ -118,10 +126,11 @@ func resourceAliCloudNlbServerGroup() *schema.Resource {
 							Computed: true,
 						},
 						"health_check_http_code": {
-							Type:     schema.TypeList,
-							Optional: true,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:             schema.TypeList,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: nlbServerGroupHealthCheckHttpCodeDiffSuppressFunc,
+							Elem:             &schema.Schema{Type: schema.TypeString},
 						},
 						"health_check_type": {
 							Type:         schema.TypeString,
@@ -242,6 +251,9 @@ func resourceAliCloudNlbServerGroupCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("address_ip_version"); ok {
 		request["AddressIPVersion"] = v
 	}
+	if v, ok := d.GetOk("ip_version_affinity_mode"); ok {
+		request["IpVersionAffinityMode"] = v
+	}
 	objectDataLocalMap := make(map[string]interface{})
 
 	if v := d.Get("health_check"); !IsNil(v) {
@@ -310,14 +322,14 @@ func resourceAliCloudNlbServerGroupCreate(d *schema.ResourceData, meta interface
 	}
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -353,6 +365,7 @@ func resourceAliCloudNlbServerGroupRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("address_ip_version", objectRaw["AddressIPVersion"])
+	d.Set("ip_version_affinity_mode", objectRaw["IpVersionAffinityMode"])
 	d.Set("any_port_enabled", objectRaw["AnyPortEnabled"])
 	d.Set("connection_drain_enabled", objectRaw["ConnectionDrainEnabled"])
 	d.Set("connection_drain_timeout", objectRaw["ConnectionDrainTimeout"])
@@ -387,12 +400,7 @@ func resourceAliCloudNlbServerGroupRead(d *schema.ResourceData, meta interface{}
 		healthCheckMap["unhealthy_threshold"] = healthCheckRaw["UnhealthyThreshold"]
 		healthCheckMap["health_check_http_version"] = healthCheckRaw["HealthCheckHttpVersion"]
 
-		healthCheckHttpCodeRaw := make([]interface{}, 0)
-		if healthCheckRaw["HealthCheckHttpCode"] != nil {
-			healthCheckHttpCodeRaw = healthCheckRaw["HealthCheckHttpCode"].([]interface{})
-		}
-
-		healthCheckMap["health_check_http_code"] = healthCheckHttpCodeRaw
+		healthCheckMap["health_check_http_code"] = healthCheckRaw["HealthCheckHttpCode"]
 		healthCheckMaps = append(healthCheckMaps, healthCheckMap)
 	}
 	if err := d.Set("health_check", healthCheckMaps); err != nil {
@@ -443,6 +451,11 @@ func resourceAliCloudNlbServerGroupUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("preserve_client_ip_enabled") {
 		update = true
 		request["PreserveClientIpEnabled"] = d.Get("preserve_client_ip_enabled")
+	}
+
+	if d.HasChange("ip_version_affinity_mode") {
+		update = true
+		request["IpVersionAffinityMode"] = d.Get("ip_version_affinity_mode")
 	}
 
 	if d.HasChange("health_check") {
@@ -517,14 +530,14 @@ func resourceAliCloudNlbServerGroupUpdate(d *schema.ResourceData, meta interface
 	request["ServerGroupName"] = d.Get("server_group_name")
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -552,14 +565,14 @@ func resourceAliCloudNlbServerGroupUpdate(d *schema.ResourceData, meta interface
 	request["ResourceType"] = "servergroup"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -593,16 +606,16 @@ func resourceAliCloudNlbServerGroupDelete(d *schema.ResourceData, meta interface
 	request["ClientToken"] = buildClientToken(action)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Nlb", "2022-04-30", action, query, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -622,4 +635,72 @@ func resourceAliCloudNlbServerGroupDelete(d *schema.ResourceData, meta interface
 	}
 
 	return nil
+}
+
+// nlbServerGroupHealthCheckHttpCodeDiffSuppressFunc suppresses order-only
+// changes on health_check_http_code: the API accepts the codes as a set and
+// returns them in an arbitrary order, so member order is not part of the
+// attribute's semantics. The SDK invokes the suppressor once per changed list
+// element, where the element values alone cannot decide reorder-ness, so the
+// full old and new lists are read from the resource data. The unit net calls
+// this function with a nil ResourceData and the member lists serialized as
+// comma-joined strings.
+func nlbServerGroupHealthCheckHttpCodeDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if d == nil {
+		return nlbServerGroupHealthCheckHttpCodeSameMembers(strings.Split(old, ","), strings.Split(new, ","))
+	}
+	i := strings.LastIndexByte(k, '.')
+	if i <= 0 {
+		return false
+	}
+	o, n := d.GetChange(k[:i])
+	oldList, ok := o.([]interface{})
+	if !ok {
+		return false
+	}
+	newList, ok := n.([]interface{})
+	if !ok {
+		return false
+	}
+	oldMembers, ok := nlbServerGroupHealthCheckHttpCodeMembers(oldList)
+	if !ok {
+		return false
+	}
+	newMembers, ok := nlbServerGroupHealthCheckHttpCodeMembers(newList)
+	if !ok {
+		return false
+	}
+	return nlbServerGroupHealthCheckHttpCodeSameMembers(oldMembers, newMembers)
+}
+
+// nlbServerGroupHealthCheckHttpCodeMembers converts a state or config list to
+// its member strings; a non-string member never suppresses.
+func nlbServerGroupHealthCheckHttpCodeMembers(list []interface{}) ([]string, bool) {
+	members := make([]string, len(list))
+	for i, item := range list {
+		member, ok := item.(string)
+		if !ok {
+			return nil, false
+		}
+		members[i] = member
+	}
+	return members, true
+}
+
+// nlbServerGroupHealthCheckHttpCodeSameMembers reports whether two member
+// lists carry the same members with the same multiplicity, ignoring order.
+func nlbServerGroupHealthCheckHttpCodeSameMembers(old, new []string) bool {
+	if len(old) != len(new) {
+		return false
+	}
+	sortedOld := append([]string(nil), old...)
+	sortedNew := append([]string(nil), new...)
+	sort.Strings(sortedOld)
+	sort.Strings(sortedNew)
+	for i := range sortedNew {
+		if sortedNew[i] != sortedOld[i] {
+			return false
+		}
+	}
+	return true
 }

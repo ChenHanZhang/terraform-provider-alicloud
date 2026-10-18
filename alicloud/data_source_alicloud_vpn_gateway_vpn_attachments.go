@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"hash/crc32"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceAliCloudVpnGatewayVpnAttachments() *schema.Resource {
@@ -107,6 +108,10 @@ func dataSourceAliCloudVpnGatewayVpnAttachments() *schema.Resource {
 						},
 						"enable_tunnels_bgp": {
 							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"tunnel_bandwidth": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"health_check_config": {
@@ -454,15 +459,15 @@ func dataSourceAliCloudVpnGatewayVpnAttachmentRead(d *schema.ResourceData, meta 
 	request["PageNumber"] = 1
 	for {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Vpc", "2016-04-28", action, query, request, true)
 
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -512,6 +517,18 @@ func dataSourceAliCloudVpnGatewayVpnAttachmentRead(d *schema.ResourceData, meta 
 		mapping["enable_dpd"] = objectRaw["EnableDpd"]
 		mapping["enable_nat_traversal"] = objectRaw["EnableNatTraversal"]
 		mapping["enable_tunnels_bgp"] = objectRaw["EnableTunnelsBgp"]
+		if tunnelBandwidth, ok := objectRaw["TunnelBandwidth"].(string); ok {
+			switch strings.ToLower(tunnelBandwidth) {
+			case "large":
+				mapping["tunnel_bandwidth"] = "Large"
+			case "standard":
+				mapping["tunnel_bandwidth"] = "Standard"
+			default:
+				mapping["tunnel_bandwidth"] = tunnelBandwidth
+			}
+		} else {
+			mapping["tunnel_bandwidth"] = objectRaw["TunnelBandwidth"]
+		}
 		mapping["internet_ip"] = objectRaw["InternetIp"]
 		mapping["local_subnet"] = objectRaw["LocalSubnet"]
 		mapping["network_type"] = objectRaw["NetworkType"]

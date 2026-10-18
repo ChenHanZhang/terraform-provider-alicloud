@@ -15,10 +15,10 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,11 +49,13 @@ func testSweepEcsAutoSnapshotPolicy(region string) error {
 		action := "DescribeAutoSnapshotPolicyEx"
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, true)
 		if err != nil {
-			return WrapErrorf(err, DataDefaultErrorMsg, "alicloud_ecs_auto_snapshot_policy", action, AlibabaCloudSdkGoERROR)
+			log.Printf("[ERROR] Failed to list ecs auto snapshot policy: %s", err)
+			return nil
 		}
 		resp, err := jsonpath.Get("$.AutoSnapshotPolicies.AutoSnapshotPolicy", response)
 		if err != nil {
-			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.AutoSnapshotPolicies.AutoSnapshotPolicy", response)
+			log.Printf("[ERROR] Failed to parse $.AutoSnapshotPolicies.AutoSnapshotPolicy: %s", err)
+			return nil
 		}
 		result, _ := resp.([]interface{})
 		for _, v := range result {
@@ -90,7 +92,7 @@ func testSweepEcsAutoSnapshotPolicy(region string) error {
 
 // lintignore: R001
 func TestUnitAliCloudECSAutoSnapshotPolicy(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_ecs_auto_snapshot_policy"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_ecs_auto_snapshot_policy"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -269,22 +271,22 @@ func TestUnitAliCloudECSAutoSnapshotPolicy(t *testing.T) {
 		for _, key := range []string{"copied_snapshots_retention_days", "enable_cross_region_copy", "name", "repeat_weekdays", "retention_days", "target_copy_regions", "time_points"} {
 			switch p["alicloud_ecs_auto_snapshot_policy"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			case schema.TypeSet:
-				diff.SetAttribute("repeat_weekdays.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("repeat_weekdays.0", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("target_copy_regions.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("target_copy_regions.0", &terraform.ResourceAttrDiff{Old: "", New: "cn-beijing"})
-				diff.SetAttribute("time_points.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("time_points.0", &terraform.ResourceAttrDiff{Old: "", New: "1"})
+				diff.Attributes["repeat_weekdays.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["repeat_weekdays.0"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["target_copy_regions.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["target_copy_regions.0"] = &terraform.ResourceAttrDiff{Old: "", New: "cn-beijing"}
+				diff.Attributes["time_points.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["time_points.0"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_ecs_auto_snapshot_policy"].Schema).Data(nil, diff)
@@ -311,22 +313,22 @@ func TestUnitAliCloudECSAutoSnapshotPolicy(t *testing.T) {
 		for _, key := range []string{"copied_snapshots_retention_days", "enable_cross_region_copy", "name", "repeat_weekdays", "retention_days", "target_copy_regions", "time_points", "tags"} {
 			switch p["alicloud_ecs_auto_snapshot_policy"].Schema[key].Type {
 			case schema.TypeString:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: d.Get(key).(string), New: d.Get(key).(string) + "_update"}
 			case schema.TypeBool:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.FormatBool(d.Get(key).(bool)), New: strconv.FormatBool(true)}
 			case schema.TypeInt:
-				diff.SetAttribute(key, &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)})
+				diff.Attributes[key] = &terraform.ResourceAttrDiff{Old: strconv.Itoa(d.Get(key).(int)), New: strconv.Itoa(3)}
 			case schema.TypeMap:
-				diff.SetAttribute("tags.%", &terraform.ResourceAttrDiff{Old: "0", New: "2"})
-				diff.SetAttribute("tags.For", &terraform.ResourceAttrDiff{Old: "", New: "Test"})
-				diff.SetAttribute("tags.Created", &terraform.ResourceAttrDiff{Old: "", New: "TF"})
+				diff.Attributes["tags.%"] = &terraform.ResourceAttrDiff{Old: "0", New: "2"}
+				diff.Attributes["tags.For"] = &terraform.ResourceAttrDiff{Old: "", New: "Test"}
+				diff.Attributes["tags.Created"] = &terraform.ResourceAttrDiff{Old: "", New: "TF"}
 			case schema.TypeSet:
-				diff.SetAttribute("repeat_weekdays.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("repeat_weekdays.0", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("target_copy_regions.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("target_copy_regions.0", &terraform.ResourceAttrDiff{Old: "", New: "cn-beijing"})
-				diff.SetAttribute("time_points.#", &terraform.ResourceAttrDiff{Old: "", New: "1"})
-				diff.SetAttribute("time_points.0", &terraform.ResourceAttrDiff{Old: "", New: "1"})
+				diff.Attributes["repeat_weekdays.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["repeat_weekdays.0"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["target_copy_regions.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["target_copy_regions.0"] = &terraform.ResourceAttrDiff{Old: "", New: "cn-beijing"}
+				diff.Attributes["time_points.#"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
+				diff.Attributes["time_points.0"] = &terraform.ResourceAttrDiff{Old: "", New: "1"}
 			}
 		}
 		resourceData1, _ := schema.InternalMap(p["alicloud_ecs_auto_snapshot_policy"].Schema).Data(nil, diff)
@@ -450,9 +452,9 @@ func TestAccAliCloudECSAutoSnapshotPolicy_basic7893(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -623,9 +625,9 @@ func TestAccAliCloudECSAutoSnapshotPolicy_basic7893_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -716,9 +718,9 @@ func TestAccAliCloudECSAutoSnapshotPolicy_basic8035(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -889,9 +891,9 @@ func TestAccAliCloudECSAutoSnapshotPolicy_basic8035_twin(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -928,6 +930,196 @@ func TestAccAliCloudECSAutoSnapshotPolicy_basic8035_twin(t *testing.T) {
 						"tags.%":                          "2",
 						"tags.Created":                    "TF",
 						"tags.For":                        "Test",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// Case 关联实例标签自动快照策略：association_type=AssociatedWithInstanceTag + target_tags 创建/回读 no-drift
+func TestAccAliCloudECSAutoSnapshotPolicy_associationInstanceTag(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AliCloudEcsAutoSnapshotPolicyMap7893)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tf_testacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsAutoSnapshotPolicyBasicDependence7893)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"auto_snapshot_policy_name": name,
+					"repeat_weekdays":           []string{"1", "2"},
+					"retention_days":            "1",
+					"time_points":               []string{"1", "2"},
+					"association_type":          "AssociatedWithInstanceTag",
+					"target_tags": []map[string]interface{}{
+						{
+							"tag_key":   fmt.Sprintf("tf-testacc-tag-key-%d", rand),
+							"tag_value": fmt.Sprintf("tf-testacc-tag-value-%d", rand),
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"association_type":        "AssociatedWithInstanceTag",
+						"target_tags.#":           "1",
+						"target_tags.0.tag_key":   fmt.Sprintf("tf-testacc-tag-key-%d", rand),
+						"target_tags.0.tag_value": fmt.Sprintf("tf-testacc-tag-value-%d", rand),
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// Case association_type ForceNew：改 association_type 触发 destroy+recreate（验证 ForceNew 生效、不走 Modify 永续 diff）
+func TestAccAliCloudECSAutoSnapshotPolicy_associationForceNew(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AliCloudEcsAutoSnapshotPolicyMap7893)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tf_testacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsAutoSnapshotPolicyBasicDependence7893)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"auto_snapshot_policy_name": name,
+					"repeat_weekdays":           []string{"1", "2"},
+					"retention_days":            "1",
+					"time_points":               []string{"1", "2"},
+					"association_type":          "AssociatedWithDisk",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"association_type": "AssociatedWithDisk",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"association_type": "AssociatedWithInstanceTag",
+					"target_tags": []map[string]interface{}{
+						{
+							"tag_key":   fmt.Sprintf("tf-testacc-fn-key-%d", rand),
+							"tag_value": fmt.Sprintf("tf-testacc-fn-value-%d", rand),
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"association_type":        "AssociatedWithInstanceTag",
+						"target_tags.#":           "1",
+						"target_tags.0.tag_key":   fmt.Sprintf("tf-testacc-fn-key-%d", rand),
+						"target_tags.0.tag_value": fmt.Sprintf("tf-testacc-fn-value-%d", rand),
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// Case target_tags 可更新：改 target_tags 不重建、走 Modify 更新成功 + Read 回读新值
+func TestAccAliCloudECSAutoSnapshotPolicy_targetTagsUpdate(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_ecs_auto_snapshot_policy.default"
+	ra := resourceAttrInit(resourceId, AliCloudEcsAutoSnapshotPolicyMap7893)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &EcsServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribeEcsAutoSnapshotPolicy")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(1, 999)
+	name := fmt.Sprintf("tf_testacc%d", rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEcsAutoSnapshotPolicyBasicDependence7893)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"auto_snapshot_policy_name": name,
+					"repeat_weekdays":           []string{"1", "2"},
+					"retention_days":            "1",
+					"time_points":               []string{"1", "2"},
+					"association_type":          "AssociatedWithInstanceTag",
+					"target_tags": []map[string]interface{}{
+						{
+							"tag_key":   fmt.Sprintf("tf-testacc-tu-key-%d", rand),
+							"tag_value": "v1",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"association_type":        "AssociatedWithInstanceTag",
+						"target_tags.#":           "1",
+						"target_tags.0.tag_key":   fmt.Sprintf("tf-testacc-tu-key-%d", rand),
+						"target_tags.0.tag_value": "v1",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"target_tags": []map[string]interface{}{
+						{
+							"tag_key":   fmt.Sprintf("tf-testacc-tu-key2-%d", rand),
+							"tag_value": "v2",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"association_type":        "AssociatedWithInstanceTag",
+						"target_tags.#":           "1",
+						"target_tags.0.tag_key":   fmt.Sprintf("tf-testacc-tu-key2-%d", rand),
+						"target_tags.0.tag_value": "v2",
 					}),
 				),
 			},

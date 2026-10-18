@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudEcsInvocation() *schema.Resource {
@@ -44,10 +44,11 @@ func resourceAlicloudEcsInvocation() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"Once", "Period", "NextRebootOnly", "EveryReboot"}, false),
 			},
 			"timed": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				ForceNew:   true,
+				Computed:   true,
+				Deprecated: "Field `timed` has been deprecated because it is deprecated in the ECS API and takes no effect. To run a command periodically, set `repeat_mode` to `Period` and specify `frequency`.",
 			},
 			"frequency": {
 				Type:     schema.TypeString,
@@ -114,14 +115,14 @@ func resourceAlicloudEcsInvocationCreate(d *schema.ResourceData, meta interface{
 		request["WindowsPasswordName"] = v
 	}
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -189,14 +190,14 @@ func resourceAlicloudEcsInvocationDelete(d *schema.ResourceData, meta interface{
 	request["InvokeId"] = d.Id()
 	request["RegionId"] = client.RegionId
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

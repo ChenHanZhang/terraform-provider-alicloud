@@ -1,4 +1,3 @@
-// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -10,8 +9,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudGwlbServerGroup() *schema.Resource {
@@ -52,6 +51,30 @@ func resourceAliCloudGwlbServerGroup() *schema.Resource {
 			"create_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"draining_servers": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"server_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"server_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"server_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"dry_run": {
 				Type:     schema.TypeBool,
@@ -150,6 +173,12 @@ func resourceAliCloudGwlbServerGroup() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: StringInSlice([]string{"Ip", "Instance"}, false),
 			},
+			"server_failover_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: StringInSlice([]string{"NoRebalance", "Rebalance"}, false),
+			},
 			"servers": {
 				Set: func(v interface{}) int {
 					var buf bytes.Buffer
@@ -159,9 +188,6 @@ func resourceAliCloudGwlbServerGroup() *schema.Resource {
 					}
 					if v, ok := server["server_ip"]; ok && server["server_type"] == "Eni" {
 						buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-					}
-					if v, ok := server["server_port"]; ok {
-						buf.WriteString(fmt.Sprintf("%d", v.(int)))
 					}
 					return int(crc32.ChecksumIEEE([]byte(buf.String())))
 				},
@@ -256,6 +282,9 @@ func resourceAliCloudGwlbServerGroupCreate(d *schema.ResourceData, meta interfac
 	}
 	if v, ok := d.GetOk("scheduler"); ok {
 		request["Scheduler"] = v
+	}
+	if v, ok := d.GetOk("server_failover_mode"); ok {
+		request["ServerFailoverMode"] = v
 	}
 	if v, ok := d.GetOk("health_check_config"); ok {
 		jsonPathResult6, err := jsonpath.Get("$[0].health_check_enabled", v)
@@ -363,14 +392,14 @@ func resourceAliCloudGwlbServerGroupCreate(d *schema.ResourceData, meta interfac
 		}
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -416,6 +445,9 @@ func resourceAliCloudGwlbServerGroupRead(d *schema.ResourceData, meta interface{
 	}
 	if objectRaw["Scheduler"] != nil {
 		d.Set("scheduler", objectRaw["Scheduler"])
+	}
+	if objectRaw["ServerFailoverMode"] != nil {
+		d.Set("server_failover_mode", objectRaw["ServerFailoverMode"])
 	}
 	if objectRaw["ServerGroupName"] != nil {
 		d.Set("server_group_name", objectRaw["ServerGroupName"])
@@ -488,10 +520,25 @@ func resourceAliCloudGwlbServerGroupRead(d *schema.ResourceData, meta interface{
 	servers1Raw, _ := jsonpath.Get("$.Servers", objectRaw)
 
 	serversMaps := make([]map[string]interface{}, 0)
+	drainingServersMaps := make([]map[string]interface{}, 0)
 	if servers1Raw != nil {
 		for _, serversChild1Raw := range servers1Raw.([]interface{}) {
-			serversMap := make(map[string]interface{})
 			serversChild1Raw := serversChild1Raw.(map[string]interface{})
+			// Servers in the removal pipeline (Draining/Removing) are transitional and are
+			// not kept in `servers`: the removal already happened and the drain process
+			// finishes it. This keeps the plan clean and allows re-adding such a server
+			// (the AddServers API rescues it back to Available). They are exposed through
+			// the computed `draining_servers` field instead.
+			if status, _ := serversChild1Raw["Status"].(string); status == "Draining" || status == "Removing" {
+				drainingServersMap := make(map[string]interface{})
+				drainingServersMap["server_id"] = serversChild1Raw["ServerId"]
+				drainingServersMap["server_ip"] = serversChild1Raw["ServerIp"]
+				drainingServersMap["server_type"] = serversChild1Raw["ServerType"]
+				drainingServersMap["status"] = serversChild1Raw["Status"]
+				drainingServersMaps = append(drainingServersMaps, drainingServersMap)
+				continue
+			}
+			serversMap := make(map[string]interface{})
 			serversMap["port"] = 6081
 			serversMap["server_group_id"] = serversChild1Raw["ServerGroupId"]
 			serversMap["server_id"] = serversChild1Raw["ServerId"]
@@ -504,6 +551,9 @@ func resourceAliCloudGwlbServerGroupRead(d *schema.ResourceData, meta interface{
 	}
 	if objectRaw["Servers"] != nil {
 		if err := d.Set("servers", serversMaps); err != nil {
+			return err
+		}
+		if err := d.Set("draining_servers", drainingServersMaps); err != nil {
 			return err
 		}
 	}
@@ -552,6 +602,11 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 	if !d.IsNewResource() && d.HasChange("scheduler") {
 		update = true
 		request["Scheduler"] = d.Get("scheduler")
+	}
+
+	if !d.IsNewResource() && d.HasChange("server_failover_mode") {
+		update = true
+		request["ServerFailoverMode"] = d.Get("server_failover_mode")
 	}
 
 	if !d.IsNewResource() && d.HasChange("health_check_config.0.health_check_enabled") {
@@ -678,14 +733,14 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -716,14 +771,14 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 	request["ResourceType"] = "servergroup"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -739,6 +794,16 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 		newEntrySet := newEntry.(*schema.Set)
 		removed := oldEntrySet.Difference(newEntrySet)
 		added := newEntrySet.Difference(oldEntrySet)
+
+		// Skip servers in the removal pipeline: the API rejects removing a Draining or
+		// Removing server. They may still exist in a state written by an older provider
+		// version, or the drain timeout has not expired yet.
+		for _, item := range oldEntrySet.List() {
+			server := item.(map[string]interface{})
+			if status, _ := server["status"].(string); status == "Draining" || status == "Removing" {
+				removed.Remove(item)
+			}
+		}
 
 		if removed.Len() > 0 {
 			action := "RemoveServersFromServerGroup"
@@ -764,14 +829,14 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 				request["DryRun"] = v
 			}
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 				if err != nil {
 					if IsExpectedErrors(err, []string{"IncorrectStatus.ServerGroup"}) || NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -811,14 +876,14 @@ func resourceAliCloudGwlbServerGroupUpdate(d *schema.ResourceData, meta interfac
 				request["DryRun"] = v
 			}
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 				if err != nil {
 					if IsExpectedErrors(err, []string{"IncorrectStatus.ServerGroup"}) || NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -863,16 +928,16 @@ func resourceAliCloudGwlbServerGroupDelete(d *schema.ResourceData, meta interfac
 		request["DryRun"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Gwlb", "2024-04-15", action, query, request, true)
 		request["ClientToken"] = buildClientToken(action)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"IncorrectStatus.ServerGroup"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

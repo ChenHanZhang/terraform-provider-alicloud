@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccAlicloudCloudFirewallNatFirewallDataSource(t *testing.T) {
@@ -129,6 +129,8 @@ var existCloudFirewallNatFirewallMapFunc = func(rand int) map[string]string {
 		"firewalls.0.nat_route_entry_list.#": CHECKSET,
 		"firewalls.0.nat_gateway_id":         CHECKSET,
 		"firewalls.0.ali_uid":                CHECKSET,
+		"firewalls.0.region_no":              CHECKSET,
+		"firewalls.0.status":                 CHECKSET,
 	}
 }
 

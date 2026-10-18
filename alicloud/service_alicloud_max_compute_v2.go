@@ -8,8 +8,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/tidwall/sjson"
 )
 
@@ -32,15 +32,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeProject(id string) (object map[s
 	action := fmt.Sprintf("/api/v1/projects/%s", projectName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if IsExpectedErrors(err, []string{"500"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -72,15 +72,15 @@ func (s *MaxComputeServiceV2) DescribeProjectListTagResources(id string) (object
 	action := fmt.Sprintf("/tags")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -92,7 +92,7 @@ func (s *MaxComputeServiceV2) DescribeProjectListTagResources(id string) (object
 	return response, nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeProjectStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeProjectStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeProject(id)
 		if err != nil {
@@ -152,14 +152,14 @@ func (s *MaxComputeServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 			query["ResourceType"] = StringPointer(resourceType)
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RoaDelete("MaxCompute", "2022-01-04", action, query, nil, nil, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -195,14 +195,14 @@ func (s *MaxComputeServiceV2) SetResourceTags(d *schema.ResourceData, resourceTy
 
 			body = request
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RoaPost("MaxCompute", "2022-01-04", action, query, nil, body, true)
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				return nil
 			})
@@ -237,15 +237,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeQuotaPlan(id string) (object map
 	action := fmt.Sprintf("/api/v1/quotas/%s/computeQuotaPlan/%s", nickname, planName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -265,7 +265,7 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeQuotaPlan(id string) (object map
 	return v.(map[string]interface{}), nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeQuotaPlanStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeQuotaPlanStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeQuotaPlan(id)
 		if err != nil {
@@ -315,15 +315,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeRole(id string) (object map[stri
 	action := fmt.Sprintf("/api/v1/projects/%s/roles/%s/policy", projectName, roleName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -338,7 +338,7 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeRole(id string) (object map[stri
 	return response, nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeRoleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeRoleStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeRole(id)
 		if err != nil {
@@ -387,15 +387,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeQuotaSchedule(id string) (object
 	action := fmt.Sprintf("/api/v1/quotas/%s/computeQuotaSchedule", nickname)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -407,7 +407,7 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeQuotaSchedule(id string) (object
 	return response, nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeQuotaScheduleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeQuotaScheduleStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeQuotaSchedule(id)
 		if err != nil {
@@ -440,7 +440,16 @@ func (s *MaxComputeServiceV2) MaxComputeQuotaScheduleStateRefreshFunc(id string,
 // DescribeMaxComputeRoleUserAttachment <<< Encapsulated get interface for MaxCompute RoleUserAttachment.
 
 func (s *MaxComputeServiceV2) DescribeMaxComputeRoleUserAttachment(id string) (object map[string]interface{}, err error) {
-	client := s.client
+	return s.describeMaxComputeRoleUserAttachmentWithRoaGet(id, s.client.RoaGet)
+}
+
+// describeMaxComputeRoleUserAttachmentWithRoaGet is the testable core of
+// DescribeMaxComputeRoleUserAttachment. It accepts a roaGet func so the
+// externally-deleted-member error branch (and the rest of the Read path)
+// can be exercised by unit tests without a real AliyunClient; production
+// wires in s.client.RoaGet via the thin wrapper above. This mirrors the
+// WithApi injection pattern used by MaxComputeTenantRoleUserAttachmentStateRefreshFuncWithApi.
+func (s *MaxComputeServiceV2) describeMaxComputeRoleUserAttachmentWithRoaGet(id string, roaGet func(apiProductCode string, apiVersion string, pathName string, query map[string]*string, headers map[string]*string, body interface{}) (map[string]interface{}, error)) (object map[string]interface{}, err error) {
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]*string
@@ -456,20 +465,30 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeRoleUserAttachment(id string) (o
 	action := fmt.Sprintf("/api/v1/projects/%s/roles/%s/users", projectName, roleName)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+		response, err = roaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
 	addDebug(action, response, request)
 	if err != nil {
+		// When the linked RAM/ALIYUN user referenced by a role is deleted
+		// externally, the project role user list API returns a non-404 error
+		// whose message contains "baseId and tenantId do not match" instead
+		// of an empty user list. Treat that case as NotFound so the resource
+		// Read drops the attachment from state instead of failing refresh/apply.
+		// String match is a stop-gap until MaxCompute exposes a stable error
+		// code for the externally-deleted member case.
+		if strings.Contains(err.Error(), "baseId and tenantId do not match") {
+			return object, WrapErrorf(NotFoundErr("RoleUserAttachment", id), NotFoundMsg, err)
+		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
 	}
 
@@ -493,7 +512,7 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeRoleUserAttachment(id string) (o
 	return object, WrapErrorf(NotFoundErr("RoleUserAttachment", id), NotFoundMsg, response)
 }
 
-func (s *MaxComputeServiceV2) MaxComputeRoleUserAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeRoleUserAttachmentStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeRoleUserAttachment(id)
 		if err != nil {
@@ -538,15 +557,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTunnelQuotaTimer(id string) (obj
 	action := fmt.Sprintf("/api/v1/tunnel/%s/timers", nickname)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -558,7 +577,7 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTunnelQuotaTimer(id string) (obj
 	return response, nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeTunnelQuotaTimerStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeTunnelQuotaTimerStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeTunnelQuotaTimer(id)
 		if err != nil {
@@ -604,15 +623,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeQuota(id string) (object map[str
 	action := fmt.Sprintf("/api/v1/quotas/%s", nickname)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -639,15 +658,15 @@ func (s *MaxComputeServiceV2) DescribeQuotaListTagResources(id string) (object m
 	action := fmt.Sprintf("/tags")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, nil, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -659,7 +678,7 @@ func (s *MaxComputeServiceV2) DescribeQuotaListTagResources(id string) (object m
 	return response, nil
 }
 
-func (s *MaxComputeServiceV2) MaxComputeQuotaStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeQuotaStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeMaxComputeQuota(id)
 		if err != nil {
@@ -710,15 +729,15 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id stri
 	action := fmt.Sprintf("/api/v1/tenants/user")
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("MaxCompute", "2022-01-04", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -747,11 +766,11 @@ func (s *MaxComputeServiceV2) DescribeMaxComputeTenantRoleUserAttachment(id stri
 	return object, WrapErrorf(NotFoundErr("TenantRoleUserAttachment", id), NotFoundMsg, response)
 }
 
-func (s *MaxComputeServiceV2) MaxComputeTenantRoleUserAttachmentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeTenantRoleUserAttachmentStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.MaxComputeTenantRoleUserAttachmentStateRefreshFuncWithApi(id, field, failStates, s.DescribeMaxComputeTenantRoleUserAttachment)
 }
 
-func (s *MaxComputeServiceV2) MaxComputeTenantRoleUserAttachmentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *MaxComputeServiceV2) MaxComputeTenantRoleUserAttachmentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {

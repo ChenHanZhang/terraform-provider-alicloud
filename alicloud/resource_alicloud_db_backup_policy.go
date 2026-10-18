@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceAlicloudDBBackupPolicy() *schema.Resource {
@@ -177,6 +177,17 @@ func resourceAlicloudDBBackupPolicy() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: validation.StringInSlice([]string{"-1", "15", "30", "60", "120", "180", "240", "360", "480", "720"}, false),
 			},
+			"enable_pitr_protection": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"inc_backup_interval": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IntInSlice([]int{60, 120, 240, 360, 720}),
+			},
 			"backup_priority": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -263,6 +274,14 @@ func resourceAlicloudDBBackupPolicyRead(d *schema.ResourceData, meta interface{}
 	d.Set("archive_backup_retention_period", formatInt(object["ArchiveBackupRetentionPeriod"]))
 	d.Set("archive_backup_keep_count", formatInt(object["ArchiveBackupKeepCount"]))
 	d.Set("archive_backup_keep_policy", object["ArchiveBackupKeepPolicy"])
+	if instance["Engine"] == "MySQL" && instance["DBInstanceStorageType"] == "local_ssd" && object["EnableIncrementDataBackup"].(bool) {
+		d.Set("inc_backup_interval", object["IncBackupInterval"])
+	}
+	if instance["Engine"] == "MySQL" && object["EnableBackupLog"] == "1" {
+		if v, ok := object["EnablePitrProtection"]; ok && v != nil {
+			d.Set("enable_pitr_protection", v.(bool))
+		}
+	}
 	return nil
 }
 
@@ -274,8 +293,8 @@ func resourceAlicloudDBBackupPolicyUpdate(d *schema.ResourceData, meta interface
 
 	if d.HasChanges("backup_period", "backup_time", "retention_period", "preferred_backup_period", "preferred_backup_time",
 		"backup_retention_period", "compress_type", "log_backup_frequency", "archive_backup_retention_period", "archive_backup_keep_count",
-		"archive_backup_keep_policy", "released_keep_policy", "category", "backup_interval", "backup_priority", "backup_method",
-		"enable_increment_data_backup") {
+		"archive_backup_keep_policy", "released_keep_policy", "category", "backup_interval", "inc_backup_interval", "backup_priority",
+		"backup_method", "enable_increment_data_backup", "enable_pitr_protection") {
 		updateForData = true
 	}
 
@@ -292,12 +311,12 @@ func resourceAlicloudDBBackupPolicyUpdate(d *schema.ResourceData, meta interface
 		if err := rdsService.WaitForDBInstance(d.Id(), Running, DefaultTimeoutMedium); err != nil {
 			return WrapError(err)
 		}
-		if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		if err := retry.Retry(5*time.Minute, func() *retry.RetryError {
 			if err := rdsService.ModifyDBBackupPolicy(d, updateForData, updateForLog); err != nil {
 				if IsExpectedErrors(err, OperationDeniedDBStatus) || NeedRetry(err) {
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		}); err != nil {

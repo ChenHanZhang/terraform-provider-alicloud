@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,16 +17,17 @@ import (
 	"github.com/aliyun/credentials-go/credentials"
 	"github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/aliyun/terraform-provider-alicloud/alicloud/features"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/helper"
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/mitchellh/go-homedir"
 )
 
 // Provider returns a schema.Provider for alicloud
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": {
@@ -112,6 +114,7 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SKIP_REGION_VALIDATION", false),
 				Description: descriptions["skip_region_validation"],
 			},
+			"features": featuresSchema(),
 			"configuration_source": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -170,94 +173,115 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"alicloud_apig_ai_model_providers":                    dataSourceAliCloudApigAiModelProviders(),
-			"alicloud_apig_services":                              dataSourceAliCloudApigServices(),
-			"alicloud_apig_gateways":                              dataSourceAliCloudApigGateways(),
-			"alicloud_apig_plugins":                               dataSourceAliCloudApigPlugins(),
-			"alicloud_apig_domains":                               dataSourceAliCloudApigDomains(),
-			"alicloud_apig_routes":                                dataSourceAliCloudApigRoutes(),
-			"alicloud_express_connect_router_vpc_associations":    dataSourceAliCloudExpressConnectRouterVpcAssociations(),
-			"alicloud_ssl_certificates_service_companies":         dataSourceAliCloudSslCertificatesServiceCompanies(),
-			"alicloud_express_connect_router_tr_associations":     dataSourceAliCloudExpressConnectRouterTrAssociations(),
-			"alicloud_express_connect_router_vbr_child_instances": dataSourceAliCloudExpressConnectRouterVbrChildInstances(),
-			"alicloud_cr_artifact_lifecycle_rules":                dataSourceAliCloudCrArtifactLifecycleRules(),
-			"alicloud_cms_alert_rules_v2":                         dataSourceAliCloudCmsAlertRulesV2(),
-			"alicloud_oss_bucket_inventories":                     dataSourceAliCloudOssBucketInventories(),
-			"alicloud_wafv3_address_books":                        dataSourceAliCloudWafv3AddressBooks(),
-			"alicloud_wafv3_defense_rules":                        dataSourceAliCloudWafv3DefenseRules(),
-			"alicloud_amqp_open_source_accounts":                  dataSourceAliCloudAmqpOpenSourceAccounts(),
-			"alicloud_vpc_ipv6_cidr_blocks":                       dataSourceAliCloudVpcIpv6CidrBlocks(),
-			"alicloud_amqp_open_source_permissions":               dataSourceAliCloudAmqpOpenSourcePermissions(),
-			"alicloud_vpn_gateway_enhanced_vpn_gateways":          dataSourceAliCloudVpnGatewayEnhancedVpnGateways(),
-			"alicloud_cdn_domain_configs":                         dataSourceAliCloudCdnDomainConfigs(),
-			"alicloud_esa_network_optimizations":                  dataSourceAliCloudEsaNetworkOptimizations(),
-			"alicloud_esa_origin_rules":                           dataSourceAliCloudEsaOriginRules(),
-			"alicloud_esa_https_basic_configurations":             dataSourceAliCloudEsaHttpsBasicConfigurations(),
-			"alicloud_esa_cache_reserve_instances":                dataSourceAliCloudEsaCacheReserveInstances(),
-			"alicloud_esa_waf_rulesets":                           dataSourceAliCloudEsaWafRuleSets(),
-			"alicloud_cs_clusters":                                dataSourceAliCloudAckClusters(),
-			"alicloud_threat_detection_check_item_configs":        dataSourceAliCloudThreatDetectionCheckItemConfigs(),
-			"alicloud_threat_detection_check_structures":          dataSourceAliCloudThreatDetectionCheckStructures(),
-			"alicloud_fcv3_functions":                             dataSourceAliCloudFcv3Functions(),
-			"alicloud_cloud_firewall_tls_inspect_ca_certificates": dataSourceAliCloudCloudFirewallTlsInspectCaCertificates(),
-			"alicloud_sls_indexs":                                 dataSourceAliCloudSlsIndexs(),
-			"alicloud_cloud_sso_user_provisioning_events":         dataSourceAliCloudCloudSsoUserProvisioningEvents(),
-			"alicloud_sls_machine_groups":                         dataSourceAliCloudSlsMachineGroups(),
-			"alicloud_sls_logtail_configs":                        dataSourceAliCloudSlsLogtailConfigs(),
-			"alicloud_sls_etls":                                   dataSourceAliCloudSlsEtls(),
-			"alicloud_arms_addon_releases":                        dataSourceAliCloudArmsAddonReleases(),
-			"alicloud_arms_env_features":                          dataSourceAliCloudArmsEnvFeatures(),
-			"alicloud_arms_env_custom_jobs":                       dataSourceAliCloudArmsEnvCustomJobs(),
-			"alicloud_arms_env_service_monitors":                  dataSourceAliCloudArmsEnvServiceMonitors(),
-			"alicloud_arms_env_pod_monitors":                      dataSourceAliCloudArmsEnvPodMonitors(),
-			"alicloud_arms_environments":                          dataSourceAliCloudArmsEnvironments(),
-			"alicloud_cloud_monitor_service_metric_alarm_rules":   dataSourceAliCloudCloudMonitorServiceMetricAlarmRules(),
-			"alicloud_hbr_udm_snapshots":                          dataSourceAliCloudHbrUdmSnapshots(),
-			"alicloud_sls_alerts":                                 dataSourceAliCloudSlsAlerts(),
-			"alicloud_fcv3_triggers":                              dataSourceAliCloudFcv3Triggers(),
-			"alicloud_ims_oidc_providers":                         dataSourceAliCloudImsOidcProviders(),
-			"alicloud_ram_role_policy_attachments":                dataSourceAliCloudRamRolePolicyAttachments(),
-			"alicloud_cs_kubernetes_node_pools":                   dataSourceAliCloudAckNodepools(),
-			"alicloud_ram_system_policys":                         dataSourceAliCloudRamSystemPolicys(),
-			"alicloud_esa_sites":                                  dataSourceAliCloudEsaSites(),
-			"alicloud_cloud_firewall_nat_firewalls":               dataSourceAliCloudCloudFirewallNatFirewalls(),
-			"alicloud_cloud_firewall_vpc_cen_tr_firewalls":        dataSourceAliCloudCloudFirewallVpcCenTrFirewalls(),
-			"alicloud_kms_instances":                              dataSourceAliCloudKmsInstances(),
-			"alicloud_cloud_control_resource_types":               dataSourceAliCloudCloudControlResourceTypes(),
-			"alicloud_cloud_control_products":                     dataSourceAliCloudCloudControlProducts(),
-			"alicloud_cloud_control_prices":                       dataSourceAliCloudCloudControlPrices(),
-			"alicloud_vpc_ipam_ipam_scopes":                       dataSourceAliCloudVpcIpamIpamScopes(),
-			"alicloud_vpc_ipam_ipam_pool_cidrs":                   dataSourceAliCloudVpcIpamIpamPoolCidrs(),
-			"alicloud_vpc_ipam_ipam_pool_allocations":             dataSourceAliCloudVpcIpamIpamPoolAllocations(),
-			"alicloud_vpc_ipam_ipam_pools":                        dataSourceAliCloudVpcIpamIpamPools(),
-			"alicloud_gwlb_zones":                                 dataSourceAliCloudGwlbZones(),
-			"alicloud_gpdb_data_backups":                          dataSourceAliCloudGpdbDataBackups(),
-			"alicloud_gpdb_log_backups":                           dataSourceAliCloudGpdbLogbackups(),
-			"alicloud_governance_baselines":                       dataSourceAliCloudGovernanceBaselines(),
-			"alicloud_vpn_gateway_zones":                          dataSourceAliCloudVPNGatewayZones(),
-			"alicloud_account":                                    dataSourceAlicloudAccount(),
-			"alicloud_caller_identity":                            dataSourceAlicloudCallerIdentity(),
-			"alicloud_images":                                     dataSourceAlicloudImages(),
-			"alicloud_regions":                                    dataSourceAlicloudRegions(),
-			"alicloud_zones":                                      dataSourceAlicloudZones(),
-			"alicloud_db_zones":                                   dataSourceAlicloudDBZones(),
-			"alicloud_instance_type_families":                     dataSourceAlicloudInstanceTypeFamilies(),
-			"alicloud_instance_types":                             dataSourceAliCloudInstanceTypes(),
-			"alicloud_instances":                                  dataSourceAlicloudInstances(),
-			"alicloud_disks":                                      dataSourceAliCloudEcsDisks(),
-			"alicloud_network_interfaces":                         dataSourceAlicloudEcsNetworkInterfaces(),
-			"alicloud_snapshots":                                  dataSourceAliCloudEcsSnapshots(),
-			"alicloud_vpcs":                                       dataSourceAlicloudVpcs(),
-			"alicloud_vswitches":                                  dataSourceAlicloudVswitches(),
-			"alicloud_eips":                                       dataSourceAlicloudEipAddresses(),
-			"alicloud_key_pairs":                                  dataSourceAliCloudEcsKeyPairs(),
-			"alicloud_kms_keys":                                   dataSourceAlicloudKmsKeys(),
-			"alicloud_kms_ciphertext":                             dataSourceAlicloudKmsCiphertext(),
-			"alicloud_kms_plaintext":                              dataSourceAlicloudKmsPlaintext(),
-			"alicloud_dns_resolution_lines":                       dataSourceAlicloudDnsResolutionLines(),
-			"alicloud_dns_domains":                                dataSourceAlicloudAlidnsDomains(),
-			"alicloud_dns_groups":                                 dataSourceAlicloudDnsGroups(),
-			"alicloud_dns_records":                                dataSourceAlicloudDnsRecords(),
+			"alicloud_realtime_compute_variables":                     dataSourceAliCloudRealtimeComputeVariables(),
+			"alicloud_apig_secrets":                                   dataSourceAliCloudApigSecrets(),
+			"alicloud_threat_detection_attack_path_whitelists":        dataSourceAliCloudThreatDetectionAttackPathWhitelists(),
+			"alicloud_ehpc_users":                                     dataSourceAliCloudEhpcUsers(),
+			"alicloud_realtime_compute_members":                       dataSourceAliCloudRealtimeComputeMembers(),
+			"alicloud_apig_policies":                                  dataSourceAliCloudApigPolicies(),
+			"alicloud_vpc_route_target_groups":                        dataSourceAliCloudVpcRouteTargetGroups(),
+			"alicloud_ens_load_balancer_udp_listeners":                dataSourceAliCloudEnsLoadBalancerUdpListeners(),
+			"alicloud_ecd_desktop_groups":                             dataSourceAliCloudEcdDesktopGroups(),
+			"alicloud_redis_global_security_ip_groups":                dataSourceAliCloudRedisGlobalSecurityIpGroups(),
+			"alicloud_cr_artifact_subscription_rules":                 dataSourceAliCloudCrArtifactSubscriptionRules(),
+			"alicloud_cms_event_notify_policies":                      dataSourceAliCloudCmsEventNotifyPolicies(),
+			"alicloud_realtime_compute_sql_files":                     dataSourceAliCloudRealtimeComputeSqlFiles(),
+			"alicloud_apig_sources":                                   dataSourceAliCloudApigSources(),
+			"alicloud_apig_ai_model_providers":                        dataSourceAliCloudApigAiModelProviders(),
+			"alicloud_apig_services":                                  dataSourceAliCloudApigServices(),
+			"alicloud_apig_gateways":                                  dataSourceAliCloudApigGateways(),
+			"alicloud_apig_plugins":                                   dataSourceAliCloudApigPlugins(),
+			"alicloud_apig_domains":                                   dataSourceAliCloudApigDomains(),
+			"alicloud_apig_routes":                                    dataSourceAliCloudApigRoutes(),
+			"alicloud_ssl_certificates_service_companies":             dataSourceAliCloudSslCertificatesServiceCompanies(),
+			"alicloud_ssl_certificates_service_contacts":              dataSourceAliCloudSslCertificatesServiceContacts(),
+			"alicloud_ssl_certificates_service_instances":             dataSourceAliCloudSslCertificatesServiceInstances(),
+			"alicloud_ssl_certificates_service_instance_certificates": dataSourceAliCloudSslCertificatesServiceInstanceCertificates(),
+			"alicloud_express_connect_router_grant_associations":      dataSourceAliCloudExpressConnectRouterGrantAssociations(),
+			"alicloud_express_connect_router_express_connect_routers": dataSourceAliCloudExpressConnectRouterExpressConnectRouters(),
+			"alicloud_express_connect_router_vpc_associations":        dataSourceAliCloudExpressConnectRouterVpcAssociations(),
+			"alicloud_express_connect_router_tr_associations":         dataSourceAliCloudExpressConnectRouterTrAssociations(),
+			"alicloud_express_connect_router_vbr_child_instances":     dataSourceAliCloudExpressConnectRouterVbrChildInstances(),
+			"alicloud_cr_artifact_lifecycle_rules":                    dataSourceAliCloudCrArtifactLifecycleRules(),
+			"alicloud_cms_alert_rules_v2":                             dataSourceAliCloudCmsAlertRulesV2(),
+			"alicloud_oss_bucket_inventories":                         dataSourceAliCloudOssBucketInventories(),
+			"alicloud_wafv3_address_books":                            dataSourceAliCloudWafv3AddressBooks(),
+			"alicloud_wafv3_defense_rules":                            dataSourceAliCloudWafv3DefenseRules(),
+			"alicloud_amqp_open_source_accounts":                      dataSourceAliCloudAmqpOpenSourceAccounts(),
+			"alicloud_vpc_ipv6_cidr_blocks":                           dataSourceAliCloudVpcIpv6CidrBlocks(),
+			"alicloud_amqp_open_source_permissions":                   dataSourceAliCloudAmqpOpenSourcePermissions(),
+			"alicloud_vpn_gateway_enhanced_vpn_gateways":              dataSourceAliCloudVpnGatewayEnhancedVpnGateways(),
+			"alicloud_cdn_domain_configs":                             dataSourceAliCloudCdnDomainConfigs(),
+			"alicloud_esa_network_optimizations":                      dataSourceAliCloudEsaNetworkOptimizations(),
+			"alicloud_esa_origin_rules":                               dataSourceAliCloudEsaOriginRules(),
+			"alicloud_esa_routine_code_versions":                      dataSourceAliCloudEsaRoutineCodeVersions(),
+			"alicloud_esa_https_basic_configurations":                 dataSourceAliCloudEsaHttpsBasicConfigurations(),
+			"alicloud_esa_cache_reserve_instances":                    dataSourceAliCloudEsaCacheReserveInstances(),
+			"alicloud_esa_waf_rulesets":                               dataSourceAliCloudEsaWafRuleSets(),
+			"alicloud_esa_lists":                                      dataSourceAliCloudEsaLists(),
+			"alicloud_cs_clusters":                                    dataSourceAliCloudAckClusters(),
+			"alicloud_threat_detection_check_item_configs":            dataSourceAliCloudThreatDetectionCheckItemConfigs(),
+			"alicloud_threat_detection_check_structures":              dataSourceAliCloudThreatDetectionCheckStructures(),
+			"alicloud_fcv3_functions":                                 dataSourceAliCloudFcv3Functions(),
+			"alicloud_cloud_firewall_tls_inspect_ca_certificates":     dataSourceAliCloudCloudFirewallTlsInspectCaCertificates(),
+			"alicloud_sls_indexs":                                     dataSourceAliCloudSlsIndexs(),
+			"alicloud_cloud_sso_user_provisioning_events":             dataSourceAliCloudCloudSsoUserProvisioningEvents(),
+			"alicloud_sls_machine_groups":                             dataSourceAliCloudSlsMachineGroups(),
+			"alicloud_sls_logtail_configs":                            dataSourceAliCloudSlsLogtailConfigs(),
+			"alicloud_sls_etls":                                       dataSourceAliCloudSlsEtls(),
+			"alicloud_arms_addon_releases":                            dataSourceAliCloudArmsAddonReleases(),
+			"alicloud_arms_env_features":                              dataSourceAliCloudArmsEnvFeatures(),
+			"alicloud_arms_env_custom_jobs":                           dataSourceAliCloudArmsEnvCustomJobs(),
+			"alicloud_arms_env_service_monitors":                      dataSourceAliCloudArmsEnvServiceMonitors(),
+			"alicloud_arms_env_pod_monitors":                          dataSourceAliCloudArmsEnvPodMonitors(),
+			"alicloud_arms_environments":                              dataSourceAliCloudArmsEnvironments(),
+			"alicloud_cloud_monitor_service_metric_alarm_rules":       dataSourceAliCloudCloudMonitorServiceMetricAlarmRules(),
+			"alicloud_hbr_udm_snapshots":                              dataSourceAliCloudHbrUdmSnapshots(),
+			"alicloud_sls_alerts":                                     dataSourceAliCloudSlsAlerts(),
+			"alicloud_fcv3_triggers":                                  dataSourceAliCloudFcv3Triggers(),
+			"alicloud_ims_oidc_providers":                             dataSourceAliCloudImsOidcProviders(),
+			"alicloud_ram_role_policy_attachments":                    dataSourceAliCloudRamRolePolicyAttachments(),
+			"alicloud_cs_kubernetes_node_pools":                       dataSourceAliCloudAckNodepools(),
+			"alicloud_ram_system_policys":                             dataSourceAliCloudRamSystemPolicys(),
+			"alicloud_esa_sites":                                      dataSourceAliCloudEsaSites(),
+			"alicloud_cloud_firewall_nat_firewalls":                   dataSourceAliCloudCloudFirewallNatFirewalls(),
+			"alicloud_cloud_firewall_vpc_cen_tr_firewalls":            dataSourceAliCloudCloudFirewallVpcCenTrFirewalls(),
+			"alicloud_kms_instances":                                  dataSourceAliCloudKmsInstances(),
+			"alicloud_cloud_control_resource_types":                   dataSourceAliCloudCloudControlResourceTypes(),
+			"alicloud_cloud_control_products":                         dataSourceAliCloudCloudControlProducts(),
+			"alicloud_cloud_control_prices":                           dataSourceAliCloudCloudControlPrices(),
+			"alicloud_vpc_ipam_ipam_scopes":                           dataSourceAliCloudVpcIpamIpamScopes(),
+			"alicloud_vpc_ipam_ipam_pool_cidrs":                       dataSourceAliCloudVpcIpamIpamPoolCidrs(),
+			"alicloud_vpc_ipam_ipam_pool_allocations":                 dataSourceAliCloudVpcIpamIpamPoolAllocations(),
+			"alicloud_vpc_ipam_ipam_pools":                            dataSourceAliCloudVpcIpamIpamPools(),
+			"alicloud_gwlb_zones":                                     dataSourceAliCloudGwlbZones(),
+			"alicloud_gpdb_data_backups":                              dataSourceAliCloudGpdbDataBackups(),
+			"alicloud_gpdb_log_backups":                               dataSourceAliCloudGpdbLogbackups(),
+			"alicloud_governance_baselines":                           dataSourceAliCloudGovernanceBaselines(),
+			"alicloud_vpn_gateway_zones":                              dataSourceAliCloudVPNGatewayZones(),
+			"alicloud_account":                                        dataSourceAlicloudAccount(),
+			"alicloud_caller_identity":                                dataSourceAlicloudCallerIdentity(),
+			"alicloud_images":                                         dataSourceAlicloudImages(),
+			"alicloud_regions":                                        dataSourceAlicloudRegions(),
+			"alicloud_zones":                                          dataSourceAlicloudZones(),
+			"alicloud_db_zones":                                       dataSourceAlicloudDBZones(),
+			"alicloud_instance_type_families":                         dataSourceAlicloudInstanceTypeFamilies(),
+			"alicloud_instance_types":                                 dataSourceAliCloudInstanceTypes(),
+			"alicloud_instances":                                      dataSourceAlicloudInstances(),
+			"alicloud_disks":                                          dataSourceAliCloudEcsDisks(),
+			"alicloud_network_interfaces":                             dataSourceAlicloudEcsNetworkInterfaces(),
+			"alicloud_snapshots":                                      dataSourceAliCloudEcsSnapshots(),
+			"alicloud_vpcs":                                           dataSourceAlicloudVpcs(),
+			"alicloud_vswitches":                                      dataSourceAlicloudVswitches(),
+			"alicloud_eips":                                           dataSourceAlicloudEipAddresses(),
+			"alicloud_key_pairs":                                      dataSourceAliCloudEcsKeyPairs(),
+			"alicloud_kms_keys":                                       dataSourceAlicloudKmsKeys(),
+			"alicloud_kms_ciphertext":                                 dataSourceAlicloudKmsCiphertext(),
+			"alicloud_kms_plaintext":                                  dataSourceAlicloudKmsPlaintext(),
+			"alicloud_dns_resolution_lines":                           dataSourceAlicloudDnsResolutionLines(),
+			"alicloud_dns_domains":                                    dataSourceAlicloudAlidnsDomains(),
+			"alicloud_dns_groups":                                     dataSourceAlicloudDnsGroups(),
+			"alicloud_dns_records":                                    dataSourceAlicloudDnsRecords(),
 			// alicloud_dns_domain_groups, alicloud_dns_domain_records have been deprecated.
 			"alicloud_dns_domain_groups":  dataSourceAlicloudDnsGroups(),
 			"alicloud_dns_domain_records": dataSourceAlicloudDnsRecords(),
@@ -317,6 +341,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_mongo_instances":                                  dataSourceAliCloudMongoDBInstances(),
 			"alicloud_mongodb_instances":                                dataSourceAliCloudMongoDBInstances(),
 			"alicloud_mongodb_zones":                                    dataSourceAlicloudMongoDBZones(),
+			"alicloud_gpdb_db_extensions":                               dataSourceAliCloudGpdbDbExtensions(),
 			"alicloud_gpdb_instances":                                   dataSourceAlicloudGpdbInstances(),
 			"alicloud_gpdb_zones":                                       dataSourceAlicloudGpdbZones(),
 			"alicloud_kvstore_instances":                                dataSourceAlicloudKvstoreInstances(),
@@ -378,6 +403,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ddoscoo_instances":                                dataSourceAlicloudDdoscooInstances(),
 			"alicloud_ddosbgp_instances":                                dataSourceAlicloudDdosbgpInstances(),
 			"alicloud_ess_alarms":                                       dataSourceAlicloudEssAlarms(),
+			"alicloud_ess_eci_scaling_configurations":                   dataSourceAlicloudEssEciScalingConfigurations(),
 			"alicloud_ess_notifications":                                dataSourceAlicloudEssNotifications(),
 			"alicloud_ess_scaling_groups":                               dataSourceAliCloudEssScalingGroups(),
 			"alicloud_ess_scaling_rules":                                dataSourceAliCloudEssScalingRules(),
@@ -407,6 +433,11 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_accounts":                                 dataSourceAlicloudPolarDBAccounts(),
 			"alicloud_polardb_databases":                                dataSourceAlicloudPolarDBDatabases(),
 			"alicloud_polardb_zones":                                    dataSourceAlicloudPolarDBZones(),
+			"alicloud_polardb_gateway_model_services":                   dataSourceAlicloudPolarDBGatewayModelServices(),
+			"alicloud_polardb_gateway_model_apis":                       dataSourceAlicloudPolarDBGatewayModelAPIs(),
+			"alicloud_polardb_gateway_cost_rules":                       dataSourceAlicloudPolarDBGatewayCostRules(),
+			"alicloud_polardb_gateway_consumer_groups":                  dataSourceAlicloudPolarDBGatewayConsumerGroups(),
+			"alicloud_polardb_gateway_consumers":                        dataSourceAlicloudPolarDBGatewayConsumers(),
 			"alicloud_hbase_instances":                                  dataSourceAlicloudHBaseInstances(),
 			"alicloud_hbase_zones":                                      dataSourceAlicloudHBaseZones(),
 			"alicloud_hbase_instance_types":                             dataSourceAlicloudHBaseInstanceTypes(),
@@ -435,7 +466,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_datahub_service":                                  dataSourceAlicloudDatahubService(),
 			"alicloud_ons_service":                                      dataSourceAlicloudOnsService(),
 			"alicloud_fc_service":                                       dataSourceAlicloudFcService(),
-			"alicloud_privatelink_service":                              dataSourceAlicloudPrivateLinkService(),
+			"alicloud_privatelink_service":                              dataSourceAliCloudPrivateLinkService(),
 			"alicloud_edas_applications":                                dataSourceAlicloudEdasApplications(),
 			"alicloud_edas_deploy_groups":                               dataSourceAlicloudEdasDeployGroups(),
 			"alicloud_edas_clusters":                                    dataSourceAlicloudEdasClusters(),
@@ -487,6 +518,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cms_alarm_contact_groups":                         dataSourceAlicloudCmsAlarmContactGroups(),
 			"alicloud_enhanced_nat_available_zones":                     dataSourceAlicloudEnhancedNatAvailableZones(),
 			"alicloud_cen_route_services":                               dataSourceAlicloudCenRouteServices(),
+			"alicloud_kvcachestore_kv_cache_stores":                     dataSourceAliCloudKvcachestoreKvCacheStores(),
 			"alicloud_kvstore_accounts":                                 dataSourceAlicloudKvstoreAccounts(),
 			"alicloud_cms_group_metric_rules":                           dataSourceAlicloudCmsGroupMetricRules(),
 			"alicloud_fnf_flows":                                        dataSourceAlicloudFnfFlows(),
@@ -611,6 +643,9 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_hbr_restore_jobs":                                 dataSourceAlicloudHbrRestoreJobs(),
 			"alicloud_alb_listeners":                                    dataSourceAlicloudAlbListeners(),
 			"alicloud_ens_key_pairs":                                    dataSourceAlicloudEnsKeyPairs(),
+			"alicloud_ens_security_groups":                              dataSourceAliCloudEnsSecurityGroups(),
+			"alicloud_ens_bucket_lifecycles":                            dataSourceAlicloudEnsBucketLifecycles(),
+			"alicloud_ens_network_route_tables":                         dataSourceAliCloudEnsNetworkRouteTables(),
 			"alicloud_sae_applications":                                 dataSourceAlicloudSaeApplications(),
 			"alicloud_alb_rules":                                        dataSourceAliCloudAlbRules(),
 			"alicloud_cms_metric_rule_templates":                        dataSourceAlicloudCmsMetricRuleTemplates(),
@@ -652,7 +687,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_rdc_organizations":                                dataSourceAlicloudRdcOrganizations(),
 			"alicloud_eais_instances":                                   dataSourceAlicloudEaisInstances(),
 			"alicloud_sae_ingresses":                                    dataSourceAlicloudSaeIngresses(),
-			"alicloud_cloudauth_face_configs":                           dataSourceAlicloudCloudauthFaceConfigs(),
 			"alicloud_imp_app_templates":                                dataSourceAlicloudImpAppTemplates(),
 			"alicloud_mhub_products":                                    dataSourceAlicloudMhubProducts(),
 			"alicloud_cloud_sso_scim_server_credentials":                dataSourceAlicloudCloudSsoScimServerCredentials(),
@@ -667,6 +701,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cloud_firewall_instances":                         dataSourceAlicloudCloudFirewallInstances(),
 			"alicloud_cr_endpoint_acl_policies":                         dataSourceAlicloudCrEndpointAclPolicies(),
 			"alicloud_cr_endpoint_acl_service":                          dataSourceAlicloudCrEndpointAclService(),
+			"alicloud_cr_internet_endpoint":                             dataSourceAlicloudCrInternetEndpoint(),
 			"alicloud_actiontrail_history_delivery_jobs":                dataSourceAlicloudActiontrailHistoryDeliveryJobs(),
 			"alicloud_sae_instance_specifications":                      dataSourceAlicloudSaeInstanceSpecifications(),
 			"alicloud_cen_transit_router_service":                       dataSourceAlicloudCenTransitRouterService(),
@@ -766,6 +801,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_dts_migration_jobs":                               dataSourceAlicloudDtsMigrationJobs(),
 			"alicloud_mse_gateways":                                     dataSourceAlicloudMseGateways(),
 			"alicloud_mongodb_sharding_network_private_addresses":       dataSourceAlicloudMongodbShardingNetworkPrivateAddresses(),
+			"alicloud_mongodb_sharding_audit_filters":                   dataSourceAlicloudMongodbShardingAuditFilters(),
+			"alicloud_mongodb_backups":                                  dataSourceAliCloudMongodbBackups(),
 			"alicloud_ecp_instances":                                    dataSourceAlicloudEcpInstances(),
 			"alicloud_ecp_zones":                                        dataSourceAlicloudEcpZones(),
 			"alicloud_ecp_instance_types":                               dataSourceAlicloudEcpInstanceTypes(),
@@ -795,6 +832,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_ecd_desktop_types":                                dataSourceAlicloudEcdDesktopTypes(),
 			"alicloud_config_deliveries":                                dataSourceAlicloudConfigDeliveries(),
 			"alicloud_cms_namespaces":                                   dataSourceAlicloudCmsNamespaces(),
+			"alicloud_cms_datasets":                                     dataSourceAliCloudCmsDatasets(),
 			"alicloud_cms_sls_groups":                                   dataSourceAlicloudCmsSlsGroups(),
 			"alicloud_config_aggregate_deliveries":                      dataSourceAlicloudConfigAggregateDeliveries(),
 			"alicloud_edas_namespaces":                                  dataSourceAlicloudEdasNamespaces(),
@@ -824,6 +862,8 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cms_event_rules":                                  dataSourceAlicloudCmsEventRules(),
 			"alicloud_cen_transit_router_vpn_attachments":               dataSourceAliCloudCenTransitRouterVpnAttachments(),
 			"alicloud_polardb_parameter_groups":                         dataSourceAlicloudPolarDBParameterGroups(),
+			"alicloud_polardb_polar_fs_instances":                       dataSourceAlicloudPolarDBPolarFsInstances(),
+			"alicloud_polardb_lakebase_tenant_token":                    dataSourceAlicloudPolarDBLakebaseTenantToken(),
 			"alicloud_vpn_gateway_vco_routes":                           dataSourceAlicloudVpnGatewayVcoRoutes(),
 			"alicloud_dcdn_waf_policies":                                dataSourceAlicloudDcdnWafPolicies(),
 			"alicloud_hbr_service":                                      dataSourceAlicloudHbrService(),
@@ -880,6 +920,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_threat_detection_baseline_strategies":             dataSourceAlicloudThreatDetectionBaselineStrategies(),
 			"alicloud_threat_detection_assets":                          dataSourceAlicloudThreatDetectionAssets(),
 			"alicloud_threat_detection_log_shipper":                     dataSourceAlicloudThreatDetectionLogShipper(),
+			"alicloud_threat_detection_rd_default_sync_list":            dataSourceAliCloudThreatDetectionRdDefaultSyncList(),
 			"alicloud_threat_detection_anti_brute_force_rules":          dataSourceAlicloudThreatDetectionAntiBruteForceRules(),
 			"alicloud_threat_detection_honeypot_images":                 dataSourceAlicloudThreatDetectionHoneypotImages(),
 			"alicloud_threat_detection_honey_pots":                      dataSourceAlicloudThreatDetectionHoneyPots(),
@@ -943,13 +984,37 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc_ipam_ipams":                                   dataSourceAliCloudVpcIpamIpams(),
 			"alicloud_das_sql_log_configs":                              dataSourceAliCloudDasSqlLogConfigs(),
 			"alicloud_apig_plugin_classes":                              dataSourceAliCloudApigPluginClasses(),
+			"alicloud_sls_metric_stores":                                dataSourceAliCloudSlsMetricStores(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"alicloud_realtime_compute_variable":                            resourceAliCloudRealtimeComputeVariable(),
+			"alicloud_apig_secret":                                          resourceAliCloudApigSecret(),
+			"alicloud_cr_instance_customized_domain":                        resourceAliCloudCrInstanceCustomizedDomain(),
+			"alicloud_threat_detection_attack_path_whitelist":               resourceAliCloudThreatDetectionAttackPathWhitelist(),
+			"alicloud_vpc_route_target_group":                               resourceAliCloudVpcRouteTargetGroup(),
+			"alicloud_ehpc_user":                                            resourceAliCloudEhpcUser(),
+			"alicloud_realtime_compute_member":                              resourceAliCloudRealtimeComputeMember(),
+			"alicloud_apig_policy":                                          resourceAliCloudApigPolicy(),
+			"alicloud_ens_load_balancer_udp_listener":                       resourceAliCloudEnsLoadBalancerUdpListener(),
+			"alicloud_gpdb_db_extension":                                    resourceAliCloudGpdbDbExtension(),
+			"alicloud_ecd_desktop_group":                                    resourceAliCloudEcdDesktopGroup(),
+			"alicloud_redis_global_security_ip_group":                       resourceAliCloudRedisGlobalSecurityIpGroup(),
+			"alicloud_cr_artifact_subscription_rule":                        resourceAliCloudCrArtifactSubscriptionRule(),
+			"alicloud_cms_event_notify_policy":                              resourceAliCloudCmsEventNotifyPolicy(),
+			"alicloud_cr_internet_endpoint":                                 resourceAlicloudCrInternetEndpoint(),
+			"alicloud_realtime_compute_sql_file":                            resourceAliCloudRealtimeComputeSqlFile(),
+			"alicloud_apig_source":                                          resourceAliCloudApigSource(),
+			"alicloud_message_service_account_logging":                      resourceAliCloudMessageServiceAccountLogging(),
 			"alicloud_apig_ai_model_provider":                               resourceAliCloudApigAiModelProvider(),
 			"alicloud_apig_service":                                         resourceAliCloudApigService(),
 			"alicloud_gpdb_api_key":                                         resourceAliCloudGpdbApiKey(),
 			"alicloud_apig_plugin":                                          resourceAliCloudApigPlugin(),
 			"alicloud_ssl_certificates_service_company":                     resourceAliCloudSslCertificatesServiceCompany(),
+			"alicloud_ssl_certificates_service_contact":                     resourceAliCloudSslCertificatesServiceContact(),
+			"alicloud_ssl_certificates_service_instance":                    resourceAliCloudSslCertificatesServiceInstance(),
+			"alicloud_ssl_certificates_service_certificate_apply":           resourceAliCloudSslCertificatesServiceCertificateApply(),
+			"alicloud_ssl_certificates_service_certificate_validation":      resourceAliCloudSslCertificatesServiceCertificateValidation(),
+			"alicloud_ssl_certificates_service_instance_certificate":        resourceAliCloudSslCertificatesServiceInstanceCertificate(),
 			"alicloud_apig_plugin_class":                                    resourceAliCloudApigPluginClass(),
 			"alicloud_apig_domain":                                          resourceAliCloudApigDomain(),
 			"alicloud_apig_route":                                           resourceAliCloudApigRoute(),
@@ -977,6 +1042,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cms_prometheus_instance":                              resourceAliCloudCmsPrometheusInstance(),
 			"alicloud_cms_integration_policy":                               resourceAliCloudCmsIntegrationPolicy(),
 			"alicloud_cms_workspace":                                        resourceAliCloudCmsWorkspace(),
+			"alicloud_cms_dataset":                                          resourceAliCloudCmsDataset(),
 			"alicloud_cloud_firewall_vpc_firewall_control_policy_order":     resourceAliCloudCloudFirewallVpcFirewallControlPolicyOrder(),
 			"alicloud_cloud_firewall_nat_firewall_control_policy_order":     resourceAliCloudCloudFirewallNatFirewallControlPolicyOrder(),
 			"alicloud_esa_custom_response_code_rule":                        resourceAliCloudEsaCustomResponseCodeRule(),
@@ -988,6 +1054,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_live_domain":                                          resourceAliCloudLiveDomain(),
 			"alicloud_oss_bucket_overwrite_config":                          resourceAliCloudOssBucketOverwriteConfig(),
 			"alicloud_cloud_firewall_user_alarm_config":                     resourceAliCloudCloudFirewallUserAlarmConfig(),
+			"alicloud_cloud_firewall_fw_switch":                             resourceAliCloudCloudFirewallFwSwitch(),
 			"alicloud_oss_bucket_archive_direct_read":                       resourceAliCloudOssBucketArchiveDirectRead(),
 			"alicloud_oss_bucket_response_header":                           resourceAliCloudOssBucketResponseHeader(),
 			"alicloud_ddoscoo_web_cc_rule":                                  resourceAliCloudDdosCooWebCcRule(),
@@ -998,6 +1065,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cloud_monitor_service_agent_config":                   resourceAliCloudCloudMonitorServiceAgentConfig(),
 			"alicloud_alikafka_scheduled_scaling_rule":                      resourceAliCloudAlikafkaScheduledScalingRule(),
 			"alicloud_event_bridge_event_source_v2":                         resourceAliCloudEventBridgeEventSourceV2(),
+			"alicloud_event_bridge_event_streaming":                         resourceAliCloudEventBridgeEventStreaming(),
 			"alicloud_cloud_firewall_vpc_firewall_acl_engine_mode":          resourceAliCloudCloudFirewallVpcFirewallAclEngineMode(),
 			"alicloud_cloud_firewall_instance_v2":                           resourceAliCloudCloudFirewallInstanceV2(),
 			"alicloud_cloud_firewall_vpc_firewall_ips_config":               resourceAliCloudCloudFirewallVpcFirewallIpsConfig(),
@@ -1069,6 +1137,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_message_service_service":                              resourceAliCloudMessageServiceService(),
 			"alicloud_esa_routine_route":                                    resourceAliCloudEsaRoutineRoute(),
 			"alicloud_esa_routine":                                          resourceAliCloudEsaRoutine(),
+			"alicloud_esa_routine_code_deployment":                          resourceAliCloudEsaRoutineCodeDeployment(),
 			"alicloud_esa_video_processing":                                 resourceAliCloudEsaVideoProcessing(),
 			"alicloud_esa_kv":                                               resourceAliCloudEsaKv(),
 			"alicloud_lindorm_public_network":                               resourceAliCloudLindormPublicNetwork(),
@@ -1230,6 +1299,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_gpdb_external_data_service":                           resourceAliCloudGpdbExternalDataService(),
 			"alicloud_gpdb_remote_adb_data_source":                          resourceAliCloudGpdbRemoteADBDataSource(),
 			"alicloud_ens_nat_gateway":                                      resourceAliCloudEnsNatGateway(),
+			"alicloud_ens_network_route_table":                              resourceAliCloudEnsNetworkRouteTable(),
 			"alicloud_ens_eip_instance_attachment":                          resourceAliCloudEnsEipInstanceAttachment(),
 			"alicloud_ddos_bgp_policy":                                      resourceAliCloudDdosBgpPolicy(),
 			"alicloud_cen_transit_router_ecr_attachment":                    resourceAliCloudCenTransitRouterEcrAttachment(),
@@ -1290,14 +1360,17 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_quotas_template_applications":                         resourceAliCloudQuotasTemplateApplications(),
 			"alicloud_threat_detection_oss_scan_config":                     resourceAliCloudThreatDetectionOssScanConfig(),
 			"alicloud_threat_detection_malicious_file_whitelist_config":     resourceAliCloudThreatDetectionMaliciousFileWhitelistConfig(),
+			"alicloud_threat_detection_monitor_account":                     resourceAliCloudThreatDetectionMonitorAccount(),
 			"alicloud_adb_lake_account":                                     resourceAliCloudAdbLakeAccount(),
 			"alicloud_ens_security_group":                                   resourceAliCloudEnsSecurityGroup(),
 			"alicloud_ens_vswitch":                                          resourceAliCloudEnsVswitch(),
 			"alicloud_ens_load_balancer":                                    resourceAliCloudEnsLoadBalancer(),
+			"alicloud_ens_load_balancer_http_listener":                      resourceAliCloudEnsLoadBalancerHttpListener(),
 			"alicloud_ens_eip":                                              resourceAliCloudEnsEip(),
 			"alicloud_ens_network":                                          resourceAliCloudEnsNetwork(),
 			"alicloud_ens_snapshot":                                         resourceAliCloudEnsSnapshot(),
 			"alicloud_ens_disk":                                             resourceAliCloudEnsDisk(),
+			"alicloud_ens_bucket_lifecycle":                                 resourceAliCloudEnsBucketLifecycle(),
 			"alicloud_resource_manager_saved_query":                         resourceAliCloudResourceManagerSavedQuery(),
 			"alicloud_threat_detection_sas_trail":                           resourceAliCloudThreatDetectionSasTrail(),
 			"alicloud_threat_detection_image_event_operation":               resourceAliCloudThreatDetectionImageEventOperation(),
@@ -1313,6 +1386,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_drds_polardbx_instance":                               resourceAliCloudDrdsPolardbxInstance(),
 			"alicloud_gpdb_backup_policy":                                   resourceAliCloudGpdbBackupPolicy(),
 			"alicloud_threat_detection_file_upload_limit":                   resourceAliCloudThreatDetectionFileUploadLimit(),
+			"alicloud_threat_detection_rd_default_sync_list":                resourceAliCloudThreatDetectionRdDefaultSyncList(),
 			"alicloud_threat_detection_client_file_protect":                 resourceAliCloudThreatDetectionClientFileProtect(),
 			"alicloud_rocketmq_topic":                                       resourceAliCloudRocketmqTopic(),
 			"alicloud_rocketmq_consumer_group":                              resourceAliCloudRocketmqConsumerGroup(),
@@ -1535,6 +1609,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cen_transit_router_vpc_attachment":                     resourceAliCloudCenTransitRouterVpcAttachment(),
 			"alicloud_kvstore_instance":                                      resourceAliCloudKvstoreInstance(),
 			"alicloud_kvstore_backup_policy":                                 resourceAliCloudKvStoreBackupPolicy(),
+			"alicloud_kvcachestore_kv_cache_store":                           resourceAliCloudKvcachestoreKvCacheStore(),
 			"alicloud_kvstore_account":                                       resourceAliCloudRedisAccount(),
 			"alicloud_datahub_project":                                       resourceAlicloudDatahubProject(),
 			"alicloud_datahub_subscription":                                  resourceAlicloudDatahubSubscription(),
@@ -1554,6 +1629,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_drds_instance":                                         resourceAlicloudDRDSInstance(),
 			"alicloud_elasticsearch_instance":                                resourceAliCloudElasticsearchInstance(),
 			"alicloud_cas_certificate":                                       resourceAliCloudSslCertificatesServiceCertificate(),
+			"alicloud_ssl_certificates_service_pca_cert_sync":                resourceAliCloudSslCertificatesServicePcaCertSync(),
 			"alicloud_ddoscoo_instance":                                      resourceAliCloudDdoscooInstance(),
 			"alicloud_ddosbgp_instance":                                      resourceAliCloudDdosBgpInstance(),
 			"alicloud_network_acl":                                           resourceAliCloudVpcNetworkAcl(),
@@ -1582,12 +1658,22 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_account":                                       resourceAliCloudPolarDbAccount(),
 			"alicloud_polardb_account_privilege":                             resourceAlicloudPolarDBAccountPrivilege(),
 			"alicloud_polardb_endpoint":                                      resourceAlicloudPolarDBEndpoint(),
+			"alicloud_polardb_dynamo_table":                                  resourceAlicloudPolarDBDynamoTable(),
+			"alicloud_polardb_dynamo_item":                                   resourceAlicloudPolarDBDynamoItem(),
 			"alicloud_polardb_endpoint_address":                              resourceAlicloudPolarDBEndpointAddress(),
 			"alicloud_polardb_primary_endpoint":                              resourceAlicloudPolarDBPrimaryEndpoint(),
 			"alicloud_polardb_application":                                   resourceAlicloudPolarDBApplication(),
 			"alicloud_polardb_application_endpoint":                          resourceAlicloudPolarDBApplicationEndpoint(),
 			"alicloud_polardb_batch_task":                                    resourceAlicloudPolarDBBatchTask(),
 			"alicloud_polardb_aicluster":                                     resourceAlicloudPolarDBAICluster(),
+			"alicloud_polardb_gateway":                                       resourceAlicloudPolarDBGateway(),
+			"alicloud_polardb_polar_fs":                                      resourceAlicloudPolarDBPolarFs(),
+			"alicloud_polardb_polar_fs_endpoint":                             resourceAlicloudPolarDBPolarFsEndpoint(),
+			"alicloud_polardb_gateway_model_service":                         resourceAlicloudPolarDBGatewayModelService(),
+			"alicloud_polardb_gateway_model_api":                             resourceAlicloudPolarDBGatewayModelAPI(),
+			"alicloud_polardb_gateway_cost_rule":                             resourceAlicloudPolarDBGatewayCostRule(),
+			"alicloud_polardb_gateway_consumer_group":                        resourceAlicloudPolarDBGatewayConsumerGroup(),
+			"alicloud_polardb_gateway_consumer":                              resourceAlicloudPolarDBGatewayConsumer(),
 			"alicloud_hbase_instance":                                        resourceAlicloudHBaseInstance(),
 			"alicloud_market_order":                                          resourceAlicloudMarketOrder(),
 			"alicloud_adb_cluster":                                           resourceAliCloudAdbDbCluster(),
@@ -1614,6 +1700,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_cen_route_map":                                         resourceAlicloudCenRouteMap(),
 			"alicloud_resource_manager_role":                                 resourceAlicloudResourceManagerRole(),
 			"alicloud_resource_manager_resource_group":                       resourceAliCloudResourceManagerResourceGroup(),
+			"alicloud_resource_manager_resource_group_settings":              resourceAliCloudResourceManagerResourceGroupSettings(),
 			"alicloud_resource_manager_folder":                               resourceAliCloudResourceManagerFolder(),
 			"alicloud_resource_manager_handshake":                            resourceAliCloudResourceManagerHandshake(),
 			"alicloud_resource_manager_handshake_acceptance":                 resourceAliCloudResourceManagerHandshakeAcceptance(),
@@ -1815,7 +1902,6 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_rdc_organization":                                      resourceAlicloudRdcOrganization(),
 			"alicloud_eais_instance":                                         resourceAliCloudEaisInstance(),
 			"alicloud_sae_ingress":                                           resourceAlicloudSaeIngress(),
-			"alicloud_cloudauth_face_config":                                 resourceAlicloudCloudauthFaceConfig(),
 			"alicloud_imp_app_template":                                      resourceAlicloudImpAppTemplate(),
 			"alicloud_pvtz_user_vpc_authorization":                           resourceAlicloudPvtzUserVpcAuthorization(),
 			"alicloud_mhub_product":                                          resourceAlicloudMhubProduct(),
@@ -1887,6 +1973,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_oos_secret_parameter":                                  resourceAliCloudOosSecretParameter(),
 			"alicloud_click_house_backup_policy":                             resourceAlicloudClickHouseBackupPolicy(),
 			"alicloud_mongodb_audit_policy":                                  resourceAliCloudMongodbAuditPolicy(),
+			"alicloud_mongodb_sharding_audit_filter":                         resourceAliCloudMongodbShardingAuditFilter(),
 			"alicloud_cloud_sso_access_configuration_provisioning":           resourceAlicloudCloudSsoAccessConfigurationProvisioning(),
 			"alicloud_mongodb_account":                                       resourceAliCloudMongodbAccount(),
 			"alicloud_mongodb_serverless_instance":                           resourceAlicloudMongodbServerlessInstance(),
@@ -1931,6 +2018,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_resource_manager_service_linked_role":                  resourceAliCloudResourceManagerServiceLinkedRole(),
 			"alicloud_rds_service_linked_role":                               resourceAlicloudRdsServiceLinkedRole(),
 			"alicloud_mongodb_sharding_network_private_address":              resourceAliCloudMongodbShardingNetworkPrivateAddress(),
+			"alicloud_mongodb_backup":                                        resourceAliCloudMongodbBackup(),
 			"alicloud_ecp_instance":                                          resourceAliCloudEcpInstance(),
 			"alicloud_dcdn_ipa_domain":                                       resourceAlicloudDcdnIpaDomain(),
 			"alicloud_sddp_data_limit":                                       resourceAlicloudSddpDataLimit(),
@@ -2117,72 +2205,150 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_polardb_zonal_db_cluster":                              resourceAliCloudPolarDbZonalCluster(),
 			"alicloud_polardb_zonal_endpoint":                                resourceAlicloudPolarDBZonalEndpoint(),
 			"alicloud_polardb_zonal_account":                                 resourceAlicloudPolarDBZonalAccount(),
+			"alicloud_sls_metric_store":                                      resourceAliCloudSlsMetricStore(),
 		},
 	}
-	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
-		return providerConfigure(d, provider)
+	provider.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		return providerConfigure(ctx, d, provider)
 	}
+
+	if diags := assembleProvider(provider); diags.HasError() {
+		// Registration duplicates are a startup hard error: no configuration
+		// can make them work, and the provider is still being built, so there
+		// is nowhere to return diagnostics to.
+		panic("provider registration error: " + formatRegistrationDiags(diags))
+	}
+
 	return provider
 }
 
-var providerConfig map[string]interface{}
+// hcl2shimUnknownValue mirrors terraform-plugin-sdk's internal
+// hcl2shim.UnknownVariableValue. Under SDK v2 the shim hands this sentinel string
+// to d.Get/d.GetOk for any provider-config attribute whose value is unknown until
+// apply (for example a role_arn that interpolates an attribute of a resource
+// created in the same apply). The package is internal and cannot be imported, so
+// the constant is mirrored here. Under SDK v1 such attributes read back as empty
+// and eager credential resolution was deferred to apply; forwarding the sentinel
+// into the AssumeRole call instead fails with "Invalid role arn format:74D93920-...".
+// Treating it as unset restores the SDK v1 deferred behavior.
+const hcl2shimUnknownValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
-func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{}, error) {
+// cfgString reads a string provider-config attribute, treating the SDK v2
+// plan-unknown sentinel (hcl2shimUnknownValue) as "not set". Route any config
+// value that drives an eager configure-time side effect (HTTP/file/credential
+// call) through this so an unknown-until-apply value is deferred to apply rather
+// than fed as a garbage literal. Returns ("", false) when unset or unknown.
+func cfgString(d *schema.ResourceData, key string) (string, bool) {
+	v, ok := d.GetOk(key)
+	if !ok {
+		return "", false
+	}
+	s, _ := v.(string)
+	if s == "" || s == hcl2shimUnknownValue {
+		return "", false
+	}
+	return s, true
+}
+
+// mapString is the map-read counterpart of cfgString for values read out of a
+// schema block/set element (e.g. an assume_role or assume_role_with_oidc map),
+// applying the identical unknown-sentinel handling. Returns ("", false) when the
+// key is absent, empty, or the plan-unknown sentinel. Route every credential
+// string read from such a map through this so no field is left unguarded.
+func mapString(m map[string]interface{}, key string) (string, bool) {
+	s, ok := m[key].(string)
+	if !ok || s == "" || s == hcl2shimUnknownValue {
+		return "", false
+	}
+	return s, true
+}
+
+func providerConfigure(ctx context.Context, d *schema.ResourceData, p *schema.Provider) (interface{}, diag.Diagnostics) {
 	log.Println("using terraform version:", p.TerraformVersion)
-	var getProviderConfig = func(schemaKey string, profileKey string) string {
+	// profileConfig is resolved per Configure call from this instance's own
+	// profile / shared_credentials_file, so multiple provider aliases in one
+	// Terraform process never share (or contaminate) each other's profile.
+	profileConfig, err := loadProfileConfig(d)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	var getProviderConfig = func(schemaKey string, profileKey string) (string, error) {
 		if schemaKey != "" {
-			if v, ok := d.GetOk(schemaKey); ok && v != nil && v.(string) != "" {
-				return v.(string)
+			if v, ok := cfgString(d, schemaKey); ok {
+				return v, nil
 			}
 		}
-		if v, err := getConfigFromProfile(d, profileKey); err == nil && v != nil {
-			return v.(string)
+		v, err := getConfigFromProfile(profileConfig, profileKey)
+		if err != nil {
+			return "", err
 		}
-		return ""
+		if v != nil {
+			s, ok := v.(string)
+			if !ok {
+				return "", WrapError(fmt.Errorf("provider attribute %q in profile %q must be a string, got %T", profileKey, d.Get("profile").(string), v))
+			}
+			return s, nil
+		}
+		return "", nil
 	}
 
-	accessKey := getProviderConfig("access_key", "access_key_id")
-	secretKey := getProviderConfig("secret_key", "access_key_secret")
-	region := getProviderConfig("region", "region_id")
+	accessKey, err := getProviderConfig("access_key", "access_key_id")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	secretKey, err := getProviderConfig("secret_key", "access_key_secret")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	region, err := getProviderConfig("region", "region_id")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
 	if region == "" {
 		region = DEFAULT_REGION
 	}
-	securityToken := getProviderConfig("security_token", "sts_token")
+	securityToken, err := getProviderConfig("security_token", "sts_token")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
 
-	ecsRoleName := getProviderConfig("ecs_role_name", "ram_role_name")
+	ecsRoleName, err := getProviderConfig("ecs_role_name", "ram_role_name")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
 	var profileName string
 	var credential credentials.Credential
-	if v, ok := d.GetOk("profile"); ok && v != nil {
-		profileName = v.(string)
+	if v, ok := cfgString(d, "profile"); ok {
+		profileName = v
 	}
 
 	// TODO: supports all of profile modes after credentials supporting setting timeout
-	profileMode := fmt.Sprint(providerConfig["mode"])
+	profileMode := fmt.Sprint(profileConfig["mode"])
 	// Support advanced profile modes: CloudSSO, ChainableRamRoleArn, External, OAuth
 	if (accessKey == "" || secretKey == "") && profileName != "" &&
 		(profileMode == "ChainableRamRoleArn" || profileMode == "CloudSSO" ||
 			profileMode == "External" || profileMode == "OAuth") {
 		var profileFile string
-		if v, ok := d.GetOk("shared_credentials_file"); ok && v.(string) != "" {
-			profileFile = absPath(v.(string))
+		if v, ok := cfgString(d, "shared_credentials_file"); ok {
+			profileFile = absPath(v)
 		}
 		provider, err := providers.NewCLIProfileCredentialsProviderBuilder().WithProfileName(profileName).WithProfileFile(profileFile).Build()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create profile credentials provider: %v", err)
+			return nil, diag.FromErr(fmt.Errorf("failed to create profile credentials provider: %v", err))
 		}
 		credential = credentials.FromCredentialsProvider("cli_profile", provider)
 		creds, err := credential.GetCredential()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get credential from profile: %v", err)
+			return nil, diag.FromErr(fmt.Errorf("failed to get credential from profile: %v", err))
 		}
 		accessKey, secretKey, securityToken = *creds.AccessKeyId, *creds.AccessKeySecret, *creds.SecurityToken
 	}
 
 	if accessKey == "" || secretKey == "" {
-		if v, ok := d.GetOk("credentials_uri"); ok && v.(string) != "" {
-			credentialsURIResp, err := getClientByCredentialsURI(v.(string))
+		if v, ok := cfgString(d, "credentials_uri"); ok {
+			credentialsURIResp, err := getClientByCredentialsURI(v)
 			if err != nil {
-				return nil, err
+				return nil, diag.FromErr(err)
 			}
 			accessKey = credentialsURIResp.AccessKeyId
 			secretKey = credentialsURIResp.AccessKeySecret
@@ -2208,6 +2374,7 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 		TerraformTraceId:     strings.Trim(uuid.New().String(), "-"),
 		TerraformVersion:     p.TerraformVersion,
 	}
+	config.Features = expandFeatures(d.Get("features").([]interface{}))
 	if credential != nil {
 		config.Credential = credential
 	}
@@ -2229,7 +2396,7 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 		}
 		credential, err := credentials.NewCredential(credentialConfig)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 		config.Credential = credential
 	}
@@ -2243,26 +2410,41 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 		config.SecureTransport = v.(string)
 	}
 
-	config.RamRoleArn = getProviderConfig("", "ram_role_arn")
-	config.RamRoleSessionName = getProviderConfig("", "ram_session_name")
-	expiredSeconds, err := getConfigFromProfile(d, "expired_seconds")
-	if err == nil && expiredSeconds != nil {
-		config.RamRoleSessionExpiration = (int)(expiredSeconds.(float64))
+	config.RamRoleArn, err = getProviderConfig("", "ram_role_arn")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	config.RamRoleSessionName, err = getProviderConfig("", "ram_session_name")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	expiredSeconds, err := getConfigFromProfile(profileConfig, "expired_seconds")
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	if expiredSeconds != nil {
+		expired, ok := expiredSeconds.(float64)
+		if !ok {
+			return nil, diag.FromErr(WrapError(fmt.Errorf("provider attribute \"expired_seconds\" in profile %q must be a number, got %T", d.Get("profile").(string), expiredSeconds)))
+		}
+		config.RamRoleSessionExpiration = int(expired)
 	}
 
 	assumeRoleList := d.Get("assume_role").(*schema.Set).List()
 	if len(assumeRoleList) == 1 {
 		assumeRole := assumeRoleList[0].(map[string]interface{})
-		if assumeRole["role_arn"].(string) != "" {
-			config.RamRoleArn = assumeRole["role_arn"].(string)
+		if v, ok := mapString(assumeRole, "role_arn"); ok {
+			config.RamRoleArn = v
 		}
-		if assumeRole["session_name"].(string) != "" {
-			config.RamRoleSessionName = assumeRole["session_name"].(string)
+		if v, ok := mapString(assumeRole, "session_name"); ok {
+			config.RamRoleSessionName = v
 		}
 		if config.RamRoleSessionName == "" {
 			config.RamRoleSessionName = "terraform"
 		}
-		config.RamRolePolicy = assumeRole["policy"].(string)
+		if v, ok := mapString(assumeRole, "policy"); ok {
+			config.RamRolePolicy = v
+		}
 		if assumeRole["session_expiration"].(int) == 0 {
 			if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
 				if expiredSeconds, err := strconv.Atoi(v); err == nil {
@@ -2275,7 +2457,7 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 		} else {
 			config.RamRoleSessionExpiration = assumeRole["session_expiration"].(int)
 		}
-		if v := assumeRole["external_id"].(string); v != "" {
+		if v, ok := mapString(assumeRole, "external_id"); ok {
 			config.RamRoleExternalId = v
 		}
 
@@ -2284,10 +2466,11 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 	}
 
 	if v, ok := d.GetOk("assume_role_with_oidc"); ok && len(v.([]interface{})) == 1 {
-		config.AssumeRoleWithOidc, err = getAssumeRoleWithOIDCConfig(v.([]interface{})[0].(map[string]interface{}))
+		assumeRoleWithOidc, err := getAssumeRoleWithOIDCConfig(v.([]interface{})[0].(map[string]interface{}))
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
+		config.AssumeRoleWithOidc = assumeRoleWithOidc
 		log.Printf("[INFO] assume_role_with_oidc configuration set: (RoleArn: %q, SessionName: %q, SessionExpiration: %d, OIDCProviderArn: %s)",
 			config.AssumeRoleWithOidc.RoleARN, config.AssumeRoleWithOidc.RoleSessionName, config.AssumeRoleWithOidc.DurationSeconds, config.AssumeRoleWithOidc.OIDCProviderArn)
 	}
@@ -2498,18 +2681,18 @@ func providerConfigure(d *schema.ResourceData, p *schema.Provider) (interface{},
 	}
 
 	if err := config.RefreshAuthCredential(); err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 
 	if config.AccessKey == "" || config.SecretKey == "" {
-		return nil, fmt.Errorf("configuring Terraform Alibaba Cloud Provider: no valid credential sources for Terraform Alibaba Cloud Provider found.\n\n%s",
+		return nil, diag.FromErr(fmt.Errorf("configuring Terraform Alibaba Cloud Provider: no valid credential sources for Terraform Alibaba Cloud Provider found.\n\n%s",
 			"Please see https://registry.terraform.io/providers/aliyun/alicloud/latest/docs#authentication\n"+
-				"for more information about providing credentials.")
+				"for more information about providing credentials."))
 	}
 
 	client, err := config.Client()
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 
 	return client, nil
@@ -2544,6 +2727,8 @@ func init() {
 		"assume_role_session_expiration": "The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 0 (in this case Alicloud use own default value).",
 
 		"skip_region_validation": "Skip static validation of region ID. Used by users of alternative AlibabaCloud-like APIs or users w/ access to regions that are not public (yet). It can also be sourced from the `ALICLOUD_SKIP_REGION_VALIDATION` environment variable.",
+
+		"features": "Customize the behaviour of certain resources. Every toggle it holds is optional, and leaving the block out keeps the provider's default behaviour.",
 
 		"configuration_source": "Use this to mark a terraform configuration file source.",
 
@@ -2935,6 +3120,55 @@ func signVersionSchema() *schema.Schema {
 			},
 		},
 	}
+}
+
+// featuresSchema returns the provider's features block. Grouping the behaviour toggles keeps the
+// next one from becoming another top level provider argument, at the cost of an environment
+// variable: a DefaultFunc on a nested field only runs when its block is present.
+func featuresSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"ecs_instance": {
+					Type:     schema.TypeList,
+					Optional: true,
+					MaxItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"replace_on_image_update": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Default:     false,
+								Description: "Whether a change to `image_id` on an `alicloud_instance` is planned as a replacement of the instance instead of an in-place replacement of its system disk.",
+							},
+						},
+					},
+					Description: "The behaviour toggles of the `alicloud_instance` resource.",
+				},
+			},
+		},
+		Description: descriptions["features"],
+	}
+}
+
+// expandFeatures reads the features block into the struct the client carries, starting from the
+// defaults because every level of the block is optional.
+func expandFeatures(featuresList []interface{}) features.Features {
+	expanded := features.Default()
+	if len(featuresList) == 0 || featuresList[0] == nil {
+		return expanded
+	}
+	featuresMap := featuresList[0].(map[string]interface{})
+	if ecsInstanceList, ok := featuresMap["ecs_instance"].([]interface{}); ok && len(ecsInstanceList) > 0 && ecsInstanceList[0] != nil {
+		ecsInstance := ecsInstanceList[0].(map[string]interface{})
+		if v, ok := ecsInstance["replace_on_image_update"].(bool); ok {
+			expanded.EcsInstance.ReplaceOnImageUpdate = v
+		}
+	}
+	return expanded
 }
 
 func endpointsSchema() *schema.Schema {
@@ -4162,53 +4396,80 @@ func defaultConfigPath() (string, error) {
 	return filepath.Join(home, ".aliyun", "config.json"), nil
 }
 
-func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{}, error) {
-
-	if providerConfig == nil {
-		if v, ok := d.GetOk("profile"); !ok && v.(string) == "" {
-			return nil, nil
-		}
-		current := d.Get("profile").(string)
-		// Set Credentials filename, expanding home directory
-		profilePath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
+// loadProfileConfig resolves the aliyun CLI profile selected by this provider
+// instance's own "profile" / "shared_credentials_file" attributes. It reads
+// the profile file on every call and returns a fresh map, so the result is
+// scoped to the calling provider instance and can never leak into (or be
+// replaced by) another provider alias's configuration. Returns (nil, nil)
+// when no profile is configured or the file does not exist; a malformed or
+// unreadable file surfaces as an error carrying the file path, profile name
+// and reason instead of a silent empty config.
+func loadProfileConfig(d *schema.ResourceData) (map[string]interface{}, error) {
+	if v, ok := d.GetOk("profile"); !ok || v.(string) == "" {
+		return nil, nil
+	}
+	current := d.Get("profile").(string)
+	// Set Credentials filename, expanding home directory
+	profilePath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
+	if err != nil {
+		return nil, WrapError(fmt.Errorf("failed to expand shared_credentials_file for profile %q: %v", current, err))
+	}
+	if profilePath == "" {
+		configPath, err := defaultConfigPath()
 		if err != nil {
-			return nil, WrapError(err)
+			return nil, WrapError(fmt.Errorf("failed to resolve default credentials file for profile %q: %v", current, err))
 		}
-		if profilePath == "" {
-			configPath, err := defaultConfigPath()
-			if err != nil {
-				return nil, WrapError(err)
-			}
-			profilePath = configPath
+		profilePath = configPath
+	}
+	profileConfig := make(map[string]interface{})
+	_, err = os.Stat(profilePath)
+	if !os.IsNotExist(err) {
+		data, err := ioutil.ReadFile(profilePath)
+		if err != nil {
+			return nil, WrapError(fmt.Errorf("failed to read credentials file %s for profile %q: %v", profilePath, current, err))
 		}
-		providerConfig = make(map[string]interface{})
-		_, err = os.Stat(profilePath)
-		if !os.IsNotExist(err) {
-			data, err := ioutil.ReadFile(profilePath)
-			if err != nil {
-				return nil, WrapError(err)
+		config := map[string]interface{}{}
+		if err := json.Unmarshal(data, &config); err != nil {
+			return nil, WrapError(fmt.Errorf("failed to parse credentials file %s for profile %q: invalid JSON: %v", profilePath, current, err))
+		}
+		profiles, ok := config["profiles"].([]interface{})
+		if !ok {
+			return nil, WrapError(fmt.Errorf("invalid credentials file %s for profile %q: field \"profiles\" must be an array of profile objects", profilePath, current))
+		}
+		for _, entry := range profiles {
+			profileMap, ok := entry.(map[string]interface{})
+			if !ok {
+				return nil, WrapError(fmt.Errorf("invalid credentials file %s for profile %q: profile entries must be JSON objects", profilePath, current))
 			}
-			config := map[string]interface{}{}
-			err = json.Unmarshal(data, &config)
-			if err != nil {
-				return nil, WrapError(err)
+			if current == profileMap["name"] {
+				profileConfig = profileMap
 			}
-			for _, v := range config["profiles"].([]interface{}) {
-				if current == v.(map[string]interface{})["name"] {
-					providerConfig = v.(map[string]interface{})
-				}
+		}
+		if modeValue, ok := profileConfig["mode"]; ok {
+			if _, ok := modeValue.(string); !ok {
+				return nil, WrapError(fmt.Errorf("invalid credentials file %s for profile %q: field \"mode\" must be a string, got %T", profilePath, current, modeValue))
 			}
 		}
 	}
+	return profileConfig, nil
+}
 
-	mode := ""
-	if v, ok := providerConfig["mode"]; ok {
-		mode = v.(string)
-	} else {
-		return v, nil
+// getConfigFromProfile extracts ProfileKey from an already-loaded profile
+// config map (see loadProfileConfig), applying the per-mode gating rules.
+// A nil map or an absent "mode" yields (nil, nil); loadProfileConfig already
+// guards the mode type at load time, so the defensive check here only fires
+// for a hand-assembled config map.
+func getConfigFromProfile(profileConfig map[string]interface{}, ProfileKey string) (interface{}, error) {
+	modeValue, ok := profileConfig["mode"]
+	if !ok {
+		return nil, nil
+	}
+	mode, ok := modeValue.(string)
+	if !ok {
+		return nil, WrapError(fmt.Errorf("invalid profile entry: field \"mode\" must be a string, got %T", modeValue))
 	}
 	if ProfileKey == "region_id" {
-		return providerConfig["region_id"], nil
+		return profileConfig["region_id"], nil
 	}
 	// For advanced profile modes, credentials are obtained dynamically via CLIProfileCredentialsProvider
 	if mode == "ChainableRamRoleArn" || mode == "CloudSSO" ||
@@ -4238,7 +4499,7 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 		}
 	}
 
-	return providerConfig[ProfileKey], nil
+	return profileConfig[ProfileKey], nil
 }
 
 func getAssumeRoleWithOIDCConfig(tfMap map[string]interface{}) (*connectivity.AssumeRoleWithOidc, error) {
@@ -4252,32 +4513,32 @@ func getAssumeRoleWithOIDCConfig(tfMap map[string]interface{}) (*connectivity.As
 		assumeRole.DurationSeconds = v
 	}
 
-	if v, ok := tfMap["policy"].(string); ok && v != "" {
+	if v, ok := mapString(tfMap, "policy"); ok {
 		assumeRole.Policy = v
 	}
 
-	if v, ok := tfMap["role_arn"].(string); ok && v != "" {
+	if v, ok := mapString(tfMap, "role_arn"); ok {
 		assumeRole.RoleARN = v
 	}
 
-	if v, ok := tfMap["role_session_name"].(string); ok && v != "" {
+	if v, ok := mapString(tfMap, "role_session_name"); ok {
 		assumeRole.RoleSessionName = v
 	}
 	if assumeRole.RoleSessionName == "" {
 		assumeRole.RoleSessionName = "terraform"
 	}
 
-	if v, ok := tfMap["oidc_provider_arn"].(string); ok && v != "" {
+	if v, ok := mapString(tfMap, "oidc_provider_arn"); ok {
 		assumeRole.OIDCProviderArn = v
 	}
 
 	missingOidcToken := true
-	if v, ok := tfMap["oidc_token"]; ok && v.(string) != "" {
-		assumeRole.OIDCToken = v.(string)
+	if v, ok := mapString(tfMap, "oidc_token"); ok {
+		assumeRole.OIDCToken = v
 		missingOidcToken = false
 	}
 
-	if v, ok := tfMap["oidc_token_file"].(string); ok && v != "" {
+	if v, ok := mapString(tfMap, "oidc_token_file"); ok {
 		assumeRole.OIDCTokenFile = v
 		if assumeRole.OIDCToken == "" {
 			token, err := os.ReadFile(v)

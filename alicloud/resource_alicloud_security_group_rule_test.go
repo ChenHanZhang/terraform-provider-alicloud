@@ -1,15 +1,157 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("alicloud_security_group_rule", &resource.Sweeper{
+		Name: "alicloud_security_group_rule",
+		F:    testSweepSecurityGroupRules,
+	})
+}
+
+// testSweepSecurityGroupRules sweeps orphaned security group rules from
+// prefix-named SGs. For each SG that passes the NODELETING + prefix filter,
+// fetch all ingress and egress rules and revoke them by SecurityGroupRuleId.
+// In prefix-only mode (no SWEEP_ALL), only tf-*/tf-testAcc* prefixed SGs are
+// touched — infra-managed SGs (sg-default, system SGs, SGs attached to real
+// instances) are skipped because their names lack test prefixes.
+func testSweepSecurityGroupRules(region string) error {
+	rawClient, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting AliCloud client: %s", err)
+	}
+	client := rawClient.(*connectivity.AliyunClient)
+	prefixes := []string{
+		"tf-testAcc",
+		"tf_testAcc",
+		"tf-example",
+		"tf-test",
+	}
+
+	// 1. List SGs (paginated).
+	var groups []ecs.SecurityGroup
+	listReq := ecs.CreateDescribeSecurityGroupsRequest()
+	listReq.RegionId = client.RegionId
+	listReq.PageSize = requests.NewInteger(PageSizeLarge)
+	listReq.PageNumber = requests.NewInteger(1)
+	for {
+		raw, err := client.WithEcsClient(func(ecsClient *ecs.Client) (interface{}, error) {
+			return ecsClient.DescribeSecurityGroups(listReq)
+		})
+		if err != nil {
+			log.Printf("[ERROR] DescribeSecurityGroups failed: %s", err)
+			return nil
+		}
+		resp, _ := raw.(*ecs.DescribeSecurityGroupsResponse)
+		if resp == nil || len(resp.SecurityGroups.SecurityGroup) < 1 {
+			break
+		}
+		groups = append(groups, resp.SecurityGroups.SecurityGroup...)
+		if len(resp.SecurityGroups.SecurityGroup) < PageSizeLarge {
+			break
+		}
+		page, err := getNextpageNumber(listReq.PageNumber)
+		if err != nil {
+			return err
+		}
+		listReq.PageNumber = page
+	}
+
+	// 2. For each SG (filtered), revoke ingress + egress rules by SecurityGroupRuleId.
+	for _, sg := range groups {
+		name := sg.SecurityGroupName
+		id := sg.SecurityGroupId
+		if protectedSweepVpcName(name) {
+			log.Printf("[INFO] Skipping SG rules (NODELETING): %s (%s)", name, id)
+			continue
+		}
+		skip := true
+		if !sweepAll() {
+			for _, prefix := range prefixes {
+				if strings.HasPrefix(strings.ToLower(name), strings.ToLower(prefix)) {
+					skip = false
+					break
+				}
+			}
+			if skip {
+				log.Printf("[INFO] Skipping SG rules: %s (%s)", name, id)
+				continue
+			}
+		}
+
+		for _, direction := range []string{"ingress", "egress"} {
+			attrReq := ecs.CreateDescribeSecurityGroupAttributeRequest()
+			attrReq.RegionId = client.RegionId
+			attrReq.SecurityGroupId = id
+			attrReq.Direction = direction
+			attrReq.MaxResults = requests.NewInteger(1000)
+			for {
+				raw, err := client.WithEcsClient(func(ecsClient *ecs.Client) (interface{}, error) {
+					return ecsClient.DescribeSecurityGroupAttribute(attrReq)
+				})
+				if err != nil {
+					log.Printf("[ERROR] DescribeSecurityGroupAttribute(%s, %s) failed: %s", id, direction, err)
+					break
+				}
+				attrResp, _ := raw.(*ecs.DescribeSecurityGroupAttributeResponse)
+				if attrResp == nil {
+					break
+				}
+				var ruleIds []string
+				for _, perm := range attrResp.Permissions.Permission {
+					if perm.SecurityGroupRuleId != "" {
+						ruleIds = append(ruleIds, perm.SecurityGroupRuleId)
+					}
+				}
+				if len(ruleIds) > 0 {
+					log.Printf("[INFO] Revoking %d %s rules from SG %s (%s)", len(ruleIds), direction, name, id)
+					if direction == "ingress" {
+						revokeReq := ecs.CreateRevokeSecurityGroupRequest()
+						revokeReq.SecurityGroupId = id
+						revokeReq.SecurityGroupRuleId = &ruleIds
+						_, err = client.WithEcsClient(func(ecsClient *ecs.Client) (interface{}, error) {
+							return ecsClient.RevokeSecurityGroup(revokeReq)
+						})
+					} else {
+						revokeReq := ecs.CreateRevokeSecurityGroupEgressRequest()
+						revokeReq.SecurityGroupId = id
+						revokeReq.SecurityGroupRuleId = &ruleIds
+						_, err = client.WithEcsClient(func(ecsClient *ecs.Client) (interface{}, error) {
+							return ecsClient.RevokeSecurityGroupEgress(revokeReq)
+						})
+					}
+					if err != nil {
+						log.Printf("[ERROR] Revoke %s rules on SG %s (%s) failed: %s", direction, name, id, err)
+					}
+				}
+				if attrResp.NextToken == "" {
+					break
+				}
+				attrReq.NextToken = attrResp.NextToken
+			}
+		}
+	}
+	return nil
+}
 
 func TestAccAliCloudECSSecurityGroupRuleBasic(t *testing.T) {
 	var v ecs.Permission
@@ -26,9 +168,9 @@ func TestAccAliCloudECSSecurityGroupRuleBasic(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupRuleBasic(name),
@@ -97,9 +239,9 @@ func TestAccAliCloudECSSecurityGroupRuleEgress(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupEgressRule(name),
@@ -142,15 +284,48 @@ func TestAccAliCloudECSSecurityGroupRuleMulti(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupRuleMulti(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"cidr_ip":                  "45.20.250.240/32",
+						"source_security_group_id": REMOVEKEY,
+					}),
+				),
+			},
+		},
+	})
+
+}
+
+func TestAccAliCloudECSSecurityGroupRuleBatch(t *testing.T) {
+	var v ecs.Permission
+	resourceId := "alicloud_security_group_rule.test.0"
+	name := acctest.RandString(4)
+	ra := resourceAttrInit(resourceId, testAccCheckSecurityGroupRuleBasicMap)
+	serviceFunc := func() interface{} {
+		return &EcsService{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}
+	rc := resourceCheckInit(resourceId, &v, serviceFunc)
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: hclSecurityGroupRuleBatch(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"cidr_ip":                  "192.168.0.0/24",
 						"source_security_group_id": REMOVEKEY,
 					}),
 				),
@@ -176,15 +351,16 @@ func TestAccAliCloudECSSecurityGroupRulePrefixList(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupRulePrefix(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"description": "abc",
+						"description":    "abc",
+						"prefix_list_id": CHECKSET,
 					}),
 				),
 			},
@@ -221,9 +397,9 @@ func TestAccAliCloudECSSecurityGroupRuleEgressIpv6(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupEgressRuleIpv6(name),
@@ -259,9 +435,9 @@ func TestAccAliCloudECSSecurityGroupRuleIngressIpv6(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupIngressRuleIpv6(name),
@@ -304,9 +480,9 @@ func TestAccAliCloudECSSecurityGroupRuleEgressOtherIpv6(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupEgressRuleOtherIpv6(name),
@@ -343,9 +519,9 @@ func TestAccAliCloudECSSecurityGroupRuleIngressOtherIpv6(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupIngressRuleOtherIpv6(name),
@@ -388,9 +564,9 @@ func TestAccAliCloudECSSecurityGroupRuleEgressICMPv6(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		// module name
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      testAccCheckSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: hclSecurityGroupEgressRuleICMPv6(name),
@@ -408,6 +584,248 @@ func TestAccAliCloudECSSecurityGroupRuleEgressICMPv6(t *testing.T) {
 		},
 	})
 
+}
+
+// TestAccAliCloudECSSecurityGroupRuleSourceGroupOwnerIDCrossAccount verifies a real
+// cross-account security group rule: Terraform manages the account 1 network and
+// rule while an SDK-created account 2 peer supplies the literal security group ID.
+// Both account IDs are verified with STS before any resource is created.
+func TestAccAliCloudECSSecurityGroupRuleSourceGroupOwnerIDCrossAccount(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("TF_ACC is not set")
+	}
+	resourceId := "alicloud_security_group_rule.test"
+	egressResourceId := "alicloud_security_group_rule.egress"
+	name := acctest.RandString(4)
+	peer := testAccPrepareSecurityGroupRuleCrossAccountPeer(t, name)
+	testAccCheck := resourceAttrInit(resourceId, map[string]string{}).resourceAttrMapUpdateSet()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: hclSecurityGroupRuleSourceGroupOwnerIDCrossAccount(name, peer.securityGroupID, peer.accountID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"type":                     "ingress",
+						"ip_protocol":              "tcp",
+						"nic_type":                 "intranet",
+						"policy":                   "accept",
+						"port_range":               "22/22",
+						"priority":                 "1",
+						"security_group_id":        CHECKSET,
+						"source_security_group_id": CHECKSET,
+						"source_group_owner_id":    peer.accountID,
+						"cidr_ip":                  "",
+					}),
+					resource.TestCheckResourceAttr(egressResourceId, "type", "egress"),
+					resource.TestCheckResourceAttr(egressResourceId, "source_group_owner_account", peer.accountID),
+					resource.TestCheckResourceAttr(egressResourceId, "source_group_owner_id", peer.accountID),
+				),
+			},
+			{
+				Config:             hclSecurityGroupRuleSourceGroupOwnerIDCrossAccount(name, peer.securityGroupID, peer.accountID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+type testAccSecurityGroupRuleCrossAccountPeer struct {
+	accountID       string
+	vpcID           string
+	securityGroupID string
+}
+
+func testAccPrepareSecurityGroupRuleCrossAccountPeer(t *testing.T, name string) *testAccSecurityGroupRuleCrossAccountPeer {
+	t.Helper()
+	ak1 := strings.TrimSpace(os.Getenv("ALICLOUD_ACCESS_KEY_1"))
+	sk1 := strings.TrimSpace(os.Getenv("ALICLOUD_SECRET_KEY_1"))
+	ak2 := strings.TrimSpace(os.Getenv("ALICLOUD_ACCESS_KEY_2"))
+	sk2 := strings.TrimSpace(os.Getenv("ALICLOUD_SECRET_KEY_2"))
+	if ak1 == "" || sk1 == "" || ak2 == "" || sk2 == "" {
+		t.Fatal("set ALICLOUD_ACCESS_KEY_1, ALICLOUD_SECRET_KEY_1, ALICLOUD_ACCESS_KEY_2, and ALICLOUD_SECRET_KEY_2 for the cross-account test")
+	}
+
+	t.Setenv("ALICLOUD_ACCESS_KEY", ak1)
+	t.Setenv("ALICLOUD_SECRET_KEY", sk1)
+
+	region := strings.TrimSpace(os.Getenv("ALICLOUD_REGION"))
+	if region == "" {
+		region = "cn-beijing"
+		t.Setenv("ALICLOUD_REGION", region)
+	}
+	callerAccountID := func(label, ak, sk string) string {
+		client, err := sdk.NewClientWithAccessKey(region, ak, sk)
+		if err != nil {
+			t.Fatalf("failed to build STS client for %s: %s", label, err)
+		}
+		request := requests.NewCommonRequest()
+		request.Method = requests.POST
+		request.Scheme = "https"
+		request.Domain = "sts.aliyuncs.com"
+		request.Version = "2015-04-01"
+		request.Product = "Sts"
+		request.ApiName = "GetCallerIdentity"
+		request.TransToAcsRequest()
+		response, err := client.ProcessCommonRequest(request)
+		if err != nil {
+			t.Fatalf("failed to get caller identity for %s: %s", label, err)
+		}
+		result := struct {
+			AccountID string `json:"AccountId"`
+		}{}
+		if err := json.Unmarshal([]byte(response.GetHttpContentString()), &result); err != nil {
+			t.Fatalf("failed to decode caller identity for %s: %s", label, err)
+		}
+		if strings.TrimSpace(result.AccountID) == "" {
+			t.Fatalf("STS GetCallerIdentity returned an empty AccountId for %s", label)
+		}
+		return strings.TrimSpace(result.AccountID)
+	}
+	account1ID := callerAccountID("account 1", ak1, sk1)
+	account2ID := callerAccountID("account 2", ak2, sk2)
+	if account1ID == account2ID {
+		t.Fatal("cross-account test requires the numbered credentials to belong to different accounts")
+	}
+
+	vpcClient, err := vpc.NewClientWithAccessKey(region, ak2, sk2)
+	if err != nil {
+		t.Fatalf("failed to build account 2 VPC client: %s", err)
+	}
+	ecsClient, err := ecs.NewClientWithAccessKey(region, ak2, sk2)
+	if err != nil {
+		t.Fatalf("failed to build account 2 ECS client: %s", err)
+	}
+
+	peer := &testAccSecurityGroupRuleCrossAccountPeer{accountID: account2ID}
+	vpcRequest := vpc.CreateCreateVpcRequest()
+	vpcRequest.ClientToken = buildClientToken("CreateVpc")
+	vpcRequest.VpcName = fmt.Sprintf("tf-testAccSGRSrcOwnerCross%s-peer", name)
+	vpcRequest.CidrBlock = "192.168.0.0/16"
+	vpcResponse, err := vpcClient.CreateVpc(vpcRequest)
+	if err != nil {
+		t.Fatalf("failed to create account 2 peer VPC: %s", err)
+	}
+	peer.vpcID = vpcResponse.VpcId
+	if peer.vpcID == "" {
+		t.Fatal("account 2 CreateVpc returned an empty VpcId")
+	}
+	t.Cleanup(func() {
+		if err := testAccCleanupSecurityGroupRulePeerVpc(vpcClient, peer.vpcID); err != nil {
+			t.Errorf("failed to delete account 2 peer VPC: %s", err)
+		}
+	})
+	if err := testAccWaitSecurityGroupRulePeerVpcAvailable(vpcClient, peer.vpcID); err != nil {
+		t.Fatalf("failed waiting for account 2 peer VPC to become available: %s", err)
+	}
+
+	securityGroupRequest := ecs.CreateCreateSecurityGroupRequest()
+	securityGroupRequest.ClientToken = buildClientToken("CreateSecurityGroup")
+	securityGroupRequest.SecurityGroupName = fmt.Sprintf("tf-testAccSGRSrcOwnerCross%s-peer", name)
+	securityGroupRequest.VpcId = peer.vpcID
+	securityGroupResponse, err := ecsClient.CreateSecurityGroup(securityGroupRequest)
+	if err != nil {
+		t.Fatalf("failed to create account 2 peer security group: %s", err)
+	}
+	peer.securityGroupID = securityGroupResponse.SecurityGroupId
+	if peer.securityGroupID == "" {
+		t.Fatal("account 2 CreateSecurityGroup returned an empty SecurityGroupId")
+	}
+	t.Cleanup(func() {
+		if err := testAccCleanupSecurityGroupRulePeerSecurityGroup(ecsClient, peer.securityGroupID); err != nil {
+			t.Errorf("failed to delete account 2 peer security group: %s", err)
+		}
+	})
+
+	return peer
+}
+
+func testAccWaitSecurityGroupRulePeerVpcAvailable(client *vpc.Client, vpcID string) error {
+	return retry.Retry(5*time.Minute, func() *retry.RetryError {
+		request := vpc.CreateDescribeVpcsRequest()
+		request.VpcId = vpcID
+		response, err := client.DescribeVpcs(request)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		if len(response.Vpcs.Vpc) == 0 {
+			return retry.NonRetryableError(fmt.Errorf("VPC %s was not found", vpcID))
+		}
+		if response.Vpcs.Vpc[0].Status == "Available" {
+			return nil
+		}
+		return retry.RetryableError(fmt.Errorf("VPC %s is in status %s", vpcID, response.Vpcs.Vpc[0].Status))
+	})
+}
+
+func testAccCleanupSecurityGroupRulePeerSecurityGroup(client *ecs.Client, securityGroupID string) error {
+	request := ecs.CreateDeleteSecurityGroupRequest()
+	request.SecurityGroupId = securityGroupID
+	if _, err := client.DeleteSecurityGroup(request); err != nil {
+		if !NotFoundError(err) && !IsExpectedErrors(err, []string{"InvalidSecurityGroupId.NotFound"}) {
+			return err
+		}
+	}
+
+	return retry.Retry(5*time.Minute, func() *retry.RetryError {
+		request := ecs.CreateDescribeSecurityGroupsRequest()
+		request.SecurityGroupId = securityGroupID
+		response, err := client.DescribeSecurityGroups(request)
+		if err != nil {
+			if NotFoundError(err) || IsExpectedErrors(err, []string{"InvalidSecurityGroupId.NotFound"}) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+		if len(response.SecurityGroups.SecurityGroup) == 0 {
+			return nil
+		}
+		return retry.RetryableError(fmt.Errorf("security group %s still exists", securityGroupID))
+	})
+}
+
+func testAccCleanupSecurityGroupRulePeerVpc(client *vpc.Client, vpcID string) error {
+	err := retry.Retry(5*time.Minute, func() *retry.RetryError {
+		request := vpc.CreateDeleteVpcRequest()
+		request.VpcId = vpcID
+		_, err := client.DeleteVpc(request)
+		if err == nil || NotFoundError(err) || IsExpectedErrors(err, []string{"InvalidResource.NotFound", "InvalidVpcID.NotFound"}) {
+			return nil
+		}
+		if IsExpectedErrors(err, []string{"IncorrectVpcStatus"}) {
+			return retry.RetryableError(err)
+		}
+		return retry.NonRetryableError(err)
+	})
+	if err != nil {
+		return err
+	}
+
+	return retry.Retry(5*time.Minute, func() *retry.RetryError {
+		request := vpc.CreateDescribeVpcsRequest()
+		request.VpcId = vpcID
+		response, err := client.DescribeVpcs(request)
+		if err != nil {
+			if NotFoundError(err) || IsExpectedErrors(err, []string{"InvalidResource.NotFound", "InvalidVpcID.NotFound"}) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+		if len(response.Vpcs.Vpc) == 0 {
+			return nil
+		}
+		return retry.RetryableError(fmt.Errorf("VPC %s still exists", vpcID))
+	})
 }
 
 var testAccCheckSecurityGroupRuleBasicMap = map[string]string{
@@ -630,7 +1048,7 @@ variable "name" {
 }
 
 variable "cidr_ip_list" {
-  type    = "list"
+  type    = list(string)
   default = ["50.255.255.255/32", "75.250.250.250/32", "45.20.250.240/32"]
 }
 
@@ -656,6 +1074,45 @@ resource "alicloud_security_group_rule" "test" {
   cidr_ip           = element(var.cidr_ip_list, count.index)
 }
 `, name)
+}
+
+func hclSecurityGroupRuleBatch(name string) string {
+	cidrIpList := make([]string, 0, 40)
+	for i := 0; i < 40; i++ {
+		cidrIpList = append(cidrIpList, fmt.Sprintf(`"192.168.%d.0/24"`, i))
+	}
+	return fmt.Sprintf(`
+variable "name" {
+  default = "tf-testAccSGRBatch%s"
+}
+
+variable "cidr_ip_list" {
+  type    = list(string)
+  default = [%s]
+}
+
+data "alicloud_vpcs" "test" {
+  name_regex = "^default-NODELETING$"
+}
+
+resource "alicloud_security_group" "test" {
+  security_group_name = var.name
+  description         = "Security group for batch rules"
+  vpc_id              = data.alicloud_vpcs.test.ids.0
+}
+
+resource "alicloud_security_group_rule" "test" {
+  count             = length(compact(var.cidr_ip_list))
+  security_group_id = alicloud_security_group.test.id
+  type              = "ingress"
+  policy            = "drop"
+  port_range        = "22/22"
+  ip_protocol       = "tcp"
+  nic_type          = "intranet"
+  priority          = 100
+  cidr_ip           = element(var.cidr_ip_list, count.index)
+}
+`, name, strings.Join(cidrIpList, ", "))
 }
 
 func hclSecurityGroupIngressRuleIpv6(name string) string {
@@ -860,4 +1317,73 @@ resource "alicloud_security_group_rule" "test" {
   description       = "SHDRP-7513"
 }
 `, name)
+}
+
+func hclSecurityGroupRuleSourceGroupOwnerIDCrossAccount(name string, peerSecurityGroupID string, peerAccountID string) string {
+	resourceName := fmt.Sprintf("tf-testAccSGRSrcOwnerCross%s", name)
+	return fmt.Sprintf(`
+# Terraform owns only account 1 resources. The account 2 peer is created by the
+# Go test with the numbered account 2 SDK client and passed here by literal ID.
+resource "alicloud_vpc" "own" {
+  vpc_name   = "%s-own"
+  cidr_block = "172.16.0.0/16"
+}
+
+resource "alicloud_security_group" "test" {
+  vpc_id              = alicloud_vpc.own.id
+  security_group_name = "%s"
+}
+
+resource "alicloud_security_group_rule" "test" {
+  type                     = "ingress"
+  ip_protocol              = "tcp"
+  nic_type                 = "intranet"
+  policy                   = "accept"
+  port_range               = "22/22"
+  priority                 = 1
+  security_group_id        = alicloud_security_group.test.id
+  source_security_group_id = "%s"
+  source_group_owner_id    = "%s"
+  description              = "tf-testAccSGRSrcOwnerCross"
+}
+
+# Exercise independent legacy account and owner ID passthrough in the egress direction.
+resource "alicloud_security_group_rule" "egress" {
+  type                       = "egress"
+  ip_protocol                = "tcp"
+  nic_type                   = "intranet"
+  policy                     = "accept"
+  port_range                 = "443/443"
+  priority                   = 1
+  security_group_id          = alicloud_security_group.test.id
+  source_security_group_id   = "%s"
+  source_group_owner_account = "%s"
+  source_group_owner_id      = "%s"
+  description                = "tf-testAccSGRSrcOwnerCrossEgress"
+}
+`, resourceName, resourceName, peerSecurityGroupID, peerAccountID, peerSecurityGroupID, peerAccountID, peerAccountID)
+}
+
+func TestUnitECSSecurityGroupRuleInvalidImportID(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceAliyunSecurityGroupRule().Schema, map[string]interface{}{})
+	// Reading a malformed ID must return a format error instead of panicking
+	// with an index-out-of-range crash (#4888).
+	for _, id := range []string{
+		"sgr-wz94ntdd0kr6ns3m6hgy",
+		"sg-bp11r3e0h88zlzt7n9y7_ingress_icmp_1_65535_0.0.0.0/0",
+		"sg-12345678:ingress",
+		"sg-12345678:ingress:tcp:80/80:internet:10.0.0.0/8:accept:1:extra",
+	} {
+		d.SetId(id)
+		err := resourceAliyunSecurityGroupRuleRead(d, nil)
+		if err == nil || !strings.Contains(err.Error(), "Expected ID in format") {
+			t.Fatalf("expected a format error for malformed rule ID %q, got %v", id, err)
+		}
+	}
+
+	// A legacy six-part ID must parse to an empty value instead of panicking.
+	d.SetId("sg-12345678:ingress:tcp:80/80:internet:0.0.0.0/0")
+	if v := parseSecurityRuleId(d, nil, 6); v != "" {
+		t.Fatalf("expected empty policy for a six-part ID, got %q", v)
+	}
 }

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudCloudFirewallAddressBook() *schema.Resource {
@@ -430,17 +430,17 @@ func resourceAliCloudCloudFirewallAddressBookCreate(d *schema.ResourceData, meta
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutCreate)), func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, nil, request, false, endpoint)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			} else if IsExpectedErrors(err, []string{"not buy user"}) {
 				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 
 		return nil
@@ -483,7 +483,7 @@ func resourceAliCloudCloudFirewallAddressBookRead(d *schema.ResourceData, meta i
 	for _, addressListArg := range object["AddressList"].([]interface{}) {
 		addressListItems = append(addressListItems, fmt.Sprint(addressListArg))
 	}
-	d.Set("address_list", addressListItems)
+	d.Set("address_list", cloudFirewallAddressBookAddressOrder(addressListItems, d.Get("address_list").([]interface{})))
 
 	ecsTags := make([]map[string]interface{}, 0)
 	for _, tagListItem := range object["TagList"].([]interface{}) {
@@ -612,17 +612,17 @@ func resourceAliCloudCloudFirewallAddressBookUpdate(d *schema.ResourceData, meta
 		var err error
 		var endpoint string
 		wait := incrementalWait(3*time.Second, 3*time.Second)
-		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
+		err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *retry.RetryError {
 			response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, nil, request, false, endpoint)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				} else if IsExpectedErrors(err, []string{"not buy user"}) {
 					endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 
 			return nil
@@ -657,17 +657,17 @@ func resourceAliCloudCloudFirewallAddressBookDelete(d *schema.ResourceData, meta
 	}
 
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *resource.RetryError {
+	err = retry.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutDelete)), func() *retry.RetryError {
 		response, err = client.RpcPostWithEndpoint("Cloudfw", "2017-12-07", action, nil, request, false, endpoint)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			} else if IsExpectedErrors(err, []string{"not buy user"}) {
 				endpoint = connectivity.CloudFirewallOpenAPIEndpointControlPolicy
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 
 		return nil
@@ -679,4 +679,32 @@ func resourceAliCloudCloudFirewallAddressBookDelete(d *schema.ResourceData, meta
 	}
 
 	return nil
+}
+
+// Cloud Firewall may return addresses in a different order. Retain the current
+// list order for surviving occurrences, then append new occurrences in API
+// order. The API remains authoritative for complete values and multiplicity.
+func cloudFirewallAddressBookAddressOrder(remote []string, previous []interface{}) []string {
+	remaining := make(map[string]int, len(remote))
+	for _, address := range remote {
+		remaining[address]++
+	}
+	ordered := make([]string, 0, len(remote))
+	consumed := make(map[string]int, len(remote))
+	for _, raw := range previous {
+		address, ok := raw.(string)
+		if ok && remaining[address] > 0 {
+			ordered = append(ordered, address)
+			remaining[address]--
+			consumed[address]++
+		}
+	}
+	for _, address := range remote {
+		if consumed[address] > 0 {
+			consumed[address]--
+			continue
+		}
+		ordered = append(ordered, address)
+	}
+	return ordered
 }

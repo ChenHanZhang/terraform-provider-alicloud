@@ -2,22 +2,29 @@ package alicloud
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/alibabacloud-go/tea-rpc/client"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
+	"github.com/aliyun/credentials-go/credentials"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccAlicloudVPCDhcpOptionsSetAttachment_basic0(t *testing.T) {
+func TestAccAliCloudVPCDhcpOptionsSetAttachment_basic0(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_vpc_dhcp_options_set_attachment.default"
 	ra := resourceAttrInit(resourceId, AlicloudVPCDhcpOptionsSetMap0)
@@ -33,9 +40,9 @@ func TestAccAlicloudVPCDhcpOptionsSetAttachment_basic0(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -81,7 +88,7 @@ resource "alicloud_vpc_dhcp_options_set" "default" {
 
 // lintignore: R001
 func TestUnitAlicloudVPCDhcpOptionsSetAttachment(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	d, _ := schema.InternalMap(p["alicloud_vpc_dhcp_options_set_attachment"].Schema).Data(nil, nil)
 	dCreate, _ := schema.InternalMap(p["alicloud_vpc_dhcp_options_set_attachment"].Schema).Data(nil, nil)
 	dCreate.MarkNewResource()
@@ -331,4 +338,513 @@ func TestUnitAlicloudVPCDhcpOptionsSetAttachment(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 
+}
+
+// TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshId locks the
+// regression where the Delete state refresh called GetDhcpOptionsSet with the
+// composite resource ID (vpc_id:dopt_id) instead of the dopt-* ID only.
+func TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshId(t *testing.T) {
+	type apiCall struct {
+		action string
+		id     string
+	}
+	var calls []apiCall
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		calls = append(calls, apiCall{action: r.Form.Get("Action"), id: r.Form.Get("DhcpOptionsSetId")})
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).
+		SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{
+		AccessKey: "test-key", SecretKey: "test-secret", Credential: credential,
+		RegionId: "cn-hangzhou", AccountType: "test", Protocol: "http",
+		Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true,
+	}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("vpc", endpoint)
+
+	d := schema.TestResourceDataRaw(t, resourceAlicloudVpcDhcpOptionsSetAttachement().Schema, map[string]interface{}{
+		"vpc_id":              "vpc_id",
+		"dhcp_options_set_id": "dhcp_options_set_id",
+		"dry_run":             false,
+	})
+	d.SetId("vpc_id:dhcp_options_set_id")
+
+	if err := resourceAlicloudVpcDhcpOptionsSetAttachmentDelete(d, client); err != nil {
+		t.Fatalf("Delete returned an error: %s", err)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 API calls (DetachDhcpOptionsSetFromVpc + GetDhcpOptionsSet), got %d: %+v", len(calls), calls)
+	}
+	if calls[1].action != "GetDhcpOptionsSet" {
+		t.Fatalf("expected the second call to be GetDhcpOptionsSet, got %s", calls[1].action)
+	}
+	if calls[1].id != "dhcp_options_set_id" {
+		t.Fatalf("GetDhcpOptionsSet must receive the dopt-* ID only, got %q", calls[1].id)
+	}
+}
+
+// TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshGone locks the
+// wait-termination semantics of the Delete state refresh: when the DHCP
+// options set still exists but the VPC is no longer associated, Delete must
+// terminate instead of polling until the timeout.
+func TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshGone(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.Form.Get("Action") == "GetDhcpOptionsSet" {
+			_, _ = w.Write([]byte(`{"DhcpOptionsSetId":"dhcp_options_set_id","AssociateVpcs":[]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).
+		SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{
+		AccessKey: "test-key", SecretKey: "test-secret", Credential: credential,
+		RegionId: "cn-hangzhou", AccountType: "test", Protocol: "http",
+		Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true,
+	}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("vpc", endpoint)
+
+	// Set the Delete timeout to a small value so the test fails fast instead of
+	// polling for minutes if the state refresh regression is reintroduced.
+	res := resourceAlicloudVpcDhcpOptionsSetAttachement()
+	shortTimeout := 10 * time.Second
+	res.Timeouts.Delete = &shortTimeout
+	d := res.Data(&terraform.InstanceState{
+		ID: "vpc_id:dhcp_options_set_id",
+		Attributes: map[string]string{
+			"vpc_id":              "vpc_id",
+			"dhcp_options_set_id": "dhcp_options_set_id",
+			"dry_run":             "false",
+		},
+	})
+
+	start := time.Now()
+	if err := resourceAlicloudVpcDhcpOptionsSetAttachmentDelete(d, client); err != nil {
+		t.Fatalf("Delete returned an error: %s", err)
+	}
+	if elapsed := time.Since(start); elapsed > 15*time.Second {
+		t.Fatalf("Delete state wait did not terminate after the association was gone: took %s", elapsed)
+	}
+}
+
+// TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshAssociated
+// locks the other side of the wait-termination contract: while the VPC is
+// still associated, the Delete refresh keeps returning the object and its
+// status so the wait continues instead of terminating early.
+func TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteStateRefreshAssociated(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.Form.Get("Action") == "GetDhcpOptionsSet" {
+			_, _ = w.Write([]byte(`{"DhcpOptionsSetId":"dopt_id","AssociateVpcs":[{"VpcId":"vpc_id","AssociateStatus":"InUse"}]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).
+		SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{
+		AccessKey: "test-key", SecretKey: "test-secret", Credential: credential,
+		RegionId: "cn-hangzhou", AccountType: "test", Protocol: "http",
+		Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true,
+	}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("vpc", endpoint)
+
+	vpcService := VpcService{client}
+	refreshFunc := vpcService.DescribeVpcDhcpOptionsSetAttachmentDeleteStateRefreshFunc("vpc_id:dopt_id")
+	object, status, err := refreshFunc()
+	assert.NoError(t, err)
+	assert.NotNil(t, object)
+	assert.Equal(t, "InUse", status)
+}
+
+// TestUnitAlicloudVPCDhcpOptionsSetStateRefreshNotFound400 locks the regression
+// where GetDhcpOptionsSet returns HTTP 400 InvalidDhcpOptionsSetId.NotFound
+// after the DHCP options set has been deleted. The 400 message reads "does
+// not exist" (no "NotFound" substring), so NotFoundError does not recognise
+// it and, without mapping the code to NotFoundErr, the delete state-refresh
+// propagates the error and the dopt destroy fails. After the fix the refresh
+// treats the 400 as resource-gone and returns (nil, "", nil).
+func TestUnitAlicloudVPCDhcpOptionsSetStateRefreshNotFound400(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"Code":"InvalidDhcpOptionsSetId.NotFound","Message":"The specified dhcpOptionsSetId does not exist."}`))
+	}))
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).
+		SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{
+		AccessKey: "test-key", SecretKey: "test-secret", Credential: credential,
+		RegionId: "cn-hangzhou", AccountType: "test", Protocol: "http",
+		Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true,
+	}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("vpc", endpoint)
+
+	vpcService := VpcServiceV2{client}
+	refreshFunc := vpcService.VpcDhcpOptionsSetStateRefreshFunc("dopt-test", "Status", []string{})
+	object, status, err := refreshFunc()
+	assert.NoError(t, err)
+	assert.Nil(t, object)
+	assert.Empty(t, status)
+}
+
+// TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteDetachNotExist locks the
+// idempotent-delete contract for the Detach path: when
+// DetachDhcpOptionsSetFromVpc returns 400 OperationFailed.AttachmentNotExist
+// (the VPC is no longer attached to a DHCP options set), Delete must treat the
+// attachment as already gone and return nil instead of hard-erroring, so a
+// ghost attachment can leave state on the next destroy without a manual
+// terraform state rm.
+func TestUnitAlicloudVPCDhcpOptionsSetAttachmentDeleteDetachNotExist(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.Form.Get("Action") == "DetachDhcpOptionsSetFromVpc" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"Code":"OperationFailed.AttachmentNotExist","Message":"The current VPC is not attahced to a DHCP options set."}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).
+		SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{
+		AccessKey: "test-key", SecretKey: "test-secret", Credential: credential,
+		RegionId: "cn-hangzhou", AccountType: "test", Protocol: "http",
+		Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true,
+	}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("vpc", endpoint)
+
+	d := schema.TestResourceDataRaw(t, resourceAlicloudVpcDhcpOptionsSetAttachement().Schema, map[string]interface{}{
+		"vpc_id":              "vpc_id",
+		"dhcp_options_set_id": "dhcp_options_set_id",
+		"dry_run":             false,
+	})
+	d.SetId("vpc_id:dhcp_options_set_id")
+
+	if err := resourceAlicloudVpcDhcpOptionsSetAttachmentDelete(d, client); err != nil {
+		t.Fatalf("Delete must treat OperationFailed.AttachmentNotExist as already-detached and return nil, got: %s", err)
+	}
+}
+
+// DHCP sets are shared regional objects. This node removes only the verified
+// target VPC association, never the set or another VPC's attachment.
+func vpcDHCPAttachmentSweeper(region, vpcID string, rpc vpcSweepRPC) *resource.Sweeper {
+	return &resource.Sweeper{Name: "alicloud_vpc_dhcp_options_set_attachment", F: func(actual string) error {
+		if region == "" || actual != region || vpcID == "" {
+			return fmt.Errorf("DHCP attachment sweeper requires selected VPC and matching region")
+		}
+		return sweepVpcDHCPAttachments(region, vpcID, rpc, time.Sleep, 120)
+	}}
+}
+
+func sweepVpcDHCPAttachments(region, vpcID string, rpc vpcSweepRPC, pause func(time.Duration), attempts int) error {
+	if attempts < 1 {
+		return fmt.Errorf("DHCP attachment wait requires positive bound")
+	}
+	rows, err := vpcRPCList(rpc, "Vpc", "2016-04-28", "ListDhcpOptionsSets", "$.DhcpOptionsSets", map[string]interface{}{"RegionId": region}, true)
+	if err != nil {
+		return err
+	}
+	var ids []string
+	for _, row := range rows {
+		id, ok := row["DhcpOptionsSetId"].(string)
+		if !ok || id == "" {
+			return fmt.Errorf("ListDhcpOptionsSets returned invalid identity; refusing detach")
+		}
+		ids = append(ids, id)
+	}
+	var failures []string
+	for _, id := range ids {
+		present, err := vpcDHCPAssociationPresent(rpc, region, vpcID, id)
+		if err != nil {
+			failures = append(failures, err.Error())
+			continue
+		}
+		if !present {
+			continue
+		}
+		request := map[string]interface{}{"DhcpOptionsSetId": id, "RegionId": region, "VpcId": vpcID, "ClientToken": buildClientToken("DetachDhcpOptionsSetFromVpc")}
+		detached := false
+		for attempt := 0; attempt < attempts; attempt++ {
+			_, err = rpc("Vpc", "2016-04-28", "DetachDhcpOptionsSetFromVpc", nil, request, true)
+			if err == nil || rdsErrorHasCode(err, "InvalidDhcpOptionsSetId.NotFound", "OperationFailed.AttachmentNotExist") {
+				detached = true
+				break
+			}
+			if !(NeedRetry(err) || rdsErrorHasCode(err, "IncorrectStatus.DhcpOptionsSet")) {
+				break
+			}
+			if attempt+1 < attempts {
+				pause(5 * time.Second)
+			}
+		}
+		if !detached {
+			failures = append(failures, fmt.Sprintf("detach DHCP %s from %s: %v", id, vpcID, err))
+			continue
+		}
+		gone := false
+		for attempt := 0; attempt < attempts; attempt++ {
+			present, err = vpcDHCPAssociationPresent(rpc, region, vpcID, id)
+			if err != nil {
+				break
+			}
+			if !present {
+				gone = true
+				break
+			}
+			if attempt+1 < attempts {
+				pause(5 * time.Second)
+			}
+		}
+		if !gone {
+			if err != nil {
+				failures = append(failures, err.Error())
+			} else {
+				failures = append(failures, fmt.Sprintf("DHCP %s VPC %s association still present after bounded wait", id, vpcID))
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return fmt.Errorf("DHCP attachment cleanup incomplete: %s", strings.Join(failures, "; "))
+	}
+	return nil
+}
+
+func vpcDHCPAssociationPresent(rpc vpcSweepRPC, region, vpcID, id string) (bool, error) {
+	response, err := rpc("Vpc", "2016-04-28", "GetDhcpOptionsSet", nil, map[string]interface{}{"RegionId": region, "DhcpOptionsSetId": id}, true)
+	if err != nil {
+		if rdsErrorHasCode(err, "InvalidDhcpOptionsSetId.NotFound") {
+			return false, nil
+		}
+		return false, err
+	}
+	if response["DhcpOptionsSetId"] != id {
+		return false, fmt.Errorf("DHCP %s has unknown/mismatched returned identity", id)
+	}
+	rows, ok := response["AssociateVpcs"].([]interface{})
+	if !ok {
+		return false, fmt.Errorf("DHCP %s has unknown VPC association scope", id)
+	}
+	present := false
+	for _, row := range rows {
+		item, ok := row.(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("DHCP %s malformed VPC association", id)
+		}
+		actual, ok := item["VpcId"].(string)
+		if !ok || actual == "" {
+			return false, fmt.Errorf("DHCP %s association missing VPC identity", id)
+		}
+		if actual == vpcID {
+			present = true
+		}
+	}
+	return present, nil
+}
+
+func TestUnitVpcSweepDHCPSharedAttachmentPaginationAndAsyncWait(t *testing.T) {
+	lists, detaches, polls, pauses := 0, 0, 0, 0
+	rpc := func(product, version, action string, query, request map[string]interface{}, read bool) (map[string]interface{}, error) {
+		switch action {
+		case "ListDhcpOptionsSets":
+			lists++
+			if request["NextToken"] == nil {
+				return map[string]interface{}{"DhcpOptionsSets": []interface{}{map[string]interface{}{"DhcpOptionsSetId": "dopt-shared"}}, "NextToken": "page2"}, nil
+			}
+			return map[string]interface{}{"DhcpOptionsSets": []interface{}{map[string]interface{}{"DhcpOptionsSetId": "dopt-protected"}}}, nil
+		case "GetDhcpOptionsSet":
+			id := request["DhcpOptionsSetId"]
+			rows := []interface{}{map[string]interface{}{"VpcId": "vpc-protected"}}
+			if id == "dopt-shared" {
+				polls++
+				if polls < 3 {
+					rows = append(rows, map[string]interface{}{"VpcId": "vpc-target"})
+				}
+			}
+			return map[string]interface{}{"DhcpOptionsSetId": id, "AssociateVpcs": rows}, nil
+		case "DetachDhcpOptionsSetFromVpc":
+			if request["VpcId"] != "vpc-target" || request["DhcpOptionsSetId"] != "dopt-shared" || request["RegionId"] != "cn-guangzhou" || request["ClientToken"] == "" {
+				t.Fatalf("unscoped detach: %v", request)
+			}
+			detaches++
+			return map[string]interface{}{}, nil
+		default:
+			t.Fatalf("unexpected mutation %s", action)
+		}
+		return nil, nil
+	}
+	err := sweepVpcDHCPAttachments("cn-guangzhou", "vpc-target", rpc, func(time.Duration) { pauses++ }, 3)
+	if err != nil || lists != 2 || detaches != 1 || polls != 3 || pauses != 1 {
+		t.Fatalf("list=%d detach=%d poll=%d pause=%d err=%v", lists, detaches, polls, pauses, err)
+	}
+}
+
+func TestUnitVpcSweepDHCPUnknownAndListErrorsDoNotMeanGone(t *testing.T) {
+	for _, scenario := range []string{"list-error", "bad-list-id", "missing-scope", "bad-scope", "get-error", "wait-error"} {
+		detached := false
+		rpc := func(product, version, action string, query, request map[string]interface{}, read bool) (map[string]interface{}, error) {
+			if action == "ListDhcpOptionsSets" {
+				if scenario == "list-error" {
+					return nil, fmt.Errorf("access denied")
+				}
+				id := interface{}("dopt-1")
+				if scenario == "bad-list-id" {
+					id = nil
+				}
+				return map[string]interface{}{"DhcpOptionsSets": []interface{}{map[string]interface{}{"DhcpOptionsSetId": id}}}, nil
+			}
+			if action == "GetDhcpOptionsSet" {
+				if scenario == "get-error" || (scenario == "wait-error" && detached) {
+					return nil, fmt.Errorf("permission denied")
+				}
+				response := map[string]interface{}{"DhcpOptionsSetId": "dopt-1", "AssociateVpcs": []interface{}{map[string]interface{}{"VpcId": "vpc-target"}}}
+				if scenario == "missing-scope" {
+					delete(response, "AssociateVpcs")
+				}
+				if scenario == "bad-scope" {
+					response["AssociateVpcs"] = []interface{}{map[string]interface{}{}}
+				}
+				return response, nil
+			}
+			if action == "DetachDhcpOptionsSetFromVpc" {
+				detached = true
+				return map[string]interface{}{}, nil
+			}
+			t.Fatalf("unexpected %s", action)
+			return nil, nil
+		}
+		if err := sweepVpcDHCPAttachments("cn-guangzhou", "vpc-target", rpc, func(time.Duration) {}, 2); err == nil {
+			t.Fatalf("%s falsely completed", scenario)
+		}
+		if scenario != "wait-error" && detached {
+			t.Fatalf("%s mutated with unknown scope", scenario)
+		}
+	}
+}
+
+func TestUnitVpcSweepDHCPRetryAndIdempotentDetach(t *testing.T) {
+	for _, finalCode := range []string{"", "OperationFailed.AttachmentNotExist", "InvalidDhcpOptionsSetId.NotFound"} {
+		calls := 0
+		rpc := func(product, version, action string, query, request map[string]interface{}, read bool) (map[string]interface{}, error) {
+			switch action {
+			case "ListDhcpOptionsSets":
+				return map[string]interface{}{"DhcpOptionsSets": []interface{}{map[string]interface{}{"DhcpOptionsSetId": "dopt-1"}}}, nil
+			case "GetDhcpOptionsSet":
+				rows := []interface{}{}
+				if calls < 2 {
+					rows = append(rows, map[string]interface{}{"VpcId": "vpc-target"})
+				}
+				return map[string]interface{}{"DhcpOptionsSetId": "dopt-1", "AssociateVpcs": rows}, nil
+			case "DetachDhcpOptionsSetFromVpc":
+				calls++
+				code := finalCode
+				if calls == 1 {
+					code = "IncorrectStatus.DhcpOptionsSet"
+				}
+				if code != "" {
+					return nil, &tea.SDKError{Code: tea.String(code), Message: tea.String("injected")}
+				}
+				return map[string]interface{}{}, nil
+			}
+			t.Fatalf("unexpected %s", action)
+			return nil, nil
+		}
+		if err := sweepVpcDHCPAttachments("cn-guangzhou", "vpc-target", rpc, func(time.Duration) {}, 3); err != nil || calls != 2 {
+			t.Fatalf("code=%s calls=%d err=%v", finalCode, calls, err)
+		}
+	}
+}
+
+func TestUnitVpcSweepDHCPWrongRegionAndBoundedWait(t *testing.T) {
+	rpc := func(product, version, action string, query, request map[string]interface{}, read bool) (map[string]interface{}, error) {
+		t.Fatal("wrong region called API")
+		return nil, nil
+	}
+	if err := vpcDHCPAttachmentSweeper("cn-guangzhou", "vpc-target", rpc).F("cn-beijing"); err == nil {
+		t.Fatal("wrong region accepted")
+	}
+	pauses := 0
+	rpc = func(product, version, action string, query, request map[string]interface{}, read bool) (map[string]interface{}, error) {
+		if action == "ListDhcpOptionsSets" {
+			return map[string]interface{}{"DhcpOptionsSets": []interface{}{map[string]interface{}{"DhcpOptionsSetId": "dopt-1"}}}, nil
+		}
+		if action == "GetDhcpOptionsSet" {
+			return map[string]interface{}{"DhcpOptionsSetId": "dopt-1", "AssociateVpcs": []interface{}{map[string]interface{}{"VpcId": "vpc-target"}}}, nil
+		}
+		return map[string]interface{}{}, nil
+	}
+	if err := sweepVpcDHCPAttachments("cn-guangzhou", "vpc-target", rpc, func(time.Duration) { pauses++ }, 3); err == nil || pauses != 2 {
+		t.Fatalf("unbounded/missing wait pauses=%d err=%v", pauses, err)
+	}
 }

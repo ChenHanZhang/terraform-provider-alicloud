@@ -13,6 +13,8 @@ Provides  Tair (Redis OSS-Compatible) And Memcache (KVStore) Classic Instance re
 
 -> **NOTE:** Available since v1.14.0.
 
+-> **NOTE:** Destroying a `PrePaid` instance fails with an error since v1.294.0. To destroy it, convert the instance to `PostPaid` by setting `payment_type = "PostPaid"` and re-applying, or unsubscribe it in the Alibaba Cloud console. To remove the instance from the state only, run `terraform state rm`.
+
 ## Example Usage
 
 Basic Usage
@@ -183,13 +185,6 @@ resource "alicloud_kvstore_instance" "default" {
 }
 ```
 
-### Deleting `alicloud_kvstore_instance` or removing it from your configuration
-
-The `alicloud_kvstore_instance` resource allows you to manage `payment_type = "Prepaid"` db instance, but Terraform cannot destroy it.
-From version 1.201.0, deleting the subscription resource or removing it from your configuration will remove it
-from your state file and management, but will not destroy the DB Instance.
-You can resume managing the subscription db instance via the AlibabaCloud Console.
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_kvstore_instance&spm=docs.r.kvstore_instance.example&intl_lang=EN_US)
 
 ## Argument Reference
@@ -239,12 +234,12 @@ The following arguments are supported:
 * `connection_string_prefix` - (Deprecated since v1.101.0) It has been deprecated from provider version 1.101.0 and resource `alicloud_kvstore_connection` instead.
 * `port` - (Optional, Int, Available since v1.94.0) It has been deprecated from provider version 1.101.0 and resource `alicloud_kvstore_connection` instead.
 * `order_type`- (Optional, Available since v1.101.0) Specifies a change type when you change the configuration of a subscription instance. Valid values: `UPGRADE`, `DOWNGRADE`. Default value: `UPGRADE`. `UPGRADE` means upgrades the configuration of a subscription instance. `DOWNGRADE` means downgrades the configuration of a subscription instance.
-* `node_type`- (Deprecated since v1.120.1) Node type, valid values:
-  - `MASTER_SLAVE`: High availability (dual copies)
-  - `STAND_ALONE`: Single copy
-  - `double`: Dual copies
-  - `single`: Single copy
--> **NOTE:** For cloud native instances, please select MASTER_SLAVE or STAND_ALONE. For classic instances, please select double or single.
+* `node_type`- (Optional, ForceNew) The node type. Valid values:
+  - `MASTER_SLAVE`: High availability (master-replica)
+  - `STAND_ALONE`: Standalone
+  - `double`: Master-replica
+  - `single`: Standalone
+-> **NOTE:** To create a cloud-native instance, set this parameter to `MASTER_SLAVE` or `STAND_ALONE`. To create a classic instance, set this parameter to `double` or `single`.
 * `ssl_enable`- (Optional, Available since v1.101.0) Modifies the SSL status. Valid values: `Disable`, `Enable` and `Update`.
   **NOTE:** This functionality is supported by Cluster mode (Redis 2.8, 4.0, 5.0) and Standard mode( Redis 2.8 only).
 * `force_upgrade`- (Optional, Bool, Available since v1.101.0) Specifies whether to forcibly change the type. Default value: `true`.
@@ -273,12 +268,14 @@ The following arguments are supported:
 * `read_only_count` - (Optional, Int, Available since v1.226.0) The number of read replicas in the primary zone. Valid values: `1` to `9`.
 * `slave_read_only_count` - (Optional, Int, Available since v1.226.0) The number of read replicas in the secondary zone. **NOTE:**: When you create a multi-zone read/write splitting instance, you must specify both `secondary_zone_id` and `slave_read_only_count`.
 -> **NOTE:** The sum of `read_only_count` and `slave_read_only_count` cannot be greater than `9`.
+* `replica_count` - (Optional, Int, Available since v1.286.0) The number of replica nodes in the primary zone. If not specified, the value is assigned by the system based on the instance architecture.
+* `slave_replica_count` - (Optional, Int, Available since v1.286.0) The number of replica nodes in the secondary zone. If not specified, the value is assigned by the system based on the instance architecture.
+-> **NOTE:** `replica_count`/`slave_replica_count` (replica nodes) and `read_only_count`/`slave_read_only_count` (read-only nodes) are mutually exclusive. An instance cannot have both replicas and read-only nodes at the same time.
 * `is_auto_upgrade_open` - (Optional, Available since v1.228.0) Specifies whether to enable automatic minor version update. Valid values:
   - `1`: Enables automatic minor version update.
   - `0`: Disables automatic minor version update.
 * `bandwidth` - (Optional, Int) The total bandwidth of the instance. **NOTE:** From version 1.232.0, `bandwidth` can be set. If the instance is a cluster instance, `bandwidth` must be divisible by the number of `shard_count` in the instance, and if the instance is a read/write splitting instance, `bandwidth` cannot be set.
 * `connection_string` - (Deprecated since v1.101.0) Indicates whether the address is a private endpoint.
-* `modify_mode`- (Removed since v1.216.0) The method of modifying the whitelist. **NOTE:** Field `modify_mode` has been removed from provider version 1.216.0.
 
 -> **NOTE:** The start time to the end time must be 1 hour. For example, the MaintainStartTime is 01:00Z, then the MaintainEndTime must be 02:00Z.
 
@@ -304,6 +301,9 @@ The following attributes are exported:
 * `qps` - Theoretical maximum QPS value.
 * `connection_domain`- Intranet connection address of the KVStore instance.
 * `status` - The status of KVStore DBInstance.
+* `ca_cert_download_url` - The download URL of the CA certificate. This attribute is populated when `ssl_enable` is set to `Enable`.
+* `ca_cert_common_name` - The common name of the CA certificate. **NOTE:** This is a best-effort attribute and may be empty when the upstream API does not return it.
+* `ssl_expired_time` - The expiration time of the SSL certificate. **NOTE:** This is a best-effort attribute and may be empty when the upstream API does not return it.
 
 ## Timeouts
 

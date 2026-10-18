@@ -1,4 +1,3 @@
-// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -8,8 +7,8 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceAliCloudEcsSnapshot() *schema.Resource {
@@ -27,6 +26,10 @@ func resourceAliCloudEcsSnapshot() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"available": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"category": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -84,6 +87,11 @@ func resourceAliCloudEcsSnapshot() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchema(),
+			"wait_until": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: StringInSlice([]string{"accomplished", "available"}, false),
+			},
 			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -132,14 +140,14 @@ func resourceAliCloudEcsSnapshotCreate(d *schema.ResourceData, meta interface{})
 		request["Category"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -152,12 +160,20 @@ func resourceAliCloudEcsSnapshotCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(fmt.Sprint(response["SnapshotId"]))
 
 	ecsServiceV2 := EcsServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{"accomplished"}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateField, target := ecsSnapshotWaitCondition(d)
+	stateConf := BuildStateConf([]string{}, []string{target}, d.Timeout(schema.TimeoutCreate), 5*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFunc(d.Id(), stateField, []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}
 
 	return resourceAliCloudEcsSnapshotRead(d, meta)
+}
+
+func ecsSnapshotWaitCondition(d *schema.ResourceData) (string, string) {
+	if v, ok := d.GetOk("wait_until"); ok && v == "available" {
+		return "Available", "true"
+	}
+	return "Status", "accomplished"
 }
 
 func resourceAliCloudEcsSnapshotRead(d *schema.ResourceData, meta interface{}) error {
@@ -174,6 +190,13 @@ func resourceAliCloudEcsSnapshotRead(d *schema.ResourceData, meta interface{}) e
 		return WrapError(err)
 	}
 
+	available := objectRaw["Available"]
+	if available == nil {
+		available = false
+	}
+	if err := d.Set("available", available); err != nil {
+		return WrapError(err)
+	}
 	if objectRaw["Category"] != nil {
 		d.Set("category", objectRaw["Category"])
 	}
@@ -211,10 +234,12 @@ func resourceAliCloudEcsSnapshotRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
+	ecsServiceV2 := EcsServiceV2{client}
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
+	retentionDaysChanged := false
 	d.Partial(true)
 
 	action := "ModifySnapshotAttribute"
@@ -235,6 +260,7 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("retention_days") {
 		update = true
+		retentionDaysChanged = true
 
 		if v, ok := d.GetOkExists("retention_days"); ok {
 			request["RetentionDays"] = v
@@ -250,26 +276,29 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if update {
+		if retentionDaysChanged {
+			// ECS only accepts retention-day changes after the snapshot upload is complete.
+			stateConf := BuildStateConf([]string{}, []string{"accomplished"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFunc(d.Id(), "Status", []string{}))
+			if _, err := stateConf.WaitForState(); err != nil {
+				return WrapErrorf(err, IdMsg, d.Id())
+			}
+		}
+
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
 		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
-		}
-		ecsServiceV2 := EcsServiceV2{client}
-		stateConf := BuildStateConf([]string{}, []string{"accomplished"}, d.Timeout(schema.TimeoutUpdate), 5*time.Second, ecsServiceV2.EcsSnapshotStateRefreshFunc(d.Id(), "Status", []string{}))
-		if _, err := stateConf.WaitForState(); err != nil {
-			return WrapErrorf(err, IdMsg, d.Id())
 		}
 	}
 	update = false
@@ -288,14 +317,14 @@ func resourceAliCloudEcsSnapshotUpdate(d *schema.ResourceData, meta interface{})
 	request["ResourceType"] = "snapshot"
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -330,15 +359,15 @@ func resourceAliCloudEcsSnapshotDelete(d *schema.ResourceData, meta interface{})
 		request["Force"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		response, err = client.RpcPost("Ecs", "2014-05-26", action, query, request, true)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})

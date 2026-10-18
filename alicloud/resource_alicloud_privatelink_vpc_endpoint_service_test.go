@@ -15,10 +15,11 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -123,9 +124,9 @@ func TestAccAliCloudPrivatelinkVpcEndpointService_base(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, connectivity.PrivateLinkRegions)
 		},
 
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -207,7 +208,7 @@ func TestAccAliCloudPrivatelinkVpcEndpointService_supportedRegionList(t *testing
 			testAccPreCheckPrivateLinkCrossRegion(t)
 		},
 		IDRefreshName:     resourceId,
-		ProviderFactories: testAccPrivateLinkProviderFactories(),
+		ProviderFactories: testAccProviderFactory,
 		CheckDestroy:      testAccCheckPrivateLinkVpcEndpointServiceDestroyInRegion(testAccPrivateLinkCrossRegionServiceRegion),
 		Steps: []resource.TestStep{
 			{
@@ -264,14 +265,6 @@ func testAccPrivateLinkVpcEndpointServiceSupportedAllRegionsConfig(name string) 
 		testAccPrivateLinkCrossRegionServiceRegion,
 		testAccPrivateLinkCrossRegionEndpointRegion,
 	})
-}
-
-func testAccPrivateLinkProviderFactories() map[string]terraform.ResourceProviderFactory {
-	return map[string]terraform.ResourceProviderFactory{
-		"alicloud": func() (terraform.ResourceProvider, error) {
-			return Provider(), nil
-		},
-	}
 }
 
 func testAccPreCheckPrivateLinkCrossRegion(t *testing.T) {
@@ -401,15 +394,15 @@ func testAccAttachPrivateLinkVpcEndpointServiceResource(client *connectivity.Ali
 	var response map[string]interface{}
 	var err error
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(5*time.Minute, func() *retry.RetryError {
 		request["ClientToken"] = buildClientToken(action)
 		response, err = client.RpcPost("Privatelink", "2020-04-15", action, query, request, true)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"EndpointServiceOperationDenied", "ConcurrentCallNotSupported", "EndpointServiceLocked"}) || NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -536,8 +529,183 @@ func testAccPrivateLinkQuotedList(values []string) string {
 	return strings.Join(list, "\n")
 }
 
+func TestAccAliCloudPrivatelinkVpcEndpointService_resource(t *testing.T) {
+	var v map[string]interface{}
+	resourceId := "alicloud_privatelink_vpc_endpoint_service.default"
+	ra := resourceAttrInit(resourceId, AlicloudPrivatelinkVpcEndpointServiceMap)
+	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
+		return &PrivateLinkServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
+	}, "DescribePrivateLinkVpcEndpointService")
+	rac := resourceAttrCheckInit(rc, ra)
+	testAccCheck := rac.resourceAttrMapUpdateSet()
+	rand := acctest.RandIntRange(10000, 99999)
+	name := fmt.Sprintf("tf-testacc%sprivatelinkvpcesresource%d", defaultRegionToTest, rand)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudPrivatelinkVpcEndpointServiceResourceDependence)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, connectivity.PrivateLinkRegions)
+		},
+		IDRefreshName: resourceId,
+		Providers:     testAccProviders,
+		CheckDestroy:  rac.checkResourceDestroy(),
+		Steps: []resource.TestStep{
+			{
+				// Create the endpoint service with a backend resource attached
+				// inline, so the cross-zone association is set at creation time.
+				Config: testAccConfig(map[string]interface{}{
+					"service_description":    name,
+					"service_resource_type":  "nlb",
+					"auto_accept_connection": "true",
+					"resource": []map[string]interface{}{
+						{
+							"resource_id":   "${alicloud_nlb_load_balancer.default.id}",
+							"resource_type": "nlb",
+							"zone_id":       "${data.alicloud_nlb_zones.default.zones.0.id}",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"service_description":   name,
+						"service_resource_type": "nlb",
+						"resource.#":            "1",
+					}),
+				),
+			},
+			{
+				// Attach a second backend resource (a different load balancer in
+				// a different zone) — exercises the incremental Attach path and
+				// changes both resource_id and zone_id.
+				Config: testAccConfig(map[string]interface{}{
+					"resource": []map[string]interface{}{
+						{
+							"resource_id":   "${alicloud_nlb_load_balancer.default.id}",
+							"resource_type": "nlb",
+							"zone_id":       "${data.alicloud_nlb_zones.default.zones.0.id}",
+						},
+						{
+							"resource_id":   "${alicloud_nlb_load_balancer.second.id}",
+							"resource_type": "nlb",
+							"zone_id":       "${data.alicloud_nlb_zones.default.zones.1.id}",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource.#": "2",
+					}),
+				),
+			},
+			{
+				// Detach back to a single backend resource, keeping the second
+				// load balancer as the remaining attachment — exercises the
+				// incremental Detach path and changes resource_id and zone_id.
+				Config: testAccConfig(map[string]interface{}{
+					"resource": []map[string]interface{}{
+						{
+							"resource_id":   "${alicloud_nlb_load_balancer.second.id}",
+							"resource_type": "nlb",
+							"zone_id":       "${data.alicloud_nlb_zones.default.zones.1.id}",
+						},
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"resource.#": "1",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
+				// dry_run is a request-only flag and is not persisted by the
+				// service, so it is not present in the refreshed state to verify
+				// on import.
+				//
+				// `resource.resource_type` is a no-op for TypeSet import
+				// verification (the SDK matches ImportStateVerifyIgnore by
+				// flattened-key prefix, so it never matches resource.N.resource_type).
+				// It is retained here as a coverage-exemption marker:
+				// resource_type is bound to the backend resource identity
+				// (slb/alb/nlb/gwlb) and cannot be modified in place without
+				// reattaching a different backend type, so the testing-coverage
+				// check exempts it via this entry. The `resource` set itself is
+				// still verified on import: element identity is stable (Set hashes
+				// on resource_id + resource_type) and zone_id is Computed, so a
+				// refreshed element matches the configured one.
+				ImportStateVerifyIgnore: []string{"dry_run", "resource.resource_type"},
+			},
+		},
+	})
+}
+
+func AlicloudPrivatelinkVpcEndpointServiceResourceDependence(name string) string {
+	return fmt.Sprintf(`
+variable "name" {
+  default = "%s"
+}
+
+data "alicloud_privatelink_service" "open" {
+  enable = "On"
+}
+
+data "alicloud_nlb_zones" "default" {}
+
+resource "alicloud_vpc" "default" {
+  vpc_name   = var.name
+  cidr_block = "10.0.0.0/8"
+}
+
+resource "alicloud_vswitch" "zone_a" {
+  vpc_id     = alicloud_vpc.default.id
+  zone_id    = data.alicloud_nlb_zones.default.zones.0.id
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "alicloud_vswitch" "zone_b" {
+  vpc_id     = alicloud_vpc.default.id
+  zone_id    = data.alicloud_nlb_zones.default.zones.1.id
+  cidr_block = "10.2.0.0/16"
+}
+
+resource "alicloud_nlb_load_balancer" "default" {
+  load_balancer_name = "${var.name}-1"
+  vpc_id             = alicloud_vpc.default.id
+  address_type       = "Intranet"
+
+  zone_mappings {
+    vswitch_id = alicloud_vswitch.zone_a.id
+    zone_id    = data.alicloud_nlb_zones.default.zones.0.id
+  }
+
+  zone_mappings {
+    vswitch_id = alicloud_vswitch.zone_b.id
+    zone_id    = data.alicloud_nlb_zones.default.zones.1.id
+  }
+}
+
+resource "alicloud_nlb_load_balancer" "second" {
+  load_balancer_name = "${var.name}-2"
+  vpc_id             = alicloud_vpc.default.id
+  address_type       = "Intranet"
+
+  zone_mappings {
+    vswitch_id = alicloud_vswitch.zone_a.id
+    zone_id    = data.alicloud_nlb_zones.default.zones.0.id
+  }
+
+  zone_mappings {
+    vswitch_id = alicloud_vswitch.zone_b.id
+    zone_id    = data.alicloud_nlb_zones.default.zones.1.id
+  }
+}
+`, name)
+}
+
 func TestUnitVpcEndpointServiceConnectBandwidthReadByResourceType(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 
 	cases := []struct {
 		name                string
@@ -601,7 +769,7 @@ func TestUnitVpcEndpointServiceConnectBandwidthReadByResourceType(t *testing.T) 
 
 // lintignore: R001
 func TestUnitAlicloudPrivatelinkVpcEndpointService(t *testing.T) {
-	p := Provider().(*schema.Provider).ResourcesMap
+	p := Provider().ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint_service"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_privatelink_vpc_endpoint_service"].Schema).Data(nil, nil)
 	dInit.MarkNewResource()
@@ -636,6 +804,9 @@ func TestUnitAlicloudPrivatelinkVpcEndpointService(t *testing.T) {
 		"ServiceDescription":    "CreateVpcEndpointServiceValue",
 		"ServiceDomain":         "CreateVpcEndpointServiceValue",
 		"ServiceStatus":         "Active",
+		// ListVpcEndpointServiceResources — an empty array keeps jsonpath.Get
+		// successful and reflects no attached service resources in unit tests.
+		"Resources": []interface{}{},
 	}
 	CreateMockResponse := map[string]interface{}{
 		// CreateVpcEndpoint
@@ -871,9 +1042,9 @@ func TestAccAliCloudPrivatelinkVpcEndpointService_case4837(t *testing.T) {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"eu-central-1"})
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
@@ -1025,9 +1196,9 @@ func TestAccAliCloudPrivatelinkVpcEndpointService_case9628(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
+		IDRefreshName:     resourceId,
+		ProviderFactories: testAccProviderFactory,
+		CheckDestroy:      rac.checkResourceDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{

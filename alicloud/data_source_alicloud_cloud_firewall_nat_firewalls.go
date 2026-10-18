@@ -8,8 +8,8 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceAliCloudCloudFirewallNatFirewalls() *schema.Resource {
@@ -115,8 +115,16 @@ func dataSourceAliCloudCloudFirewallNatFirewalls() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"region_no": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"strict_mode": {
 							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"status": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"vpc_id": {
@@ -185,15 +193,15 @@ func dataSourceAliCloudCloudFirewallNatFirewallRead(d *schema.ResourceData, meta
 	request["PageNumber"] = 1
 	for {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
-		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			response, err = client.RpcPost("Cloudfw", "2017-12-07", action, query, request, true)
 
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
-					return resource.RetryableError(err)
+					return retry.RetryableError(err)
 				}
-				return resource.NonRetryableError(err)
+				return retry.NonRetryableError(err)
 			}
 			addDebug(action, response, request)
 			return nil
@@ -222,7 +230,6 @@ func dataSourceAliCloudCloudFirewallNatFirewallRead(d *schema.ResourceData, meta
 	}
 
 	ids := make([]string, 0)
-	names := make([]interface{}, 0)
 	s := make([]map[string]interface{}, 0)
 	for _, objectRaw := range objects {
 		mapping := map[string]interface{}{}
@@ -234,7 +241,9 @@ func dataSourceAliCloudCloudFirewallNatFirewallRead(d *schema.ResourceData, meta
 		mapping["nat_gateway_id"] = objectRaw["NatGatewayId"]
 		mapping["nat_gateway_name"] = objectRaw["NatGatewayName"]
 		mapping["proxy_name"] = objectRaw["ProxyName"]
+		mapping["region_no"] = objectRaw["RegionId"]
 		mapping["strict_mode"] = objectRaw["StrictMode"]
+		mapping["status"] = objectRaw["ProxyStatus"]
 		mapping["vpc_id"] = objectRaw["VpcId"]
 		mapping["proxy_id"] = objectRaw["ProxyId"]
 
@@ -255,7 +264,6 @@ func dataSourceAliCloudCloudFirewallNatFirewallRead(d *schema.ResourceData, meta
 		mapping["nat_route_entry_list"] = natRouteEntryListMaps
 
 		ids = append(ids, fmt.Sprint(mapping["id"]))
-		names = append(names, objectRaw[""])
 		s = append(s, mapping)
 	}
 

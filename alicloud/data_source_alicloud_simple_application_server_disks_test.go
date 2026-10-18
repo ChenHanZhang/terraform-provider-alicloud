@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccAlicloudSimpleApplicationServerDisksDataSource(t *testing.T) {
@@ -76,6 +76,8 @@ func TestAccAlicloudSimpleApplicationServerDisksDataSource(t *testing.T) {
 	}
 
 	preCheck := func() {
+		testAccPreCheck(t)
+		testAccPreCheckPrePaidResources(t)
 		testAccPreCheckWithRegions(t, false, connectivity.SimpleApplicationServerNotSupportRegions)
 	}
 

@@ -2,13 +2,14 @@ package alicloud
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type RealtimeComputeServiceV2 struct {
@@ -29,15 +30,15 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeVvpInstance(id string)
 	query["DescribeInstancesRequest.Region"] = s.client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RpcGet("foasconsole", "2019-06-01", action, query, request)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		addDebug(action, response, request)
 		return nil
@@ -59,7 +60,7 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeVvpInstance(id string)
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
 
-func (s *RealtimeComputeServiceV2) RealtimeComputeVvpInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *RealtimeComputeServiceV2) RealtimeComputeVvpInstanceStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeRealtimeComputeVvpInstance(id)
 		if err != nil {
@@ -112,15 +113,15 @@ func (s *RealtimeComputeServiceV2) SetResourceTags(d *schema.ResourceData, resou
 
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("foasconsole", "2019-06-01", action, query, request, true)
 
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				addDebug(action, response, request)
 				return nil
@@ -146,15 +147,15 @@ func (s *RealtimeComputeServiceV2) SetResourceTags(d *schema.ResourceData, resou
 
 			request["ResourceType"] = resourceType
 			wait := incrementalWait(3*time.Second, 5*time.Second)
-			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 				response, err = client.RpcPost("foasconsole", "2019-06-01", action, query, request, true)
 
 				if err != nil {
 					if NeedRetry(err) {
 						wait()
-						return resource.RetryableError(err)
+						return retry.RetryableError(err)
 					}
-					return resource.NonRetryableError(err)
+					return retry.NonRetryableError(err)
 				}
 				addDebug(action, response, request)
 				return nil
@@ -164,7 +165,6 @@ func (s *RealtimeComputeServiceV2) SetResourceTags(d *schema.ResourceData, resou
 			}
 
 		}
-		d.SetPartial("tags")
 	}
 
 	return nil
@@ -195,15 +195,15 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeDeployment(id string) 
 	action := fmt.Sprintf("/api/v2/namespaces/%s/deployments/%s", namespace, deploymentId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -223,11 +223,11 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeDeployment(id string) 
 	return v.(map[string]interface{}), nil
 }
 
-func (s *RealtimeComputeServiceV2) RealtimeComputeDeploymentStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *RealtimeComputeServiceV2) RealtimeComputeDeploymentStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.RealtimeComputeDeploymentStateRefreshFuncWithApi(id, field, failStates, s.DescribeRealtimeComputeDeployment)
 }
 
-func (s *RealtimeComputeServiceV2) RealtimeComputeDeploymentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *RealtimeComputeServiceV2) RealtimeComputeDeploymentStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -280,15 +280,15 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeJob(id string) (object
 	action := fmt.Sprintf("/api/v2/namespaces/%s/jobs/%s", namespace, jobId)
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
 		response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
 
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -308,11 +308,11 @@ func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeJob(id string) (object
 	return v.(map[string]interface{}), nil
 }
 
-func (s *RealtimeComputeServiceV2) RealtimeComputeJobStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
+func (s *RealtimeComputeServiceV2) RealtimeComputeJobStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
 	return s.RealtimeComputeJobStateRefreshFuncWithApi(id, field, failStates, s.DescribeRealtimeComputeJob)
 }
 
-func (s *RealtimeComputeServiceV2) RealtimeComputeJobStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
+func (s *RealtimeComputeServiceV2) RealtimeComputeJobStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := call(id)
 		if err != nil {
@@ -341,3 +341,323 @@ func (s *RealtimeComputeServiceV2) RealtimeComputeJobStateRefreshFuncWithApi(id 
 }
 
 // DescribeRealtimeComputeJob >>> Encapsulated.
+
+// DescribeRealtimeComputeMember <<< Encapsulated get interface for RealtimeCompute member.
+
+func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeMember(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	parts := strings.Split(id, ":")
+	if len(parts) != 3 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
+		return nil, err
+	}
+	member := parts[2]
+	namespace := parts[1]
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+	header["workspace"] = StringPointer(parts[0])
+
+	action := fmt.Sprintf("/gateway/v2/namespaces/%s/members/%s", namespace, member)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+		response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"990301"}) {
+			return object, WrapErrorf(NotFoundErr("member", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.data", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.data", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeMemberStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
+	return s.RealtimeComputeMemberStateRefreshFuncWithApi(id, field, failStates, s.DescribeRealtimeComputeMember)
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeMemberStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeRealtimeComputeMember >>> Encapsulated.
+
+// DescribeRealtimeComputeSqlFile <<< Encapsulated get interface for RealtimeCompute SqlFile.
+
+func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeSqlFile(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var request map[string]interface{}
+	var response map[string]interface{}
+	var query map[string]*string
+	var header map[string]*string
+	parts := strings.Split(id, ":")
+	if len(parts) != 3 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
+		return nil, err
+	}
+	namespace := parts[1]
+	sqlFileId := parts[2]
+	request = make(map[string]interface{})
+	query = make(map[string]*string)
+	header = make(map[string]*string)
+	header["workspace"] = StringPointer(parts[0])
+
+	action := fmt.Sprintf("/api/v2/namespaces/%s/sql-file/%s", namespace, sqlFileId)
+
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+		response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
+
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, request)
+	if err != nil {
+		if IsExpectedErrors(err, []string{"990301"}) {
+			return object, WrapErrorf(NotFoundErr("SqlFile", id), NotFoundMsg, response)
+		}
+		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+	}
+
+	v, err := jsonpath.Get("$.data", response)
+	if err != nil {
+		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.data", response)
+	}
+
+	return v.(map[string]interface{}), nil
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeSqlFileStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
+	return s.RealtimeComputeSqlFileStateRefreshFuncWithApi(id, field, failStates, s.DescribeRealtimeComputeSqlFile)
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeSqlFileStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// GetSqlFileRootFolderId returns the root folder ID of SQL scripts (rootType=SQL_FILE),
+// used as the default parentId when creating a SqlFile without an explicit parent_id.
+func (s *RealtimeComputeServiceV2) GetSqlFileRootFolderId(workspace, namespace string) (string, error) {
+	client := s.client
+	var response map[string]interface{}
+	action := fmt.Sprintf("/api/v2/namespaces/%s/folder", namespace)
+	query := make(map[string]*string)
+	query["rootType"] = StringPointer("SQL_FILE")
+	header := make(map[string]*string)
+	header["workspace"] = StringPointer(workspace)
+	var err error
+	wait := incrementalWait(3*time.Second, 5*time.Second)
+	err = retry.Retry(2*time.Minute, func() *retry.RetryError {
+		response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
+		if err != nil {
+			if NeedRetry(err) || strings.Contains(err.Error(), "uk_folder_id") {
+				wait()
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	addDebug(action, response, nil)
+	if err != nil {
+		return "", WrapErrorf(err, DefaultErrorMsg, namespace, action, AlibabaCloudSdkGoERROR)
+	}
+	folderId, err := jsonpath.Get("$.data.folderId", response)
+	if err != nil || folderId == nil || fmt.Sprint(folderId) == "" {
+		return "", WrapErrorf(fmt.Errorf("failed to get the SQL_FILE root folder id of namespace %s", namespace), FailedGetAttributeMsg, namespace, "$.data.folderId", response)
+	}
+	return fmt.Sprint(folderId), nil
+}
+
+// DescribeRealtimeComputeSqlFile >>> Encapsulated.
+
+// DescribeRealtimeComputeVariable <<< Encapsulated get interface for RealtimeCompute Variable.
+
+func (s *RealtimeComputeServiceV2) DescribeRealtimeComputeVariable(id string) (object map[string]interface{}, err error) {
+	client := s.client
+	var response map[string]interface{}
+	var query map[string]*string
+	parts := strings.Split(id, ":")
+	if len(parts) != 3 {
+		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 3, len(parts)))
+		return nil, err
+	}
+	namespace := parts[1]
+	request := make(map[string]*string)
+	query = make(map[string]*string)
+	header := make(map[string]*string)
+	request["pageSize"] = StringPointer(strconv.Itoa(PageSizeLarge))
+	request["pageIndex"] = StringPointer("1")
+	header["workspace"] = StringPointer(parts[0])
+
+	action := fmt.Sprintf("/api/v2/namespaces/%s/variables", namespace)
+
+	idExist := false
+	for {
+		wait := incrementalWait(3*time.Second, 5*time.Second)
+		err = retry.Retry(1*time.Minute, func() *retry.RetryError {
+			response, err = client.RoaGet("ververica", "2022-07-18", action, query, header, nil)
+			if err != nil {
+				if NeedRetry(err) {
+					wait()
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		addDebug(action+"read", response, request)
+
+		if err != nil {
+			if fmt.Sprint(response["success"]) == "false" {
+				if fmt.Sprint(response["errorCode"]) == "990301" {
+					return object, WrapErrorf(NotFoundErr("Variable", id), NotFoundMsg, response)
+				}
+				return object, WrapError(fmt.Errorf("%s failed, response: %v", action, response))
+			}
+			return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+		}
+
+		resp, err := jsonpath.Get("$.data", response)
+		if err != nil {
+			return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.data", response)
+		}
+
+		if v, ok := resp.([]interface{}); !ok || len(v) < 1 {
+			return object, WrapErrorf(NotFoundErr("Variable", id), NotFoundMsg, response)
+		}
+
+		for _, v := range resp.([]interface{}) {
+			if fmt.Sprint(v.(map[string]interface{})["name"]) == parts[2] {
+				idExist = true
+				return v.(map[string]interface{}), nil
+			}
+		}
+
+		if len(resp.([]interface{})) < PageSizeLarge {
+			break
+		}
+
+		pageIndex, err := strconv.Atoi(*request["pageIndex"])
+		if err != nil {
+			return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
+		}
+
+		request["pageIndex"] = StringPointer(strconv.Itoa(pageIndex + 1))
+	}
+
+	if !idExist {
+		return object, WrapErrorf(NotFoundErr("Variable", id), NotFoundMsg, response)
+	}
+
+	return object, nil
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeVariableStateRefreshFunc(id string, field string, failStates []string) retry.StateRefreshFunc {
+	return s.RealtimeComputeVariableStateRefreshFuncWithApi(id, field, failStates, s.DescribeRealtimeComputeVariable)
+}
+
+func (s *RealtimeComputeServiceV2) RealtimeComputeVariableStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := call(id)
+		if err != nil {
+			if NotFoundError(err) {
+				return object, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+		v, err := jsonpath.Get(field, object)
+		currentStatus := fmt.Sprint(v)
+
+		if strings.HasPrefix(field, "#") {
+			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
+			if v != nil {
+				currentStatus = "#CHECKSET"
+			}
+		}
+
+		for _, failState := range failStates {
+			if currentStatus == failState {
+				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
+			}
+		}
+		return object, currentStatus, nil
+	}
+}
+
+// DescribeRealtimeComputeVariable >>> Encapsulated.
