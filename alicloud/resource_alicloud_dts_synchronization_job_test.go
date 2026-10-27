@@ -1,12 +1,19 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"regexp"
+	"strings"
+	"sync"
 	"testing"
 
+	credentials "github.com/aliyun/credentials-go/credentials"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -1109,4 +1116,180 @@ func TestAccAliCloudDTSSynchronizationJob_instanceClassDowngrade(t *testing.T) {
 			},
 		},
 	})
+}
+
+func dtsSynchronizationJobImportTestClient(t *testing.T, handler http.HandlerFunc) *connectivity.AliyunClient {
+	t.Helper()
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+	credential, err := credentials.NewCredential(new(credentials.Config).SetType("access_key").SetAccessKeyId("test-key").SetAccessKeySecret("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints := new(sync.Map)
+	endpoint := strings.TrimPrefix(server.URL, "http://")
+	t.Setenv("NO_PROXY", endpoint)
+	config := &connectivity.Config{AccessKey: "test-key", SecretKey: "test-secret", Credential: credential, RegionId: "eu-west-1", AccountType: "test", Protocol: "http", Endpoints: endpoints, SignVersion: new(sync.Map), SkipRegionValidation: true}
+	client, err := config.Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoints.Store("dts", endpoint)
+	return client
+}
+
+func TestUnitDtsSynchronizationJobImportIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name, input, returned, status, apiCode, wantError string
+	}{
+		{name: "canonical_job", input: "njl106g62735gmd", returned: "njl106g62735gmd"},
+		{name: "rebuilt_job", input: "is210es227j5gr6", returned: "is210es227j5gr6"},
+		{name: "not_prefix_based", input: "dts-job-id", returned: "dts-job-id"},
+		{name: "instance_id", input: "dtsnjl106g62735gmd", returned: "njl106g62735gmd", wantError: "does not match"},
+		{name: "instance_with_deleted_history", input: "dtsnjl106g62735gmd", returned: "is210es227j5gr6", wantError: "does not match"},
+		{name: "different_job", input: "njl106g62735gmd", returned: "is210es227j5gr6", wantError: "does not match"},
+		{name: "missing_job_id", input: "njl106g62735gmd", wantError: "DtsJobId"},
+		{name: "deleted_job", input: "njl106g62735gmd", returned: "njl106g62735gmd", status: "Finished", wantError: "cannot import"},
+		{name: "not_found", input: "njl106g62735gmd", apiCode: "Forbidden.InstanceNotFound", wantError: "cannot import"},
+		{name: "permission_denied", input: "njl106g62735gmd", apiCode: "Forbidden.NoPermission", wantError: "Forbidden.NoPermission"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			client := dtsSynchronizationJobImportTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+				}
+				if r.Form.Get("Action") != "DescribeDtsJobDetail" || r.Form.Get("DtsJobId") != tc.input {
+					t.Errorf("unexpected request: %v", r.Form)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				if tc.apiCode != "" {
+					w.WriteHeader(http.StatusForbidden)
+					json.NewEncoder(w).Encode(map[string]interface{}{"Code": tc.apiCode, "Message": "test error", "RequestId": "test-request"})
+					return
+				}
+				json.NewEncoder(w).Encode(map[string]interface{}{"Success": true, "DtsJobId": tc.returned, "DtsInstanceID": "dtsnjl106g62735gmd", "Status": tc.status})
+			})
+			resource := resourceAlicloudDtsSynchronizationJob()
+			d := schema.TestResourceDataRaw(t, resource.Schema, nil)
+			d.SetId(tc.input)
+			states, err := resource.Importer.State(d, client)
+			if tc.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+					t.Fatalf("expected %q, got states=%v err=%v", tc.wantError, states, err)
+				}
+				if len(states) != 0 {
+					t.Fatalf("failed import returned state: %v", states)
+				}
+			} else if err != nil || len(states) != 1 || states[0].Id() != tc.input {
+				t.Fatalf("unexpected result states=%v err=%v", states, err)
+			}
+			if d.Id() != tc.input {
+				t.Fatalf("identity switched from %q to %q", tc.input, d.Id())
+			}
+			if requests != 1 {
+				t.Fatalf("expected one exact-ID query, got %d requests", requests)
+			}
+		})
+	}
+}
+
+func TestUnitDtsSynchronizationJobReadIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name, input, returned string
+		missing, mismatch     bool
+	}{
+		{name: "canonical", input: "is210es227j5gr6", returned: "is210es227j5gr6"},
+		{name: "legacy_instance_state", input: "dtsnjl106g62735gmd", returned: "is210es227j5gr6", mismatch: true},
+		{name: "different_job", input: "njl106g62735gmd", returned: "is210es227j5gr6", mismatch: true},
+		{name: "missing_identity", input: "njl106g62735gmd", mismatch: true},
+		{name: "deleted_old_job", input: "njl106g62735gmd", missing: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			client := dtsSynchronizationJobImportTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				r.ParseForm()
+				if r.Form.Get("DtsJobId") != tc.input {
+					t.Errorf("query switched identity: %v", r.Form)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				switch r.Form.Get("Action") {
+				case "DescribeDtsJobDetail":
+					if tc.missing {
+						w.WriteHeader(http.StatusNotFound)
+						json.NewEncoder(w).Encode(map[string]interface{}{"Code": "Forbidden.InstanceNotFound", "Message": "deleted", "RequestId": "test-request"})
+						return
+					}
+					json.NewEncoder(w).Encode(map[string]interface{}{"Success": true, "DtsJobId": tc.returned, "DtsInstanceID": "dtsnjl106g62735gmd", "Status": "Synchronizing", "MigrationMode": map[string]interface{}{}, "DestinationEndpoint": map[string]interface{}{}, "SourceEndpoint": map[string]interface{}{}})
+				case "DescribeDtsJobConfig":
+					json.NewEncoder(w).Encode(map[string]interface{}{"Parameters": []interface{}{}})
+				default:
+					t.Errorf("unexpected mutation or lookup: %v", r.Form)
+					w.WriteHeader(http.StatusBadRequest)
+				}
+			})
+			resource := resourceAlicloudDtsSynchronizationJob()
+			d := schema.TestResourceDataRaw(t, resource.Schema, nil)
+			d.SetId(tc.input)
+			err := resource.Read(d, client)
+			if tc.mismatch {
+				if err == nil {
+					t.Fatal("expected identity diagnostic")
+				}
+				if d.Id() != tc.input {
+					t.Fatalf("state identity changed to %q", d.Id())
+				}
+				if requests != 1 {
+					t.Fatalf("unexpected follow-up requests: %d", requests)
+				}
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := tc.input
+				if tc.missing {
+					want = ""
+				}
+				if d.Id() != want {
+					t.Fatalf("want ID %q got %q", want, d.Id())
+				}
+			}
+		})
+	}
+}
+
+// A failed mutation must not discover or take over a replacement job via its parent instance.
+func TestUnitDtsSynchronizationJobUpdateDoesNotRebind(t *testing.T) {
+	for _, id := range []string{"njl106g62735gmd", "dtsnjl106g62735gmd"} {
+		t.Run(id, func(t *testing.T) {
+			requests := 0
+			client := dtsSynchronizationJobImportTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+				}
+				if r.Form.Get("Action") != "ModifyDtsJobName" || r.Form.Get("DtsJobId") != id {
+					t.Errorf("unexpected recovery or mutation: %v", r.Form)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]interface{}{"Code": "Forbidden.InstanceNotFound", "Message": "old job missing", "RequestId": "test-request"})
+			})
+			resource := resourceAlicloudDtsSynchronizationJob()
+			d := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{"dts_instance_id": "dtsnjl106g62735gmd", "dts_job_name": "renamed"})
+			d.SetId(id)
+			err := resource.Update(d, client)
+			if err == nil || !strings.Contains(err.Error(), "Forbidden.InstanceNotFound") {
+				t.Fatalf("expected original error, got %v", err)
+			}
+			if d.Id() != id {
+				t.Fatalf("state identity changed from %q to %q", id, d.Id())
+			}
+			if requests != 1 {
+				t.Fatalf("expected failed mutation only, got %d requests", requests)
+			}
+		})
+	}
 }

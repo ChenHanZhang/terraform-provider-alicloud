@@ -18,7 +18,7 @@ func resourceAlicloudDtsSynchronizationJob() *schema.Resource {
 		Update: resourceAlicloudDtsSynchronizationJobUpdate,
 		Delete: resourceAlicloudDtsSynchronizationJobDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAlicloudDtsSynchronizationJobImport,
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Update: schema.DefaultTimeout(10 * time.Minute),
@@ -462,6 +462,35 @@ func resourceAlicloudDtsSynchronizationJobCreate(d *schema.ResourceData, meta in
 
 	return resourceAlicloudDtsSynchronizationJobUpdate(d, meta)
 }
+
+// DTS detail lookups also accept instance IDs, but mutations require the job ID.
+// Never normalize an instance/old job ID to whichever job currently owns it.
+func validateDtsSynchronizationJobIdentity(id string, object map[string]interface{}) error {
+	jobId, ok := object["DtsJobId"].(string)
+	if !ok || jobId == "" {
+		return fmt.Errorf("cannot verify DTS synchronization job %q: DescribeDtsJobDetail returned no DtsJobId; state identity has not been changed", id)
+	}
+	if id != jobId {
+		return fmt.Errorf("DTS synchronization job ID %q does not match DtsJobId %q returned by DescribeDtsJobDetail; use the canonical DtsJobId, not DtsInstanceID. State identity has not been changed; verify the intended job and explicitly re-import it", id, jobId)
+	}
+	return nil
+}
+
+func resourceAlicloudDtsSynchronizationJobImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	dtsService := DtsService{meta.(*connectivity.AliyunClient)}
+	object, err := dtsService.DescribeDtsSynchronizationJob(d.Id())
+	if err != nil {
+		if NotFoundError(err) {
+			return nil, fmt.Errorf("cannot import non-existent DTS synchronization job %q: %s", d.Id(), err)
+		}
+		return nil, WrapError(err)
+	}
+	if err := validateDtsSynchronizationJobIdentity(d.Id(), object); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
+}
+
 func resourceAlicloudDtsSynchronizationJobRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	dtsService := DtsService{client}
@@ -473,6 +502,9 @@ func resourceAlicloudDtsSynchronizationJobRead(d *schema.ResourceData, meta inte
 			return nil
 		}
 		return WrapError(err)
+	}
+	if err := validateDtsSynchronizationJobIdentity(d.Id(), object); err != nil {
+		return err
 	}
 	migrationModeObj := object["MigrationMode"].(map[string]interface{})
 	destinationEndpointObj := object["DestinationEndpoint"].(map[string]interface{})
